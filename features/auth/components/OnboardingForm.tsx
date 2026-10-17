@@ -222,7 +222,7 @@ export function OnboardingForm({
             own; it needs the row to exist, so before the first Continue the square explains
             that the photo comes right after the name. */}
         <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-          <div aria-label={shown ? "Your profile photo" : "Your profile photo, not added yet"} style={{ width: 112, height: 112, borderRadius: 24, overflow: "hidden", background: "rgba(255,255,255,.07)", border: shown ? "none" : `2px dashed ${LINE}`, display: "flex", alignItems: "center", justifyContent: "center", color: SUB, fontSize: 26, fontWeight: 800, flexShrink: 0, position: "relative" }}>
+          <div aria-label={shown ? "Your profile photo" : "Your profile photo, not added yet"} style={{ width: 112, height: 112, borderRadius: "50%", overflow: "hidden", background: "rgba(255,255,255,.07)", border: shown ? "none" : `2px dashed ${LINE}`, display: "flex", alignItems: "center", justifyContent: "center", color: SUB, fontSize: 26, fontWeight: 800, flexShrink: 0, position: "relative" }}>
             {face ? (
               <Image src={face} alt="" width={112} height={112} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
             ) : staged ? (

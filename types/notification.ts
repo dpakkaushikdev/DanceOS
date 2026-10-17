@@ -12,10 +12,10 @@
  *  ⚠ `event` stays as HISTORY ONLY: the retired Events feature's old rows carry
  *  it (all marked read by the migration). It is drawn as "Events (retired)" and
  *  has no settings row — nothing can raise a new one. */
-export type NotificationGroup = "class" | "team" | "crew" | "enquiry" | "money" | "danceos";
+export type NotificationGroup = "class" | "team" | "crew" | "membership" | "enquiry" | "money" | "danceos";
 export type NotificationKind = NotificationGroup | "event";
 
-export type NotificationGlyph = "class" | "team" | "crew" | "enquiry" | "money" | "danceos" | "event";
+export type NotificationGlyph = "class" | "team" | "crew" | "membership" | "enquiry" | "money" | "danceos" | "event";
 
 export interface NotificationGroupDef {
   k: NotificationKind;
@@ -31,6 +31,8 @@ export const NOTIF_GROUPS: NotificationGroupDef[] = [
   { k: "class", label: "Classes", about: "Asks, bookings, reminders, step-downs", tint: "#0D9488", glyph: "class" },
   { k: "team", label: "Studios & team", about: "Team invites, who joined", tint: "#EA580C", glyph: "team" },
   { k: "crew", label: "Crews & practice", about: "Crew asks, practices", tint: "#DC2626", glyph: "crew" },
+  /* 18 Oct 2026 (`20261023090000`): a pass bought, spent, used up or returned */
+  { k: "membership", label: "Memberships", about: "Passes bought, spent, returned", tint: "#A16207", glyph: "membership" },
   { k: "enquiry", label: "Enquiries", about: "Enquiries, quotes, endings", tint: "#7C3AED", glyph: "enquiry" },
   { k: "money", label: "Money", about: "Payments, refunds, payouts", tint: "#16A34A", glyph: "money" },
   { k: "danceos", label: "DanceOS", about: "Support, verification", tint: "#64748B", glyph: "danceos" },
@@ -64,7 +66,7 @@ export interface NotificationPrefs {
   push: boolean;
 }
 
-const ALL_ON: Record<NotificationGroup, boolean> = { class: true, team: true, crew: true, enquiry: true, money: true, danceos: true };
+const ALL_ON: Record<NotificationGroup, boolean> = { class: true, team: true, crew: true, membership: true, enquiry: true, money: true, danceos: true };
 
 export const DEFAULT_PREFS: NotificationPrefs = {
   kinds: { ...ALL_ON },

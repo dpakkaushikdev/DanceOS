@@ -54,7 +54,7 @@ export function FollowedShelf({ rows }: { rows: FollowedTile[] }) {
       <div style={{ display: "flex", gap: 9, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 2 }}>
         {rows.map((x) => (
           <Link key={x.id} href={x.href} aria-label={x.style ? `${x.name} — ${x.tag ?? "your style"}` : `${x.name} — followed ${x.kind}`} data-testid={x.style ? "followed-style" : undefined} style={{ flexShrink: 0, width: 74, color: INK, textDecoration: "none" }}>
-            <div style={{ width: 74, height: 74, borderRadius: 16, background: `linear-gradient(135deg,${x.grad[0]},${x.grad[1]})`, display: "flex", alignItems: "flex-end", padding: 7, boxSizing: "border-box", position: "relative", overflow: "hidden" }}>
+            <div style={{ width: 74, height: 74, borderRadius: "50%", background: `linear-gradient(135deg,${x.grad[0]},${x.grad[1]})`, display: "flex", alignItems: "flex-end", padding: 7, boxSizing: "border-box", position: "relative", overflow: "hidden" }}>
               {x.style ? <StyleArt style={x.style} frame="page" /> : x.photo ? <Image src={x.photo} alt="" fill sizes="74px" style={{ objectFit: "cover" }} /> : <span style={{ color: "#fff", fontSize: 19, fontWeight: 800, fontFamily: DOS_DISPLAY, lineHeight: 1 }}>{initialsOf(x.name)}</span>}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 3, marginTop: 5, minWidth: 0 }}>

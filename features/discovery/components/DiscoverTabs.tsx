@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useOptimisticNav } from "@/features/shell/components/SegmentedNav";
+import { DiscoverLogo } from "./DiscoverLogo";
 
 /** DISCOVER'S SECTION TILES (4571-4585), PRESSED THE MOMENT THEY ARE TAPPED
  *  (20 Sep 2026, the user: *"see such bug doesnt appear anywhere in the system
@@ -77,7 +78,7 @@ export function DiscoverTabs({
               aria-hidden="true"
               style={{ display: "inline-flex", animation: on ? "dosTabPop .5s cubic-bezier(.34,1.56,.64,1)" : "none" }}
             >
-              {t.icon}
+              {DiscoverLogo({ k: t.key }) ?? t.icon}
             </span>
             <div style={{ fontSize: 10, fontWeight: 800 }}>{t.word}</div>
           </a>

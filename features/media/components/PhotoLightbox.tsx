@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
 import { DISC_RADIUS, DOS_UI, HERO_HEAD_H, HERO_HEAD_RADIUS, HERO_HEAD_W } from "@/lib/design/tokens";
@@ -10,59 +10,27 @@ import { DISC_RADIUS, DOS_UI, HERO_HEAD_H, HERO_HEAD_RADIUS, HERO_HEAD_W } from 
  *  section as an image gallery where user can click over a picture and expand
  *  and see it").
  *
- *  The chrome is the prototype's own full-screen viewer (DanceOSApp.jsx
- *  11440-11447): a near-black backdrop, a round ✕ at the top right, the picture,
- *  and a caption under it. Three things depart from it, and each is deliberate:
+ *  ⚠⚠ RE-CUT 18 Oct 2026 (the user: "photos when viewing should have a better
+ *  way, should be swipable, should appear bigger when clicked upon, should not
+ *  have text below them"):
+ *   · THE PICTURE FILLS THE SCREEN — as wide as the phone and as tall as the
+ *     screen allows, where it was a framed 86vw card;
+ *   · A FINGER SWIPES between pictures, the picture following the finger and
+ *     springing back if the swipe was short; ‹ › and the arrow keys still page;
+ *   · DOUBLE-TAP (or double-click) ZOOMS to 2.5× at the point tapped, and two
+ *     fingers PINCH; while zoomed one finger moves the picture instead of
+ *     paging, and a double-tap puts it back;
+ *   · NO TEXT UNDER IT — "Picture 2 of 5" is gone; dots say where you are.
  *
- *   1. THE FRAME IS THE PAGE'S OWN FRAME. The prototype's viewer exists to
- *      enlarge an AVATAR, so it draws a circle whatever it is given.
- *      ⚠⚠ THIS ONE SHOWS THE CROP AND NOTHING ELSE (28 Sep 2026, the user: "when
- *      clicking on any profile pic or poster from discover to any profile should
- *      view the pic in the cropped way only", and on 27 Sep "view photo should be
- *      same as how it was cut"). So it frames to the SAME ratio the page frames
- *      to — the banner's 3:2, or the disc's squircle — and covers it.
- *      ⚠ `contain` on the raw file was right while every upload was 1:1 and is
- *      wrong the moment two generations of crop exist: a 760² picture uploaded
- *      before 28 Sep is drawn by the page as its middle third and would have
- *      opened here as the whole square, so the enlarged view would show MORE than
- *      the thing you tapped. The price is that a legacy picture's top and bottom
- *      are not reachable from the viewer — which is the user's own instruction,
- *      twice, and the stored object is untouched either way.
- *   2. IT OPENS FROM A GRID TILE. The prototype's photo tiles have no onClick
- *      at all — it declares the viewer's state as `null | "avatar" | "cover"`
- *      (8705) and never renders the `"cover"` branch. So this completes a stub
- *      the prototype left rather than inventing a pattern; the backlog records
- *      it either way.
- *   3. IT PAGES. With more than one picture there are ‹ › and the arrow keys,
- *      because a gallery you can only leave and re-enter is a slideshow with
- *      extra steps.
- *
- *  ⚠ IT IS RENDERED AS A SIBLING OF `Sheet`, NEVER A CHILD. Two reasons, both
- *  real: the Sheet's panel carries a transform for the 280 ms of `dosSheetUp`,
- *  which would make it the containing block for anything `position: fixed`
- *  inside it; and both `e2e/happy-path.spec.ts` and `scripts/shots/shoot-hero.js`
- *  scope locators to `getByRole("dialog", { name: "Edit business" })`, so a
- *  dialog nested inside that one makes every such scope ambiguous.
- *
- *  ⚠ AND IT IS PORTALLED TO `document.body`, which is not decoration either.
- *  The Edit sheets open from a pencil that lives in `IdentityHero`'s corner —
- *  `position: absolute, zIndex: 3` — so everything rendered there sits inside a
- *  stacking context at level 3, while `AppChrome`'s top bar is `zIndex: 400` in
- *  the ROOT context. A z-index of 700 inside a context of 3 is still under 400:
- *  the first cut drew the whole viewer beneath the top bar, and the close
- *  button at top-right was the part you could see was wrong — Playwright found
- *  it as "visible, enabled and stable" and then could not click it, because the
- *  bell was on top. The portal takes it out to the root, where 700 means 700.
- *  (The Sheet has the same ancestry and gets away with it only because its
- *  panel is at the BOTTOM of the screen, below the bar.)
- *
- *  `useCloseOnBack` needs no argument beyond the closer: it keeps a LIFO stack
- *  over one history entry, and because this registers after the sheet did, the
- *  system back gesture peels this first and re-arms for the sheet underneath.
- *  No focus trap and no Escape handler — not one dialog in this repo has
- *  either, and being the only one would be inconsistency rather than
- *  accessibility. Never `aria-hidden` on the backdrop: that is the bug the
- *  bottom sheets were fixed for on 24 Aug 2026. */
+ *  What does not move, and why (the history of this file, kept short):
+ *   1. IT SHOWS THE CROP AND NOTHING ELSE (28 Sep 2026: "view the pic in the
+ *      cropped way only") — the frame is the page's own: the banner's 3:2 or
+ *      the round disc, covered.
+ *   2. IT IS PORTALLED TO `document.body` — opened from inside `IdentityHero`'s
+ *      stacking context (zIndex 3) it would otherwise sit under the top bar
+ *      (400) whatever its own z-index says.
+ *   3. `useCloseOnBack` — the system back gesture closes it.
+ *   4. NEVER `aria-hidden` on the backdrop (the 24 Aug 2026 bottom-sheet bug). */
 
 export interface LightboxShot {
   key: string;
@@ -74,21 +42,25 @@ export interface LightboxShot {
 }
 
 const round: React.CSSProperties = {
-  width: 36,
-  height: 36,
-  borderRadius: 18,
+  width: 40,
+  height: 40,
+  borderRadius: 20,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   cursor: "pointer",
   border: "1.5px solid rgba(255,255,255,.22)",
-  background: "rgba(255,255,255,.12)",
+  background: "rgba(0,0,0,.45)",
   color: "#fff",
-  fontSize: 16,
+  fontSize: 18,
   lineHeight: 1,
   padding: 0,
   fontFamily: "inherit",
+  backdropFilter: "blur(6px)",
 };
+
+const ZOOM = 2.5;
+const MAX_ZOOM = 4;
 
 export function PhotoLightbox({
   shots,
@@ -112,10 +84,13 @@ export function PhotoLightbox({
   const many = shots.length > 1;
   const at = Math.min(Math.max(index, 0), Math.max(0, shots.length - 1));
   const shot = shots[at];
+  /* which way the last page turn went, so the next picture slides in from that side */
+  const [dir, setDir] = useState<1 | -1>(1);
 
   const step = useCallback(
-    (by: number) => {
+    (by: 1 | -1) => {
       if (!many) return;
+      setDir(by);
       onIndex((at + by + shots.length) % shots.length);
     },
     [at, many, onIndex, shots.length]
@@ -131,11 +106,7 @@ export function PhotoLightbox({
     return () => window.removeEventListener("keydown", onKey);
   }, [many, step]);
 
-  /* the portal target is a browser object. There is no hydration risk in
-     reading it here: this component is only ever mounted from a press, so the
-     server renders nothing of it and there is nothing for a client render to
-     disagree with. A `useState` + effect would say the same thing and trip this
-     repo's own setState-in-effect rule. */
+  /* the portal target is a browser object; this is only ever mounted from a press */
   if (!shot || typeof document === "undefined") return null;
 
   return createPortal(
@@ -145,18 +116,19 @@ export function PhotoLightbox({
         position: "fixed",
         inset: 0,
         zIndex: 700,
-        background: "rgba(0,0,0,.92)",
+        background: "rgba(0,0,0,.94)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        padding: 24,
         boxSizing: "border-box",
         animation: "dosFadeIn .18s ease",
         fontFamily: DOS_UI,
+        touchAction: "none",
+        overscrollBehavior: "contain",
       }}
     >
-      <button type="button" aria-label="Close the picture" onClick={onClose} style={{ ...round, position: "absolute", top: 20, right: 20 }}>
+      <button type="button" aria-label="Close the picture" onClick={onClose} style={{ ...round, position: "absolute", top: "calc(14px + env(safe-area-inset-top, 0px))", right: 14, zIndex: 3 }}>
         ✕
       </button>
 
@@ -165,45 +137,201 @@ export function PhotoLightbox({
         aria-modal="true"
         aria-label={`${label} — picture ${at + 1} of ${shots.length}`}
         onClick={(e) => e.stopPropagation()}
-        style={{ display: "flex", alignItems: "center", gap: 10, maxWidth: "100%" }}
+        style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", width: "100%" }}
       >
+        {/* keyed per picture, so the zoom and the drag start fresh on every turn */}
+        <Stage key={shot.key} shot={shot} frame={frame} dir={dir} many={many} onStep={step} onClose={onClose} />
         {many ? (
-          <button type="button" aria-label="Previous picture" onClick={() => step(-1)} style={round}>
-            ‹
-          </button>
-        ) : null}
-        {shot.src ? (
-          <div
-            style={{
-              position: "relative",
-              overflow: "hidden",
-              flexShrink: 1,
-              boxShadow: "0 20px 60px rgba(0,0,0,.5)",
-              /* the disc is as tall as it is wide, so it is the one that has to
-                 watch the viewport's height as well */
-              width: frame === "disc" ? "min(86vw, 68vh, 420px)" : "min(86vw, 520px)",
-              aspectRatio: frame === "disc" ? "1 / 1" : `${HERO_HEAD_W} / ${HERO_HEAD_H}`,
-              borderRadius: frame === "disc" ? `${DISC_RADIUS * 100}%` : HERO_HEAD_RADIUS,
-            }}
-          >
-            <Image src={shot.src} alt={shot.alt} fill sizes="86vw" unoptimized={shot.signed} style={{ objectFit: "cover" }} />
-          </div>
-        ) : (
-          <div style={{ padding: "40px 28px", color: "rgba(255,255,255,.7)", fontSize: 12.5, textAlign: "center" }}>
-            This picture could not be loaded. Close and reopen the page to sign it again.
-          </div>
-        )}
-        {many ? (
-          <button type="button" aria-label="Next picture" onClick={() => step(1)} style={round}>
-            ›
-          </button>
+          <>
+            <button type="button" aria-label="Previous picture" onClick={() => step(-1)} style={{ ...round, position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", zIndex: 2 }}>
+              ‹
+            </button>
+            <button type="button" aria-label="Next picture" onClick={() => step(1)} style={{ ...round, position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", zIndex: 2 }}>
+              ›
+            </button>
+          </>
         ) : null}
       </div>
 
-      <div style={{ marginTop: 18, color: "rgba(255,255,255,.7)", fontSize: 12.5, fontWeight: 700 }}>
-        Picture {at + 1} of {shots.length}
-      </div>
+      {/* where you are — dots, not words (18 Oct 2026) */}
+      {many ? (
+        <div aria-hidden="true" data-testid="lightbox-dots" style={{ position: "absolute", bottom: "calc(22px + env(safe-area-inset-bottom, 0px))", display: "flex", gap: 6 }}>
+          {shots.map((s, i) => (
+            <span key={s.key} style={{ width: i === at ? 18 : 6, height: 6, borderRadius: 3, background: i === at ? "#fff" : "rgba(255,255,255,.35)", transition: "width .2s ease" }} />
+          ))}
+        </div>
+      ) : null}
     </div>,
     document.body
+  );
+}
+
+type Pt = { x: number; y: number };
+
+function Stage({
+  shot,
+  frame,
+  dir,
+  many,
+  onStep,
+  onClose,
+}: {
+  shot: LightboxShot;
+  frame: "banner" | "disc";
+  dir: 1 | -1;
+  many: boolean;
+  onStep: (by: 1 | -1) => void;
+  onClose: () => void;
+}) {
+  const [zoom, setZoom] = useState({ s: 1, x: 0, y: 0 });
+  const [drag, setDrag] = useState<Pt>({ x: 0, y: 0 });
+  const [live, setLive] = useState(false);
+  const box = useRef<HTMLDivElement | null>(null);
+  const g = useRef<{
+    start: Pt;
+    last: Pt;
+    pinch: { d: number; s: number } | null;
+    tapAt: number;
+    moved: boolean;
+  }>({ start: { x: 0, y: 0 }, last: { x: 0, y: 0 }, pinch: null, tapAt: 0, moved: false });
+
+  const clampPan = (s: number, x: number, y: number) => {
+    const r = box.current?.getBoundingClientRect();
+    if (!r) return { x, y };
+    const mx = ((s - 1) * r.width) / 2;
+    const my = ((s - 1) * r.height) / 2;
+    return { x: Math.max(-mx, Math.min(mx, x)), y: Math.max(-my, Math.min(my, y)) };
+  };
+
+  /** double-tap: zoom in at the point tapped, or back out */
+  const toggleZoom = (clientX: number, clientY: number) => {
+    if (zoom.s > 1) {
+      setZoom({ s: 1, x: 0, y: 0 });
+      return;
+    }
+    const r = box.current?.getBoundingClientRect();
+    if (!r) return setZoom({ s: ZOOM, x: 0, y: 0 });
+    const cx = clientX - (r.left + r.width / 2);
+    const cy = clientY - (r.top + r.height / 2);
+    setZoom({ s: ZOOM, ...clampPan(ZOOM, -cx * (ZOOM - 1), -cy * (ZOOM - 1)) });
+  };
+
+  const dist = (t: React.TouchList) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    const gg = g.current;
+    if (e.touches.length === 2) {
+      gg.pinch = { d: dist(e.touches), s: zoom.s };
+      return;
+    }
+    const t = e.touches[0];
+    gg.start = { x: t.clientX, y: t.clientY };
+    gg.last = gg.start;
+    gg.moved = false;
+    setLive(true);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    const gg = g.current;
+    if (e.touches.length === 2 && gg.pinch) {
+      const s = Math.max(1, Math.min(MAX_ZOOM, (gg.pinch.s * dist(e.touches)) / gg.pinch.d));
+      setZoom((z) => ({ s, ...clampPan(s, z.x, z.y) }));
+      gg.moved = true;
+      return;
+    }
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    const dx = t.clientX - gg.start.x;
+    const dy = t.clientY - gg.start.y;
+    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) gg.moved = true;
+    if (zoom.s > 1) {
+      /* zoomed: one finger moves the picture */
+      const mx = t.clientX - gg.last.x;
+      const my = t.clientY - gg.last.y;
+      gg.last = { x: t.clientX, y: t.clientY };
+      setZoom((z) => ({ s: z.s, ...clampPan(z.s, z.x + mx, z.y + my) }));
+      return;
+    }
+    /* not zoomed: the picture follows the finger sideways (paging), or down (closing) */
+    setDrag({ x: many ? dx : dx * 0.25, y: Math.abs(dy) > Math.abs(dx) && dy > 0 ? dy : 0 });
+  };
+
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const gg = g.current;
+    if (gg.pinch) {
+      if (e.touches.length === 0) gg.pinch = null;
+      if (zoom.s < 1.05) setZoom({ s: 1, x: 0, y: 0 });
+      return;
+    }
+    setLive(false);
+    const { x, y } = drag;
+    setDrag({ x: 0, y: 0 });
+    if (zoom.s === 1) {
+      if (many && x < -60) return onStep(1);
+      if (many && x > 60) return onStep(-1);
+      if (y > 110) return onClose();
+    }
+    if (!gg.moved) {
+      const now = Date.now();
+      const t = e.changedTouches[0];
+      if (now - gg.tapAt < 300) {
+        gg.tapAt = 0;
+        toggleZoom(t.clientX, t.clientY);
+      } else {
+        gg.tapAt = now;
+      }
+    }
+  };
+
+  /* the size: as wide as the phone, as tall as the screen allows, in the page's own shape */
+  const width =
+    frame === "disc"
+      ? "min(calc(100vw - 20px), calc(100dvh - 150px), 640px)"
+      : `min(calc(100vw - 12px), calc((100dvh - 150px) * ${HERO_HEAD_W / HERO_HEAD_H}), 1100px)`;
+
+  return (
+    <div
+      ref={box}
+      data-testid="lightbox-stage"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      onDoubleClick={(e) => toggleZoom(e.clientX, e.clientY)}
+      onWheel={(e) => {
+        const s = Math.max(1, Math.min(MAX_ZOOM, zoom.s * (e.deltaY < 0 ? 1.15 : 1 / 1.15)));
+        setZoom((z) => (s === 1 ? { s: 1, x: 0, y: 0 } : { s, ...clampPan(s, z.x, z.y) }));
+      }}
+      style={{
+        position: "relative",
+        overflow: "hidden",
+        width,
+        aspectRatio: frame === "disc" ? "1 / 1" : `${HERO_HEAD_W} / ${HERO_HEAD_H}`,
+        borderRadius: frame === "disc" ? `${DISC_RADIUS * 100}%` : HERO_HEAD_RADIUS,
+        boxShadow: "0 24px 70px rgba(0,0,0,.6)",
+        transform: `translate(${drag.x}px, ${drag.y}px) scale(${1 - Math.min(drag.y, 300) / 1500})`,
+        opacity: 1 - Math.min(drag.y, 300) / 600,
+        transition: live ? "none" : "transform .25s cubic-bezier(.2,.8,.2,1), opacity .25s ease",
+        animation: `${dir === 1 ? "dosLbFromRight" : "dosLbFromLeft"} .28s cubic-bezier(.2,.8,.2,1)`,
+        cursor: zoom.s > 1 ? "zoom-out" : "zoom-in",
+        touchAction: "none",
+      }}
+    >
+      {shot.src ? (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            transform: `translate(${zoom.x}px, ${zoom.y}px) scale(${zoom.s})`,
+            transition: live ? "none" : "transform .22s ease",
+          }}
+        >
+          <Image src={shot.src} alt={shot.alt} fill sizes="100vw" unoptimized={shot.signed} draggable={false} style={{ objectFit: "cover", userSelect: "none" }} />
+        </div>
+      ) : (
+        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 24, color: "rgba(255,255,255,.7)", fontSize: 12.5, textAlign: "center", background: "rgba(255,255,255,.05)" }}>
+          This picture could not be loaded. Close and reopen the page to sign it again.
+        </div>
+      )}
+    </div>
   );
 }

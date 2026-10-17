@@ -49,18 +49,29 @@ import type { PhotoOwner } from "@/lib/media/photo";
  *  place in the queue, so a new picture starts from fresh state rather than being
  *  reset in an effect (this repo's lint refuses setState in an effect body). */
 
-export type CropFrame = "disc" | "banner";
+/** ⚠ THREE FRAMES SINCE 18 Oct 2026 (the user: "better pic crop and edit
+ *  mechanism with proper cropping for every kind of photo everywhere"): the round
+ *  profile picture, the 3:2 banner, and a SQUARE for a class poster — which the
+ *  class page draws square (poster.tsx), so cutting it as a banner threw away its
+ *  sides. And the frame is as big as the phone allows, not a fixed 262/320px. */
+export type CropFrame = "disc" | "banner" | "square";
 
-/** the banner's preview box and its output, both at the hero's own ratio */
-const BANNER_W = 320;
-const BANNER_OUT_W = 1080;
-const ratio = (w: number) => Math.round((w * HERO_HEAD_H) / HERO_HEAD_W);
-
-const FRAME: Record<CropFrame, { w: number; h: number; outW: number; outH: number; round: string | number; name: string }> = {
-  /* the squircle the ProfileDisc draws — the crop shows the picture in it */
-  disc: { w: 262, h: 262, outW: 640, outH: 640, round: `${DISC_RADIUS * 100}%`, name: "Profile photo" },
+const FRAME: Record<CropFrame, { ratio: number; outW: number; maxW: number; round: (w: number) => string | number; name: string }> = {
+  /* the circle the ProfileDisc draws — the crop shows the picture in it */
+  disc: { ratio: 1, outW: 800, maxW: 340, round: () => `${DISC_RADIUS * 100}%`, name: "Profile photo" },
   /* the banner's own corners and its own shape, both read from the tokens */
-  banner: { w: BANNER_W, h: ratio(BANNER_W), outW: BANNER_OUT_W, outH: ratio(BANNER_OUT_W), round: HERO_HEAD_RADIUS, name: "Photo" },
+  banner: { ratio: HERO_HEAD_W / HERO_HEAD_H, outW: 1200, maxW: 400, round: () => HERO_HEAD_RADIUS, name: "Photo" },
+  /* a class poster, square with the poster's own soft corners */
+  square: { ratio: 1, outW: 1080, maxW: 360, round: (w) => Math.round(w * 0.06), name: "Poster" },
+};
+
+/** the frame's on-screen size: as wide as the sheet allows, never wider than its cap */
+const frameBox = (frame: CropFrame) => {
+  const F = FRAME[frame];
+  const vw = typeof window === "undefined" ? 390 : window.innerWidth;
+  const vh = typeof window === "undefined" ? 800 : window.innerHeight;
+  const w = Math.max(220, Math.min(F.maxW, Math.min(vw, 430) - 40, Math.round((vh - 330) * F.ratio)));
+  return { w, h: Math.round(w / F.ratio) };
 };
 
 const JPEG_QUALITY = 0.88;
@@ -147,6 +158,9 @@ const pointOf = (e: MouseEvent | TouchEvent): Pt => {
   return { x: t.clientX, y: t.clientY };
 };
 
+/** a picture turned a quarter is as wide as it was tall */
+const turned = (nat: Size | null, rot: number): Size | null => (nat && rot % 180 ? { w: nat.h, h: nat.w } : nat);
+
 export function PhotoCropper({
   files,
   frame,
@@ -223,8 +237,11 @@ export function PhotoCropper({
  *  its zoom, its offset and its decode are its own and nothing is reset by hand. */
 function Stage({ file, frame, onCancel, onUse }: { file: File; frame: CropFrame; onCancel: () => void; onUse: (f: File) => void }) {
   const S = FRAME[frame];
-  const W = S.w;
-  const H = S.h;
+  /* measured once, on the press that opened it — the cropper never mounts on the server */
+  const [{ w: W, h: H }] = useState(() => frameBox(frame));
+  const outW = S.outW;
+  const outH = Math.round(S.outW / S.ratio);
+  const roundness = S.round(W);
 
   /* one object URL per picture, revoked when the stage goes */
   const src = useMemo(() => URL.createObjectURL(file), [file]);
@@ -236,8 +253,13 @@ function Stage({ file, frame, onCancel, onUse }: { file: File; frame: CropFrame;
   const [off, setOff] = useState<Pt>({ x: 0, y: 0 });
   const [stuck, setStuck] = useState(false);
   const [saving, setSaving] = useState(false);
+  /* a quarter turn at a time — a phone photo that came in sideways can be put right */
+  const [rot, setRot] = useState(0);
+  /* the thirds grid is drawn while a finger is on the picture */
+  const [holding, setHolding] = useState(false);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const drag = useRef<{ p: Pt; o: Pt } | null>(null);
+  const pinch = useRef<{ d: number; z: number } | null>(null);
 
   /* WAITING FOR THE PICTURE — loaded deliberately, into the object the canvas
      will draw from. The load event is always dispatched asynchronously, so the
@@ -269,29 +291,59 @@ function Stage({ file, frame, onCancel, onUse }: { file: File; frame: CropFrame;
     };
   }, [src]);
 
-  const fit = fitOf(nat, W, H);
-  const fill = fillOf(nat, W, H);
-  const maxZ = nat ? Math.max(MAX_ZOOM_FLOOR, (fill / fit) * 2.5) : MAX_ZOOM_FLOOR;
+  /* every measurement is of the picture AS TURNED */
+  const tn = turned(nat, rot);
+  const fit = fitOf(tn, W, H);
+  const fill = fillOf(tn, W, H);
+  const maxZ = tn ? Math.max(MAX_ZOOM_FLOOR, (fill / fit) * 2.5) : MAX_ZOOM_FLOOR;
   const s = fit * z;
-  const P = { w: (nat ? nat.w : W) * s, h: (nat ? nat.h : H) * s, x: 0, y: 0 };
+  const P = { w: (tn ? tn.w : W) * s, h: (tn ? tn.h : H) * s, x: 0, y: 0 };
   P.x = (W - P.w) / 2 + off.x;
   P.y = (H - P.h) / 2 + off.y;
+  /* the <img> keeps its own (unturned) box and is turned about the same centre */
+  const iw = (nat ? nat.w : W) * s;
+  const ih = (nat ? nat.h : H) * s;
+  const cx = P.x + P.w / 2;
+  const cy = P.y + P.h / 2;
 
   const zoomTo = (nz: number, reset = false) => {
-    setZ(nz);
-    setOff((o) => (reset ? { x: 0, y: 0 } : clampOff(o, nz, nat, W, H)));
+    const zz = Math.max(1, Math.min(maxZ, nz));
+    setZ(zz);
+    setOff((o) => (reset ? { x: 0, y: 0 } : clampOff(o, zz, tn, W, H)));
   };
+  const rotate = () => {
+    /* a turn starts the framing over: "fill the frame" is the useful default */
+    const nr = (rot + 90) % 360;
+    setRot(nr);
+    const t2 = turned(nat, nr);
+    setZ(t2 ? fillOf(t2, W, H) / fitOf(t2, W, H) : 1);
+    setOff({ x: 0, y: 0 });
+  };
+  const dist = (t: TouchEvent["touches"]) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
   const down = (e: MouseEvent | TouchEvent) => {
+    if ("touches" in e && e.touches.length === 2) {
+      pinch.current = { d: dist(e.touches), z };
+      drag.current = null;
+      return;
+    }
     drag.current = { p: pointOf(e), o: { ...off } };
+    setHolding(true);
   };
   const move = (e: MouseEvent | TouchEvent) => {
+    if ("touches" in e && e.touches.length === 2 && pinch.current) {
+      /* two fingers zoom, the way every phone's photo editor does */
+      zoomTo((pinch.current.z * dist(e.touches)) / pinch.current.d);
+      return;
+    }
     const d = drag.current;
     if (!d) return;
     const p = pointOf(e);
-    setOff(clampOff({ x: d.o.x + (p.x - d.p.x), y: d.o.y + (p.y - d.p.y) }, z, nat, W, H));
+    setOff(clampOff({ x: d.o.x + (p.x - d.p.x), y: d.o.y + (p.y - d.p.y) }, z, tn, W, H));
   };
   const up = () => {
     drag.current = null;
+    pinch.current = null;
+    setHolding(false);
   };
 
   const apply = async () => {
@@ -305,25 +357,29 @@ function Stage({ file, frame, onCancel, onUse }: { file: File; frame: CropFrame;
     setSaving(true);
     try {
       const c = document.createElement("canvas");
-      c.width = S.outW;
-      c.height = S.outH;
+      c.width = outW;
+      c.height = outH;
       const g = c.getContext("2d");
       if (!g) {
         onUse(file);
         return;
       }
       /* the preview and the output are the same shape, so one scale carries both */
-      const k = S.outW / W;
+      const k = outW / W;
       /* whatever the frame is not covering gets the picture itself, blown up and
          blurred, rather than a black bar — the prototype's own trick */
       g.fillStyle = "#0B0B0C";
       g.fillRect(0, 0, c.width, c.height);
       try {
-        drawBackfill(g, img, nat, { w: S.outW, h: S.outH }, 1.25);
+        drawBackfill(g, img, nat, { w: outW, h: outH }, 1.25);
       } catch {
         /* the picture on the plain ground is fine; the wash is decoration */
       }
-      g.drawImage(img, P.x * k, P.y * k, P.w * k, P.h * k);
+      g.save();
+      g.translate(cx * k, cy * k);
+      g.rotate((rot * Math.PI) / 180);
+      g.drawImage(img, (-iw * k) / 2, (-ih * k) / 2, iw * k, ih * k);
+      g.restore();
       const blob = await canvasToBlob(c);
       onUse(blob && blob.size > 200 ? toJpegFile(blob, file) : file);
     } catch {
@@ -353,7 +409,7 @@ function Stage({ file, frame, onCancel, onUse }: { file: File; frame: CropFrame;
   return (
     <>
       <div style={{ fontSize: 10.5, color: "var(--sub)", marginBottom: 12 }}>
-        {ready ? "The whole picture is here. Zoom in and drag to choose what stays." : stuck ? "That picture would not open — it can go up as it is." : "Opening your picture…"}
+        {ready ? "Drag to move · pinch or slide to zoom · turn if it came in sideways." : stuck ? "That picture would not open — it can go up as it is." : "Opening your picture…"}
       </div>
 
       <div style={{ display: "flex", justifyContent: "center" }}>
@@ -365,6 +421,7 @@ function Stage({ file, frame, onCancel, onUse }: { file: File; frame: CropFrame;
           onTouchStart={down}
           onTouchMove={move}
           onTouchEnd={up}
+          onWheel={(e) => ready && zoomTo(z * (e.deltaY < 0 ? 1.08 : 1 / 1.08))}
           aria-label="Drag to choose the crop"
           style={{
             width: W,
@@ -374,7 +431,7 @@ function Stage({ file, frame, onCancel, onUse }: { file: File; frame: CropFrame;
             flexShrink: 0,
             cursor: ready ? "grab" : "progress",
             touchAction: "none",
-            borderRadius: S.round,
+            borderRadius: roundness,
             background: "#111",
             boxShadow: "0 8px 26px rgba(0,0,0,.5)",
           }}
@@ -388,10 +445,24 @@ function Stage({ file, frame, onCancel, onUse }: { file: File; frame: CropFrame;
             unoptimized
             priority
             draggable={false}
-            style={{ position: "absolute", left: P.x, top: P.y, width: P.w, height: P.h, maxWidth: "none", userSelect: "none", WebkitUserSelect: "none", pointerEvents: "none", opacity: ready ? 1 : 0 }}
+            style={{ position: "absolute", left: cx - iw / 2, top: cy - ih / 2, width: iw, height: ih, maxWidth: "none", transform: rot ? `rotate(${rot}deg)` : undefined, userSelect: "none", WebkitUserSelect: "none", pointerEvents: "none", opacity: ready ? 1 : 0 }}
+          />
+          {/* the rule of thirds while a finger is down — where to put a face */}
+          <span
+            aria-hidden="true"
+            data-testid="crop-grid"
+            style={{
+              position: "absolute",
+              inset: 0,
+              pointerEvents: "none",
+              opacity: holding ? 1 : 0,
+              transition: "opacity .15s ease",
+              backgroundImage:
+                "linear-gradient(to right, transparent calc(33.33% - .5px), rgba(255,255,255,.45) calc(33.33% - .5px), rgba(255,255,255,.45) calc(33.33% + .5px), transparent calc(33.33% + .5px), transparent calc(66.66% - .5px), rgba(255,255,255,.45) calc(66.66% - .5px), rgba(255,255,255,.45) calc(66.66% + .5px), transparent calc(66.66% + .5px)), linear-gradient(to bottom, transparent calc(33.33% - .5px), rgba(255,255,255,.45) calc(33.33% - .5px), rgba(255,255,255,.45) calc(33.33% + .5px), transparent calc(33.33% + .5px), transparent calc(66.66% - .5px), rgba(255,255,255,.45) calc(66.66% - .5px), rgba(255,255,255,.45) calc(66.66% + .5px), transparent calc(66.66% + .5px))",
+            }}
           />
           {/* the frame's own edge, drawn over the picture so it never crops what you can see */}
-          <span aria-hidden="true" style={{ position: "absolute", inset: 0, borderRadius: S.round, border: "1.5px solid rgba(255,255,255,.28)", pointerEvents: "none" }} />
+          <span aria-hidden="true" style={{ position: "absolute", inset: 0, borderRadius: roundness, border: "1.5px solid rgba(255,255,255,.28)", pointerEvents: "none" }} />
         </div>
       </div>
 
@@ -417,6 +488,9 @@ function Stage({ file, frame, onCancel, onUse }: { file: File; frame: CropFrame;
         </button>
         <button type="button" aria-label="Fill the frame" disabled={!ready} onClick={() => zoomTo(fill / fit, true)} style={pill(z > 1.001)}>
           Fill the frame
+        </button>
+        <button type="button" aria-label="Turn the picture" disabled={!ready} onClick={rotate} style={{ ...pill(rot !== 0), flex: 0.7 }}>
+          ↻ Turn
         </button>
       </div>
 
@@ -463,4 +537,7 @@ function Stage({ file, frame, onCancel, onUse }: { file: File; frame: CropFrame;
 /* ⚠ an ASSET is a squircle since 4 Oct 2026 (the user: "photo upload option in
    squircle 1 photo only") — its card draws it as the card's face, the same
    shape as a profile's disc */
-export const frameForOwnerKind = (kind: PhotoOwner["kind"]): CropFrame => (kind === "avatar" || kind === "business" || kind === "asset" ? "disc" : "banner");
+/* ⚠ 18 Oct 2026: a CREW's photo is its face (a circle on its home and its page)
+   and is cut as one; a POSTER is drawn square on the class page and is cut square */
+export const frameForOwnerKind = (kind: PhotoOwner["kind"]): CropFrame =>
+  kind === "avatar" || kind === "business" || kind === "asset" || kind === "crew" ? "disc" : kind === "poster" ? "square" : "banner";

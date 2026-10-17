@@ -16,6 +16,7 @@ import { centreOf } from "@/repositories/cities";
 import { DosStyleMultiPicker } from "@/components/ui/DosStyleKit";
 import { ToolActions, ToolBody, ToolCard, ToolChip, ToolFacts, ToolHead, ToolLive, toolBtn } from "@/components/ui/ToolCard";
 import { DOS_UI, INK, LILAC, MUTED, SUB, TAB_TITLE } from "@/lib/design/tokens";
+import { BeatText } from "@/components/ui/BeatText";
 import { FORM_TITLE } from "@/components/ui/formTitle";
 
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
@@ -493,7 +494,7 @@ export function BusinessHub({
         <div data-testid="desk-hero" style={{ margin: "-14px -14px 0", padding: "16px 16px 6px", borderRadius: "21px 21px 0 0", position: "relative", color: INK, background: `linear-gradient(180deg, ${ACCENT}8c 0%, ${ACCENT}38 60%, transparent 100%)` }}>
           {/* the page's own `<h1>` — the chrome no longer prints a drill page's name (28 Sep 2026) */}
           <h1 style={{ ...TAB_TITLE, color: INK, position: "relative" }}>
-            {DOS_TOOLS.studios.name}
+            <BeatText text={DOS_TOOLS.studios.name} />
           </h1>
           {/* the "team" invite switch, moved here from the Inbox with the
               invitations (11 Oct 2026), and the Answered button beside it — in

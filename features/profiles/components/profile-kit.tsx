@@ -313,12 +313,13 @@ export function PlaceLink({ prefix, place, query }: { prefix?: string; place: st
 
 /* ── the 42px mark every people-row wears (11007-11010): the entity's own
    gradient and its initials in display type, or its picture when it has one ── */
-export function EntityMark({ name, photo, size = 42, radius = 13 }: { name: string; photo?: string | null; size?: number; radius?: number }) {
+/* ⚠ a circle since 18 Oct 2026 — `radius` stays on the type for old callers and is ignored */
+export function EntityMark({ name, photo, size = 42 }: { name: string; photo?: string | null; size?: number; radius?: number }) {
   const g = gradientOf(name);
   return (
     <span
       aria-hidden="true"
-      style={{ width: size, height: size, flexShrink: 0, borderRadius: radius, overflow: "hidden", display: "inline-flex", alignItems: "center", justifyContent: "center", background: `linear-gradient(150deg,${g[0]},${g[1]})`, color: "#fff", fontSize: 15, fontWeight: 900, letterSpacing: 0.4, fontFamily: DOS_DISPLAY }}
+      style={{ width: size, height: size, flexShrink: 0, borderRadius: "50%", overflow: "hidden", display: "inline-flex", alignItems: "center", justifyContent: "center", background: `linear-gradient(150deg,${g[0]},${g[1]})`, color: "#fff", fontSize: 15, fontWeight: 900, letterSpacing: 0.4, fontFamily: DOS_DISPLAY }}
     >
       {photo ? <Image src={photo} alt="" width={size} height={size} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : initialsOf(name)}
     </span>

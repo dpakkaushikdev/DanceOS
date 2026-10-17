@@ -27,7 +27,7 @@ export interface BadgedItem {
 
 const pathOf = (href: string) => href.split("?")[0].split("#")[0].replace(/\/+$/, "") || "/";
 
-const AREA_TOOL: Record<string, Tile["k"]> = { class: "classesmod", team: "team", crew: "crews", money: "earn" };
+const AREA_TOOL: Record<string, Tile["k"]> = { class: "classesmod", team: "team", crew: "crews", money: "earn", membership: "memberships" };
 
 /** where a person-level address belongs when no tool's own address is a prefix */
 const personToolOf = (href: string): Tile["k"] | null => {
@@ -81,7 +81,9 @@ export function badgeSwitcher<T extends BadgedItem>(items: T[], notes: UnreadNot
   return items.map((item) => {
     const tiles = (item.tiles ?? []).map((t) => {
       const ids = counts.get(`${item.key}|${t.k}`) ?? [];
-      return ids.length ? { ...t, count: ids.length, noteIds: ids } : t;
+      /* every tool carries a count, 0 included (18 Oct 2026, the user: "tool
+       * notification in profile switcher should be visible even if 0") */
+      return { ...t, count: ids.length, noteIds: ids };
     });
     const count = tiles.reduce((s, t) => s + ((t as { count?: number }).count ?? 0), 0);
     return { ...item, tiles, count };

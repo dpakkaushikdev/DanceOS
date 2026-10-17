@@ -1280,7 +1280,7 @@ export function ClassDetail({
           const absent = register.rows.filter((r) => !r.checkedIn);
           const chip = (r: (typeof register.rows)[number], on: boolean) => (
             <Link key={r.classBookingId} href={`/person/${r.userId}`} aria-label={`Open ${r.learnerName}`} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "var(--el)", borderRadius: 999, padding: "3px 11px 3px 3px", color: on ? "var(--text)" : "var(--sub)", textDecoration: "none", opacity: on ? 1 : 0.6 }}>
-              <span style={{ width: 22, height: 22, borderRadius: 7, overflow: "hidden", background: on ? "linear-gradient(135deg,#22C55E,#0D9488)" : "var(--card)", border: on ? "none" : "1.5px solid var(--el)", display: "flex", alignItems: "center", justifyContent: "center", color: on ? "#fff" : "var(--sub)", fontSize: 8.5, fontWeight: 900 }}>
+              <span style={{ width: 22, height: 22, borderRadius: "50%", overflow: "hidden", background: on ? "linear-gradient(135deg,#22C55E,#0D9488)" : "var(--card)", border: on ? "none" : "1.5px solid var(--el)", display: "flex", alignItems: "center", justifyContent: "center", color: on ? "#fff" : "var(--sub)", fontSize: 8.5, fontWeight: 900 }}>
                 {photoUrl(r.avatarPath) ? <Image src={photoUrl(r.avatarPath)!} alt="" width={22} height={22} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : initialsOf(r.learnerName)}
               </span>
               <span style={{ fontSize: 11, fontWeight: 800 }}>{r.learnerName}</span>
@@ -1832,7 +1832,7 @@ export function ClassDetail({
                       style={{
                         width: 28,
                         height: 28,
-                        borderRadius: 9,
+                        borderRadius: "50%",
                         flexShrink: 0,
                         overflow: "hidden",
                         display: "flex",

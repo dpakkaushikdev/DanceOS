@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { INK, TAB_TITLE } from "@/lib/design/tokens";
+import { BeatText } from "@/components/ui/BeatText";
 import { ViewToggle } from "@/features/shell/components/ViewToggle";
 import { dosToolPaint } from "@/lib/format/styleInk";
 
@@ -252,7 +253,7 @@ export function HueHead({
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>{as === "h1" ? <h1 style={t}>{title}</h1> : <div style={t}>{title}</div>}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>{as === "h1" ? <h1 style={t}><BeatText text={title} /></h1> : <div style={t}><BeatText text={title} /></div>}</div>
         {right}
       </div>
       {sub ? (

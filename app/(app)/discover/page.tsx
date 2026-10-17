@@ -25,6 +25,7 @@ import { gradientOf } from "@/features/profiles/components/profile-kit";
 import { DOS_STYLE_NAMES } from "@/lib/constants/styles";
 import { INDIA_CENTRE, centreOf, findDiscoverCities } from "@/repositories/cities";
 import { DOS_DISPLAY, DOS_UI, INK, SKY, SUB, TAB_SUB, TAB_TITLE } from "@/lib/design/tokens";
+import { BeatText } from "@/components/ui/BeatText";
 import { photoUrl } from "@/lib/media/photo";
 import { publicProfilePath } from "@/lib/routes/publicProfile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -558,7 +559,7 @@ export default async function DiscoverPage({
           the list it edits is private to them */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
         <h1 data-testid="discover-title" style={{ ...TAB_TITLE, color: INK }}>
-          Discover
+          <BeatText text="Discover" />
         </h1>
         {user ? <RecommendationSettings initial={learnStyles} /> : null}
       </div>

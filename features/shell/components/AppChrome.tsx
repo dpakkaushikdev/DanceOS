@@ -9,7 +9,7 @@ import { DosMark } from "@/components/ui/DosMark";
 import { LogOutConfirm } from "@/features/auth/components/LogOutConfirm";
 import { SettingsSheet, type SettingsProfile } from "@/features/settings/components/SettingsSheet";
 import { ToolGlyph, TOOLS_HEADING, type Tile } from "@/features/home/components/tool-grid";
-import { DOS_UI, INK, RED } from "@/lib/design/tokens";
+import { DOS_DISPLAY, DOS_UI, INK, RED } from "@/lib/design/tokens";
 import type { ArtistPlan } from "@/repositories/plans";
 import type { Profile, ProfileRole } from "@/types/profile";
 import type { Business } from "@/types/business";
@@ -241,6 +241,27 @@ const chipStyle: React.CSSProperties = {
 };
 
 const initialsOf = (name: string) => name.split(" ").filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
+
+/** A COUNT IN ITS OWN COLOUR (18 Oct 2026). Something new: the colour itself,
+ *  deepened a touch so white reads on the lighter tools. Nothing new: a wash of
+ *  the colour with the 0 in it — drawn, never hidden. */
+const countPill = (c: string, n: number, size: number): React.CSSProperties => ({
+  flexShrink: 0,
+  minWidth: size,
+  height: size,
+  padding: "0 7px",
+  boxSizing: "border-box",
+  borderRadius: 999,
+  background: n > 0 ? `color-mix(in srgb, ${c} 84%, #000)` : `color-mix(in srgb, ${c} 14%, transparent)`,
+  border: n > 0 ? "none" : `1.5px solid color-mix(in srgb, ${c} 40%, transparent)`,
+  color: n > 0 ? "#fff" : c,
+  fontSize: size > 20 ? 11 : 10.5,
+  fontWeight: 900,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontVariantNumeric: "tabular-nums",
+});
 
 /** WHAT SETTINGS NEEDS, FOR EVERY PROFILE THIS ACCOUNT CAN BE (21 Sep 2026).
  *  Read once per render of the signed-in group and handed over whole, because
@@ -606,7 +627,41 @@ export function AppChrome({
             phone puts it: it is the only wayfinding a drill page has left, and
             dropping it as well would stand somebody three taps inside Settings
             with nothing but the system gesture. */}
+        {/* ⚠ THE BELL IS ON THE LEFT, AND BACK SITS BESIDE THE LOGO (18 Oct 2026,
+            the user: "notification on top bar should go on left side and back
+            button should appear left side of dance os logo"). The left edge
+            holds the bell alone; the back chip rides in the centred brand group,
+            immediately before the mark. */}
         <span style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0, flex: 1 }}>
+          {adminOnly ? null : (
+          <Link href="/notifications" {...tapHandlers} onClick={(e) => { wasSwipe(e); }} aria-label={unread > 0 ? `Notifications — ${unread} unread` : "Notifications"} style={{ ...chipStyle, textDecoration: "none" }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 8.5a6 6 0 1 0-12 0c0 5-2 6.5-2 6.5h16s-2-1.5-2-6.5" />
+              <path d="M10.5 19a2 2 0 0 0 3 0" />
+            </svg>
+            {unread > 0 ? (
+              <span data-testid="bell-badge" style={{ position: "absolute", top: -2, right: -2, minWidth: 14, height: 14, borderRadius: 7, padding: "0 3.5px", background: "#EC4899", color: "#fff", fontSize: 8.5, fontWeight: 900, lineHeight: "14px", textAlign: "center", fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', border: `2px solid ${theme === "dark" ? "#0A0A0A" : "#FAF8F5"}`, boxSizing: "border-box" }}>
+                {unread > 9 ? "9+" : unread}
+              </span>
+            ) : null}
+          </Link>
+          )}
+        </span>
+        <span
+          data-testid="brand"
+          style={{
+            position: "absolute",
+            left: "50%",
+            top: "var(--dos-safe-top)",
+            bottom: 0,
+            transform: "translateX(-50%)",
+            display: "flex",
+            alignItems: "center",
+            columnGap: 6,
+            pointerEvents: "none",
+            whiteSpace: "nowrap",
+          }}
+        >
           {showMark ? null : (
             <span
               role="button"
@@ -621,16 +676,16 @@ export function AppChrome({
                 }
               }}
               style={{
-                width: 42,
-                height: 42,
+                width: 38,
+                height: 38,
                 flexShrink: 0,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 cursor: "pointer",
-                borderRadius: 21,
-                marginLeft: -4,
+                borderRadius: 19,
                 background: "var(--card)",
+                pointerEvents: "auto",
               }}
             >
               <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -638,81 +693,31 @@ export function AppChrome({
               </svg>
             </span>
           )}
-          {/* ⚠⚠ THE SWITCHER IS INSIDE THE MARK AGAIN, AND THE MARK IS ON EVERY
-              SCREEN (21 Sep 2026, the user: "Profile switcher should be inside
-              the dance os logo and should remain constant everywhere").
-              This is the third placement and the first one that satisfies both
-              halves of what has been asked. 18 Sep put the switcher on the mark
-              — but the mark was drawn on the four tabs and the two entity homes
-              and nowhere else, so on every desk and drill page there was no
-              switcher at all. 21 Sep answered "constant" by moving the control
-              to a chip beside the gear and giving the mark back its own job
-              (C42) — which made it constant and took it OFF the logo.
-              ⚠ The resolution is not to move the control a third time but to
-              move the MARK: it is drawn on every screen now, so the logo can be
-              the switcher AND the switcher can be everywhere. On a drill page it
-              sits BEFORE the back chip rather than replacing it — a control that
-              is the way out must not be spent on a control that is the way
-              sideways.
-              ⚠ It wears a DOT in the active profile's own colour, because that
-              is the one thing the chip did that a brand mark cannot: answer
-              "which profile am I?" without being opened. */}
-          {/* ⚠⚠ SUPERSEDED 2 Oct 2026 (the user: "profile switcher on right side
-              with profile photo at extreme right besides settings. logo and title
-              remains at same spot"): the mark is the LOGO again, in the same
-              place, and the switcher is the photo chip at the far right of the
-              bar. What the 21 Sep note above got right and this keeps is that the
-              switcher is CONSTANT — the chip is on every screen. */}
-          {/* ⚠⚠ THE LOGO IS CENTRED (18 Oct 2026, the user: "Dance os name and logo
-              on top bar should be in centre aligned"). Absolutely placed on the
-              bar's middle so the back chip on the left and the bell and the
-              picture on the right never push it off centre; the word scales with
-              the phone (clamp) so it fits between them at 360px. It replaces the
-              5 Oct wrap-to-hide row, which only existed because the word shared
-              the left edge with the back chip. */}
-          <span
-            data-testid="brand"
-            style={{
-              position: "absolute",
-              left: "50%",
-              top: "var(--dos-safe-top)",
-              bottom: 0,
-              transform: "translateX(-50%)",
-              display: "flex",
-              alignItems: "center",
-              columnGap: 7,
-              pointerEvents: "none",
-              whiteSpace: "nowrap",
-            }}
-          >
-            <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", lineHeight: 0 }}>
-              <DosMark size={32} />
-            </span>
-            <span data-testid="wordmark" style={{ flexShrink: 0, fontSize: "clamp(19px, 5.4vw, 23px)", fontWeight: 900, letterSpacing: -0.3, color: INK, fontFamily: DOS_UI, whiteSpace: "nowrap" }}>
-              Dance<span style={{ color: "#EC4899" }}>OS</span>
-            </span>
+          {/* ⚠⚠ THE LOGO IS CENTRED (18 Oct 2026) and, since the same day, the back
+              chip rides INSIDE the centred group right before the mark. The
+              wordmark is the display face now and RUNS: a lift travels along
+              D-a-n-c-e-O-S the way the start page's 5 · 6 · 7 · 8 beat (the user:
+              "change the danceos heading text in top bar and make in running
+              animation as well"). textContent stays "DanceOS". */}
+          <span className="dos-logo-anim" style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", lineHeight: 0 }}>
+            <DosMark size={32} />
+          </span>
+          <span data-testid="wordmark" className="dos-logo-anim" role="img" aria-label="DanceOS" style={{ flexShrink: 0, fontSize: "clamp(20px, 5.6vw, 24px)", fontWeight: 900, letterSpacing: -0.6, color: INK, fontFamily: DOS_DISPLAY, whiteSpace: "nowrap", fontStyle: "italic" }}>
+            {Array.from("DanceOS").map((ch, i) => (
+              <span
+                key={i}
+                style={{
+                  display: "inline-block",
+                  color: i >= 5 ? "#EC4899" : undefined,
+                  animation: `dosLetterGlow 3.2s ease-in-out ${(i * 0.09).toFixed(2)}s infinite`,
+                }}
+              >
+                {ch}
+              </span>
+            ))}
           </span>
         </span>
         <span style={{ display: "flex", gap: 7, flexShrink: 0 }}>
-          {/* ⚠ CARD · LIST LEFT THE BAR (12 Oct 2026, the user: "on top right with
-              the heading of the page not on top bar") — `ViewToggle`, through
-              `ViewModeContext` below */}
-          {/* the bell, with what is unread on it (prototype 19252-19257) — a real
-              route, so the badge is whatever the server counted for this render.
-              Not for an admin-only account: notifications belong to profiles. */}
-          {adminOnly ? null : (
-          <Link href="/notifications" {...tapHandlers} onClick={(e) => { wasSwipe(e); }} aria-label={unread > 0 ? `Notifications — ${unread} unread` : "Notifications"} style={{ ...chipStyle, textDecoration: "none" }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 8.5a6 6 0 1 0-12 0c0 5-2 6.5-2 6.5h16s-2-1.5-2-6.5" />
-              <path d="M10.5 19a2 2 0 0 0 3 0" />
-            </svg>
-            {unread > 0 ? (
-              <span data-testid="bell-badge" style={{ position: "absolute", top: -2, right: -2, minWidth: 14, height: 14, borderRadius: 7, padding: "0 3.5px", background: "#EC4899", color: "#fff", fontSize: 8.5, fontWeight: 900, lineHeight: "14px", textAlign: "center", fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', border: `2px solid ${theme === "dark" ? "#0A0A0A" : "#FAF8F5"}`, boxSizing: "border-box" }}>
-                {unread > 9 ? "9+" : unread}
-              </span>
-            ) : null}
-          </Link>
-          )}
           {/* ⚠ THE THEME CHIP AND THE GEAR LEFT THE BAR (12 Oct 2026, the user:
               "dark and light mode like toggle on top of this section with settings
               on its right") — they head the drawer the picture opens now. An
@@ -860,18 +865,17 @@ export function AppChrome({
                     onClick={(e) => { if (wasSwipe(e)) return; setOpenFor(null); }}
                     style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 8px", borderRadius: 14, textDecoration: "none", color: "var(--text)", background: here ? "var(--el)" : "transparent" }}
                   >
-                    <span aria-hidden="true" style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, overflow: "hidden", display: "inline-flex", alignItems: "center", justifyContent: "center", background: `linear-gradient(135deg,${tint},${tint}88)`, color: "#fff", fontSize: 12, fontWeight: 900 }}>
+                    <span aria-hidden="true" style={{ width: 34, height: 34, borderRadius: "50%", flexShrink: 0, overflow: "hidden", display: "inline-flex", alignItems: "center", justifyContent: "center", background: `linear-gradient(135deg,${tint},${tint}88)`, color: "#fff", fontSize: 12, fontWeight: 900 }}>
                       {item.photo ? <Image src={item.photo} alt="" width={34} height={34} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : initialsOf(item.label)}
                     </span>
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ display: "block", fontSize: 13, fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</span>
                       <span style={{ display: "block", fontSize: 10, fontWeight: 800, color: tint, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>{item.sub}</span>
                     </span>
-                    {item.count ? (
-                      <span data-testid="profile-count" aria-hidden="true" style={{ flexShrink: 0, minWidth: 20, height: 20, padding: "0 6px", borderRadius: 999, background: RED, color: "#fff", fontSize: 10.5, fontWeight: 900, display: "inline-flex", alignItems: "center", justifyContent: "center", fontVariantNumeric: "tabular-nums" }}>
-                        {item.count > 99 ? "99+" : item.count}
-                      </span>
-                    ) : null}
+                    {/* always drawn, 0 included, in the profile's own colour (18 Oct 2026) */}
+                    <span data-testid="profile-count" aria-hidden="true" style={countPill(tint, item.count ?? 0, 20)}>
+                      {(item.count ?? 0) > 99 ? "99+" : item.count ?? 0}
+                    </span>
                     {here ? <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 900, letterSpacing: 0.6, padding: "3px 7px", borderRadius: 999, background: "var(--text)", color: "var(--solid)" }}>HERE</span> : null}
                   </Link>
                 );
@@ -892,7 +896,7 @@ export function AppChrome({
                         aria-label={t.name}
                         /* the count is a DESCRIPTION, not part of the name, so "Classes"
                            stays one control's name whether or not something is new */
-                        aria-describedby={t.count ? `tool-count-${hereItem.key}-${t.k}` : undefined}
+                        aria-describedby={`tool-count-${hereItem.key}-${t.k}`}
                         {...tapHandlers}
                         onClick={(e) => { wasSwipe(e); }}
                         style={{ display: "flex", alignItems: "center", gap: 11, padding: "7px 8px", borderRadius: 14, textDecoration: "none", color: "var(--text)", background: pathname === t.href || pathname.startsWith(`${t.href}/`) ? "var(--el)" : "transparent" }}
@@ -900,11 +904,13 @@ export function AppChrome({
                         <ToolGlyph k={t.k} c={t.c} size={34} />
                         <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 900, letterSpacing: -0.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
                         {/* WHAT IS NEW HERE (18 Oct 2026) — unread notifications that open this tool */}
-                        {t.count ? (
-                          <span data-testid="tool-count" id={`tool-count-${hereItem.key}-${t.k}`} aria-label={`${t.count} new`} style={{ flexShrink: 0, minWidth: 22, height: 22, padding: "0 7px", borderRadius: 999, background: RED, color: "#fff", fontSize: 11, fontWeight: 900, display: "inline-flex", alignItems: "center", justifyContent: "center", fontVariantNumeric: "tabular-nums" }}>
-                            {t.count > 99 ? "99+" : t.count}
-                          </span>
-                        ) : null}
+                        {/* ALWAYS DRAWN, 0 INCLUDED, IN THE TOOL'S OWN COLOUR (18 Oct 2026,
+                            the user: "tool notification in profile switcher should be
+                            visible even if 0 … in color of their tool") — a filled pill
+                            while something is new, a quiet wash of the colour at 0 */}
+                        <span data-testid="tool-count" data-count={t.count ?? 0} id={`tool-count-${hereItem.key}-${t.k}`} aria-label={`${t.count ?? 0} new`} style={countPill(t.c, t.count ?? 0, 22)}>
+                          {(t.count ?? 0) > 99 ? "99+" : t.count ?? 0}
+                        </span>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <path d="M9.5 5.5 16 12l-6.5 6.5" />
                         </svg>

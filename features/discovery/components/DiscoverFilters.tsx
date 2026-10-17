@@ -274,7 +274,7 @@ export function DiscoverFilters({ tab, city, filters, styleOrder, tabs, as = nul
                     const initials = h.name.split(" ").filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
                     return (
                       <Link key={h.id} href={h.href} role="option" aria-label={`${h.name} — ${h.sub}`} onMouseDown={(e) => e.preventDefault()} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 14px", cursor: "pointer", color: "var(--text)", textDecoration: "none" }}>
-                        <span style={{ width: 34, height: 34, borderRadius: 11, flexShrink: 0, overflow: "hidden", background: `linear-gradient(135deg,${g[0]},${g[1]})`, display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900, fontSize: 12 }}>
+                        <span style={{ width: 34, height: 34, borderRadius: "50%", flexShrink: 0, overflow: "hidden", background: `linear-gradient(135deg,${g[0]},${g[1]})`, display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900, fontSize: 12 }}>
                           {face ? <Image src={face} alt="" width={34} height={34} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : initials}
                         </span>
                         <span style={{ flex: 1, minWidth: 0 }}>

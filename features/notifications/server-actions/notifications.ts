@@ -19,7 +19,7 @@ export interface NotificationActionResult {
 
 /** the six groups a person may switch; `event` is the retired feature's
  *  history, which may still be marked read or hidden but never switched */
-const GROUPS = ["class", "team", "crew", "enquiry", "money", "danceos"] as const;
+const GROUPS = ["class", "team", "crew", "membership", "enquiry", "money", "danceos"] as const;
 const KINDS = [...GROUPS, "event"] as const;
 const target = z.object({ ids: z.array(z.string().uuid()).max(200).optional(), kind: z.enum(KINDS).optional() });
 

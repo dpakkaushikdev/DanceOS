@@ -284,7 +284,7 @@ export function ScanSheet({
           {found ? (
             <div data-testid="scan-confirm">
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "6px 0 14px" }}>
-                <div style={{ width: 96, height: 96, borderRadius: 29, overflow: "hidden", background: "var(--el)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontWeight: 900, color: "var(--sub)" }}>
+                <div style={{ width: 96, height: 96, borderRadius: "50%", overflow: "hidden", background: "var(--el)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontWeight: 900, color: "var(--sub)" }}>
                   {photoUrl(found.avatarPath) ? (
                     <Image src={photoUrl(found.avatarPath) as string} alt="" width={96} height={96} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                   ) : (

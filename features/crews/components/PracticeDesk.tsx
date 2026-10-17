@@ -122,7 +122,7 @@ export function PracticeDesk({ crewId, practices, todayIso }: { crewId: string; 
             {rows.map((m) => (
               <div key={m.userId} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0" }}>
                 {m.avatarPath ? (
-                  <Image src={photoUrl(m.avatarPath) as string} alt="" width={36} height={36} style={{ width: 36, height: 36, borderRadius: 11, objectFit: "cover", flexShrink: 0 }} unoptimized />
+                  <Image src={photoUrl(m.avatarPath) as string} alt="" width={36} height={36} style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} unoptimized />
                 ) : (
                   <CrewFace name={m.fullName} size={36} grad={[TINT, TINT]} radius={11} />
                 )}

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { DOS_UI, LILAC, TAB_SUB, TAB_TITLE } from "@/lib/design/tokens";
+import { BeatText } from "@/components/ui/BeatText";
 import { ColumnCount, columnTab, columnTrack } from "@/components/ui/ColumnTabs";
 import { InvertedPanel } from "@/components/ui/InvertedPanel";
 import { TopPanel } from "@/components/ui/TopPanel";
@@ -189,7 +190,7 @@ export function InboxScreen({
       <TopPanel tint={accent} style={{ margin: "12px 16px 12px" }}>
         <div style={{ position: "relative" }}>
           <h1 data-testid="inbox-title" style={TAB_TITLE}>
-            Inbox
+            <BeatText text="Inbox" />
           </h1>
           <div data-testid="inbox-sub" style={{ ...TAB_SUB, margin: "5px 0 12px" }}>
             {deskSub ? `${deskSub} · ` : ""}

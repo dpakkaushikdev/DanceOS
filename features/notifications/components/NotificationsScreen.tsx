@@ -118,6 +118,12 @@ function GroupGlyph({ glyph, size = 16 }: { glyph: NotificationGlyph; size?: num
         <path d="M8 20c.4-3.3 1.9-5.5 4-5.5s3.6 2.2 4 5.5M2.5 19c.3-2.3 1.4-3.8 3-3.8M21.5 19c-.3-2.3-1.4-3.8-3-3.8" />
       </>
     ),
+    membership: (
+      <>
+        <rect x="3" y="6" width="18" height="12" rx="2.5" />
+        <path d="M3 10h18M7 14.5h4" />
+      </>
+    ),
     enquiry: <path d="M21 14.5a2 2 0 0 1-2 2H8l-4.5 4V5.5a2 2 0 0 1 2-2H19a2 2 0 0 1 2 2zM8 9h9M8 12.5h6" />,
     money: (
       <>

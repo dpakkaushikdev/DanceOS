@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DOS_UI, INK, LILAC, SUB, TAB_TITLE } from "@/lib/design/tokens";
+import { BeatText } from "@/components/ui/BeatText";
 import { CREW_TINT, type CrewSummary } from "@/types/crew";
 import { DeskAddButton } from "@/features/settings/components/settings-kit";
 import { SegmentedPanels } from "@/features/shell/components/SegmentedNav";
@@ -165,7 +166,7 @@ export function CrewsHub({
   const hero = (
     <div data-testid="desk-hero" style={{ margin: "-14px -14px 0", padding: "16px 16px 6px", borderRadius: "21px 21px 0 0", position: "relative", color: INK, background: `linear-gradient(180deg, ${accent}8c 0%, ${accent}38 60%, transparent 100%)` }}>
       {/* the page's own `<h1>` — the chrome no longer prints a drill page's name (28 Sep 2026) */}
-      <h1 style={{ ...TAB_TITLE, color: INK, position: "relative" }}>Crews</h1>
+      <h1 style={{ ...TAB_TITLE, color: INK, position: "relative" }}><BeatText text="Crews" /></h1>
       {/* the "crew" invite switch, moved here from the Inbox with the asks (11 Oct
           2026), and the asks already answered — the top-right pair Classes wears */}
       <InviteHeadButtons

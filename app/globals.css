@@ -470,6 +470,79 @@ a:focus-visible:not([data-slot]) {
 .dos-entity-tile:active {
   transform: scale(0.94);
 }
+/* a heading counting in, letter by letter (18 Oct 2026, BeatText.tsx) — a lift
+   that runs along the word and rests; transform only, the ink never changes */
+@keyframes dosLetter {
+  0%,
+  14%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  5% {
+    transform: translateY(-0.12em) scale(1.12);
+  }
+}
+/* the top bar's wordmark: the same run, and the OS half glowing as it passes */
+@keyframes dosLetterGlow {
+  0%,
+  14%,
+  100% {
+    transform: translateY(0) scale(1);
+    filter: none;
+  }
+  5% {
+    transform: translateY(-0.14em) scale(1.16);
+    filter: drop-shadow(0 0 6px currentColor);
+  }
+}
+/* the photo viewer's next picture sliding in from the side it was swiped to */
+@keyframes dosLbFromRight {
+  from { transform: translateX(40px); opacity: 0.2; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes dosLbFromLeft {
+  from { transform: translateX(-40px); opacity: 0.2; }
+  to { transform: translateX(0); opacity: 1; }
+}
+/* Discover's four logos (18 Oct 2026, DiscoverLogo.tsx) */
+@keyframes dosLogoDraw {
+  0% { stroke-dashoffset: 18; }
+  40%, 80% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -18; }
+}
+@keyframes dosLogoPing {
+  0%, 30% { transform: scale(1); opacity: 1; }
+  70%, 100% { transform: scale(2.4); opacity: 0; }
+}
+@keyframes dosLogoBlink {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+@keyframes dosLogoSway {
+  0%, 100% { transform: rotate(-7deg); }
+  50% { transform: rotate(7deg); }
+}
+@keyframes dosLogoArm {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-38deg); }
+}
+@keyframes dosLogoBounce {
+  0%, 100% { transform: translateY(0); }
+  45% { transform: translateY(-3px); }
+}
+@keyframes dosLogoSpin {
+  from { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.3); }
+  to { transform: rotate(360deg) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dos-beat,
+  .dos-beat *,
+  .dos-logo-anim,
+  .dos-logo-anim * {
+    animation: none !important;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .dos-tab,
   .dos-tab *,
@@ -612,7 +685,7 @@ a:focus-visible:not([data-slot]) {
 #dos-main[data-dos-view="list"] [data-card="session"]:not(:is([data-testid="desk-top"], [data-testid="desk-middle"], [data-testid="top-panel"]) *) { margin-bottom: 8px !important; border-radius: 16px !important; }
 #dos-main[data-dos-view="list"] [data-tc="head"]:not(:is([data-testid="desk-top"], [data-testid="desk-middle"], [data-testid="top-panel"]) *) { padding: 9px 12px !important; gap: 10px !important; background: transparent !important; }
 #dos-main[data-dos-view="list"] [data-tc="head"] a:not(:is([data-testid="desk-top"], [data-testid="desk-middle"], [data-testid="top-panel"]) *) { gap: 10px !important; }
-#dos-main[data-dos-view="list"] [data-tc="face"]:not(:is([data-testid="desk-top"], [data-testid="desk-middle"], [data-testid="top-panel"]) *) { width: 36px !important; height: 36px !important; border-radius: 11px !important; font-size: 12px !important; }
+#dos-main[data-dos-view="list"] [data-tc="face"]:not(:is([data-testid="desk-top"], [data-testid="desk-middle"], [data-testid="top-panel"]) *) { width: 36px !important; height: 36px !important; border-radius: 50% !important; font-size: 12px !important; }
 #dos-main[data-dos-view="list"] [data-tc="name"]:not(:is([data-testid="desk-top"], [data-testid="desk-middle"], [data-testid="top-panel"]) *) { font-size: 15px !important; -webkit-line-clamp: 1 !important; }
 /* ⚠ THE KEY DETAILS STAY (12 Oct 2026, the user: "list view can be better for all
    in a similar way with key details filled properly in the list view"). The

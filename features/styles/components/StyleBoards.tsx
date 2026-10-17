@@ -58,7 +58,7 @@ export function StyleBoards({ style, color, boards }: { style: string; color: st
           {rows.map((r) => (
             <Link key={r.id} href={hrefOf(r)} aria-label={`${r.place}. ${r.name}`} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 2px", borderBottom: "1.5px solid var(--el)", textDecoration: "none", color: "var(--text)" }}>
               <span style={{ width: 26, textAlign: "center", fontFamily: DOS_DISPLAY, fontWeight: 900, fontSize: r.place <= 3 ? 20 : 15, color: r.place <= 3 ? color : "var(--muted)" }}>{r.place}</span>
-              <span aria-hidden="true" style={{ width: 38, height: 38, borderRadius: 12, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900, fontSize: 12.5, background: `linear-gradient(135deg, ${color}, #7C3AED)` }}>{initials(r.name)}</span>
+              <span aria-hidden="true" style={{ width: 38, height: 38, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900, fontSize: 12.5, background: `linear-gradient(135deg, ${color}, #7C3AED)` }}>{initials(r.name)}</span>
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: "block", fontSize: 13.5, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
                 <span style={{ display: "block", fontSize: 10.5, color: "var(--sub)" }}>{r.city ?? "—"}</span>

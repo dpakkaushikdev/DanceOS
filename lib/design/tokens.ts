@@ -117,7 +117,10 @@ export const HERO_DISC_DROP = 40;
  *  squircle") — the corner is this share of the side, at every size it is drawn:
  *  the 96px disc, the hub's 42px face, the crew's, and the cropper's frame, which
  *  is masked to this so what you see while cropping is what lands. */
-export const DISC_RADIUS = 0.3;
+/** ⚠ A CIRCLE SINCE 18 Oct 2026 (the user: "all profile pics everywhere on
+ *  everything should become circular") — half the side, so every face that reads
+ *  this token, and the cropper's disc frame, is round. */
+export const DISC_RADIUS = 0.5;
 
 export const BTN_STYLE: React.CSSProperties = {
   padding: "15px",

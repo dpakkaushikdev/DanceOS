@@ -32,14 +32,15 @@ export const bizCard: React.CSSProperties = { background: "var(--card)", border:
 export const bizBtn: React.CSSProperties = { textAlign: "center", padding: "12px", borderRadius: 14, border: "1.5px dashed var(--el)", color: "var(--sub)", fontWeight: 800, fontSize: 12.5, cursor: "pointer" };
 
 /** the initials tile every crew wears until photos arrive (16336-16340) */
-export function CrewFace({ name, size, grad, radius }: { name: string; size: number; grad: [string, string]; radius?: number }) {
+/* ⚠ round since 18 Oct 2026 — `radius` is kept on the type so old callers compile, and ignored */
+export function CrewFace({ name, size, grad }: { name: string; size: number; grad: [string, string]; radius?: number }) {
   return (
     <div
       aria-hidden="true"
       style={{
         width: size,
         height: size,
-        borderRadius: radius ?? Math.round(size * 0.3),
+        borderRadius: "50%",
         flexShrink: 0,
         display: "flex",
         alignItems: "center",

@@ -438,7 +438,7 @@ export function StatsScreen({
         <div style={{ ...micro, letterSpacing: 2.2, color: SUB }}>{tab === "charts" ? "DanceOS · India" : `${eyebrow} · Record`}</div>
         <div style={{ fontSize: 28, fontWeight: 900, fontFamily: DOS_DISPLAY, letterSpacing: -1.1, lineHeight: 1.05, marginTop: 4 }}>{tab === "charts" ? "Rankings" : "Stats"}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 13, marginTop: 14 }}>
-          <span style={{ width: 62, height: 62, borderRadius: 19, flexShrink: 0, overflow: "hidden", display: "inline-flex", alignItems: "center", justifyContent: "center", boxSizing: "border-box", border: `2px solid ${accent}`, background: `linear-gradient(135deg,${accent},#7C3AED)`, color: "#fff", fontSize: 22, fontWeight: 900, letterSpacing: 0.5, fontFamily: DOS_DISPLAY }}>
+          <span style={{ width: 62, height: 62, borderRadius: "50%", flexShrink: 0, overflow: "hidden", display: "inline-flex", alignItems: "center", justifyContent: "center", boxSizing: "border-box", border: `2px solid ${accent}`, background: `linear-gradient(135deg,${accent},#7C3AED)`, color: "#fff", fontSize: 22, fontWeight: 900, letterSpacing: 0.5, fontFamily: DOS_DISPLAY }}>
             {photo ? <Image src={photo} alt="" width={62} height={62} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : initialsOf(name)}
           </span>
           {/* a DIV, not a span: the heading below is a block element and an
@@ -937,7 +937,7 @@ export function StatsScreen({
                   <Link key={`${r.kind}-${r.id}`} href={href} aria-label={`${isYou ? "You — " : ""}${r.name} — place ${r.place} of ${r.population}`} style={{ display: "flex", alignItems: "center", gap: 10, background: isYou ? "linear-gradient(120deg,#7C3AED22,#EC489922)" : CARD, border: `1.5px solid ${isYou ? "#7C3AED77" : LINE}`, borderRadius: 14, padding: "10px 12px", marginBottom: 7, color: INK, textDecoration: "none" }}>
                     {/* top-3 numerals in the charts' own gradient (9693-9694) */}
                     <span style={{ ...figure, fontSize: top3 ? 24 : 17, fontFamily: DOS_DISPLAY, fontWeight: 900, width: 30, textAlign: "center", flexShrink: 0, background: top3 ? "linear-gradient(120deg,#7C3AED,#EC4899)" : "none", WebkitBackgroundClip: top3 ? "text" : undefined, backgroundClip: top3 ? "text" : undefined, color: top3 ? "transparent" : MUTED }}>{r.place}</span>
-                    <span style={{ width: 38, height: 38, borderRadius: 12, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", background: `linear-gradient(135deg,${dosStyleColor(r.style ?? "Hip-Hop")},#7C3AED)`, color: "#fff", fontSize: 13, fontWeight: 900, fontFamily: DOS_DISPLAY }}>
+                    <span style={{ width: 38, height: 38, borderRadius: "50%", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", background: `linear-gradient(135deg,${dosStyleColor(r.style ?? "Hip-Hop")},#7C3AED)`, color: "#fff", fontSize: 13, fontWeight: 900, fontFamily: DOS_DISPLAY }}>
                       {initialsOf(r.name)}
                     </span>
                     <span style={{ flex: 1, minWidth: 0 }}>

@@ -7,6 +7,7 @@ import { SectionCard } from "@/components/ui/SectionCard";
 import { dosStyleColor } from "@/lib/constants/styles";
 import { styleFromSlug, styleInfo } from "@/lib/constants/styleInfo";
 import { DOS_UI, INK, SUB, TAB_TITLE } from "@/lib/design/tokens";
+import { BeatText } from "@/components/ui/BeatText";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findChart } from "@/repositories/stats";
 import { ClassTile } from "@/features/classes/components/ClassTile";
@@ -244,7 +245,7 @@ export default async function StylePage({
           top={
             <>
               <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1.2, color: SUB }}>DANCE STYLE</div>
-              <h1 data-testid="style-title" style={{ ...TAB_TITLE, color: INK, marginTop: 4 }}>{style}</h1>
+              <h1 data-testid="style-title" style={{ ...TAB_TITLE, color: INK, marginTop: 4 }}><BeatText text={style} /></h1>
               <div style={{ fontSize: 13, fontWeight: 800, color: INK, marginTop: 6 }}>{info.origin}</div>
               <div style={{ fontSize: 12, color: SUB, marginTop: 2 }}>{info.country}</div>
             </>

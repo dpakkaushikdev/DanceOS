@@ -25,7 +25,7 @@ const initialsOf = (name: string) => name.split(" ").filter(Boolean).map((w) => 
 function Face({ name, path }: { name: string; path: string | null }) {
   const src = photoUrl(path);
   return (
-    <span style={{ width: 42, height: 42, borderRadius: 13, flexShrink: 0, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg,#64748B,#0EA5E9)", color: "#fff", fontWeight: 800, fontSize: 15 }}>
+    <span style={{ width: 42, height: 42, borderRadius: "50%", flexShrink: 0, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg,#64748B,#0EA5E9)", color: "#fff", fontWeight: 800, fontSize: 15 }}>
       {src ? <Image src={src} alt="" width={42} height={42} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : initialsOf(name)}
     </span>
   );

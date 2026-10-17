@@ -52,7 +52,7 @@ function Links({ socials }: { socials: SocialLink[] }) {
 function Face({ name, path, size = 44 }: { name: string; path: string | null; size?: number }) {
   const src = photoUrl(path);
   return (
-    <span style={{ width: size, height: size, borderRadius: 14, flexShrink: 0, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg,#3B82F6,#1D4ED8)", color: "#fff", fontWeight: 900, fontSize: size / 2.6 }}>
+    <span style={{ width: size, height: size, borderRadius: "50%", flexShrink: 0, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg,#3B82F6,#1D4ED8)", color: "#fff", fontWeight: 900, fontSize: size / 2.6 }}>
       {src ? <Image src={src} alt="" width={size} height={size} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : initialsOf(name)}
     </span>
   );

@@ -58,7 +58,7 @@ const pressKey = (fn: () => void) => (e: React.KeyboardEvent) => {
 function Face({ name, photo }: { name: string; photo: string | null }) {
   const g = personGradient(name);
   return (
-    <div style={{ width: 34, height: 34, borderRadius: 11, background: `linear-gradient(135deg,${g[0]},${g[1]})`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11.5, fontWeight: 900, flexShrink: 0, overflow: "hidden", position: "relative" }}>
+    <div style={{ width: 34, height: 34, borderRadius: "50%", background: `linear-gradient(135deg,${g[0]},${g[1]})`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11.5, fontWeight: 900, flexShrink: 0, overflow: "hidden", position: "relative" }}>
       {photo ? <Image src={photo} alt="" width={34} height={34} style={{ objectFit: "cover", width: 34, height: 34 }} /> : personInitials(name)}
     </div>
   );

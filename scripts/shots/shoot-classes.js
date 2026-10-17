@@ -374,7 +374,10 @@ const BOOK_ON_PAGE = /^Book Now$/;
     check((await bookedChips(lPage)) >= 1, "the learner who booked reads Booked on their own seat's card");
 
     await oPage.goto(`${BASE}/classes`, { waitUntil: "networkidle" });
-    check(await onShelf(oPage, aheadSlug), "the owner sees their own studio's class on the shelf");
+    /* ⚠ re-cut 18 Oct 2026: since 12 Oct Discover hides a class you RUN (you
+       cannot book it), so the owner's shelf leaves it off — and so cannot claim
+       the learner's seat as theirs either */
+    check(!(await onShelf(oPage, aheadSlug)), "the owner's shelf leaves off their own studio's class (12 Oct: a class you run is not bookable)");
     check((await bookedChips(oPage)) === 0, "⚠⚠ …and is NOT told they are enrolled on it — a learner's seat, read through the roster policy, was being drawn as the viewer's own");
     check((await oPage.getByRole("button", { name: "Cancel booking" }).count()) === 0, "…and is offered no Cancel aimed at somebody else's booking");
 

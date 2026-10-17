@@ -39,6 +39,50 @@ export function expiryWords(p: { validityDays: number | null; expiresAt: string 
 
 const dayWords = (iso: string) => new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" }).format(new Date(iso));
 
+/* the clock, read outside any component body (react-hooks/purity) */
+const nowMs = () => Date.now();
+/** whole days from now until `iso`, rounded up — 0 on the last day */
+export const daysLeftOf = (iso: string) => Math.max(0, Math.ceil((new Date(iso).getTime() - nowMs()) / 86_400_000));
+
+/** HOW LONG A PASS LASTS, AS A STRIP (18 Oct 2026, the user: "better valid … with
+ *  details written in short but upto the point"). The date on the left, how many
+ *  days are left as a pill on the right — green, amber in the last week, red once
+ *  gone. An unpaid pass says how long it WILL last; an unlimited one says so. */
+export function PassValidity({ validityDays, expiresAt, expired, testId = "pass-validity" }: { validityDays: number | null; expiresAt: string | null; expired: boolean; testId?: string }) {
+  let words: string;
+  let pill: string | null = null;
+  let tone = "#22C55E";
+  if (expiresAt && expired) {
+    words = `Expired ${shortDate(expiresAt)}`;
+    pill = "Ended";
+    tone = "#F87171";
+  } else if (expiresAt) {
+    const d = daysLeftOf(expiresAt);
+    words = `Valid till ${shortDate(expiresAt)}`;
+    pill = d === 0 ? "Last day" : `${d} ${d === 1 ? "day" : "days"} left`;
+    tone = d <= 7 ? "#F59E0B" : "#22C55E";
+  } else if (validityDays) {
+    words = `Valid ${validityDays} days from payment`;
+    tone = SUB;
+  } else {
+    words = "No expiry";
+    pill = "Until used up";
+    tone = SUB;
+  }
+  return (
+    <div data-testid={testId} style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, padding: "8px 10px", borderRadius: 12, background: "var(--el)" }}>
+      <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={tone} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+        <rect x="3" y="5" width="18" height="16" rx="3" />
+        <path d="M3 10h18M8 3v4M16 3v4" />
+      </svg>
+      <span style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 800, color: expired ? tone : INK }}>{words}</span>
+      {pill ? (
+        <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 900, letterSpacing: 0.3, padding: "3px 8px", borderRadius: 999, color: tone, background: tone === SUB ? "var(--card)" : `${tone}1f` }}>{pill}</span>
+      ) : null}
+    </div>
+  );
+}
+
 /** HOW FAR THROUGH — the one thing a membership is for (the user: "progress bar
  *  for completion"). Drawn from two real numbers, never a stored percentage.
  *
@@ -94,8 +138,10 @@ export function ProgressBar({
           <b style={{ fontSize: 20, fontWeight: 900, color: INK, letterSpacing: -0.4, fontVariantNumeric: "tabular-nums", marginRight: 5 }}>{numWord(left)}</b>
           {done ? "all done" : `${unitWord(unit, left).replace(/^\S+\s/, "")} ${leftWord}`}
         </span>
+        {/* ⚠ THE COUNT, NOT ONLY A SHARE (18 Oct 2026): "1 of 3 used · 33%" says
+            what was spent in the units it was bought in */}
         <span style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 900, color: INK, fontVariantNumeric: "tabular-nums" }}>
-          {pct}% <span style={{ color: SUB, fontWeight: 700 }}>{usedWord}</span>
+          {numWord(used)}/{numWord(total)} <span style={{ color: SUB, fontWeight: 700 }}>{usedWord} · {pct}%</span>
         </span>
       </div>
       {segmented ? (
@@ -127,17 +173,24 @@ export function ProgressBar({
 export function SpentOn({ uses, unit }: { uses: PassUse[]; unit: MembershipUnit }) {
   if (uses.length === 0) return null;
   return (
-    <div data-testid="spent-on" style={{ marginTop: 10, paddingTop: 8, borderTop: "1.5px solid var(--el)" }}>
-      <div style={{ fontSize: 8.5, fontWeight: 900, letterSpacing: 0.9, color: "var(--muted)", marginBottom: 4 }}>SPENT ON</div>
-      {uses.map((u) => (
-        <Link key={`${u.classId}-${u.startsAt}`} href={`/c/${u.shareSlug}`} aria-label={`Open ${u.style} · ${DOS_LEVEL_LABEL[u.level] ?? u.level}`} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "4px 0", fontSize: 10.5, textDecoration: "none", color: INK, pointerEvents: "auto" }}>
-          <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            <b>{u.style}</b> · {DOS_LEVEL_LABEL[u.level] ?? u.level}
-            <span style={{ color: SUB }}> · {dayWords(u.startsAt)}</span>
-          </span>
-          <span style={{ flexShrink: 0, color: SUB }}>{unitWord(unit, u.units)}</span>
-        </Link>
-      ))}
+    <div data-testid="spent-on" style={{ marginTop: 12 }}>
+      <div style={{ fontSize: 8.5, fontWeight: 900, letterSpacing: 0.9, color: "var(--muted)", marginBottom: 6 }}>SPENT ON · {uses.length}</div>
+      {/* a row per seat: the date as a small block, the class, and what it took */}
+      {uses.map((u) => {
+        const [day, mon] = dayWords(u.startsAt).split(" ");
+        return (
+          <Link key={`${u.classId}-${u.startsAt}`} href={`/c/${u.shareSlug}`} aria-label={`Open ${u.style} · ${DOS_LEVEL_LABEL[u.level] ?? u.level}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", borderTop: "1.5px solid var(--el)", fontSize: 11.5, textDecoration: "none", color: INK, pointerEvents: "auto" }}>
+            <span aria-hidden="true" style={{ flexShrink: 0, width: 34, textAlign: "center", borderRadius: 9, background: "var(--el)", padding: "3px 0", lineHeight: 1.05 }}>
+              <b style={{ display: "block", fontSize: 13 }}>{day}</b>
+              <span style={{ display: "block", fontSize: 8.5, fontWeight: 900, color: SUB, textTransform: "uppercase" }}>{mon}</span>
+            </span>
+            <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <b>{u.style}</b> <span style={{ color: SUB }}>· {DOS_LEVEL_LABEL[u.level] ?? u.level}</span>
+            </span>
+            <span style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 900, padding: "3px 8px", borderRadius: 999, background: "var(--el)" }}>−{unitWord(unit, u.units)}</span>
+          </Link>
+        );
+      })}
     </div>
   );
 }

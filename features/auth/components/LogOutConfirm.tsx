@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useFormStatus } from "react-dom";
 import { Portal } from "@/components/ui/Portal";
 import { CENTER_CARD, CENTER_SCRIM } from "@/components/ui/centerModal";
 import { signOutAction } from "@/features/auth/server-actions/auth";
@@ -30,7 +31,11 @@ export function LogOutConfirm({ onClose, word = "Log out" }: { onClose: () => vo
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const btn: React.CSSProperties = { flex: 1, padding: "12px 10px", borderRadius: 999, fontSize: 13, fontWeight: 900, cursor: "pointer", fontFamily: "inherit" };
+  /* ⚠ RE-CUT 18 Oct 2026 (the user: "make prompt box before log out better and
+     with shorter text below"): a ringed mark, a two-word question, one short
+     line, and the two answers stacked full width — Log out on top in red,
+     Stay quiet under it — so the thumb lands on a whole row, not half of one. */
+  const btn: React.CSSProperties = { width: "100%", padding: "13px 10px", borderRadius: 14, fontSize: 13.5, fontWeight: 900, cursor: "pointer", fontFamily: "inherit", border: "none" };
   return (
     <Portal>
       <div onClick={onClose} style={{ ...CENTER_SCRIM, zIndex: 960 }}>
@@ -40,31 +45,37 @@ export function LogOutConfirm({ onClose, word = "Log out" }: { onClose: () => vo
           aria-labelledby="dos-logout-title"
           aria-describedby="dos-logout-sub"
           onClick={(e) => e.stopPropagation()}
-          style={{ ...CENTER_CARD, maxWidth: 320, textAlign: "center", padding: "22px 18px 18px" }}
+          style={{ ...CENTER_CARD, maxWidth: 300, textAlign: "center", padding: "24px 16px 16px", borderRadius: 24 }}
         >
-          <span aria-hidden="true" style={{ width: 48, height: 48, borderRadius: 15, margin: "0 auto 12px", display: "flex", alignItems: "center", justifyContent: "center", background: `${RED}1f` }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={RED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <span aria-hidden="true" style={{ width: 56, height: 56, borderRadius: 999, margin: "0 auto 14px", display: "flex", alignItems: "center", justifyContent: "center", background: `${RED}1a`, boxShadow: `0 0 0 6px ${RED}0d` }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={RED} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5" />
             </svg>
           </span>
-          <div id="dos-logout-title" style={{ fontSize: 18, fontWeight: 900, letterSpacing: -0.3 }}>
-            {word} of DanceOS?
+          <div id="dos-logout-title" style={{ fontSize: 19, fontWeight: 900, letterSpacing: -0.4 }}>
+            {word}?
           </div>
-          <div id="dos-logout-sub" style={{ fontSize: 12, color: "var(--sub)", marginTop: 6, lineHeight: 1.45 }}>
-            You will need your email and password to sign back in.
+          <div id="dos-logout-sub" style={{ fontSize: 12, color: "var(--sub)", marginTop: 4 }}>
+            Sign back in with your email.
           </div>
-          <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
-            <button ref={cancelRef} type="button" onClick={onClose} style={{ ...btn, background: "var(--el)", color: "var(--text)", border: "none" }}>
-              Cancel
-            </button>
-            <form action={signOutAction} style={{ flex: 1, display: "flex" }}>
-              <button type="submit" style={{ ...btn, background: RED, color: "#fff", border: "none" }}>
-                {word}
-              </button>
-            </form>
-          </div>
+          <form action={signOutAction} style={{ marginTop: 18 }}>
+            <GoButton word={word} style={{ ...btn, background: RED, color: "#fff" }} />
+          </form>
+          <button ref={cancelRef} type="button" onClick={onClose} style={{ ...btn, marginTop: 8, background: "var(--el)", color: "var(--text)" }}>
+            Stay
+          </button>
         </div>
       </div>
     </Portal>
+  );
+}
+
+/** the red answer — "Logging out…" while the session ends, so a second press is not a question */
+function GoButton({ word, style }: { word: string; style: React.CSSProperties }) {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" disabled={pending} aria-label={word} style={{ ...style, opacity: pending ? 0.7 : 1 }}>
+      {pending ? (word === "Sign out" ? "Signing out…" : "Logging out…") : word}
+    </button>
   );
 }

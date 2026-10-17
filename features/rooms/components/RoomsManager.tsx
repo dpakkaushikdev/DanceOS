@@ -240,7 +240,7 @@ export function RoomsManager({
                       label={`Remove ${r.name}`}
                       title="Remove this room?"
                       body={`${r.name} comes off the studio. Classes already held in it keep their record.`}
-                      goWord="Remove it"
+                      goWord="Remove"
                       disabled={busy}
                       onConfirm={() => remove(r)}
                     />

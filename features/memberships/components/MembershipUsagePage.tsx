@@ -8,7 +8,7 @@ import { ToolBody, ToolCard, ToolChip, ToolFacts, ToolHead } from "@/components/
 import { FigureHead } from "@/components/ui/FigureHead";
 import { SegmentedPanels } from "@/features/shell/components/SegmentedNav";
 import { UNLIMITED_WORD, type MembershipClassUse, type MembershipHolder, type MembershipWithUsage, type PassUse } from "@/repositories/memberships";
-import { ProgressBar, SpentOn, expiryWords, unitWord } from "./usage-kit";
+import { PassValidity, ProgressBar, SpentOn, unitWord } from "./usage-kit";
 import { MembershipOffSale } from "./MembershipOffSale";
 
 /** ONE MEMBERSHIP — ITS PEOPLE, THEIR USAGE AND WHAT IT EARNED (19 Sep 2026;
@@ -221,10 +221,10 @@ export function MembershipUsagePage({
             { label: "Paying", value: `${paying}/${holders.length}` },
           ]}
         />
+        {/* ⚠ SHORT AND TO THE POINT (18 Oct 2026, the user) — one line, not a paragraph */}
         <div style={{ fontSize: 10.5, color: SUB, lineHeight: 1.5, margin: "9px 0 12px" }}>
-          {m.priceInr === 0 ? "A free membership earns nothing — the chart counts the passes taken. " : ""}
-          Came in is the money received. Danced value and still owed split it by the {m.unit === "hours" ? "hours" : "classes"} used and not yet used, at the average price per {unitShort}.
-          {charged !== m.revenueInr ? ` The passes were charged ${rupees(charged)} in all.` : ""}
+          {m.priceInr === 0 ? "Free — nothing earned; the chart counts passes taken." : `Split at ${perUnit == null ? "—" : rupees(Math.round(perUnit))} a ${unitShort}: danced vs still owed.`}
+          {charged !== m.revenueInr ? ` Charged ${rupees(charged)} in all.` : ""}
         </div>
         <div style={panel}>
           <SectionHead title="PASSES SOLD · LAST 6 MONTHS" figure={months.reduce((s, x) => s + x.n, 0)} />
@@ -246,7 +246,6 @@ export function MembershipUsagePage({
             const expired = h.status === "active" && h.expired;
             const word = expired ? "EXPIRED" : h.status === "used_up" ? "USED UP" : h.status === "active" ? "ACTIVE" : h.status.toUpperCase();
             const on = h.status === "active" && !expired;
-            const until = expiryWords(h);
             return (
               <ToolCard key={h.passId} testId="membership-holder">
                 <ToolHead
@@ -261,7 +260,7 @@ export function MembershipUsagePage({
                   right={<ToolChip word={word} fg={on ? "#22C55E" : expired ? "#F87171" : SUB} bg={on ? "#22C55E1c" : expired ? "#F871711c" : "var(--el)"} />}
                 />
                 <ToolBody>
-                  {until ? <div style={{ fontSize: 11, fontWeight: 800, color: expired ? "#F87171" : SUB }}>{until.charAt(0).toUpperCase() + until.slice(1)}</div> : null}
+                  <PassValidity validityDays={h.validityDays} expiresAt={h.expiresAt} expired={h.expired} testId="holder-validity" />
                   <ProgressBar used={h.unitsUsed} total={h.unitsTotal} tint={TINT} unit={h.unit} testId="holder-progress" />
                   {/* ⚠ THE CLASSES THEY USED IT ON, FOLDED (4 Oct 2026, the user:
                       "student membership should also show list of classes used in

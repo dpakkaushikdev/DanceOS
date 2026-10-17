@@ -66,12 +66,12 @@ export default async function LoginWelcomePage({ searchParams }: { searchParams:
         </div>
 
         {/* the count-in, BIG (3 Oct 2026, "5678 bigger") — every class starts
-            on it, so it is the screen's beat rather than a caption. Five beats
-            since 17 Oct 2026 (the user: "make 5678 on start page 56789"), so the
-            gaps and the size step down a little to keep one line at 360px */}
-        <div aria-hidden="true" style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 18, fontSize: "clamp(36px, 11vw, 52px)", fontWeight: 900, letterSpacing: 0.5, lineHeight: 1, fontFamily: DOS_DISPLAY, fontVariantNumeric: "tabular-nums" }}>
-          {["5", "6", "7", "8", "9"].map((n, i, all) => (
-            <span key={n} style={{ display: "inline-flex", alignItems: "center", gap: 12, animation: `dosBeat 2.4s ease ${i * 0.3}s infinite` }}>
+            on it, so it is the screen's beat rather than a caption. Four beats
+            again since 18 Oct 2026 (the user: "remove 9 from 5678") — the
+            17 Oct fifth beat is gone and the 16px gaps come back */}
+        <div aria-hidden="true" style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 18, fontSize: "clamp(36px, 11vw, 52px)", fontWeight: 900, letterSpacing: 0.5, lineHeight: 1, fontFamily: DOS_DISPLAY, fontVariantNumeric: "tabular-nums" }}>
+          {["5", "6", "7", "8"].map((n, i, all) => (
+            <span key={n} style={{ display: "inline-flex", alignItems: "center", gap: 16, animation: `dosBeat 2.4s ease ${i * 0.3}s infinite` }}>
               {n}
               {i < all.length - 1 && <span style={{ color: LINE, fontSize: 34 }}>·</span>}
             </span>

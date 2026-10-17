@@ -31,9 +31,10 @@ import type { MembershipOnSale } from "@/repositories/memberships";
  *  being paid with, then one Pay button. A free one says "no payment" in the
  *  same sheet rather than pretending there is a step. */
 
-const row: CSSProperties = { padding: "11px 0 12px", borderBottom: "1.5px solid var(--el)" };
-/* the row's one action, as a full pill (11 Oct 2026) */
-const buyBox: CSSProperties = { flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 118, padding: "11px 18px", borderRadius: 999, fontSize: 13, fontWeight: 900, fontFamily: "inherit", textDecoration: "none", whiteSpace: "nowrap" };
+/* each membership is its own card inside the section (18 Oct 2026) */
+const row: CSSProperties = { padding: "12px 12px 12px", marginTop: 8, border: "1.5px solid var(--el)", borderRadius: 16, background: "var(--card)" };
+/* the card's one action, a full-width pill (18 Oct 2026) */
+const buyBox: CSSProperties = { flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 118, padding: "11px 18px", borderRadius: 999, fontSize: 13, fontWeight: 900, fontFamily: "inherit", textDecoration: "none", whiteSpace: "nowrap" };
 const sheetBackdrop: CSSProperties = { position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 700 };
 const sheetBody: CSSProperties = { background: "var(--solid)", color: INK, borderRadius: "24px 24px 0 0", padding: "16px 16px 30px", width: "100%", maxWidth: 430, boxSizing: "border-box", animation: "dosSheetUp .28s cubic-bezier(.22,.9,.34,1)" };
 
@@ -96,23 +97,37 @@ export function MembershipsOnSale({
   return (
     <div style={{ background: "var(--card)", border: "1.5px solid var(--el)", borderRadius: 16, padding: "13px 14px", marginTop: 10 }} data-testid="memberships-on-sale">
       <div style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: 0.9, color: accent, marginBottom: 6 }}>MEMBERSHIPS</div>
-      {memberships.map((m, i) => (
-        <div key={m.id} data-testid="membership-on-sale" style={{ ...row, borderBottom: i === memberships.length - 1 ? "none" : row.borderBottom }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 900, letterSpacing: -0.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</span>
+      {memberships.map((m) => {
+        /* what one hour (or class) costs — the number a buyer compares two passes by */
+        const per = m.units > 0 && m.priceInr > 0 ? Math.round(m.priceInr / m.units) : 0;
+        return (
+        <div key={m.id} data-testid="membership-on-sale" style={row}>
+          {/* ⚠ A CARD PER MEMBERSHIP (18 Oct 2026, the user: "better valid and cards
+              for memberships on profile pages"): the name and its price on one
+              line, then three labelled boxes — what it holds, how long it lasts,
+              what an hour costs — the bar of what is left, and one full button */}
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: 15.5, fontWeight: 900, letterSpacing: -0.2, lineHeight: 1.2, overflowWrap: "anywhere" }}>{m.name}</span>
+              <span style={{ display: "block", fontSize: 10.5, color: SUB, fontWeight: 700, marginTop: 2 }}>{businessName}</span>
+            </span>
+            <span style={{ flexShrink: 0, textAlign: "right" }}>
+              <span data-testid="membership-price" style={{ display: "block", fontFamily: DOS_DISPLAY, fontSize: 20, fontWeight: 900, letterSpacing: -0.5, lineHeight: 1.05, color: accent }}>
+                {m.priceInr === 0 ? "Free" : rupees(m.priceInr)}
+              </span>
+              <span style={{ display: "block", fontSize: 9.5, color: "var(--muted)", fontWeight: 800, marginTop: 2 }}>{m.priceInr === 0 ? "no payment" : "one payment"}</span>
+            </span>
           </div>
-          {/* ⚠ WHAT IT IS, WRITTEN PROPERLY (12 Oct 2026, the user: "membership
-              hours and validity should be written properly in studio profile
-              pages") — two labelled boxes, the size and how long it lasts, where
-              one grey fragment ("10 hours · 60 days") said both and named neither */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginTop: 10 }}>
             {[
-              { k: "size", label: m.unit === "hours" ? "Hours" : "Classes", value: unitWord(m.unit, m.units) },
-              { k: "validity", label: "Valid for", value: m.validityDays ? `${m.validityDays} days from purchase` : "Until used up" },
+              { k: "size", label: m.unit === "hours" ? "Hours" : "Classes", value: unitWord(m.unit, m.units), sub: "to dance" },
+              { k: "validity", label: "Valid for", value: m.validityDays ? `${m.validityDays} days` : "No expiry", sub: m.validityDays ? "from purchase" : "until used up" },
+              { k: "per", label: m.unit === "hours" ? "Per hour" : "Per class", value: per ? rupees(per) : "Free", sub: m.unit === "hours" ? "on average" : "on average" },
             ].map((b) => (
-              <div key={b.k} data-testid={`membership-${b.k}`} style={{ background: "var(--el)", borderRadius: 12, padding: "7px 10px" }}>
-                <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 0.9, color: SUB, textTransform: "uppercase" }}>{b.label}</div>
-                <div style={{ fontSize: 13, fontWeight: 800, marginTop: 2 }}>{b.value}</div>
+              <div key={b.k} data-testid={`membership-${b.k}`} style={{ background: "var(--el)", borderRadius: 12, padding: "7px 9px", minWidth: 0 }}>
+                <div style={{ fontSize: 8.5, fontWeight: 900, letterSpacing: 0.8, color: SUB, textTransform: "uppercase" }}>{b.label}</div>
+                <div style={{ fontSize: 13, fontWeight: 900, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.value}</div>
+                <div style={{ fontSize: 9.5, color: "var(--muted)", fontWeight: 700 }}>{b.sub}</div>
               </div>
             ))}
           </div>
@@ -138,13 +153,8 @@ export function MembershipsOnSale({
               now — the figure at the size of a figure on the left with what it
               buys under it, and the button on the right as a full pill. Still
               ONE price (28 Sep 2026: never on the button as well). */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <span data-testid="membership-price" style={{ display: "block", fontFamily: DOS_DISPLAY, fontSize: 20, fontWeight: 900, letterSpacing: -0.5, lineHeight: 1.05 }}>
-                {m.priceInr === 0 ? "Free" : rupees(m.priceInr)}
-              </span>
-              <span style={{ display: "block", fontSize: 10, color: "var(--muted)", fontWeight: 700, marginTop: 2 }}>{m.priceInr === 0 ? "no payment" : "one payment"}</span>
-            </span>
+          {/* the one action, full width under the facts — the price is said once, above */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "stretch", gap: 10, marginTop: 10 }}>
             {!signedIn ? (
             <a href="/login" aria-label={`Buy ${m.name}`} style={{ ...buyBox, color: accent, background: `${accent}1f`, border: `1.5px solid ${accent}` }}>
               Sign in to buy
@@ -209,7 +219,8 @@ export function MembershipsOnSale({
             )}
           </div>
         </div>
-      ))}
+        );
+      })}
       {note ? (
         <div role="status" style={{ fontSize: 10.5, color: INK, marginTop: 8, lineHeight: 1.45 }}>
           {note}

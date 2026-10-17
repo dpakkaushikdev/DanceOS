@@ -2,6 +2,7 @@
 
 import { useState, type CSSProperties, type ReactNode } from "react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { DELETE_RED, TrashGlyph } from "@/components/ui/trash";
 
 /** ONE DELETE, EVERYWHERE (12 Oct 2026, the user: "these types of delete in
  *  sections should look similar and should just be an icon and ask before
@@ -17,34 +18,27 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
  *  ask: `onConfirm` runs only after "Delete" is pressed in the dialog, and an
  *  error it returns is printed inside that dialog rather than lost. */
 
-export const DELETE_RED = "#F87171";
+export { DELETE_RED, TrashGlyph };
 
-export function TrashGlyph({ size = 16, color = DELETE_RED }: { size?: number; color?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4 7h16" />
-      <path d="M9 7V4.8c0-.4.4-.8.8-.8h4.4c.4 0 .8.4.8.8V7" />
-      <path d="M6.5 7l.9 12.2c.1.9.8 1.8 1.8 1.8h5.6c1 0 1.7-.9 1.8-1.8L17.5 7" />
-      <path d="M10 11v6M14 11v6" />
-    </svg>
-  );
-}
+/** ONE SIZE (18 Oct 2026, the user: "fix delete button on all cards or cards
+ *  detail pages … make it consistent"): 36px everywhere — last on a card's
+ *  action bar, top right in a detail page's head. Callers no longer pass a size. */
+export const DELETE_SIZE = 36;
 
 export function DeleteIcon({
   label,
   onClick,
   disabled = false,
   testId,
-  size = 36,
   style,
 }: {
   label: string;
   onClick: () => void;
   disabled?: boolean;
   testId?: string;
-  size?: number;
   style?: CSSProperties;
 }) {
+  const size = DELETE_SIZE;
   return (
     <button
       type="button"
@@ -86,7 +80,6 @@ export function DeleteIconButton({
   onConfirm,
   disabled,
   testId,
-  size,
   style,
 }: {
   label: string;
@@ -98,7 +91,6 @@ export function DeleteIconButton({
   onConfirm: () => Promise<string | null | void> | string | null | void;
   disabled?: boolean;
   testId?: string;
-  size?: number;
   style?: CSSProperties;
 }) {
   const [open, setOpen] = useState(false);
@@ -109,7 +101,6 @@ export function DeleteIconButton({
       <DeleteIcon
         label={label}
         testId={testId}
-        size={size}
         style={style}
         disabled={disabled || busy}
         onClick={() => {

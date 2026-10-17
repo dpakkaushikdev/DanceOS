@@ -2,6 +2,15 @@
 
 ## LAST SESSION (17–18 Oct 2026) — replaced on every push (Rule 13)
 
+> ### MEMBERSHIPS CLEANER EVERYWHERE, ONE DELETE, A BETTER LOG-OUT PROMPT, AND 5 · 6 · 7 · 8 AGAIN (18 Oct 2026, latest) — no migration
+> The user: *"make membership use better design and consumption … better valid and cards for memberships on profile pages. fix delete button on all cards or cards detail pages … consistent"*, then *"make prompt box before log out better and with shorter text below"* and *"remove 9 from 5678"*.
+> * **`usage-kit`**: `PassValidity` — the date and a days-left pill (green, amber in the last week, red "Ended", "Until used up" for unlimited) on a pass (`pass-validity`, still "Valid till …") and a holder (`holder-validity`); the bar reads "1/3 used · 33%"; SPENT ON is a row per seat with a date block and "−1 hour".
+> * **A pass card**: Hours · Paid · Bought as facts, the validity strip, the bar, Spent on. **A selling card**: Sold · Active · **Earned**, and a line when nothing is sold. **A profile's sale card** is a card per membership: the name and the price on one line, three boxes (Hours · Valid for · **Per hour**, `membership-per`), the Sold/Left bar, a full-width button. The usage page's earnings note is one line.
+> * **One delete**: `DeleteIcon` is always 36px (no `size` prop), last on a card's bar or top right on a detail head; `ConfirmDialog` wears the trash mark and says "Deleting…" / "Removing…". `MembershipOffSale` (`membership-delete`) and the asset Remove moved onto `DeleteIconButton` (the asset asked in a sheet before — now an alertdialog, "Remove"); a room's goWord is "Remove"; a closed draft's trash moved last. `TrashGlyph`/`DELETE_RED` live in `components/ui/trash.tsx`.
+> * **Log out?** — a ringed mark, "Sign back in with your email.", Log out full width in red over Stay; "Logging out…" while it works.
+> * **The start page counts 5 · 6 · 7 · 8** again (gaps 16).
+> * **Verified:** typecheck 0 · lint 0 · build green · on `:3100` `shoot-membership-money` **22/22** (Cashfree sandbox) · `shoot-return` **10/10** · `shoot-classes` 131/1 — the red a stale 12 Oct check (the owner's shelf no longer shows a class they run), re-cut · screenshots of the pass, the sale cards, the prompt and the start page in both themes. e2e lines re-cut (the asset and room dialogs, the sale card's boxes); the whole suite not re-run.
+
 > ### A STUDIO'S PASS ON AN ARTIST'S CLASS IN ITS ROOM, AND A PASS SEAT'S INVOICE (18 Oct 2026, latest) — ⚠ Rule 9 (who a pass pays for) · ✅ `20261021090000` APPLIED (dry run **11/11** rolled back, `db-push -DryRun` exactly the one file, live read-back, PostgREST reloaded)
 > The user: *"artist doesnt have its own memberships only studio has but can be used if artist select while selecting a stuidio within dance os."*
 > * **`passes_for_session`** gains one branch: on an artist's class held in a studio's room, **that venue studio's pass** is offered once the studio ACCEPTED and the class's switch is on (`book_with_membership` asks the same function). Same signature and grants. An artist still sells nothing (`classes_no_artist_memberships`).

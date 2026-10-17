@@ -114,10 +114,11 @@ export function ClosedDraftButtons({ businessId, classId, title, canEdit }: { bu
   return (
     <>
       <StateChip word="Closed" tint="#858585" />
-      <DeleteIcon size={34} testId="closed-delete" label={`Delete ${title}`} onClick={() => setAsking(true)} />
       <Link href={`/business/${businessId}/classes/${classId}/edit`} data-testid="closed-new-date" aria-label={`Pick a new date for ${title}`} style={cardBtn(true)}>
         Pick a new date
       </Link>
+      {/* the delete is LAST on the row, like every card's (18 Oct 2026) */}
+      <DeleteIcon testId="closed-delete" label={`Delete ${title}`} onClick={() => setAsking(true)} />
       {asking ? (
         <ConfirmDialog
           title={`Delete ${title}?`}

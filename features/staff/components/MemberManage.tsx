@@ -260,7 +260,7 @@ export function MemberManage({
 
               <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
                 {mayRemove ? (
-                  <DeleteIcon size={42} label={`Remove ${m.name} from the team`} onClick={() => setRemoving(true)} />
+                  <DeleteIcon label={`Remove ${m.name} from the team`} onClick={() => setRemoving(true)} />
                 ) : null}
                 <button type="button" onClick={() => setOpen(false)} style={toolBtn("primary", "#141414", { flex: "1.4 1 0", background: "var(--text)", color: "var(--solid)", borderColor: "var(--text)" })}>
                   Done

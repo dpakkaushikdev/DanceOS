@@ -105,7 +105,7 @@ export function RoutinePage({
             <>
               <ToolChip word={live ? "LIVE" : "DRAFT"} fg={live ? "#22C55E" : SUB} bg={live ? "#22C55E1c" : "var(--el)"} />
               {/* ⚠ ONE WORD, TOP RIGHT (4 Oct 2026) — and still behind a confirm */}
-              <DeleteIcon size={32} label={`Delete ${routine.title}`} onClick={() => setConfirm(true)} />
+              <DeleteIcon label={`Delete ${routine.title}`} onClick={() => setConfirm(true)} />
             </>
           }
         />

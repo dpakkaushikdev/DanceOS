@@ -866,7 +866,7 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(roomB.getByTestId("room-amenities")).toContainText("AC");
     await owner.getByRole("button", { name: "Remove Studio B" }).click();
     /* ⚠ a trash icon that asks first (12 Oct 2026) */
-    await owner.getByRole("alertdialog", { name: "Remove this room?" }).getByRole("button", { name: "Remove it" }).click();
+    await owner.getByRole("alertdialog", { name: "Remove this room?" }).getByRole("button", { name: "Remove", exact: true }).click();
     await expect(owner.getByTestId("room-card").filter({ hasText: "Studio B" })).toHaveCount(0, { timeout: 15_000 });
 
     /* ---- THE TRAINER SIGNS UP FIRST, AND IS THEN ASKED BY NAME (Step 12b,
@@ -2904,7 +2904,10 @@ test.describe.serial("DanceOS, end to end", () => {
     /* the facts, then the class card's own bar in a membership's words (11 Oct
        2026, the user: "Membership should also have a bar like class cards for
        spots left") */
-    await expect(onSale.getByText("2 hours · 60 days")).toBeVisible();
+    /* three labelled boxes (18 Oct 2026): what it holds, how long, what an hour costs */
+    await expect(onSale.getByTestId("membership-size")).toContainText("2 hours");
+    await expect(onSale.getByTestId("membership-validity")).toContainText("60 days");
+    await expect(onSale.getByTestId("membership-per")).toContainText("Free");
     await expect(onSale.getByRole("img", { name: "0/5 Sold · 5 Left" })).toBeVisible();
 
     /* ── AND A PERSON TAKES IT FROM THERE, through the PAYMENT STEP (19 Sep
@@ -3104,13 +3107,14 @@ test.describe.serial("DanceOS, end to end", () => {
     /* ⚠ IT ASKS FIRST (4 Oct 2026, the user: "should confirm before removing
        asset") — Keep it leaves the row; Remove it takes it off */
     await legacy.getByRole("button", { name: `Remove ${legacyName}` }).click();
-    const ask = owner.getByRole("dialog", { name: "Remove this asset?" });
+    /* the app's one delete dialog since 18 Oct 2026 — an alertdialog, "Remove" */
+    const ask = owner.getByRole("alertdialog", { name: "Remove this asset?" });
     await expect(ask).toBeVisible({ timeout: 15_000 });
     await ask.getByRole("button", { name: "Keep it" }).click();
     await expect(ask).toBeHidden();
     await expect(owner.getByTestId("asset-row").filter({ hasText: legacyName })).toHaveCount(1);
     await legacy.getByRole("button", { name: `Remove ${legacyName}` }).click();
-    await owner.getByRole("dialog", { name: "Remove this asset?" }).getByRole("button", { name: "Remove it" }).click();
+    await owner.getByRole("alertdialog", { name: "Remove this asset?" }).getByRole("button", { name: "Remove", exact: true }).click();
     await expect(owner.getByTestId("asset-row").filter({ hasText: legacyName })).toHaveCount(0, { timeout: 15_000 });
 
     /* ⚠ THE OWNER'S ALONE, and the database says so too (`is_business_owner` is

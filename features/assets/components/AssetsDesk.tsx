@@ -4,12 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type CSSProperties } from "react";
 import { FigureHead } from "@/components/ui/FigureHead";
-import { FormConfirm, FormSummary } from "@/components/ui/FormPage";
 import { PhotoLightbox } from "@/features/media/components/PhotoLightbox";
 import { photoUrl } from "@/lib/media/photo";
 import { DeskBody, DeskTop } from "@/components/ui/DeskSections";
 import { ToolActions, ToolBody, ToolCard, ToolFacts, ToolHead, toolBtn } from "@/components/ui/ToolCard";
-import { DeleteIcon } from "@/components/ui/DeleteIconButton";
+import { DeleteIconButton } from "@/components/ui/DeleteIconButton";
 import { removeAssetAction } from "@/features/assets/server-actions/assets";
 import { DOS_TOOLS, DeskHero, BizToast } from "@/features/businesses/components/biz-kit";
 import { DeskAddButton, eyebrow, rupees } from "@/features/settings/components/settings-kit";
@@ -68,18 +67,17 @@ export function AssetsDesk({ businessId, assets }: { businessId: string; busines
 
   /* ⚠ REMOVING ASKS FIRST (4 Oct 2026, the user: "should confirm before removing
      asset") — one press used to soft-delete the row */
-  const [asking, setAsking] = useState<Asset | null>(null);
   const [viewing, setViewing] = useState<Asset | null>(null);
   const viewSrc = viewing ? photoUrl(viewing.photoPath) : null;
 
-  const drop = (a: Asset) =>
-    start(async () => {
-      const out = await removeAssetAction({ assetId: a.id, businessId });
-      setAsking(null);
-      if (out.error) return fire(out.error);
-      fire(`${a.name} removed`);
-      router.refresh();
-    });
+  /* an error stays inside the dialog; success closes it and says so */
+  const drop = async (a: Asset): Promise<string | null> => {
+    const out = await removeAssetAction({ assetId: a.id, businessId });
+    if (out.error) return out.error;
+    fire(`${a.name} removed`);
+    start(() => router.refresh());
+    return null;
+  };
 
   return (
     <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "0 16px 40px", boxSizing: "border-box" }}>
@@ -141,7 +139,16 @@ export function AssetsDesk({ businessId, assets }: { businessId: string; busines
               <Link href={`?edit=${a.id}`} scroll={false} aria-label={`Edit ${a.name}`} style={{ ...toolBtn("tinted", TINT), textDecoration: "none" }}>
                 Edit
               </Link>
-              <DeleteIcon label={`Remove ${a.name}`} onClick={() => setAsking(a)} disabled={pending} />
+              {/* ⚠ THE APP'S ONE DELETE (18 Oct 2026): last on the bar, asking in
+                  the shared dialog — it was the one card that asked in a sheet */}
+              <DeleteIconButton
+                label={`Remove ${a.name}`}
+                title="Remove this asset?"
+                body={`${a.name}${a.quantity > 1 ? ` × ${a.quantity}` : ""} · ${valueWords(a.valueInr)} — it comes off the inventory and the total.`}
+                goWord="Remove"
+                disabled={pending}
+                onConfirm={() => drop(a)}
+              />
             </ToolActions>
           </ToolCard>
         ))}
@@ -156,26 +163,6 @@ export function AssetsDesk({ businessId, assets }: { businessId: string; busines
       {/* the asset's picture, in the disc crop it was cut in */}
       {viewing && viewSrc ? (
         <PhotoLightbox shots={[{ key: viewing.id, src: viewSrc, alt: viewing.name, signed: false }]} frame="disc" index={0} onIndex={() => {}} onClose={() => setViewing(null)} label={viewing.name} />
-      ) : null}
-
-      {asking ? (
-        <FormConfirm
-          label="Remove this asset?"
-          title="Remove this asset?"
-          cancelWord="Keep it"
-          confirmWord={pending ? "Removing…" : "Remove it"}
-          busy={pending}
-          onCancel={() => setAsking(null)}
-          onConfirm={() => drop(asking)}
-        >
-          <FormSummary tint={TINT} head={<span style={{ fontSize: 11.5, fontWeight: 800 }}>📦 {assetCategoryWords(asking.category)}</span>}>
-            <b style={{ fontSize: 15 }}>
-              {asking.name}
-              {asking.quantity > 1 ? ` × ${asking.quantity}` : ""}
-            </b>
-            <div style={{ fontSize: 12, marginTop: 4, fontWeight: 800, color: asking.valueInr > 0 ? INK : SUB }}>{valueWords(asking.valueInr)}</div>
-          </FormSummary>
-        </FormConfirm>
       ) : null}
 
       <BizToast msg={toast} />

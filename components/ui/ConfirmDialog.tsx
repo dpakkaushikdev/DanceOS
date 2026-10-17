@@ -5,6 +5,11 @@ import { CENTER_CARD, CENTER_SCRIM } from "@/components/ui/centerModal";
 import { Portal } from "@/components/ui/Portal";
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
 import { SUB } from "@/lib/design/tokens";
+import { DELETE_RED, TrashGlyph } from "@/components/ui/trash";
+
+/** what the go button says while it works — "Deleting…", "Removing…" */
+const BUSY: Record<string, string> = { Delete: "Deleting…", Remove: "Removing…", "Return it": "Returning…", "Call it off": "Calling off…", Withdraw: "Withdrawing…", Leave: "Leaving…", Decline: "Declining…" };
+const busyWordOf = (go: string) => BUSY[go] ?? "Working…";
 
 /** ARE YOU SURE? — one centred question before something is taken off (4 Oct
  *  2026, the user: "should confirm before deleting a routine … confirm before
@@ -44,6 +49,13 @@ export function ConfirmDialog({
     <Portal>
       <div onClick={busy ? undefined : onKeep} style={CENTER_SCRIM}>
         <div role="alertdialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()} style={{ ...CENTER_CARD, padding: "18px 16px 16px" }}>
+          {/* ⚠ A REMOVAL WEARS THE TRASH MARK (18 Oct 2026) — the same glyph the
+              button that opened it carries, so every delete in the app reads as one act */}
+          {tone === "danger" ? (
+            <span aria-hidden="true" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 40, height: 40, borderRadius: 999, background: `${DELETE_RED}1f`, marginBottom: 10 }}>
+              <TrashGlyph size={19} />
+            </span>
+          ) : null}
           <div style={{ fontSize: 15, fontWeight: 900, overflowWrap: "anywhere" }}>{title}</div>
           {body ? <div style={{ fontSize: 11.5, color: SUB, lineHeight: 1.5, margin: "6px 0 0" }}>{body}</div> : null}
           {err ? (
@@ -67,7 +79,7 @@ export function ConfirmDialog({
               disabled={busy}
               style={{ flex: 1, padding: "11px 12px", borderRadius: 12, background: tone === "go" ? "var(--text)" : "#DC2626", border: "none", color: tone === "go" ? "var(--solid)" : "#fff", fontSize: 12.5, fontWeight: 900, cursor: busy ? "not-allowed" : "pointer", fontFamily: "inherit" }}
             >
-              {busy ? "Working…" : goWord}
+              {busy ? busyWordOf(goWord) : goWord}
             </button>
           </div>
         </div>

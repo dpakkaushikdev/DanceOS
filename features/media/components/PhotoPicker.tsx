@@ -304,7 +304,6 @@ export function PhotoPicker({
         </label>
         {hasPhoto ? (
           <DeleteIconButton
-            size={30}
             label="Remove the photo"
             title="Remove this photo?"
             goWord="Remove"

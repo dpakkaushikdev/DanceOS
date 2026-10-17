@@ -15,7 +15,7 @@ import { ToolActions, ToolBody, ToolCard, ToolChip, ToolFacts, ToolHead, ToolTit
 import { DOS_UI, INK, LILAC, SUB } from "@/lib/design/tokens";
 import { money as rupees } from "@/features/payouts/components/earnings-kit";
 import { UNLIMITED_WORD, type MembershipWithUsage, type MyPass, type PassUse } from "@/repositories/memberships";
-import { ProgressBar, SpentOn, expiryWords, unitWord } from "./usage-kit";
+import { PassValidity, ProgressBar, SpentOn, unitWord } from "./usage-kit";
 
 /** MEMBERSHIPS (19 Sep 2026, the user: "Users should be able to buy from Studio
  *  and Artist Profile Pages and track from memberships section in tools. Artist
@@ -41,11 +41,12 @@ const TINT = DOS_TOOLS.memberships.c;
    2026) — a plain module, so the server-rendered usage page and the student page
    draw the same bar as this client desk without importing a client module. */
 
-/** the one line under a membership's name that says what it is and what it
- *  costs — said ONCE, so no tile below repeats it (3 Oct 2026) */
-function MetaLine({ children }: { children: React.ReactNode }) {
-  return <div style={{ fontSize: 12, color: SUB, fontWeight: 700, marginTop: 4 }}>{children}</div>;
-}
+/** a date as a short fact — "12 Oct" (the year only when it is not this one) */
+const shortDay = (iso: string) => {
+  const d = new Date(iso);
+  const sameYear = new Intl.DateTimeFormat("en-IN", { year: "numeric", timeZone: "Asia/Kolkata" }).format(d) === new Intl.DateTimeFormat("en-IN", { year: "numeric", timeZone: "Asia/Kolkata" }).format(new Date(Date.now()));
+  return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", ...(sameYear ? {} : { year: "2-digit" }), timeZone: "Asia/Kolkata" }).format(d);
+};
 
 /* ⚠ `SellerFace` went on 3 Oct 2026 — the seller's face is the head of the
    shared `ToolCard` now (`ToolFace`: `DISC_RADIUS`, initials when there is no
@@ -202,7 +203,6 @@ export function MembershipsScreen({
             const expired = p.status === "active" && p.expired;
             const word = unpaid ? "UNPAID" : expired ? "EXPIRED" : p.status === "used_up" ? "USED UP" : p.status === "cancelled" ? "CANCELLED" : "ACTIVE";
             const live = p.status === "active" && !expired;
-            const until = expiryWords(p);
             /* ⚠⚠ A PASS CARD (3 Oct 2026, the user: *"better and bigger cards …
                each has a profile linked to it … visible with profile pic and name
                and big"*). A pass is a relationship with whoever SOLD it, so the
@@ -218,7 +218,7 @@ export function MembershipsScreen({
                   photoPath={sellerPhotos[p.businessId] ?? null}
                   /* no profile door on the face (12 Oct 2026) — the seller's page is
                      the "Studio page" button on the bar */
-                  eyebrow={`Sold by ${p.businessType === "studio" ? "a studio" : "an artist"}`}
+                  eyebrow={p.businessType === "studio" ? "Studio" : "Artist"}
                   sub="Your membership"
                   right={<ToolChip word={word} fg={live ? "#22C55E" : unpaid ? "#F59E0B" : expired ? "#F87171" : SUB} bg={live ? "#22C55E1c" : unpaid ? "#F59E0B1c" : expired ? "#F871711c" : "var(--el)"} />}
                 />
@@ -232,16 +232,20 @@ export function MembershipsScreen({
                   <ToolTitle size={21}>{p.name}</ToolTitle>
                   {/* an UNPAID pass carries its price on the Pay button below, so the
                       line names only what it is worth */}
-                  <MetaLine>
-                    {unitWord(p.unit, p.unitsTotal)}
-                    {unpaid ? "" : ` · ${p.priceInr === 0 ? "Free" : `${rupees(p.priceInr)} paid`}`}
-                  </MetaLine>
-                  {/* how long it lasts — "valid till 2 Nov 2026", or in red once gone */}
-                  {until ? (
-                    <div data-testid="pass-validity" style={{ fontSize: 11, fontWeight: 800, color: expired ? "#F87171" : SUB, marginTop: 3 }}>
-                      {until.charAt(0).toUpperCase() + until.slice(1)}
-                    </div>
-                  ) : null}
+                  {/* ⚠ THREE FACTS, SAID ONCE (18 Oct 2026, the user: "cleaner better
+                      and more details … written in short"): what it holds, what it
+                      cost, and when it was bought — then how long it lasts as its
+                      own strip with the days left */}
+                  <ToolFacts
+                    tint={TINT}
+                    style={{ marginTop: 10 }}
+                    items={[
+                      { label: p.unit === "hours" ? "Hours" : "Classes", value: unitWord(p.unit, p.unitsTotal).replace(/\s\S+$/, ""), testId: "pass-size" },
+                      { label: unpaid ? "Price" : "Paid", value: p.priceInr === 0 ? "Free" : rupees(p.priceInr) },
+                      { label: "Bought", value: p.boughtAt && !unpaid ? shortDay(p.boughtAt) : "—" },
+                    ]}
+                  />
+                  <PassValidity validityDays={p.validityDays} expiresAt={p.expiresAt} expired={p.expired} />
                   {unpaid ? null : (
                     <>
                       <ProgressBar used={p.unitsUsed} total={p.unitsTotal} tint={TINT} unit={p.unit} testId="pass-progress" />
@@ -335,10 +339,15 @@ export function MembershipsScreen({
                   items={[
                     { label: "Sold", value: <>{m.sold}<span style={{ fontSize: 10, color: SUB, fontWeight: 700 }}>/{m.totalCount}</span></>, testId: "membership-sold" },
                     { label: "Active", value: m.active },
+                    { label: "Earned", value: rupees(m.revenueInr), tint: m.revenueInr > 0 ? "#22C55E" : undefined },
                   ]}
                 />
                 {/* how much of what was SOLD has actually been danced — the seller's own bar */}
-                {m.unitsSold > 0 ? <ProgressBar used={m.unitsUsed} total={m.unitsSold} tint="#8B5CF6" unit={m.unit} leftWord="still owed" usedWord="danced" testId="selling-progress" /> : null}
+                {m.unitsSold > 0 ? (
+                  <ProgressBar used={m.unitsUsed} total={m.unitsSold} tint="#8B5CF6" unit={m.unit} leftWord="still owed" usedWord="danced" testId="selling-progress" />
+                ) : (
+                  <div style={{ fontSize: 11, color: SUB, marginTop: 10 }}>{m.status === "draft" ? "A draft — nobody can buy it yet." : "None sold yet — it is on your profile page."}</div>
+                )}
               </ToolBody>
               {/* ⚠ NO "Membership Details ›" BUTTON (12 Oct 2026, the user: "detail
                   buttons can be removed now as clicking on the tile takes to the

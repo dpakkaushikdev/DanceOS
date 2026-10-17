@@ -2,7 +2,7 @@
 
 ## LAST SESSION (17–18 Oct 2026) — replaced on every push (Rule 13)
 
-> ### PICTURE SCENES ON DISCOVER, A FANCY QR, A DISABLED BOOK NOW, PERMISSIONS BY TEAM KIND, A BETTER MEMBERSHIP TILE, TWO SHARE BUTTONS, ONE INBOX COLOUR AND A RANKINGS PODIUM (18 Oct 2026, latest) — no migration
+> ### PICTURE SCENES ON DISCOVER, A FANCY QR, A DISABLED BOOK NOW, PERMISSIONS BY TEAM KIND, A BETTER MEMBERSHIP TILE, TWO SHARE BUTTONS, ONE INBOX COLOUR AND A RANKINGS PODIUM (18 Oct 2026, latest) — no migration · ✅ PUSHED AND LIVE (`be27162`, next chat: typecheck 0 · lint 0 · build green re-run, Vercel READY, alias confirmed on the sha through the API, `stranger-smoke` **9/9** on the live site)
 > The user's list (quoted in the session): bigger logos with better colours, animated pictures not clipart; card alignment that a long style name cannot break; a visible-but-disabled Book Now when rules forbid booking; separate studio and artist team permissions; **"no." to crews you are in / crew invites on the Crews tab** (read as: the Crews hub carries nothing about other teams — the pointer line is gone; Team › Other Teams holds it); notifications open on New; a fancy, unique, smooth profile QR and a better QR sheet; the drawer's tools reordered; the pay-with-membership tile and its confirmation; class page Copy link · Share class under the card; a crisper policy; one Inbox colour; better rankings; push live.
 > * **Discover** (`DiscoverLogo.tsx` → `DiscoverScene`): each tab tile IS an animated picture filling the whole 104px tile — a studio with dancers and a mirror sweep, a night street with a neon sign, a stage with a spotlight and a swaying performer, a disco ball with rays, notes and an equaliser — the word on a band at the foot. Ten `dosScene*` keyframes; reduced motion stops them.
 > * **Alignment**: a class card's title and level, and a style card's name, are one line with an ellipsis and step down in size when long (`title` carries the whole word).
@@ -13760,7 +13760,7 @@ for the database schema. **The UI is not redesigned** — see Rule 2.
 
 ### Progress tracker — update after EVERY push (Rule 11)
 
-- **PICTURE SCENES ON DISCOVER, A FANCY PROFILE QR, A DISABLED BOOK NOW, PERMISSIONS BY TEAM KIND, A BETTER MEMBERSHIP TILE, COPY · SHARE UNDER THE CLASS CARD, ONE INBOX COLOUR, A RANKINGS PODIUM — 18 Oct 2026, no step number — no migration.** Detail at the top.
+- **PICTURE SCENES ON DISCOVER, A FANCY PROFILE QR, A DISABLED BOOK NOW, PERMISSIONS BY TEAM KIND, A BETTER MEMBERSHIP TILE, COPY · SHARE UNDER THE CLASS CARD, ONE INBOX COLOUR, A RANKINGS PODIUM — 18 Oct 2026, no step number — no migration, PUSHED AND LIVE (`be27162`).** Detail at the top.
 - **CLIPART LOGOS ON DISCOVER AND TEAM › OTHER TEAMS — 18 Oct 2026, no step number — no migration, PUSHED AND LIVE (`93f73fc`).** Row C171. Detail at the top.
 - **RUNNING HEADINGS, COUNTS IN THE TOOL'S COLOUR, MEMBERSHIP NOTIFICATIONS, A CENTRED ANIMATED BRAND, ROUND FACES, A BETTER CROPPER, A SWIPEABLE VIEWER — 18 Oct 2026, no step number ⚠ (Rule 9) — `20261023090000` APPLIED, PUSHED AND LIVE (`38491c5`).** Detail at the top.
 

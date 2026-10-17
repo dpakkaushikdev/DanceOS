@@ -1,6 +1,10 @@
 # CLAUDE.md — DanceOS
 
-## LAST SESSION (12 Oct 2026) — replaced on every push (Rule 13)
+## LAST SESSION (17–18 Oct 2026) — replaced on every push (Rule 13)
+
+> ### THE NEW ACCOUNT, AND A FIVE-BEAT COUNT-IN (18 Oct 2026) — no migration
+> ⚠⚠ **THE PROJECT MOVED ACCOUNTS ON 17 Oct 2026.** GitHub `dpakkaushikdev/DanceOS` (git `origin`; the old `dpakkaushik/dancestudio` is remote `old-origin` — never push there), Supabase `gfpxbmanxkmhmrzfbqqw`, Vercel `dpakkaushikdev/danceos`, live at **https://danceos-sigma.vercel.app**. Every older record below names the OLD account (`wonhocebhckjokfssvja`, `dancestudio-orcin.vercel.app`) and is history. `.env.local` is the new account's; `SUPABASE_ACCESS_TOKEN` is EMPTY there (an `sbp_` account token is needed to set Auth by API).
+> * The start page counts **5 · 6 · 7 · 8 · 9** (the user: *"make 5678 on start page 56789"*), the gaps 16 → 12 and the size `clamp(36px, 11vw, 52px)`, measured on one line at 430 / 390 / 360 / 320. The loading screen's 5-6-7-8 and the footer's eight dashes are unchanged (not asked).
 
 > ### YOUR OWN PAGE IS THE VISITOR'S PAGE, DISABLED, AND THE CARD IS THE DETAIL DOOR (12 Oct 2026, latest) — no migration · ✅ PUSHED AND LIVE (`f0e0c8d`: Vercel READY, alias confirmed on the sha through the API; the probe **10/10 on the live site**)
 > The user: *"when looking at your own profile should not say you are on this team or you manage etc should keep the same view and should just disable the buttons. detail buttons can be removed now as clicking on the tile takes to the detailed page for it."*

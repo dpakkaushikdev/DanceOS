@@ -33,7 +33,8 @@ const AREA_TOOL: Record<string, Tile["k"]> = { class: "classesmod", team: "team"
 const personToolOf = (href: string): Tile["k"] | null => {
   const path = pathOf(href);
   const query = href.includes("?") ? href.slice(href.indexOf("?")) : "";
-  if (path === "/team" || (path === "/business" && /show=team/.test(query))) return "team";
+  /* ⚠ a crew ask belongs to Team too since 18 Oct 2026 (Other Teams) */
+  if (path === "/team" || (path === "/business" && /show=team/.test(query)) || (path === "/crews" && /show=in/.test(query))) return "team";
   if (path === "/business") return "studios";
   if (path.startsWith("/c/")) return "classesmod";
   if (/^\/(invoices|refunds|payments|earnings)/.test(path)) return "earn";

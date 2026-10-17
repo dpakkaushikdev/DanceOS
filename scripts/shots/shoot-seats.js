@@ -196,9 +196,11 @@ const DESKS = [...RUN_DESKS, ...OWNER_DESKS];
        shoot-practice stale for a day when Practice became a column. */
     /* ⚠ and the THIRD column since 3 Oct 2026 — Manage · Team · Student; the
        Student column went on 11 Oct 2026, so the hub is Manage · Team */
+    /* ⚠ and since 18 Oct 2026 the Studios hub's Team column is Team › Other Teams;
+       the old address redirects there */
     await fPage.goto(`${BASE}/business?show=team`, { waitUntil: "networkidle" });
-    const hub = (await fPage.locator("body").innerText()).replace(/\s+/g, " ");
-    check(/STUDIOS YOU HAVE TAUGHT AT/.test(hub) && hub.includes("Seat Studio"), "the hub still lists the studio under STUDIOS YOU HAVE TAUGHT AT");
+    const hub = (await fPage.getByTestId("studio-teams").innerText().catch(() => "")).replace(/\s+/g, " ");
+    check(hub.includes("Seat Studio"), "Other Teams still lists the studio under Studio teams you are on");
     const taughtHref = await fPage.getByRole("link", { name: new RegExp(`Seat Studio ${stamp} — open the profile`) }).getAttribute("href");
     check(taughtHref === `/studio/${studio.id}`, `…and its door is the studio's PUBLIC page, not its manage home — ${taughtHref}`);
 

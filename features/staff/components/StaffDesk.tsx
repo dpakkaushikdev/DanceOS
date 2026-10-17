@@ -26,8 +26,8 @@ import { FORM_TITLE } from "@/components/ui/formTitle";
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
 import { InviteHeadButtons } from "@/features/inbox/components/JoinInvites";
 import type { AnsweredInviteRow } from "@/features/inbox/inviteRows";
-import { ArtistTeams } from "@/features/staff/components/ArtistTeams";
-import type { ArtistTeamsData } from "@/features/staff/server/loadArtistTeams";
+import { OtherTeams } from "@/features/staff/components/OtherTeams";
+import { otherTeamsCount, otherTeamsWaiting, type OtherTeamsData } from "@/features/staff/otherTeams";
 import { ColumnCount, columnTab, columnTrack } from "@/components/ui/ColumnTabs";
 import type { TeamMember } from "@/repositories/businesses";
 import type { PayoutMethod, PayoutRecord, PayoutStatus } from "@/types/payout";
@@ -155,13 +155,13 @@ export function StaffDesk({
   classCounts = null,
   isOwner,
   meUserId,
-  artistTeams = null,
+  otherTeams = null,
   initialColumn = "mine",
 }: {
-  /** the Artist Teams column (11 Oct 2026) — drawn only on the viewer's OWN
-   *  artist page; a studio's desk has one column */
-  artistTeams?: (ArtistTeamsData & { stayOn: string }) | null;
-  initialColumn?: "mine" | "artists";
+  /** the Other Teams column (18 Oct 2026; Artist Teams since 11 Oct) — drawn
+   *  only on the viewer's OWN artist page; a studio's desk has one column */
+  otherTeams?: { data: OtherTeamsData; stayOn: string } | null;
+  initialColumn?: "mine" | "other";
   /** the invites this desk sent that are over — the head's Answered sheet */
   answered?: AnsweredInviteRow[];
   /** each member's classes here, by user id — null when the read failed */
@@ -186,12 +186,12 @@ export function StaffDesk({
      from the roster rather than from `/artist/{id}`, which only redirects there */
   /* ⚠ MY TEAM · ARTIST TEAMS (11 Oct 2026) — client state, with the address kept
      in step by a replace so a reload and a Join's `stayOn` land on the column */
-  const [col, setColState] = useState<"mine" | "artists">(artistTeams ? initialColumn : "mine");
-  const setCol = (c: "mine" | "artists") => {
+  const [col, setColState] = useState<"mine" | "other">(otherTeams ? initialColumn : "mine");
+  const setCol = (c: "mine" | "other") => {
     setColState(c);
     try {
       const u = new URL(window.location.href);
-      if (c === "artists") u.searchParams.set("show", "artists");
+      if (c === "other") u.searchParams.set("show", "other");
       else u.searchParams.delete("show");
       window.history.replaceState(window.history.state, "", u.pathname + u.search);
     } catch {
@@ -298,14 +298,14 @@ export function StaffDesk({
           switches are the PEOPLE asked, not this business's */}
       <div style={{ position: "relative", margin: "0 0 12px" }}>
         <DeskHero tool="team" as="h1" margin="0" toggle={false} />
-        {col === "artists" && artistTeams ? (
+        {col === "other" && otherTeams ? (
           <InviteHeadButtons
-            key="artists"
-            answered={artistTeams.answered}
-            answeredTestId="artist-team-answered"
-            answeredListTestId="artist-team-answered-list"
-            answeredLabel="Answered artist invitations"
-            settings={{ testId: "artist-teams-settings", kind: "team", off: artistTeams.inboxOff, title: "Team invitations" }}
+            key="other"
+            answered={otherTeams.data.answered}
+            answeredTestId="other-team-answered"
+            answeredListTestId="other-team-answered-list"
+            answeredLabel="Answered team invitations"
+            settings={{ testId: "other-teams-settings", kinds: ["team", "crew"], off: otherTeams.data.inboxOff, title: "Team and crew invitations" }}
           />
         ) : (
           <InviteHeadButtons key="mine" answered={answered} answeredTestId="team-answered" answeredListTestId="team-answered-list" answeredLabel="Answered invitations" />
@@ -333,20 +333,20 @@ export function StaffDesk({
           }}
         />
       ) : null}
-      {artistTeams ? (
+      {otherTeams ? (
         <div role="tablist" aria-label="Team columns" style={{ ...columnTrack(), marginBottom: 8 }}>
           <button type="button" role="tab" aria-selected={col === "mine"} data-testid="team-col-mine" onClick={() => setCol("mine")} style={columnTab(col === "mine")}>
             My Team <ColumnCount n={team.length} on={col === "mine"} />
           </button>
-          <button type="button" role="tab" aria-selected={col === "artists"} data-testid="team-col-artists" onClick={() => setCol("artists")} style={columnTab(col === "artists")}>
-            Artist Teams <ColumnCount n={artistTeams.invites.length + artistTeams.teams.length} on={col === "artists"} attention={artistTeams.invites.length > 0} />
+          <button type="button" role="tab" aria-selected={col === "other"} data-testid="team-col-other" onClick={() => setCol("other")} style={columnTab(col === "other")}>
+            Other Teams <ColumnCount n={otherTeamsCount(otherTeams.data)} on={col === "other"} attention={otherTeamsWaiting(otherTeams.data) > 0} />
           </button>
         </div>
       ) : null}
       {/* ⚠ THE FIGURES ARE PART OF THE TOP SECTION (12 Oct 2026, the user: "the
           middle section … should be merged with the top section") — counted off
           the roster below, never stored; My Team's alone */}
-      {col === "artists" && artistTeams ? null : (
+      {col === "other" && otherTeams ? null : (
         <div style={{ marginTop: 12 }}>
           <ToolFacts tint={DOS_TOOLS.team.c} items={[{ label: team.length === 1 ? "Member" : "Total members", value: team.length, testId: "team-total" }]} />
           {roleRows.map((row, i) => (
@@ -356,9 +356,9 @@ export function StaffDesk({
       )}
       </DeskTop>
 
-      {col === "artists" && artistTeams ? (
+      {col === "other" && otherTeams ? (
         <DeskBody style={{ paddingBottom: 4 }}>
-          <ArtistTeams invites={artistTeams.invites} teams={artistTeams.teams} stayOn={artistTeams.stayOn} />
+          <OtherTeams data={otherTeams.data} stayOn={otherTeams.stayOn} />
         </DeskBody>
       ) : (
       <>

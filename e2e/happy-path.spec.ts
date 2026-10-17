@@ -929,16 +929,19 @@ test.describe.serial("DanceOS, end to end", () => {
     await trainer.goto("/inbox");
     const teamPointer = trainer.getByTestId("team-invites-pointer");
     await expect(teamPointer).toContainText(/1 studio team invite/,{ timeout: 15_000 });
-    await expect(teamPointer).toHaveAttribute("href", "/business?show=team");
+    await expect(teamPointer).toHaveAttribute("href", "/team");
     // and the old Invites column is not there — an old address lands on Enquiries
     await trainer.goto("/inbox?show=invites");
     await expect(trainer.getByRole("button", { name: /^Invites/ })).toHaveCount(0);
     await expect(trainer.getByRole("button", { name: "Received enquiries" })).toBeVisible();
-    await trainer.goto("/business");
+    /* ⚠ ON TEAM › OTHER TEAMS SINCE 18 Oct 2026 — an artist lands on their own
+       page's desk with that column open, because an invitation waits */
+    await trainer.goto("/team");
+    await trainer.waitForURL(/show=other|\/team$/, { timeout: 20_000 });
     const teamInvite = trainer.getByTestId("team-invites").getByTestId("team-invite").filter({ hasText: studioName });
     await expect(teamInvite).toBeVisible({ timeout: 15_000 });
     await teamInvite.getByTestId("team-invite-join").click();
-    // joining stays on the hub — the invitation goes and the studio is in the Team column
+    // joining stays on Other Teams — the invitation goes and the studio is listed under it
     await expect(trainer.getByTestId("team-invite").filter({ hasText: studioName })).toHaveCount(0, { timeout: 15_000 });
     await expect(trainer.getByRole("link", { name: `${studioName} — open the profile` }).first()).toBeVisible({ timeout: 15_000 });
 
@@ -1685,7 +1688,7 @@ test.describe.serial("DanceOS, end to end", () => {
     const crewPointer = trainer.getByTestId("crew-invites-pointer");
     await expect(crewPointer).toContainText(/1 crew invite/, { timeout: 15_000 });
     await crewPointer.click();
-    await trainer.waitForURL(/\/crews\?show=in$/);
+    await trainer.waitForURL(/show=other|\/team$/, { timeout: 20_000 });
     const crewInvite = trainer.getByTestId("crew-invites").getByTestId("crew-invite").filter({ hasText: crewName });
     await expect(crewInvite).toBeVisible({ timeout: 15_000 });
     await expect(crewInvite.getByText(`invited by ${learnerName}`)).toBeVisible();
@@ -1733,8 +1736,11 @@ test.describe.serial("DanceOS, end to end", () => {
     /* ⚠ a segment pill's accessible name is its `aria` plus its count, never its
        visible label (`SegmentedNav` line 78) — the label is for the eye and the
        aria is the sentence, which is what a screen reader and a locator read. */
+    /* ⚠ AND SINCE 18 Oct 2026 THAT COLUMN IS TEAMS' OTHER TEAMS — the Crews hub is
+       the crews you lead, and `?show=in` forwards to Team */
     await trainer.goto("/crews?show=in");
-    await expect(trainer.getByRole("link", { name: /^The crews you are a part of/ })).toBeVisible();
+    await trainer.waitForURL(/show=other|\/team$/, { timeout: 20_000 });
+    await expect(trainer.getByTestId("member-crews")).toBeVisible({ timeout: 15_000 });
     await expect(trainer.getByRole("link", { name: `${crewName} — open the profile` })).toBeVisible();
     /* ⚠ Discover has no Crews tab since 18 Oct 2026 — `?tab=crews` lands on Classes */
     await trainer.goto("/discover?city=Pune&tab=crews");
@@ -2472,8 +2478,10 @@ test.describe.serial("DanceOS, end to end", () => {
        than becoming a third: both are "a studio that is not yours".
        ⚠ AND IT IS ITS OWN THIRD COLUMN SINCE 3 Oct 2026 (the user: "Studio
        column name- Manage, Team and Student") — `?show=team`. */
+    /* ⚠ ON TEAM › OTHER TEAMS SINCE 18 Oct 2026; `?show=team` forwards there */
     await trainer.goto("/business?show=team");
-    await expect(trainer.getByText("STUDIOS YOU HAVE TAUGHT AT")).toBeVisible();
+    await trainer.waitForURL(/show=other|\/team$/, { timeout: 20_000 });
+    await expect(trainer.getByTestId("studio-teams")).toBeVisible({ timeout: 15_000 });
 
     /* …and the two things this block used to prove ride the OWNER now, which is
        who they were always about. ⚠ The non-owner refusal ("Only the owner

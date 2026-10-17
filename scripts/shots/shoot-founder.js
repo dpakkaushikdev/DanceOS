@@ -204,10 +204,11 @@ const openMemberSheet = async (page, memberName) => {
     const handed = (await rows(founder.h, `crews?id=eq.${crew.id}&select=leader_id,created_by`))[0];
     check(handed.leader_id === second.id && handed.created_by === founder.id, "the crew is handed over: the leader is the other person and `created_by` still names the founder");
 
-    /* ── 5. THE FOUNDER FINDS IT IN THE COLUMN THEY ARE NOW IN ─────────────── */
-    await fPage.goto(`${BASE}/crews?show=in`, { waitUntil: "networkidle" });
+    /* ── 5. THE FOUNDER FINDS IT IN THE COLUMN THEY ARE NOW IN ───────────────
+       ⚠ Team › Other Teams since 18 Oct 2026 — the Crews hub lost its Member column */
+    await fPage.goto(`${BASE}/team`, { waitUntil: "networkidle" });
     const inText = (await fPage.locator("body").innerText()).replace(/\s+/g, " ");
-    check(inText.includes(`Founder Crew ${stamp}`), "⚠ the handed-over crew is in the founder's You-are-in column — they are a member of it now");
+    check(inText.includes(`Founder Crew ${stamp}`), "⚠ the handed-over crew is under the founder's Other Teams — they are a member of it now");
     check(inText.includes("You started this crew and handed it over"), "…and the row says so, rather than offering a button with no reason beside it");
 
     const takeBack = fPage.getByRole("button", { name: `Take Founder Crew ${stamp} back` });

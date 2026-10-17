@@ -7,7 +7,7 @@ import { SubscribeButton } from "@/features/payments/components/SubscribeButton"
 import { StudioVerificationStrip } from "@/features/businesses/components/StudioVerificationStrip";
 import type { StudioVerificationState } from "@/repositories/studioVerification";
 import { DeskAddButton, VerifiedTick } from "@/features/settings/components/settings-kit";
-import { SegmentedPanels } from "@/features/shell/components/SegmentedNav";
+import { DeskBody, DeskTop } from "@/components/ui/DeskSections";
 import { dosKey } from "@/features/classes/components/ShareSheet";
 import { CityPicker } from "@/features/geo/components/CityPicker";
 import { LocationPicker } from "@/features/geo/components/LocationPicker";
@@ -24,10 +24,7 @@ import { publicProfilePath } from "@/lib/routes/publicProfile";
 import { priceWords, type PlanCatalogRow } from "@/repositories/plans";
 import type { StudioSubscriptionState } from "@/repositories/subscriptions";
 import type { MyMembership } from "@/repositories/businesses";
-import type { LearnedFrom } from "@/repositories/classBookings";
 import { DOS_TOOLS, SHEET_ANIMATION } from "./biz-kit";
-import { InviteHeadButtons, TeamInvites, type AnsweredInviteRow, type TeamInviteRow } from "@/features/inbox/components/JoinInvites";
-import type { AskKind } from "@/repositories/askSettings";
 
 /* Icons lifted from the prototype (DanceOSApp.jsx:3136-3142). */
 const STROKE = { fill: "none", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round" } as const;
@@ -36,15 +33,6 @@ const StudioI = ({ size = 18, color = "currentColor" }: { size?: number; color?:
   <svg width={size} height={size} viewBox="0 0 24 24" stroke={color} {...STROKE} aria-hidden="true">
     <rect x="5" y="4" width="14" height="17" rx="2" />
     <path d="M9.5 21v-4h5v4M9 8h2M13 8h2M9 12h2M13 12h2" />
-  </svg>
-);
-
-const ArtistI = ({ size = 18, color = "currentColor" }: { size?: number; color?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" stroke={color} {...STROKE} aria-hidden="true">
-    <circle cx="12" cy="9.6" r="2.9" />
-    <path d="M5.5 20.5c.8-3.2 3.3-4.9 6.5-4.9s5.7 1.7 6.5 4.9" />
-    <path d="M7.8 6.4h8.4" />
-    <path d="M9.4 6.4c0-1.9 1.1-3 2.6-3s2.6 1.1 2.6 3" />
   </svg>
 );
 
@@ -120,37 +108,13 @@ export function BusinessHub({
   memberships,
   /** live rooms per owned business id — the "· N rooms" half of the sub-line (2655) */
   roomCounts,
-  isArtist,
   whyNoStudio,
   studioSubscriptions = {},
   studioPrice = null,
   cityCentres = [],
   studioVerification = {},
   userId = null,
-  show = "own",
-  invites = [],
-  artistInvites = 0,
-  answered = [],
-  inboxOff = [],
 }: {
-  /** how many ARTIST team invitations wait on the Team page — this hub points
-   *  there rather than answering them (11 Oct 2026) */
-  artistInvites?: number;
-  /** ⚠ THE TEAM INVITATIONS THAT ARE OVER (11 Oct 2026, the user: "after
-   *  declining or withdrawing, invite cards vanish — should be handled like
-   *  Classes' Answered") — behind the Answered button beside the gear */
-  answered?: AnsweredInviteRow[];
-  /** ⚠ THE TEAM INVITATIONS WAITING ON THIS PERSON (11 Oct 2026, the user:
-   *  "handle invites to join a team and crew from the crew and studio tabs at
-   *  home. remove from inbox") — drawn at the top of the Team column, Decline ·
-   *  Join, the way Classes' To do answers a class ask */
-  invites?: TeamInviteRow[];
-  /** the kinds of ask switched off — the gear carries the "team" one */
-  inboxOff?: AskKind[];
-  /** ⚠ WHICH COLUMN IS OPEN (29 Sep 2026) — `?show=team`, the URL as the state,
-   *  like every other segmented desk in the app. The Student column went on
-   *  11 Oct 2026. */
-  show?: "own" | "team";
   memberships: MyMembership[];
   roomCounts: Record<string, number>;
   /* ⚠ `role` went on 29 Sep 2026 with organizations: it only ever separated an
@@ -274,9 +238,9 @@ export function BusinessHub({
      since R48 retired the login on 26 Sep, and its three branches are gone with
      it — every reader of this hub is a person. */
   const mine = memberships.filter((m) => m.memberRole === "owner").map((m) => m.business);
-  /* ⚠ STUDIOS ONLY (11 Oct 2026): an artist page whose team you are on is the
-     Team page's Artist Teams column now, with its invitations */
-  const theirs = memberships.filter((m) => m.memberRole !== "owner" && m.business.type === "studio").map((m) => m.business);
+  /* ⚠ ONE COLUMN SINCE 18 Oct 2026: the studios whose team you are on, and the
+     invitations to join one, are Teams › Other Teams now (the user: "crew team
+     and studio team should all be managed within teams") */
   const myStudios = mine.filter((t) => t.type === "studio");
 
   /* ⚠ THE SHEET OPENS A STUDIO, FOR ANYBODY (26 Sep 2026, the user: "Move Studio
@@ -431,38 +395,6 @@ export function BusinessHub({
     );
   };
 
-  /** a studio somebody teaches or learns at — the same card without the studio's
-   *  paperwork, opening its public page. `how` is what the studio is to them. */
-  const otherCard = (t: MyMembership["business"], how: string, teachers: LearnedFrom[] = [], extra?: React.ReactNode) => {
-    return (
-      <ToolCard key={t.id} href={publicProfilePath(t)} hrefLabel={`${t.name} — open the profile`}>
-        <ToolHead
-          tint={ACCENT}
-          name={t.name}
-          photoPath={t.photoPath}
-          icon={t.type === "studio" ? <StudioI size={26} color="#fff" /> : <ArtistI size={26} color="#fff" />}
-          eyebrow={`${t.type === "studio" ? "Studio" : "Artist"} · ${how}`}
-          afterName={t.verifiedAt ? <VerifiedTick size={15} /> : null}
-          sub={[t.area, t.city].filter(Boolean).join(", ") || null}
-        />
-        {teachers.length > 0 || extra ? (
-          <ToolBody>
-            {teachers.length > 0 ? <ToolFacts tint={ACCENT} items={[{ label: teachers.length === 1 ? "Teacher" : "Teachers", value: teachers.length }, { label: "Classes", value: teachers.reduce((s, a) => s + a.classes, 0) }]} /> : null}
-            {extra}
-          </ToolBody>
-        ) : null}
-        <ToolActions>
-          <Link href={publicProfilePath(t)} style={toolBtn("tinted", ACCENT)}>
-            Open profile
-          </Link>
-        </ToolActions>
-      </ToolCard>
-    );
-  };
-
-  /* a studio somebody teaches at: the same card without the studio's paperwork */
-  const plainCard = (t: MyMembership["business"]) => otherCard(t, "you teach here");
-
   const setRoom = (i: number, patch: Partial<RoomDraft>) =>
     setRooms((rs) => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)));
 
@@ -481,30 +413,13 @@ export function BusinessHub({
         {/* ⚠ SECTIONS (3 Oct 2026, C116): the heading, the price line and the two
             column pills in the TOP squircle (`SegmentedPanels sections`), the shown
             column — Add studio included, it belongs to Yours — in the LOWER one */}
-        <SegmentedPanels
-          /* the key is the SERVER's answer, so a link carrying `?show=` wins over
-             whatever this control last showed (the my-classes note) */
-          key={show}
-          initial={show}
-          label="Show"
-          sections
-          top={
-        <>
+        <DeskTop style={{ margin: "0 0 12px" }}>
         {/* the tool's hue, not a colour bar (12 Oct 2026) — `DeskHero`'s note */}
         <div data-testid="desk-hero" style={{ margin: "-14px -14px 0", padding: "16px 16px 6px", borderRadius: "21px 21px 0 0", position: "relative", color: INK, background: `linear-gradient(180deg, ${ACCENT}8c 0%, ${ACCENT}38 60%, transparent 100%)` }}>
           {/* the page's own `<h1>` — the chrome no longer prints a drill page's name (28 Sep 2026) */}
           <h1 style={{ ...TAB_TITLE, color: INK, position: "relative" }}>
             <BeatText text={DOS_TOOLS.studios.name} />
           </h1>
-          {/* the "team" invite switch, moved here from the Inbox with the
-              invitations (11 Oct 2026), and the Answered button beside it — in
-              the hero's top right, exactly where Classes draws its own */}
-          <InviteHeadButtons
-            answered={answered}
-            answeredTestId="studios-answered"
-            answeredListTestId="studios-answered-list"
-            settings={{ testId: "studios-settings", kind: "team", off: inboxOff, title: "Team invites" }}
-          />
         </div>
         {/* THE PRICE, ONCE, FROM THE PRICE LIST (26 Sep 2026) — the one fact the
             cards cannot say until there is one; the Organizations hub prints
@@ -530,35 +445,8 @@ export function BusinessHub({
         ) : (
           <DeskAddButton label="Add Studio" onClick={() => setSheetOpen(true)} inTop />
         )}
-        </>
-          }
-          /* ⚠⚠ TWO COLUMNS (29 Sep 2026, the user: *"same should be for studios
-             with 2 colums — your own studios and the second column with where
-             your learned"*). ⚠ TAUGHT AT RIDES IN THE SECOND COLUMN under its own
-             head rather than becoming a third: both are "a studio that is not
-             yours", and dropping it would lose an artist's teaching history (R22).
-             A studio is still listed once. */
-          /* ⚠⚠ AND THREE COLUMNS SINCE 3 Oct 2026 (the user: "Studio column name-
-             Manage, Team and Student"). Taught-at stopped riding inside the second
-             column: a studio whose TEAM you are on and a studio where you are a
-             STUDENT are two relationships, and naming them is what the columns are
-             for. A studio is still listed once — `learnt` already leaves out the
-             studios you own and the ones you are on the team of. */
-          segments={[
-            { key: "own", href: "/business", label: "Manage", n: myStudios.length, aria: "The studios you own" },
-            /* ⚠ the count takes the invitations waiting too (11 Oct 2026), so the
-               column they are answered in is reachable before any seat exists */
-            { key: "team", href: "/business?show=team", label: "Team", n: theirs.length + invites.length, aria: "The studios whose team you are on" },
-            /* ⚠ THE STUDENT COLUMN IS GONE (11 Oct 2026, the user: "remove student
-               column from studios inside studio page"). `?show=learned` lands on
-               Manage (Rule 14). The studios a person learns at are still the
-               Classes tab's Booked list and their own Stats. */
-          ]}
-          panels={[
-            {
-              key: "own",
-              node: (
-          <>
+        </DeskTop>
+        <DeskBody style={{ margin: "0" }}>
             {/* Add Studio is in the top section now (11 Oct 2026) */}
             <Head>YOUR STUDIOS</Head>
             {myStudios.length ? (
@@ -582,50 +470,7 @@ export function BusinessHub({
                 component that needs a disclaimer explaining what it is not is
                 usually a component in the wrong place. ONE door now, on Home,
                 where the user went looking for it on 11 Sep. */}
-          </>
-              ),
-            },
-            {
-              key: "team",
-              node: (
-                <>
-                  {/* ⚠ THE INVITATIONS FIRST (11 Oct 2026) — answered here, not in the Inbox */}
-                  <TeamInvites invites={invites} heading="Invited to a studio's team" />
-                  {/* ⚠ AN ARTIST'S INVITATION IS ANSWERED ON THE TEAM PAGE (11 Oct
-                      2026, the user: "artist team invites in teams") — one line
-                      pointing there, so an old notification that opened this
-                      column still leads to it */}
-                  {artistInvites > 0 ? (
-                    <Link
-                      href="/team"
-                      data-testid="artist-invites-pointer"
-                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "11px 13px", borderRadius: 14, background: CARD, border: "1.5px solid var(--el)", color: INK, textDecoration: "none", fontSize: 12.5, fontWeight: 800, marginBottom: 10 }}
-                    >
-                      <span>
-                        {artistInvites} artist team {artistInvites === 1 ? "invitation" : "invitations"} waiting
-                      </span>
-                      <span style={{ color: SUB, fontSize: 11.5 }}>Open Team ›</span>
-                    </Link>
-                  ) : null}
-                  {/* every studio whose team you are on — a trainer's seat, or the
-                      Visiting Faculty seat accepting a class gives you (R19) */}
-                  {theirs.length > 0 ? (
-                    <>
-                      <Head>STUDIOS YOU HAVE TAUGHT AT</Head>
-                      {theirs.map((t) => plainCard(t))}
-                    </>
-                  ) : invites.length > 0 ? null : (
-                    <div style={{ fontSize: 11.5, color: SUB, padding: "4px 2px 0" }}>
-                      {isArtist
-                        ? "The studios whose team you are on will be listed here — accept a class at one and it appears."
-                        : "The studios whose team you are on will be listed here."}
-                    </div>
-                  )}
-                </>
-              ),
-            },
-          ]}
-        />
+        </DeskBody>
       </div>
 
       {/* "New studio" bottom sheet — lifted from DanceOSApp.jsx:2659-2685 */}

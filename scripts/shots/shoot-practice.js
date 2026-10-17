@@ -158,7 +158,7 @@ const tomorrowIst = () => {
     await crewInvite.waitFor({ timeout: 20000 });
     await crewInvite.getByTestId("crew-invite-join").click();
     await crewInvite.waitFor({ state: "detached", timeout: 20000 }).catch(() => {});
-    check((await member.getByTestId("crew-invite").filter({ hasText: crewName }).count()) === 0, "the member joins the crew from the Crews hub's Member column — not the Inbox");
+    check((await member.getByTestId("crew-invite").filter({ hasText: crewName }).count()) === 0, "the member joins the crew from Team › Other Teams (the old Crews › Member address lands there) — not the Inbox");
 
     /* ── 1 · THE TWO TILES ── */
     await leader.goto(`${BASE}/crews/${crewId}/manage`, { waitUntil: "networkidle" });

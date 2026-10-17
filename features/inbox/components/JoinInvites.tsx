@@ -203,7 +203,7 @@ export function AnsweredInviteCard({ row }: { row: AnsweredInviteRow }) {
  *  (`business_face_path`), and who sent it on the line under the name. */
 export function TeamInvites({
   invites,
-  stayOn = "/business?show=team",
+  stayOn = "/team",
   heading = "Invited to a team",
   testId = "team-invites",
 }: {
@@ -249,7 +249,7 @@ export function TeamInvites({
 
 /** the crew asks waiting on this person — the top of the Crews hub's Member
  *  column (11 Oct 2026). Not drawn when there are none. */
-export function CrewInvites({ asks }: { asks: CrewInviteRow[] }) {
+export function CrewInvites({ asks, stayOn = "/team" }: { asks: CrewInviteRow[]; stayOn?: string }) {
   if (asks.length === 0) return null;
   return (
     <div data-testid="crew-invites" style={{ marginBottom: 6 }}>
@@ -258,7 +258,7 @@ export function CrewInvites({ asks }: { asks: CrewInviteRow[] }) {
         <InviteCard
           key={a.id}
           testId="crew-invite"
-          stayOn="/crews?show=in"
+          stayOn={stayOn}
           tint={CREW_TINT_JOIN}
           name={a.crewName}
           photoPath={a.crewPhoto}
@@ -284,13 +284,15 @@ const JOIN_WORDS: Record<"team" | "crew", { label: string; note: string; tint: s
   crew: { label: "Crew invites", note: "A crew leader asking you onto their roster", tint: CREW_TINT_JOIN },
 };
 
-/** the one `profiles.inbox_off` kind a hub governs, as the shared settings row */
-function JoinSwitch({ kind, off }: { kind: "team" | "crew"; off: AskKind[] }) {
+/** the `profiles.inbox_off` kinds a desk governs, as the shared settings rows.
+ *  ⚠ ONE state for all of them: each press sends the WHOLE list, so two rows
+ *  holding their own copy would each write back the other's stale answer. */
+function JoinSwitches({ kinds, off }: { kinds: Array<"team" | "crew">; off: AskKind[] }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
   const [now, setNow] = useState<AskKind[]>(off);
-  const flip = () => {
+  const flip = (kind: "team" | "crew") => {
     const next = now.includes(kind) ? now.filter((x) => x !== kind) : [...now, kind];
     const before = now;
     setNow(next);
@@ -305,10 +307,12 @@ function JoinSwitch({ kind, off }: { kind: "team" | "crew"; off: AskKind[] }) {
       router.refresh();
     });
   };
-  const w = JOIN_WORDS[kind];
   return (
-    <div data-testid="invite-settings">
-      <SettingRow icon={SETTING_ICONS[kind]} tint={w.tint} label={w.label} note={w.note} on={!now.includes(kind)} busy={pending} onClick={flip} />
+    <div data-testid="invite-settings" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {kinds.map((kind) => {
+        const w = JOIN_WORDS[kind];
+        return <SettingRow key={kind} icon={SETTING_ICONS[kind]} tint={w.tint} label={w.label} note={w.note} on={!now.includes(kind)} busy={pending} onClick={() => flip(kind)} />;
+      })}
       {err ? (
         <div role="alert" style={{ fontSize: 11.5, color: "#F87171", marginTop: 6 }}>
           {err}
@@ -333,7 +337,8 @@ export function InviteHeadButtons({
   answeredTestId: string;
   answeredListTestId: string;
   answeredLabel?: string;
-  settings?: { testId: string; kind: Extract<AskKind, "team" | "crew">; off: AskKind[]; title: string } | null;
+  /** `kind` for one switch, `kinds` for several (Other Teams carries team AND crew) */
+  settings?: { testId: string; kind?: Extract<AskKind, "team" | "crew">; kinds?: Array<"team" | "crew">; off: AskKind[]; title: string } | null;
 }) {
   const [showAnswered, setShowAnswered] = useState(false);
   const [gear, setGear] = useState(false);
@@ -352,7 +357,7 @@ export function InviteHeadButtons({
       ) : null}
       {gear && settings ? (
         <RequestSettingsSheet title={settings.title} onClose={() => setGear(false)}>
-          <JoinSwitch kind={settings.kind} off={settings.off} />
+          <JoinSwitches kinds={settings.kinds ?? (settings.kind ? [settings.kind] : [])} off={settings.off} />
         </RequestSettingsSheet>
       ) : null}
     </>

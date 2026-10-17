@@ -7,7 +7,8 @@ import { sentTeamAnsweredRow } from "@/features/inbox/inviteRows";
 import { findBusinessPayLedger } from "@/repositories/payouts";
 import { findMyMemberships, findBusinessTeam, runsTheBusiness } from "@/repositories/businesses";
 import { findTeamClassCounts } from "@/repositories/teamMemberWork";
-import { loadArtistTeams } from "@/features/staff/server/loadArtistTeams";
+import { loadOtherTeams } from "@/features/staff/server/loadOtherTeams";
+import { otherTeamsWaiting } from "@/features/staff/otherTeams";
 
 /* the clock, stamped once outside render (react-hooks/purity) */
 const stampNowIso = (): string => new Date().toISOString();
@@ -75,8 +76,10 @@ export default async function BusinessStaffPage({
   const ownArtistPage = business.type === "artist_page" && myRole === "owner";
   const [classCounts, artistData] = await Promise.all([
     findTeamClassCounts(supabase, businessId, team.map((m) => m.userId)).catch(() => null),
-    ownArtistPage ? loadArtistTeams(supabase, user.id) : Promise.resolve(null),
+    ownArtistPage ? loadOtherTeams(supabase, user.id) : Promise.resolve(null),
   ]);
+  /* `?show=artists` is the column's name before 18 Oct 2026 — Rule 14 */
+  const wantsOther = asked === "other" || asked === "artists";
 
   return (
     <StaffDesk
@@ -91,8 +94,8 @@ export default async function BusinessStaffPage({
       // asking and removing are the owner's alone (§10.9); everyone else reads
       isOwner={myRole === "owner"}
       meUserId={user.id}
-      artistTeams={artistData ? { ...artistData, stayOn: `/business/${businessId}/staff?show=artists` } : null}
-      initialColumn={asked === "artists" || (asked === undefined && (artistData?.invites.length ?? 0) > 0) ? "artists" : "mine"}
+      otherTeams={artistData ? { data: artistData, stayOn: `/business/${businessId}/staff?show=other` } : null}
+      initialColumn={wantsOther || (asked === undefined && artistData && otherTeamsWaiting(artistData) > 0) ? "other" : "mine"}
     />
   );
 }

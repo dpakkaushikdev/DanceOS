@@ -140,10 +140,10 @@ const pressed = async (loc) => (await loc.getAttribute("aria-pressed").catch(() 
     /* THE POINTERS — one line each, only while something waits there */
     const teamPtr = sp.getByTestId("team-invites-pointer");
     check((await teamPtr.count()) === 1 && /1 studio team invite\b/.test(await teamPtr.innerText().catch(() => "")), `team-invites pointer counts the one invite still waiting (${(await teamPtr.innerText().catch(() => "missing")).replace(/\s+/g, " ")})`);
-    check((await teamPtr.getAttribute("href").catch(() => null)) === "/business?show=team", "…and opens the Studios hub's Team column");
+    check((await teamPtr.getAttribute("href").catch(() => null)) === "/team", "…and opens Team › Other Teams");
     const crewPtr = sp.getByTestId("crew-invites-pointer");
     check((await crewPtr.count()) === 1 && /1 crew invite\b/.test(await crewPtr.innerText().catch(() => "")), "crew-invites pointer counts the live ask, and not the withdrawn one");
-    check((await crewPtr.getAttribute("href").catch(() => null)) === "/crews?show=in", "…and opens the Crews hub's Member column");
+    check((await crewPtr.getAttribute("href").catch(() => null)) === "/team", "…and opens Team › Other Teams too");
     check((await sp.getByTestId("class-requests-pointer").count()) === 0, "no class-requests pointer while no class ask waits (drawn only when n > 0)");
     check(/2 waiting on you/.test(await sp.getByTestId("inbox-sub").innerText().catch(() => "")), "the head counts what the pointers count");
     /* ⚠ an old address still lands — on Enquiries (Rule 14) */
@@ -152,29 +152,35 @@ const pressed = async (loc) => (await loc.getAttribute("aria-pressed").catch(() 
       check((await sp.getByRole("button", { name: "Received enquiries", exact: true }).count()) === 1 && /\/inbox\?show=/.test(sp.url()), `?show=${old} lands on the Inbox's Enquiries`);
     }
 
-    /* ── THE TEAM INVITE IS ANSWERED ON THE STUDIOS HUB ── */
-    await sp.goto(`${BASE}/business`, { waitUntil: "networkidle" });
-    check((await sp.getByTestId("team-invites").count()) === 1, "the Studios hub OPENS on Team while an invitation waits, with the invitations block");
+    /* ── THE TEAM INVITE IS ANSWERED ON TEAM › OTHER TEAMS (18 Oct 2026) ── */
+    await sp.goto(`${BASE}/business?show=team`, { waitUntil: "networkidle" });
+    check(/\/team|show=other/.test(sp.url()), `the old Studios › Team address lands on Other Teams (${sp.url()})`);
+    await sp.goto(`${BASE}/team`, { waitUntil: "networkidle" });
+    check((await sp.getByTestId("team-invites").count()) === 1, "Other Teams carries the studio invitation block");
     const inv = sp.getByTestId("team-invite").filter({ hasText: `Kappa Hall ${stamp}` });
     const invText = await inv.first().innerText().catch(() => "");
     check(/Faculty/i.test(invText), `invite card: the seat reads "Faculty" (${invText.replace(/\s+/g, " ").slice(0, 120)})`);
     check(!/trainer/i.test(invText), "invite card: the column's word \"trainer\" is not printed");
     check((await sp.getByTestId("team-invite").filter({ hasText: `Lambda Hall ${stamp}` }).count()) === 0, "the DECLINED invite is not offered again");
-    check((await sp.getByTestId("studios-settings").count()) === 1, "the team-invite switch is behind the hub's gear");
+    check((await sp.getByTestId("other-teams-settings").count()) === 1, "the team and crew switches are behind Other Teams' gear");
     await inv.getByTestId("team-invite-join").click();
     await sp.getByTestId("team-invite").filter({ hasText: `Kappa Hall ${stamp}` }).waitFor({ state: "detached", timeout: 15000 }).catch(() => {});
     check((await sp.getByTestId("team-invite").filter({ hasText: `Kappa Hall ${stamp}` }).count()) === 0, "Join: the invitation leaves the hub");
     await sp.getByRole("link", { name: `Kappa Hall ${stamp} — open the profile` }).first().waitFor({ timeout: 15000 }).catch(() => {});
-    check(/[?&]show=team\b/.test(sp.url()), `…the address stays on the Team column (${sp.url()})`);
-    check((await sp.getByRole("link", { name: `Kappa Hall ${stamp} — open the profile` }).count()) >= 1, "…and the studio is in the Team column");
+    check(/\/team|show=other/.test(sp.url()), `…the address stays on Other Teams (${sp.url()})`);
+    check((await sp.getByTestId("studio-teams").getByRole("link", { name: `Kappa Hall ${stamp} — open the profile` }).count()) >= 1, "…and the studio is under Studio teams you are on");
 
-    /* ── THE CREW ASK IS ANSWERED ON THE CREWS HUB — and a no asks first ── */
+    /* ── THE CREW ASK IS ANSWERED ON OTHER TEAMS TOO — and a no asks first ── */
+    await sp.goto(`${BASE}/crews?show=in`, { waitUntil: "networkidle" });
+    check(/\/team|show=other/.test(sp.url()), `the old Crews › Member address lands on Other Teams (${sp.url()})`);
+    check((await sp.getByTestId("crew-invite").count()) >= 1, "…with the crew ask on it");
     await sp.goto(`${BASE}/crews`, { waitUntil: "networkidle" });
+    check((await sp.getByTestId("crew-invite").count()) === 0 && (await sp.getByTestId("crews-other-teams-pointer").count()) === 1, "the Crews hub carries no asks, only a pointer to Other Teams");
+    await sp.goto(`${BASE}/team`, { waitUntil: "networkidle" });
     const cInv = sp.getByTestId("crew-invite").filter({ hasText: `Nu Crew ${stamp}` });
-    check((await cInv.count()) === 1, "the Crews hub OPENS on Member while an ask waits, with the ask's card");
+    check((await cInv.count()) === 1, "Other Teams carries the crew ask's card");
     check((await sp.getByTestId("crew-invite").filter({ hasText: `Mu Crew ${stamp}` }).count()) === 0, "the WITHDRAWN ask is not offered");
     check(/invited by/i.test(await cInv.first().innerText().catch(() => "")), "the card says who asked");
-    check((await sp.getByTestId("crews-settings").count()) === 1, "the crew-invite switch is behind the hub's gear");
     await cInv.getByTestId("crew-invite-decline").click();
     const q = sp.getByRole("alertdialog", { name: `Decline Nu Crew ${stamp}?` });
     check(await q.isVisible().catch(() => false), "Decline asks first");

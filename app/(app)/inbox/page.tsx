@@ -65,10 +65,10 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
       settings={<EnquirySettings businesses={enq.settingsFor} />}
       pointers={[
         { testId: "class-requests-pointer", n: classAsksWaiting, href: "/my-classes?tab=todo", one: "class request", many: "class requests", where: "Teach and assist asks are answered in Classes", tint: "#8B5CF6" },
-        /* ⚠ split by who asked (11 Oct 2026): a studio's on Studios › Team, an artist's on Team › Artist Teams */
-        { testId: "team-invites-pointer", n: invitesIn.filter((i) => !isArtistTeam(i.businessType)).length, href: "/business?show=team", one: "studio team invite", many: "studio team invites", where: "Answered on Studios › Team", tint: "#0EA5E9" },
-        { testId: "artist-invites-pointer", n: invitesIn.filter((i) => isArtistTeam(i.businessType)).length, href: "/team", one: "artist team invite", many: "artist team invites", where: "Answered on Team › Artist Teams", tint: "#0EA5E9" },
-        { testId: "crew-invites-pointer", n: crewIn.length, href: "/crews?show=in", one: "crew invite", many: "crew invites", where: "Answered on Crews › Member", tint: "#DC2626" },
+        /* ⚠ all three are answered on Team › Other Teams since 18 Oct 2026 */
+        { testId: "team-invites-pointer", n: invitesIn.filter((i) => !isArtistTeam(i.businessType)).length, href: "/team", one: "studio team invite", many: "studio team invites", where: "Answered on Team › Other Teams", tint: "#0EA5E9" },
+        { testId: "artist-invites-pointer", n: invitesIn.filter((i) => isArtistTeam(i.businessType)).length, href: "/team", one: "artist team invite", many: "artist team invites", where: "Answered on Team › Other Teams", tint: "#0EA5E9" },
+        { testId: "crew-invites-pointer", n: crewIn.length, href: "/team", one: "crew invite", many: "crew invites", where: "Answered on Team › Other Teams", tint: "#DC2626" },
       ]}
       initialSection={show === "done" ? "done" : undefined}
       nowIso={nowIso}

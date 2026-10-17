@@ -5,15 +5,16 @@ import { findProfileById } from "@/repositories/profiles";
 import { DeskBody, DeskTop } from "@/components/ui/DeskSections";
 import { DeskHero } from "@/features/businesses/components/biz-kit";
 import { InviteHeadButtons } from "@/features/inbox/components/JoinInvites";
-import { ArtistTeams } from "@/features/staff/components/ArtistTeams";
-import { loadArtistTeams } from "@/features/staff/server/loadArtistTeams";
+import { OtherTeams } from "@/features/staff/components/OtherTeams";
+import { loadOtherTeams } from "@/features/staff/server/loadOtherTeams";
 import { DOS_UI, INK, LILAC } from "@/lib/design/tokens";
 
 /** /team — the Team tile for everybody (11 Oct 2026, the user's answer "Team tile
  *  for everyone"). Somebody with an artist page of their own has a team, so they
- *  land on that page's desk on its Artist Teams column; everybody else gets the
- *  Artist Teams column alone: the artists asking them onto a team, and the
- *  artists' teams they are on. A studio's invitations stay on the Studios hub. */
+ *  land on that page's desk on its Other Teams column; everybody else gets the
+ *  Other Teams column alone (18 Oct 2026): the studios, artists and crews asking
+ *  them on, and the teams they are already on. The Studios hub's Team column and
+ *  the Crews hub's Member column forward here. */
 export default async function TeamPage() {
   const supabase = await createSupabaseServerClient();
   const {
@@ -23,9 +24,9 @@ export default async function TeamPage() {
   const [profile, memberships] = await Promise.all([findProfileById(supabase, user.id), findMyMemberships(supabase)]);
   if (!profile) redirect("/onboarding");
   const ownPage = memberships.find((m) => m.memberRole === "owner" && m.business.type === "artist_page");
-  if (ownPage) redirect(`/business/${ownPage.business.id}/staff?show=artists`);
+  if (ownPage) redirect(`/business/${ownPage.business.id}/staff?show=other`);
 
-  const data = await loadArtistTeams(supabase, user.id);
+  const data = await loadOtherTeams(supabase, user.id);
   return (
     <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "0 16px 40px", boxSizing: "border-box" }}>
       <DeskTop style={{ paddingBottom: 4 }}>
@@ -33,15 +34,15 @@ export default async function TeamPage() {
           <DeskHero tool="team" as="h1" margin="0" toggle={false} />
           <InviteHeadButtons
             answered={data.answered}
-            answeredTestId="artist-team-answered"
-            answeredListTestId="artist-team-answered-list"
-            answeredLabel="Answered artist invitations"
-            settings={{ testId: "artist-teams-settings", kind: "team", off: data.inboxOff, title: "Team invitations" }}
+            answeredTestId="other-team-answered"
+            answeredListTestId="other-team-answered-list"
+            answeredLabel="Answered team invitations"
+            settings={{ testId: "other-teams-settings", kinds: ["team", "crew"], off: data.inboxOff, title: "Team and crew invitations" }}
           />
         </div>
       </DeskTop>
       <DeskBody style={{ paddingBottom: 4 }}>
-        <ArtistTeams invites={data.invites} teams={data.teams} stayOn="/team" />
+        <OtherTeams data={data} stayOn="/team" />
       </DeskBody>
     </div>
   );

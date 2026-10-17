@@ -270,7 +270,7 @@ export function MemberManage({
                 <ConfirmDialog
                   title={`Remove ${m.name} from the team?`}
                   body="Any class they were holding attendance or refunds on ends with it."
-                  goWord="Remove"
+                  goWord="Delete"
                   busy={busy}
                   onKeep={() => setRemoving(false)}
                   onGo={async () => {

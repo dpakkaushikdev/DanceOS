@@ -54,10 +54,13 @@ export function StudioPublicBody({
   const onSale = <MembershipsOnSale memberships={memberships} businessName={businessName} accent={accent} signedIn={signedIn} canBuy={canBuy} />;
   return (
     <>
-      {isStudio ? (
-        <StudioPlace address={address} rooms={rooms} tint={accent}>
-          {onSale}
-        </StudioPlace>
+      {/* ⚠ THE PLACE AND WHAT IT SELLS ARE TWO SECTIONS (18 Oct 2026, the user:
+          "membership and at the studio seprator should be at studio profiles") */}
+      {isStudio ? <StudioPlace address={address} rooms={rooms} tint={accent} /> : null}
+      {isStudio && memberships.length > 0 ? (
+        <InvertedPanel ground="page" testId="studio-memberships">
+          <MembershipsOnSale memberships={memberships} businessName={businessName} accent={accent} signedIn={signedIn} canBuy={canBuy} section />
+        </InvertedPanel>
       ) : null}
       <InvertedPanel ground="page">
         <NextSessions entries={nextSessions} booking={booking} />

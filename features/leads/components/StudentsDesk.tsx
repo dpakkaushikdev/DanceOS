@@ -222,7 +222,7 @@ export function StudentsDesk({
                     label={`Remove ${s.name}`}
                     title="Remove this student?"
                     body={`${s.name} comes off your list. Nothing they booked or paid is touched.`}
-                    goWord="Remove"
+                    goWord="Delete"
                     disabled={busyLead === s.leadId}
                     onConfirm={() => remove(s.leadId as string, s.name)}
                   />

@@ -145,7 +145,7 @@ export function AssetsDesk({ businessId, assets }: { businessId: string; busines
                 label={`Remove ${a.name}`}
                 title="Remove this asset?"
                 body={`${a.name}${a.quantity > 1 ? ` × ${a.quantity}` : ""} · ${valueWords(a.valueInr)} — it comes off the inventory and the total.`}
-                goWord="Remove"
+                goWord="Delete"
                 disabled={pending}
                 onConfirm={() => drop(a)}
               />

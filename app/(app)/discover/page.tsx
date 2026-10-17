@@ -5,7 +5,6 @@ import { InvertedPanel } from "@/components/ui/InvertedPanel";
 import { TopPanel } from "@/components/ui/TopPanel";
 import { ClassTile } from "@/features/classes/components/ClassTile";
 import { CrewCard } from "@/features/crews/components/CrewCard";
-import { CrewI } from "@/features/crews/components/crew-kit";
 import { EnrollButton } from "@/features/classBookings/components/EnrollButton";
 import { CompactCard } from "@/features/discovery/components/CompactCard";
 import { StyleCard, StyleI } from "@/features/styles/components/StyleCard";
@@ -71,7 +70,9 @@ const TABS = [
   ["classes", "Classes", ClassI],
   ["studios", "Studios", StudioI],
   ["artists", "Artists", ArtistI],
-  ["crews", "Crews", CrewI],
+  /* ⚠ NO CREWS TAB (18 Oct 2026, the user: "remove crews tab from discover").
+     `?tab=crews` falls through to Classes like any unknown word; a crew's own
+     page `/crew/{id}` is untouched and still reached from its members' pages. */
   /* ⚠ STYLES (2 Oct 2026, the user: "New section in discover called Styles").
      Its shelf is every style in the registry, each opening its own page; it
      reads nothing of its own — the class list this page already reads for the

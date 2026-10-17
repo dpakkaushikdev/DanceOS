@@ -866,7 +866,7 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(roomB.getByTestId("room-amenities")).toContainText("AC");
     await owner.getByRole("button", { name: "Remove Studio B" }).click();
     /* ⚠ a trash icon that asks first (12 Oct 2026) */
-    await owner.getByRole("alertdialog", { name: "Remove this room?" }).getByRole("button", { name: "Remove", exact: true }).click();
+    await owner.getByRole("alertdialog", { name: "Remove this room?" }).getByRole("button", { name: "Delete", exact: true }).click();
     await expect(owner.getByTestId("room-card").filter({ hasText: "Studio B" })).toHaveCount(0, { timeout: 15_000 });
 
     /* ---- THE TRAINER SIGNS UP FIRST, AND IS THEN ASKED BY NAME (Step 12b,
@@ -1736,8 +1736,10 @@ test.describe.serial("DanceOS, end to end", () => {
     await trainer.goto("/crews?show=in");
     await expect(trainer.getByRole("link", { name: /^The crews you are a part of/ })).toBeVisible();
     await expect(trainer.getByRole("link", { name: `${crewName} — open the profile` })).toBeVisible();
+    /* ⚠ Discover has no Crews tab since 18 Oct 2026 — `?tab=crews` lands on Classes */
     await trainer.goto("/discover?city=Pune&tab=crews");
-    await expect(trainer.getByRole("link", { name: `${crewName} — Crew` })).toBeVisible();
+    await expect(trainer.getByRole("link", { name: `${crewName} — Crew` })).toHaveCount(0);
+    await expect(trainer.getByRole("link", { name: /^Crews/ })).toHaveCount(0);
 
     /* ⚠⚠ AND THE SECOND HALF OF THIS TEST — "a crew entry made by its leader" —
        WENT WITH EVENTS (29 Sep 2026). The owner published a free crew battle
@@ -2155,7 +2157,7 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(picSheet.getByLabel("Change your photo")).toBeAttached();
     await picSheet.getByRole("button", { name: "Remove the photo" }).click();
     /* ⚠ every delete asks first since 12 Oct 2026 */
-    await trainer.getByRole("alertdialog", { name: "Remove this photo?" }).getByRole("button", { name: "Remove", exact: true }).click();
+    await trainer.getByRole("alertdialog", { name: "Remove this photo?" }).getByRole("button", { name: "Delete", exact: true }).click();
     await expect(trainer.getByTestId("hero-disc").locator("img")).toHaveCount(0, { timeout: 20_000 });
     await picSheet.getByLabel("Add a photo").setInputFiles(ONE_PX_PNG);
     await confirmCrop(trainer);
@@ -3114,7 +3116,7 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(ask).toBeHidden();
     await expect(owner.getByTestId("asset-row").filter({ hasText: legacyName })).toHaveCount(1);
     await legacy.getByRole("button", { name: `Remove ${legacyName}` }).click();
-    await owner.getByRole("alertdialog", { name: "Remove this asset?" }).getByRole("button", { name: "Remove", exact: true }).click();
+    await owner.getByRole("alertdialog", { name: "Remove this asset?" }).getByRole("button", { name: "Delete", exact: true }).click();
     await expect(owner.getByTestId("asset-row").filter({ hasText: legacyName })).toHaveCount(0, { timeout: 15_000 });
 
     /* ⚠ THE OWNER'S ALONE, and the database says so too (`is_business_owner` is
@@ -3348,8 +3350,11 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(owner.getByRole("button", { name: "Add a lead" })).toHaveCount(0);
     await expect(owner.getByText("Any stage")).toHaveCount(0);
 
-    const learnerRow = owner.getByRole("link", { name: `Open ${learnerName}` });
-    await expect(learnerRow).toHaveAttribute("href", `/person/${learnerId}`, { timeout: 15_000 });
+    /* ⚠ NO CARD FACE OPENS A PROFILE since 12 Oct 2026 ("the card is the detail
+       door") — the card's one link is Student Detail, asserted below */
+    const learnerRow = owner.getByRole("link", { name: `Student Detail — ${learnerName}` });
+    await expect(learnerRow).toHaveCount(1, { timeout: 15_000 });
+    await expect(owner.getByRole("link", { name: `Open ${learnerName}` })).toHaveCount(0);
     /* the card says WHY they are here — they hold a pass, so the MEMBER chip; not a
        stage somebody set. ⚠ Said ONCE since 4 Oct 2026 (the user: "no second line
        below name, member only as a chip on right"): the "🎟 {pass}" line is gone */

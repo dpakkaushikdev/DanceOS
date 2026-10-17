@@ -261,7 +261,7 @@ export function CrewManager({ crew, members, answered = [] }: { crew: Crew; memb
                           label={`Remove ${m.name}`}
                           title={`Remove ${m.name} from the crew?`}
                           body="They come off the roster. They can be asked again later."
-                          goWord="Remove"
+                          goWord="Delete"
                           disabled={busy}
                           onConfirm={() => run(() => removeCrewMemberAction({ memberId: m.id, crewId: crew.id }), `${m.name} removed from the crew`)}
                         />

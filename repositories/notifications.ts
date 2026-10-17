@@ -58,6 +58,23 @@ export async function findMyNotifications(supabase: SupabaseClient): Promise<App
   return ((data ?? []) as Row[]).map(toNotification);
 }
 
+/** WHAT IS UNREAD, AND WHERE EACH ONE POINTS (18 Oct 2026) — the drawer's
+ *  per-tool counts are these rows matched to the tool whose address they open
+ *  (`features/home/toolBadges.ts`). Only the three columns that decide it; a
+ *  failed read is no badges, never an error page. */
+export async function findMyUnreadNotes(supabase: SupabaseClient, userId: string): Promise<{ id: string; kind: string; href: string | null }[]> {
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("id, kind, href")
+    .eq("user_id", userId)
+    .is("deleted_at", null)
+    .is("read_at", null)
+    .order("created_at", { ascending: false })
+    .limit(MAX_LIST);
+  if (error) return [];
+  return (data ?? []) as { id: string; kind: string; href: string | null }[];
+}
+
 /** The bell's badge — one number, through the aggregate function (which leaves
  *  out a group switched off "here"). */
 export async function findMyUnreadCount(supabase: SupabaseClient): Promise<number> {

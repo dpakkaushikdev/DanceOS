@@ -12,6 +12,7 @@ import { inkOn } from "@/components/ui/ToolCard";
 import { SeatBar } from "@/features/classes/components/ClassTile";
 import { unitWord } from "@/features/memberships/components/usage-kit";
 import type { MembershipOnSale } from "@/repositories/memberships";
+import { FigureHead } from "@/components/ui/FigureHead";
 
 /** MEMBERSHIPS ON A PUBLIC PAGE (19 Sep 2026, the user: "Users should be able
  *  to buy from Studio and Artist Profile Pages").
@@ -44,6 +45,7 @@ export function MembershipsOnSale({
   accent,
   signedIn,
   canBuy,
+  section = false,
 }: {
   memberships: MembershipOnSale[];
   businessName: string;
@@ -51,6 +53,9 @@ export function MembershipsOnSale({
   signedIn: boolean;
   /** false for the seller's own team — the database refuses them anyway */
   canBuy: boolean;
+  /** drawn as a section of its own (a studio's page, 18 Oct 2026) — a heading
+   *  with the count and no card around it, because the section IS the card */
+  section?: boolean;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -95,8 +100,16 @@ export function MembershipsOnSale({
     });
 
   return (
-    <div style={{ background: "var(--card)", border: "1.5px solid var(--el)", borderRadius: 16, padding: "13px 14px", marginTop: 10 }} data-testid="memberships-on-sale">
-      <div style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: 0.9, color: accent, marginBottom: 6 }}>MEMBERSHIPS</div>
+    <div style={section ? undefined : { background: "var(--card)", border: "1.5px solid var(--el)", borderRadius: 16, padding: "13px 14px", marginTop: 10 }} data-testid="memberships-on-sale">
+      {section ? (
+        <FigureHead
+          title={<span style={{ fontSize: 17, fontWeight: 900, letterSpacing: -0.3, color: "var(--text)" }}>Memberships</span>}
+          figure={<span style={{ fontSize: 10.5, fontWeight: 800, color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>{memberships.length}</span>}
+          margin="0 0 8px"
+        />
+      ) : (
+        <div style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: 0.9, color: accent, marginBottom: 6 }}>MEMBERSHIPS</div>
+      )}
       {memberships.map((m) => {
         /* what one hour (or class) costs — the number a buyer compares two passes by */
         const per = m.units > 0 && m.priceInr > 0 ? Math.round(m.priceInr / m.units) : 0;

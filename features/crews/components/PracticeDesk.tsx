@@ -106,6 +106,7 @@ export function PracticeDesk({ crewId, practices, todayIso }: { crewId: string; 
                   title="Call off this practice?"
                   body={`${practiceWhen(p.startsAt)} — everybody in the crew is told it is off.`}
                   goWord="Call it off"
+                  word="Call off"
                   onConfirm={() => callOff(p.id)}
                 />
               ) : null}

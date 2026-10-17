@@ -268,8 +268,9 @@ const pressed = async (loc) => (await loc.getAttribute("aria-pressed").catch(() 
     /* ⚠ ANCHORED — "Within 5 km" is the radius quick chip and is not a distance */
     const kms = await gp.locator("text=/^\\d+(\\.\\d+)? k?m$/").count();
     check(kms === 0, `no distance is printed nationwide (${kms})`);
-    await gp.goto(`${BASE}/discover?city=all&tab=crews`, { waitUntil: "networkidle" });
-    check(/in all cities/.test(await gp.getByTestId("shelf-count").innerText().catch(() => "")), "crews: read across every city");
+    /* ⚠ no Crews tab since 18 Oct 2026 — the artists shelf reads across every city too */
+    await gp.goto(`${BASE}/discover?city=all&tab=artists`, { waitUntil: "networkidle" });
+    check(/in all cities/.test(await gp.getByTestId("shelf-count").innerText().catch(() => "")), "artists: read across every city");
 
     /* ── A CLASS ASK POINTS AT CLASSES, NOT THE INBOX (11 Oct 2026, 20261017090000,
        B14). Class requests left the Inbox for Classes on 11 Oct, and the

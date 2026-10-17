@@ -34,6 +34,7 @@ import { ClassRoutines } from "@/features/routines/components/ClassRoutines";
 import type { Routine } from "@/repositories/routines";
 import { bookWithMembershipAction } from "@/features/memberships/server-actions/memberships";
 import type { PassForSession } from "@/repositories/memberships";
+import { UseMembership } from "@/features/memberships/components/UseMembership";
 import type { ClassPerson } from "@/types/classPerson";
 import type { PublicClassListing } from "@/types/class";
 import type { ClassBookingStatus } from "@/types/classBooking";
@@ -328,9 +329,6 @@ export function ClassDetail({
      29 Sep 2026 */
   const [posterViewOpen, setPosterViewOpen] = useState(false);
   const [flowOpen, setFlowOpen] = useState(false);
-  /* which membership pass is being spent right now — the row says so and every
-     row is disabled, because a seat is taken once */
-  const [passPending, setPassPending] = useState<string | null>(null);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [refundOpen, setRefundOpen] = useState(false);
   /* Details / Attendance — the strip belongs to the card (prototype 11961-11970) */
@@ -361,14 +359,13 @@ export function ClassDetail({
 
   /* SPEND A PASS ON THIS SEAT — one RPC books the seat and takes the units under
      the class's own lock, so two presses cannot spend the same unit twice. */
-  const spendPass = async (p: PassForSession) => {
-    if (!c.session) return;
-    setPassPending(p.passId);
+  const spendPass = async (p: PassForSession): Promise<string | null> => {
+    if (!c.session) return "This class has no session to book";
     const out = await bookWithMembershipAction({ passId: p.passId, sessionId: c.session.id });
-    setPassPending(null);
-    if (out.error) return fire(out.error);
-    fire("🎟 Booked with your membership");
+    if (out.error) return out.error;
+    fire(`Booked with ${p.membershipName}`);
     router.refresh();
+    return null;
   };
 
   /* the design the studio chose, or the one the class draws from its own name */
@@ -2092,35 +2089,19 @@ export function ClassDetail({
                 when the database says this viewer holds a pass this class admits
                 with a unit left on it; the seat is booked and the unit taken in
                 one RPC, and cancelling puts the unit back. ── */}
+            {/* ⚠ ASKS BEFORE IT SPENDS (18 Oct 2026, the user: "should ask
+                before using membership for a class") — `UseMembership` shows what
+                is left with this class's share marked, and only its confirm spends.
+                A pass without enough left is shown, never offered. */}
             {!booked && passes.length > 0 && c.session ? (
-              <div data-testid="pass-strip" style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
-                {/* ⚠ A PASS WITHOUT ENOUGH LEFT IS SHOWN, NOT OFFERED (18 Oct 2026):
-                    `passes_for_session` returns it with enough = false, and the
-                    button used to press anyway into "not enough left on that
-                    membership". It says so on the row instead. */}
-                {passes.map((p) => (
-                  <button
-                    key={p.passId}
-                    type="button"
-                    disabled={passPending !== null || !p.enough}
-                    aria-disabled={!p.enough}
-                    aria-label={p.enough ? `Use ${p.membershipName}` : `${p.membershipName} — not enough left for this class`}
-                    onClick={() => p.enough && spendPass(p)}
-                    style={{ display: "flex", alignItems: "center", gap: 9, padding: "11px 13px", borderRadius: 14, background: `${col}18`, border: `1.5px solid ${col}55`, cursor: !p.enough ? "not-allowed" : passPending ? "wait" : "pointer", opacity: p.enough ? 1 : 0.55, fontFamily: DOS_UI, color: "var(--text)", textAlign: "left" }}
-                  >
-                    <span aria-hidden="true" style={{ flexShrink: 0, fontSize: 15 }}>🎟</span>
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: "block", fontSize: 12.5, fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.membershipName}</span>
-                      <span style={{ display: "block", fontSize: 10.5, color: "var(--sub)", marginTop: 1 }}>
-                        {p.unit === "hours"
-                          ? `${p.unitsTotal - p.unitsUsed} hours left · this takes ${p.unitsNeeded}`
-                          : `${p.unitsTotal - p.unitsUsed} classes left · this takes ${p.unitsNeeded}`}
-                      </span>
-                    </span>
-                    <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 900, color: p.enough ? col : "var(--muted)" }}>{!p.enough ? "Not enough left" : passPending === p.passId ? "…" : "Use it ›"}</span>
-                  </button>
-                ))}
-              </div>
+              <UseMembership
+                passes={passes}
+                col={col}
+                classTitle={c.title}
+                whenText={when && time ? `${when.weekday.charAt(0)}${when.weekday.slice(1).toLowerCase()} ${when.day} ${when.month.charAt(0)}${when.month.slice(1).toLowerCase()} · ${time}` : "—"}
+                refundWindowHours={refundWindowHours}
+                onSpend={spendPass}
+              />
             ) : null}
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ flexShrink: 0 }}>

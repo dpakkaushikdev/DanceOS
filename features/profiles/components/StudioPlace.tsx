@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { AmenityChip } from "@/components/ui/AmenityIcon";
+import { AmenityIcon, amenityLabel } from "@/components/ui/AmenityIcon";
 import { FigureHead } from "@/components/ui/FigureHead";
 import { InvertedPanel } from "@/components/ui/InvertedPanel";
 import { DOS_DISPLAY } from "@/lib/design/tokens";
@@ -72,23 +72,40 @@ export function StudioPlace({
               at a card's size rather than a heading's, and the capacity a figure
               with its word — "20 · Capacity" — where it read "Holds 20" in grey
               beside the name. The amenities stay inside the room they belong to. */}
-          <div style={{ display: "grid", gridTemplateColumns: rooms.length > 1 ? "1fr 1fr" : "1fr", gap: 8 }}>
+          {/* ⚠⚠ ONE ROOM, ONE FULL-WIDTH CARD, AND THE AMENITIES AS A LIST (18 Oct
+              2026, the user: "room amenities can be written in a better ui ux too
+              cramped right now fix rooms at the studio"). Two to a row left each
+              room ~150px, so a third chip wrapped into a ragged pile. Now the name
+              and the capacity share the card's head, and the amenities sit under a
+              hairline as a two-column list — an icon in a tinted square and the
+              word beside it — which reads as "what this room has" at a glance. */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
             {rooms.map((r) => (
-              <div key={r.id} data-testid="studio-room" style={{ padding: "9px 10px 10px", borderRadius: 13, background: `${tint}0f`, border: "1.5px solid var(--el)", minWidth: 0 }}>
-                <div data-testid="studio-room-name" style={{ fontFamily: DOS_DISPLAY, fontSize: 14.5, fontWeight: 800, letterSpacing: -0.3, lineHeight: 1.2, color: "var(--text)", overflowWrap: "anywhere" }}>
-                  {r.name}
+              <div key={r.id} data-testid="studio-room" style={{ padding: "12px 13px", borderRadius: 15, background: `${tint}0d`, border: "1.5px solid var(--el)", minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div data-testid="studio-room-name" style={{ flex: 1, minWidth: 0, fontFamily: DOS_DISPLAY, fontSize: 16, fontWeight: 800, letterSpacing: -0.3, lineHeight: 1.2, color: "var(--text)", overflowWrap: "anywhere" }}>
+                    {r.name}
+                  </div>
+                  <div data-testid="studio-room-capacity" aria-label={`Capacity ${r.capacity} people`} style={{ flexShrink: 0, display: "inline-flex", alignItems: "baseline", gap: 5, padding: "4px 10px", borderRadius: 999, background: `${tint}1c`, border: `1.5px solid ${tint}33` }}>
+                    <span style={{ fontSize: 14, fontWeight: 900, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>{r.capacity}</span>
+                    <span style={{ ...micro, color: "var(--sub)" }}>CAPACITY</span>
+                  </div>
                 </div>
-                <div data-testid="studio-room-capacity" aria-label={`Capacity ${r.capacity} people`} style={{ display: "inline-flex", alignItems: "baseline", gap: 5, marginTop: 6, padding: "3px 9px", borderRadius: 999, background: `${tint}1c`, border: `1.5px solid ${tint}33` }}>
-                  <span style={{ fontSize: 13, fontWeight: 900, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>{r.capacity}</span>
-                  <span style={{ ...micro, color: "var(--sub)" }}>CAPACITY</span>
-                </div>
-                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 5, marginTop: 7 }}>
-                  {r.amenities.length > 0 ? (
-                    r.amenities.map((a) => <AmenityChip key={a} value={a} tint={tint} small />)
-                  ) : (
-                    <span style={{ fontSize: 10.5, color: "var(--muted)" }}>No amenities listed</span>
-                  )}
-                </div>
+                <div style={{ height: 1, background: "var(--el)", margin: "10px 0" }} />
+                {r.amenities.length > 0 ? (
+                  <ul data-testid="studio-room-amenities" style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(132px, 1fr))", gap: "8px 10px" }}>
+                    {r.amenities.map((a) => (
+                      <li key={a} style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                        <span aria-hidden="true" style={{ flexShrink: 0, width: 26, height: 26, borderRadius: 8, display: "inline-flex", alignItems: "center", justifyContent: "center", background: `${tint}2e`, color: tint }}>
+                          <AmenityIcon value={a} size={14} color={tint} />
+                        </span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", lineHeight: 1.25, overflowWrap: "anywhere" }}>{amenityLabel(a)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <span style={{ fontSize: 11, color: "var(--muted)" }}>No amenities listed</span>
+                )}
               </div>
             ))}
           </div>

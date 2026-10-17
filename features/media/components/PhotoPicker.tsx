@@ -306,7 +306,7 @@ export function PhotoPicker({
           <DeleteIconButton
             label="Remove the photo"
             title="Remove this photo?"
-            goWord="Remove"
+            goWord="Delete"
             disabled={busy}
             onConfirm={() => clear()}
           />

@@ -4,7 +4,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { photoUrl } from "@/lib/media/photo";
 import { amIPlatformAdmin } from "@/repositories/admin";
 import { findMyLedCrews } from "@/repositories/crews";
-import { findMyUnreadCount } from "@/repositories/notifications";
+import { findMyUnreadCount, findMyUnreadNotes } from "@/repositories/notifications";
+import { badgeSwitcher, type UnreadNote } from "@/features/home/toolBadges";
 import { findMyArtistPlan } from "@/repositories/plans";
 import { findProfileById } from "@/repositories/profiles";
 import { findMyMemberships, runsTheBusiness } from "@/repositories/businesses";
@@ -43,7 +44,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const [profile, unread, memberships, ledCrews, plan, isAdmin, layout] = await Promise.all([
+  const [profile, unread, memberships, ledCrews, plan, isAdmin, layout, unreadNotes] = await Promise.all([
     user ? findProfileById(supabase, user.id) : Promise.resolve(null),
     user ? findMyUnreadCount(supabase).catch(() => 0) : Promise.resolve(0),
     user ? findMyMemberships(supabase).catch(() => []) : Promise.resolve([]),
@@ -55,6 +56,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     user ? amIPlatformAdmin(supabase).catch(() => false) : Promise.resolve(false),
     /* every grid's arrangement, for the tools in the drawer (12 Oct 2026) */
     user ? findMyLayout(supabase, user.id).catch(() => ({}) as Record<string, string[]>) : Promise.resolve({} as Record<string, string[]>),
+    /* what is unread and where it points — the drawer's per-tool counts (18 Oct 2026) */
+    user ? findMyUnreadNotes(supabase, user.id).catch(() => [] as UnreadNote[]) : Promise.resolve([] as UnreadNote[]),
   ]);
   /* a platform admin with no profile is ADMIN ONLY (9 Sep 2026): the chrome draws
      no tab bar and no bell for it — every tab needs a profile, and the queue is
@@ -130,7 +133,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     : null;
 
   return (
-    <AppChrome unread={adminOnly ? 0 : unread} adminOnly={adminOnly} switcher={switcher} settings={settings} views={viewsOf(layout)}>
+    <AppChrome unread={adminOnly ? 0 : unread} adminOnly={adminOnly} switcher={badgeSwitcher(switcher, unreadNotes)} settings={settings} views={viewsOf(layout)}>
       {children}
     </AppChrome>
   );

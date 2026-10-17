@@ -2,7 +2,7 @@
 
 import { useState, type CSSProperties, type ReactNode } from "react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { DELETE_RED, TrashGlyph } from "@/components/ui/trash";
+import { DELETE_RED } from "@/components/ui/trash";
 
 /** ONE DELETE, EVERYWHERE (12 Oct 2026, the user: "these types of delete in
  *  sections should look similar and should just be an icon and ask before
@@ -18,27 +18,35 @@ import { DELETE_RED, TrashGlyph } from "@/components/ui/trash";
  *  ask: `onConfirm` runs only after "Delete" is pressed in the dialog, and an
  *  error it returns is printed inside that dialog rather than lost. */
 
-export { DELETE_RED, TrashGlyph };
+export { DELETE_RED };
 
 /** ONE SIZE (18 Oct 2026, the user: "fix delete button on all cards or cards
  *  detail pages … make it consistent"): 36px everywhere — last on a card's
  *  action bar, top right in a detail page's head. Callers no longer pass a size. */
 export const DELETE_SIZE = 36;
 
+/** ⚠⚠ A WORD, NOT A TRASH CAN (18 Oct 2026, the user: "delete and remove should
+ *  just be delete button to not be trash can … it looks completly off right
+ *  now"). A 36px-tall pill reading **Delete** in the danger red on a soft red
+ *  wash — the same control everywhere, whether the act removes a room, a
+ *  student or a team member. The accessible name still says WHAT goes
+ *  ("Remove Studio A"), so every screen reader and locator keeps its meaning. */
 export function DeleteIcon({
   label,
   onClick,
   disabled = false,
   testId,
   style,
+  word = "Delete",
 }: {
   label: string;
   onClick: () => void;
   disabled?: boolean;
   testId?: string;
   style?: CSSProperties;
+  /** the visible word — "Delete" everywhere but a practice, which is called off */
+  word?: string;
 }) {
-  const size = DELETE_SIZE;
   return (
     <button
       type="button"
@@ -52,22 +60,30 @@ export function DeleteIcon({
       }}
       style={{
         flex: "0 0 auto",
-        width: size,
-        height: size,
+        height: DELETE_SIZE,
+        padding: "0 14px",
         borderRadius: 999,
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: 0,
-        background: "var(--solid)",
-        border: `1.5px solid ${DELETE_RED}55`,
+        /* a solid ground, so the word reads on a poster as well as on a card */
+        background: `linear-gradient(${DELETE_RED}1f, ${DELETE_RED}1f), var(--solid)`,
+        border: "1.5px solid #DC262688",
+        boxShadow: "0 2px 8px rgba(0,0,0,.14)",
+        /* #DC2626 clears ~4.5:1 on both the light and the dark ground; the lighter
+           DELETE_RED was ~2.8:1 on white */
+        color: "#DC2626",
+        fontFamily: "inherit",
+        fontSize: 12,
+        fontWeight: 900,
+        letterSpacing: 0.1,
+        whiteSpace: "nowrap",
         cursor: disabled ? "not-allowed" : "pointer",
         opacity: disabled ? 0.5 : 1,
-        boxShadow: "0 2px 8px rgba(0,0,0,.18)",
         ...style,
       }}
     >
-      <TrashGlyph size={Math.round(size * 0.46)} />
+      {word}
     </button>
   );
 }
@@ -81,8 +97,10 @@ export function DeleteIconButton({
   disabled,
   testId,
   style,
+  word,
 }: {
   label: string;
+  word?: string;
   /** the question — "Delete this room?" */
   title: string;
   body?: ReactNode;
@@ -102,6 +120,7 @@ export function DeleteIconButton({
         label={label}
         testId={testId}
         style={style}
+        word={word}
         disabled={disabled || busy}
         onClick={() => {
           setErr(null);

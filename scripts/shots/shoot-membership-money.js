@@ -178,11 +178,17 @@ const passRow = async (id) => (await call("GET", `/rest/v1/membership_passes?id=
     await bp.goto(`${BASE}/c/${oneHour.share_slug}`, { waitUntil: "networkidle" });
     const use = bp.getByRole("button", { name: `Use ${spendM.name}` });
     const offered = await use.count();
-    const offerText = offered ? (await use.innerText()).replace(/\s+/g, " ") : "";
-    check(offered === 1 && /3 hours left · this takes 1/.test(offerText), `the class page offers the pass and says what it will take (${offerText})`);
+    const offerText = offered ? (await bp.getByTestId("pass-strip").innerText()).replace(/\s+/g, " ") : "";
+    check(offered === 1 && /3 hours left · this class takes 1 hour/.test(offerText), `the class page offers the pass and says what it will take (${offerText})`);
     if (offered) {
+      /* ⚠ it ASKS first (18 Oct 2026) — the press opens the question, only its button spends */
       await use.click();
-      await bp.getByText("Booked with your membership").waitFor({ timeout: 30000 }).catch(() => {});
+      const ask = bp.getByRole("alertdialog", { name: `Use ${spendM.name} for this class?` });
+      await ask.waitFor({ timeout: 10000 });
+      const askText = (await ask.innerText()).replace(/\s+/g, " ");
+      check(/Left after/.test(askText) && /2 hours of 3 hours/.test(askText), `the question says what will be left (${askText.slice(0, 120)})`);
+      await ask.getByRole("button", { name: "Use membership" }).click();
+      await bp.getByText(`Booked with ${spendM.name}`).waitFor({ timeout: 30000 }).catch(() => {});
     }
     let p1 = pass1, seat = [];
     for (let i = 0; i < 10; i++) {

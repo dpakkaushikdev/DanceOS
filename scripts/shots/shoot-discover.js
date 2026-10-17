@@ -330,13 +330,8 @@ const measureRail = (page, selector) =>
 
     /* 5. THE CREW CARD */
     await page.goto(`${BASE}/discover?city=${encodeURIComponent(CITY)}&tab=crews`, { waitUntil: "networkidle" });
-    const cCard = page.getByRole("link", { name: `${crew.name} — Crew` });
-    check((await cCard.count()) === 1, "the crew is on the Crews tab");
-    if ((await cCard.count()) === 1) {
-      const t = (await cCard.innerText()).replace(/\s+/g, " ");
-      check(!t.includes(STYLE), `no dance style on the crew card — its text is "${t.slice(0, 70)}"`);
-      check(t.includes("CREW"), "…and it still says CREW, so the card itself is intact");
-    }
+    /* ⚠ no Crews tab since 18 Oct 2026 — the address falls through to Classes */
+    check((await page.getByRole("link", { name: `${crew.name} — Crew` }).count()) === 0, "Discover lists no crews (the Crews tab is gone)");
 
     check(errs.length === 0, `no page error and no 5xx anywhere${errs.length ? ` — ${errs.join(" | ")}` : ""}`);
   } finally {

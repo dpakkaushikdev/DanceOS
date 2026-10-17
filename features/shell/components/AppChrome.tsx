@@ -14,6 +14,7 @@ import type { ArtistPlan } from "@/repositories/plans";
 import type { Profile, ProfileRole } from "@/types/profile";
 import type { Business } from "@/types/business";
 import { setToolOrderAction } from "@/features/home/server-actions/toolOrder";
+import { markNotificationsReadAction } from "@/features/notifications/server-actions/notifications";
 import { viewKey, viewToolOf, type ViewMode, type ViewTool } from "@/features/shell/viewMode";
 import { ViewModeContext } from "@/features/shell/components/ViewToggle";
 
@@ -157,7 +158,9 @@ export interface SwitcherItem {
   photo?: string | null;
   /** ITS TOOLS (12 Oct 2026) — drawn one per line in the drawer the picture
    *  opens, in the order this account arranged them. Built by the layout. */
-  tiles?: Tile[];
+  tiles?: (Tile & { count?: number; noteIds?: string[] })[];
+  /** what is unread across this profile's tools (18 Oct 2026, `toolBadges`) */
+  count?: number;
 }
 
 const SWITCH_TINT: Record<SwitcherItem["kind"], string> = { me: "#5AC8FA", studio: "#3B82F6", crew: "#DC2626" };
@@ -357,6 +360,23 @@ export function AppChrome({
      have drilled into — it is your own account, which is the profile you are
      acting as. A `me` row always exists, so this is only null for an admin. */
   const hereItem = switcher.find(isHere) ?? switcher.find((s) => s.kind === "me") ?? switcher[0] ?? null;
+  const toolTotal = switcher.reduce((s, i) => s + (i.count ?? 0), 0);
+
+  /* ⚠ OPENING A TOOL READS ITS NEWS (18 Oct 2026): the counts are unread
+     notifications that open that tool, so landing on it marks exactly those read
+     and the chrome re-reads — the badge goes because the thing it counted was
+     seen, never on a timer. One call per tool visit, at most 200 ids. */
+  const seenRef = useRef<string>("");
+  useEffect(() => {
+    const tile = switcher.flatMap((i) => i.tiles ?? []).find((t) => t.noteIds?.length && (pathname === t.href.split("?")[0] || pathname.startsWith(`${t.href.split("?")[0]}/`)));
+    if (!tile?.noteIds?.length) return;
+    const sig = tile.noteIds.join(",");
+    if (seenRef.current === sig) return;
+    seenRef.current = sig;
+    void markNotificationsReadAction({ ids: tile.noteIds.slice(0, 200) }).then((r) => {
+      if (!r.error) router.refresh();
+    });
+  }, [pathname, switcher, router]);
 
   /* ⚠ SWIPE THE PHOTO TO MOVE PROFILE, THE WAY GOOGLE'S AVATAR DOES (2 Oct 2026,
      the user: "swiping up or down on profile pic should also switch profile …
@@ -711,10 +731,11 @@ export function AppChrome({
               extreme right beside Settings (2 Oct 2026). Its ring is that kind's
               colour, so it still answers "which profile am I?" without opening. */}
           {adminOnly ? null : (
+            <span style={{ position: "relative", display: "inline-flex", flexShrink: 0 }}>
             <button
               type="button"
               data-testid="profile-switcher"
-              aria-label={hereItem ? `Switch profile — you are in ${hereItem.label}` : "Switch profile"}
+              aria-label={`${hereItem ? `Switch profile — you are in ${hereItem.label}` : "Switch profile"}${toolTotal ? ` — ${toolTotal} new in your tools` : ""}`}
               aria-haspopup="menu"
               aria-expanded={menuOpen}
               ref={switcherRef}
@@ -740,6 +761,14 @@ export function AppChrome({
                 <span aria-hidden="true" style={{ color: "#fff", fontSize: 12.5, fontWeight: 900 }}>{hereItem ? initialsOf(hereItem.label) : "?"}</span>
               )}
             </button>
+            {/* what is new across every profile's tools (18 Oct 2026) — outside the
+                button, which clips its picture */}
+            {toolTotal ? (
+              <span aria-hidden="true" data-testid="switcher-count" style={{ position: "absolute", top: -3, right: -3, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 999, background: RED, color: "#fff", fontSize: 10, fontWeight: 900, display: "inline-flex", alignItems: "center", justifyContent: "center", border: "2px solid var(--solid)", pointerEvents: "none", boxSizing: "content-box" }}>
+                {toolTotal > 9 ? "9+" : toolTotal}
+              </span>
+            ) : null}
+            </span>
           )}
         </span>
       </div>
@@ -835,7 +864,7 @@ export function AppChrome({
                     role="menuitem"
                     href={item.href}
                     aria-current={here ? "page" : undefined}
-                    aria-label={`${item.label} — ${item.sub}${here ? " — you are here" : ""}`}
+                    aria-label={`${item.label} — ${item.sub}${here ? " — you are here" : ""}${item.count ? ` — ${item.count} new` : ""}`}
                     {...tapHandlers}
                     onClick={(e) => { if (wasSwipe(e)) return; setOpenFor(null); }}
                     style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 8px", borderRadius: 14, textDecoration: "none", color: "var(--text)", background: here ? "var(--el)" : "transparent" }}
@@ -847,6 +876,11 @@ export function AppChrome({
                       <span style={{ display: "block", fontSize: 13, fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</span>
                       <span style={{ display: "block", fontSize: 10, fontWeight: 800, color: tint, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>{item.sub}</span>
                     </span>
+                    {item.count ? (
+                      <span data-testid="profile-count" aria-hidden="true" style={{ flexShrink: 0, minWidth: 20, height: 20, padding: "0 6px", borderRadius: 999, background: RED, color: "#fff", fontSize: 10.5, fontWeight: 900, display: "inline-flex", alignItems: "center", justifyContent: "center", fontVariantNumeric: "tabular-nums" }}>
+                        {item.count > 99 ? "99+" : item.count}
+                      </span>
+                    ) : null}
                     {here ? <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 900, letterSpacing: 0.6, padding: "3px 7px", borderRadius: 999, background: "var(--text)", color: "var(--solid)" }}>HERE</span> : null}
                   </Link>
                 );
@@ -865,12 +899,21 @@ export function AppChrome({
                         key={t.name}
                         href={t.href}
                         aria-label={t.name}
+                        /* the count is a DESCRIPTION, not part of the name, so "Classes"
+                           stays one control's name whether or not something is new */
+                        aria-describedby={t.count ? `tool-count-${hereItem.key}-${t.k}` : undefined}
                         {...tapHandlers}
                         onClick={(e) => { wasSwipe(e); }}
                         style={{ display: "flex", alignItems: "center", gap: 11, padding: "7px 8px", borderRadius: 14, textDecoration: "none", color: "var(--text)", background: pathname === t.href || pathname.startsWith(`${t.href}/`) ? "var(--el)" : "transparent" }}
                       >
                         <ToolGlyph k={t.k} c={t.c} size={34} />
                         <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 900, letterSpacing: -0.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
+                        {/* WHAT IS NEW HERE (18 Oct 2026) — unread notifications that open this tool */}
+                        {t.count ? (
+                          <span data-testid="tool-count" id={`tool-count-${hereItem.key}-${t.k}`} aria-label={`${t.count} new`} style={{ flexShrink: 0, minWidth: 22, height: 22, padding: "0 7px", borderRadius: 999, background: RED, color: "#fff", fontSize: 11, fontWeight: 900, display: "inline-flex", alignItems: "center", justifyContent: "center", fontVariantNumeric: "tabular-nums" }}>
+                            {t.count > 99 ? "99+" : t.count}
+                          </span>
+                        ) : null}
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <path d="M9.5 5.5 16 12l-6.5 6.5" />
                         </svg>

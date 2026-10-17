@@ -33,10 +33,19 @@ export interface InvoiceSheetProps {
   classBookingId: string;
   amountInr: number | null; // null = free booking
   method: string | null;
+  /** the pass that paid for this seat (18 Oct 2026) — a seat booked with a
+   *  membership has no payment, and "Free" said something untrue about it */
+  passUse?: { membershipName: string; units: number; unit: string } | null;
   onClose: () => void;
 }
 
-export function InvoiceSheet({ title, whenText, whereText, classBookingId, amountInr, method, onClose }: InvoiceSheetProps) {
+/* a pass sold in classes before 3 Oct 2026 still spends classes */
+const unitWords = (n: number, unit: string) => {
+  const word = unit === "classes" ? (n === 1 ? "class" : "classes") : n === 1 ? "hour" : "hours";
+  return `${n % 1 === 0 ? n : n.toFixed(1)} ${word}`;
+};
+
+export function InvoiceSheet({ title, whenText, whereText, classBookingId, amountInr, method, passUse = null, onClose }: InvoiceSheetProps) {
   useCloseOnBack(onClose);
   const code = bookingCodeOf(classBookingId);
   const num = `INV-2026-${String((dosHash(code) % 9000) + 1000)}`;
@@ -46,6 +55,7 @@ export function InvoiceSheet({ title, whenText, whereText, classBookingId, amoun
     ["When", whenText || "—"],
     ["Where", whereText || "—"],
     ...(method ? ([["Paid by", method.toUpperCase()]] as Array<[string, string]>) : []),
+    ...(passUse ? ([["Paid with", passUse.membershipName]] as Array<[string, string]>) : []),
     ["Reference", code],
   ];
   return (
@@ -97,9 +107,9 @@ export function InvoiceSheet({ title, whenText, whereText, classBookingId, amoun
           </div>
         ))}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 12 }}>
-          <span style={{ fontSize: 11, fontWeight: 900, letterSpacing: 0.8, color: "var(--muted)" }}>TOTAL PAID</span>
-          <b style={{ fontSize: 20, fontFamily: DOS_MONO }}>
-            {!amountInr ? "Free" : `₹${amountInr.toLocaleString("en-IN")}`}
+          <span style={{ fontSize: 11, fontWeight: 900, letterSpacing: 0.8, color: "var(--muted)" }}>{passUse ? "FROM YOUR PASS" : "TOTAL PAID"}</span>
+          <b data-testid="invoice-total" style={{ fontSize: 20, fontFamily: DOS_MONO }}>
+            {passUse ? unitWords(passUse.units, passUse.unit) : !amountInr ? "Free" : `₹${amountInr.toLocaleString("en-IN")}`}
           </b>
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 14 }}>

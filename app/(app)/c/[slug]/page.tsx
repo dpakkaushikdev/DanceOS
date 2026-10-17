@@ -4,7 +4,7 @@ import { cache } from "react";
 import { ClassDetail } from "@/features/classes/components/ClassDetail";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findArtistPageOwner } from "@/repositories/businesses";
-import { findPassesForSession } from "@/repositories/memberships";
+import { findMyPassUseForBooking, findPassesForSession } from "@/repositories/memberships";
 import { canBookClass, noBookingWords } from "@/types/profile";
 import { resolveActingAs } from "@/repositories/actingAs";
 import { canSetClassRoutines, findClassRoutines, findMyRoutines } from "@/repositories/routines";
@@ -259,7 +259,7 @@ export default async function ClassSharePage({
      the refund queue's reconcile-then-read is one chain inside it, so it no
      longer holds a round of its own. */
   const phase = phaseOf(danceClass.session?.startsAt, danceClass.session?.endsAt);
-  const [receipt, register, paidUserIds, room, ownerId, routines, myRoutines, canSetRoutines, passesAll, actingAs, assistantPool, place, refunds, classMoney, refundWindowHours, publishState, viewerName] = await Promise.all([
+  const [receipt, register, paidUserIds, room, ownerId, routines, myRoutines, canSetRoutines, passesAll, actingAs, assistantPool, place, refunds, classMoney, refundWindowHours, publishState, viewerName, passUse] = await Promise.all([
     myBooking && danceClass.priceInr > 0 ? findPaidReceiptByClassBooking(supabase, myBooking.id) : Promise.resolve(null),
     /* a venue runner's read is the database's call — a refusal is no tab, never an error page */
     mayRunRegister ? (doorOnly ? findClassRegister(supabase, danceClass.id).catch(() => null) : findClassRegister(supabase, danceClass.id)) : Promise.resolve(null),
@@ -297,12 +297,13 @@ export default async function ClassSharePage({
       : Promise.resolve(null),
     /* the name on the booked card's QR (B21) */
     myBooking && user ? findProfileById(supabase, user.id).then((p) => p?.fullName ?? null).catch(() => null) : Promise.resolve(null),
+    /* which pass paid for the viewer's seat, for the invoice (18 Oct 2026) */
+    myBooking && user && danceClass.priceInr > 0 ? findMyPassUseForBooking(supabase, myBooking.id, user.id).catch(() => null) : Promise.resolve(null),
   ]);
   /* a viewer who already holds a seat is offered no pass */
   const passes = myBooking ? [] : passesAll;
   /* what the refund sheet says comes back (D6): the money, a pass's hours, or nothing */
   const paidWith: "money" | "pass" | "free" = danceClass.priceInr === 0 ? "free" : receipt ? "money" : "pass";
-
   return (
     <ClassDetail
       danceClass={danceClass}
@@ -313,6 +314,7 @@ export default async function ClassSharePage({
       canManage={canManage}
       mine={myBooking}
       receipt={receipt}
+      passUse={passUse}
       sessionPhase={phase}
       register={register}
       classPeople={classPeople}

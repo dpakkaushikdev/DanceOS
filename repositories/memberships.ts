@@ -369,6 +369,28 @@ export async function findPassUsesMany(supabase: SupabaseClient, passes: Array<{
   return out;
 }
 
+/** WHICH PASS PAID FOR THIS SEAT (18 Oct 2026). A seat booked with a membership
+ *  has no payment row, so the invoice read "Free" for it — a claim about money
+ *  that was not true. The holder's own use row says what was spent and from
+ *  which membership; `user_id` is said out loud because the runners of the class
+ *  read its uses too (RLS is a ceiling, not a scope). Null when no pass paid. */
+export async function findMyPassUseForBooking(
+  supabase: SupabaseClient,
+  classBookingId: string,
+  userId: string,
+): Promise<{ membershipName: string; units: number; unit: string } | null> {
+  const { data, error } = await supabase
+    .from("membership_uses")
+    .select("units, memberships (name, unit)")
+    .eq("class_booking_id", classBookingId)
+    .eq("user_id", userId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (error || !data) return null;
+  const m = (data as unknown as { units: unknown; memberships: { name: string; unit: string } | null }).memberships;
+  return { membershipName: m?.name ?? "your membership", units: n((data as { units: unknown }).units), unit: m?.unit ?? "hours" };
+}
+
 /** which of my passes this session takes — the booking sheet's one question */
 export async function findPassesForSession(supabase: SupabaseClient, sessionId: string): Promise<PassForSession[]> {
   const { data, error } = await supabase.rpc("passes_for_session", { p_session_id: sessionId });

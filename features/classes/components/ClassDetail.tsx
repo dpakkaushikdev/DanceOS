@@ -159,6 +159,9 @@ export interface ClassDetailProps {
   mine: { id: string; status: ClassBookingStatus } | null;
   /** The captured payment behind the viewer's booking — feeds the invoice. */
   receipt: PaidReceipt | null;
+  /** the pass that paid for the viewer's seat, when one did — the invoice says so
+   *  instead of "Free" (18 Oct 2026) */
+  passUse?: { membershipName: string; units: number; unit: string } | null;
   /** Where the clock stands on the session — the strip only SAYS which moment
    *  you are in (prototype 12050-12063); the check-in window is enforced server-side. */
   sessionPhase: "upcoming" | "live" | "ended";
@@ -273,6 +276,7 @@ export function ClassDetail({
   canManage,
   mine,
   receipt,
+  passUse = null,
   sessionPhase,
   register,
   classPeople,
@@ -1562,8 +1566,18 @@ export function ClassDetail({
                 spent, so the page cannot promise what the RPC refuses. ── */}
             <Row
               k="Memberships"
-              /* only a studio sells a pass since 4 Oct 2026 */
-              v={c.allowsStudioMemberships ? "A studio's pass covers a seat" : "Not accepted — this one is booked seat by seat"}
+              /* only a studio sells a pass since 4 Oct 2026; an artist's class in a
+                 studio's room takes THAT studio's pass once it said yes and the
+                 artist switched it on (18 Oct 2026) — `passes_for_session`'s rule */
+              v={
+                !c.allowsStudioMemberships
+                  ? "Not accepted — this one is booked seat by seat"
+                  : c.venueStatus === "accepted"
+                    ? `A ${c.venue?.name ?? "the studio's"} pass covers a seat`
+                    : c.venueBusinessId || c.owner?.kind === "artist"
+                      ? "Not accepted — this one is booked seat by seat"
+                      : "A studio's pass covers a seat"
+              }
             />
           </Sec>
         )}
@@ -2080,14 +2094,19 @@ export function ClassDetail({
                 one RPC, and cancelling puts the unit back. ── */}
             {!booked && passes.length > 0 && c.session ? (
               <div data-testid="pass-strip" style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+                {/* ⚠ A PASS WITHOUT ENOUGH LEFT IS SHOWN, NOT OFFERED (18 Oct 2026):
+                    `passes_for_session` returns it with enough = false, and the
+                    button used to press anyway into "not enough left on that
+                    membership". It says so on the row instead. */}
                 {passes.map((p) => (
                   <button
                     key={p.passId}
                     type="button"
-                    disabled={passPending !== null}
-                    aria-label={`Use ${p.membershipName}`}
-                    onClick={() => spendPass(p)}
-                    style={{ display: "flex", alignItems: "center", gap: 9, padding: "11px 13px", borderRadius: 14, background: `${col}18`, border: `1.5px solid ${col}55`, cursor: passPending ? "wait" : "pointer", fontFamily: DOS_UI, color: "var(--text)", textAlign: "left" }}
+                    disabled={passPending !== null || !p.enough}
+                    aria-disabled={!p.enough}
+                    aria-label={p.enough ? `Use ${p.membershipName}` : `${p.membershipName} — not enough left for this class`}
+                    onClick={() => p.enough && spendPass(p)}
+                    style={{ display: "flex", alignItems: "center", gap: 9, padding: "11px 13px", borderRadius: 14, background: `${col}18`, border: `1.5px solid ${col}55`, cursor: !p.enough ? "not-allowed" : passPending ? "wait" : "pointer", opacity: p.enough ? 1 : 0.55, fontFamily: DOS_UI, color: "var(--text)", textAlign: "left" }}
                   >
                     <span aria-hidden="true" style={{ flexShrink: 0, fontSize: 15 }}>🎟</span>
                     <span style={{ flex: 1, minWidth: 0 }}>
@@ -2098,7 +2117,7 @@ export function ClassDetail({
                           : `${p.unitsTotal - p.unitsUsed} classes left · this takes ${p.unitsNeeded}`}
                       </span>
                     </span>
-                    <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 900, color: col }}>{passPending === p.passId ? "…" : "Use it ›"}</span>
+                    <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 900, color: p.enough ? col : "var(--muted)" }}>{!p.enough ? "Not enough left" : passPending === p.passId ? "…" : "Use it ›"}</span>
                   </button>
                 ))}
               </div>
@@ -2360,6 +2379,7 @@ export function ClassDetail({
           classBookingId={mine.id}
           amountInr={receipt?.amountInr ?? null}
           method={receipt?.method ?? null}
+          passUse={receipt ? null : passUse}
           onClose={() => setInvoiceOpen(false)}
         />
       )}

@@ -305,7 +305,7 @@ export function ClassForm({
   const capacityInput = numberOf(capacityText, 1, 500);
   /* WHICH MEMBERSHIPS PAY FOR A SEAT HERE (19 Sep 2026) — the database is what
      enforces it when a pass is spent */
-  const [allowsStudioMem, setAllowsStudioMem] = useState(existing?.allowsStudioMemberships ?? true);
+  const [allowsStudioMem, setAllowsStudioMem] = useState(existing?.allowsStudioMemberships ?? !isArtist); /* an artist chooses to take a studio's passes (18 Oct 2026) */
 
   /* ── WHERE (11 Oct 2026): the business type decides the answers ── */
   /* an EXISTING class opens on whichever it actually has: a class already at a
@@ -535,7 +535,7 @@ export function ClassForm({
         <input type="hidden" name="poster" value={poster ?? ""} />
         <input type="hidden" name="priceInr" value={priceInr} />
         <input type="hidden" name="capacity" value={capacity} />
-        <input type="hidden" name="allowsStudioMemberships" value={allowsStudioMem ? "1" : ""} />
+        <input type="hidden" name="allowsStudioMemberships" value={allowsStudioMem && !atPlace ? "1" : ""} />
         <input type="hidden" name="people" value={peoplePayload} />
         {/* WHERE: the venue, or the map link (18 Sep 2026) */}
         <input type="hidden" name="venueBusinessId" value={atStudio && venue ? venue.id : ""} />
@@ -745,9 +745,20 @@ export function ClassForm({
             <input type="number" min={0} max={1000000} value={priceText} onChange={(e) => setPriceText(e.target.value)} onBlur={() => setPriceText(String(priceInr))} aria-label="Price per session" style={inputStyle} />
             {priceInr === 0 && <div style={{ fontSize: 12, color: "#22C55E", fontWeight: 700, marginTop: 6 }}>This session is free.</div>}
 
-            {/* ── MEMBERSHIPS (19 Sep 2026; one switch since 4 Oct 2026) ── */}
-            <div style={labelStyle}>8 · MEMBERSHIPS</div>
-            <SwitchRow word="Studio memberships" on={allowsStudioMem} onFlip={() => setAllowsStudioMem(!allowsStudioMem)} />
+            {/* ── MEMBERSHIPS (19 Sep 2026; one switch since 4 Oct 2026). An artist
+                sells none; at a STUDIO the switch lets that studio's passes pay
+                for a seat (18 Oct 2026). At a map pin there is no studio, so no
+                switch — and the hidden field sends "off". ── */}
+            {!atPlace && (
+              <>
+                <div style={labelStyle}>8 · MEMBERSHIPS</div>
+                <SwitchRow
+                  word={atStudio && venue ? `${venue.name}'s memberships` : "Studio memberships"}
+                  on={allowsStudioMem}
+                  onFlip={() => setAllowsStudioMem(!allowsStudioMem)}
+                />
+              </>
+            )}
 
             {/* POSTER — drawn, not uploaded, so it can never disagree with the class it belongs to (6478-6481) */}
             <div style={labelStyle}>

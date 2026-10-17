@@ -51,17 +51,43 @@ export function inkOn(hex: string): string {
   return (1.05 / (L + 0.05)) >= ((L + 0.05) / 0.05) ? "#fff" : "#141414";
 }
 
+/** THE TINT, DEEPENED UNTIL WHITE READS ON IT (18 Oct 2026, the user: "fix
+ *  button color on all cards on tools"). Mixed toward black in small steps until
+ *  white clears 4.5:1, so every filled button carries white type in its own
+ *  tool's colour — the Team desk's orange used to wear BLACK type beside other
+ *  tools' white, which is what read as broken. */
+export function deepen(hex: string): string {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  let [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  const lin = (c: number) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  for (let i = 0; i < 20; i++) {
+    const L = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+    if (1.05 / (L + 0.05) >= 4.5) break;
+    [r, g, b] = [r * 0.92, g * 0.92, b * 0.92];
+  }
+  const h = (c: number) => Math.round(c).toString(16).padStart(2, "0");
+  return `#${h(r)}${h(g)}${h(b)}`;
+}
+
 /** the one button of the action bar — every tool's buttons are this shape */
 export function toolBtn(kind: ToolBtnKind, tint: string, extra?: CSSProperties): CSSProperties {
+  const deep = deepen(tint);
   const paint: Record<ToolBtnKind, CSSProperties> = {
-    /* ⚠ THE INK IS PICKED FROM THE TINT, not assumed white: an owner's amber and a
-       style's yellow are light, and white on them measured ~2:1 */
-    primary: { background: tint, color: inkOn(tint), borderColor: tint },
-    /* ⚠ INK, not the tint, as the WORD — a tint coloured on its own 8% wash is
-       readable on one theme's card and not the other's; the tint is the ring */
-    tinted: { background: `${tint}1f`, color: INK, borderColor: `${tint}77` },
+    /* ⚠ ONE RULE FOR A FILLED BUTTON: the tool's colour, deepened until white
+       reads on it, with white type — never black on one tool and white on the
+       next (18 Oct 2026) */
+    primary: { background: `linear-gradient(135deg, ${deep}, ${deepen(deep)})`, color: "#fff", borderColor: deep, boxShadow: `0 3px 10px ${deep}40` },
+    /* ⚠ THE LIGHT ONE: a clear wash of the colour with the WORD in the colour,
+       mixed with the theme's ink so it reads on a dark card and a light one alike
+       (the 4 Oct "light hue" ask, without the muddy ink-on-wash it became) */
+    tinted: { background: `color-mix(in srgb, ${tint} 16%, transparent)`, color: `color-mix(in srgb, ${tint} 62%, var(--text))`, borderColor: `color-mix(in srgb, ${tint} 55%, transparent)` },
     secondary: { background: "transparent", color: INK, borderColor: "var(--el)" },
-    danger: { background: "transparent", color: "#F87171", borderColor: "var(--el)" },
+    danger: { background: "color-mix(in srgb, #EF4444 8%, transparent)", color: "color-mix(in srgb, #EF4444 72%, var(--text))", borderColor: "color-mix(in srgb, #EF4444 45%, transparent)" },
   };
   return {
     flex: "1 1 0",

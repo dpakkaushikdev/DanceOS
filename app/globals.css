@@ -418,6 +418,68 @@ a:focus-visible:not([data-slot]) {
   }
 }
 
+/* the bottom bar: the tab you press springs open and its icon pops
+   (18 Oct 2026, "navbar below should have some animation when switching") */
+@keyframes dosTabIn {
+  from {
+    transform: scale(0.82);
+    opacity: 0.6;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes dosTabPop {
+  0% {
+    transform: scale(0.6) rotate(-12deg);
+  }
+  60% {
+    transform: scale(1.18) rotate(4deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+.dos-tab:active {
+  transform: scale(0.92);
+}
+/* Discover's five tiles: each breathes in on load, and the chosen one glows */
+@keyframes dosTileIn {
+  from {
+    transform: translateY(8px) scale(0.94);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes dosTileGlow {
+  0%,
+  100% {
+    filter: saturate(1);
+  }
+  50% {
+    filter: saturate(1.25) brightness(1.06);
+  }
+}
+.dos-entity-tile {
+  transition: transform 0.18s ease, box-shadow 0.25s ease;
+}
+.dos-entity-tile:active {
+  transform: scale(0.94);
+}
+@media (prefers-reduced-motion: reduce) {
+  .dos-tab,
+  .dos-tab *,
+  .dos-entity-tile,
+  .dos-entity-tile * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 /* a full-screen picture fading up over whatever opened it (prototype 10572) */
 /* the calendar's day, week and month slide in from the side they were stepped
    towards (10 Oct 2026, "make sure calendar is smooth") — transform and opacity

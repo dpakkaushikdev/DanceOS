@@ -18,7 +18,8 @@ export default async function NotificationsPage({ searchParams }: { searchParams
     redirect("/login");
   }
   const sp = await searchParams;
-  const show = sp.show === "new" || sp.show === "earlier" ? sp.show : null;
+  /* `?show=earlier` is the old word for History (Rule 14) */
+  const show = sp.show === "new" ? "new" : sp.show === "history" || sp.show === "earlier" ? "history" : null;
   const [notifications, prefs] = await Promise.all([findMyNotifications(supabase), findMyNotificationPrefs(supabase)]);
   return <NotificationsScreen notifications={notifications} prefs={prefs} nowIso={stampNowIso()} initialColumn={show} initialGroup={sp.group ?? null} />;
 }

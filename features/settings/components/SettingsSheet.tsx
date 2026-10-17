@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition, type CSSProperties, type ReactNode } from "react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { requestAccountDeletionAction } from "@/features/auth/server-actions/auth";
+import { deleteStudioAction } from "@/features/businesses/server-actions/businesses";
+import { deleteCrewAction } from "@/features/crews/server-actions/crews";
 import { DISC_RADIUS, DOS_DISPLAY, DOS_UI, INK, MUTED, RED, SUB } from "@/lib/design/tokens";
 
 const initialsOf = (name: string) =>
@@ -211,6 +213,10 @@ export function SettingsSheet({
   const [leaveWhy, setLeaveWhy] = useState("");
   const [leaveErr, setLeaveErr] = useState<string | null>(null);
   const [leavePending, startLeave] = useTransition();
+  /* DELETE STUDIO / DELETE CREW (18 Oct 2026) */
+  const [dropping, setDropping] = useState<"studio" | "crew" | null>(null);
+  const [dropErr, setDropErr] = useState<string | null>(null);
+  const [dropPending, startDrop] = useTransition();
   const fire = (m: string) => {
     setToast(m);
     setTimeout(() => setToast(null), 2400);
@@ -327,6 +333,12 @@ export function SettingsSheet({
               <Tile icon={ICONS.payments("#22C55E")} href={`${desk}/payments`} onNavigate={go}>
                 Payments
               </Tile>
+              {/* DELETE STUDIO (18 Oct 2026) — asks first; `delete_studio` decides
+                  who may (the main owner) and refuses in words while anything
+                  still depends on the studio */}
+              <Tile icon={ICONS.leave(RED)} onClick={() => { setDropErr(null); setDropping("studio"); }} danger ariaLabel="Delete studio">
+                Delete studio
+              </Tile>
               {/* ⚠ ENQUIRY TYPES IS GONE FROM SETTINGS (27 Sep 2026, the user:
                   *"enquiries should be removed from settings"*). Which kinds a
                   business takes is what its Enquiry BUTTON offers, so it is
@@ -358,10 +370,43 @@ export function SettingsSheet({
             {/* ⚠ NO EDIT TILE (26 Sep 2026): a crew is edited by the pencil on its
                 own home, like every other profile; it takes no money, so nothing
                 else is its */}
-            <div style={{ fontSize: 11.5, color: SUB, fontWeight: 700, padding: "2px 2px 2px", lineHeight: 1.5 }}>
-              {active.crew.name} is edited from its own home — the pencil top right. It takes no money, so it has nothing else here.
+            <div style={grid}>
+              <Tile icon={ICONS.leave(RED)} onClick={() => { setDropErr(null); setDropping("crew"); }} danger ariaLabel="Delete crew">
+                Delete crew
+              </Tile>
             </div>
           </>
+        ) : null}
+
+        {dropping ? (
+          <ConfirmDialog
+            title={dropping === "studio" ? `Delete ${studio?.name ?? "this studio"}?` : `Delete ${active.kind === "crew" ? active.crew.name : "this crew"}?`}
+            goWord="Delete"
+            keepWord="Keep it"
+            busy={dropPending}
+            err={dropErr}
+            onKeep={() => (dropPending ? undefined : setDropping(null))}
+            onGo={() =>
+              startDrop(async () => {
+                setDropErr(null);
+                const out =
+                  dropping === "studio" && studio
+                    ? await deleteStudioAction({ businessId: studio.id })
+                    : active.kind === "crew"
+                      ? await deleteCrewAction({ crewId: active.crew.id })
+                      : { error: "Nothing to delete" };
+                if (out.error) {
+                  setDropErr(out.error);
+                  return;
+                }
+                const where = dropping === "studio" ? "/business" : "/crews";
+                setDropping(null);
+                router.replace(where);
+                router.refresh();
+              })
+            }
+            body={dropping === "studio" ? "It leaves Discover and every team member's switcher. This cannot be undone here." : "Every member leaves the crew and its practices are called off. This cannot be undone here."}
+          />
         ) : null}
 
         {/* ⚠ NO "YOU · Edit profile" BLOCK (26 Sep 2026, the user: "edit profile

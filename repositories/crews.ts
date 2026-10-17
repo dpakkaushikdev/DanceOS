@@ -186,6 +186,15 @@ export async function reclaimCrew(supabase: SupabaseClient, crewId: string): Pro
   }
 }
 
+/** The leader deletes the crew (18 Oct 2026, `delete_crew`): soft, its practices
+ *  still to come called off and every roster seat closed, the members told. */
+export async function deleteCrew(supabase: SupabaseClient, crewId: string): Promise<void> {
+  const { error } = await supabase.rpc("delete_crew", { p_crew_id: crewId });
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
 /** Discover's Crews tab: live crews in a city, newest first. */
 /** a city's crews — or, given no city (Discover's All cities, 2 Oct 2026), every crew */
 export async function findCrewsByCity(supabase: SupabaseClient, city: string | null): Promise<CrewSummary[]> {

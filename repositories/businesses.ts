@@ -121,6 +121,16 @@ export async function updateBusinessProfile(supabase: SupabaseClient, businessId
   }
 }
 
+/** The studio's main owner deletes it (18 Oct 2026, `delete_studio`): soft,
+ *  refused in words while a class, a renewing subscription or a pass with hours
+ *  left still depends on it. */
+export async function deleteStudio(supabase: SupabaseClient, businessId: string): Promise<void> {
+  const { error } = await supabase.rpc("delete_studio", { p_business_id: businessId });
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
 /** Atomic create: business + owner membership via the create_business_with_owner RPC. */
 export async function createBusinessWithOwner(
   supabase: SupabaseClient,

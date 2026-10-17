@@ -7,6 +7,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   askCrewMember,
   createCrew,
+  deleteCrew,
   reclaimCrew,
   removeCrewMember,
   reorderCrewMembers,
@@ -250,6 +251,22 @@ export async function reclaimCrewAction(input: { crewId: string }): Promise<Crew
     return { error: null };
   } catch (error: unknown) {
     return { error: error instanceof Error ? error.message : "Could not take the crew back" };
+  }
+}
+
+/** The leader deletes the crew (18 Oct 2026). The app asked first; the RPC
+ *  decides who may, and its words are what a refusal prints. */
+export async function deleteCrewAction(input: { crewId: string }): Promise<CrewActionResult> {
+  const parsed = z.object({ crewId: uuid }).safeParse(input);
+  if (!parsed.success) return { error: "Invalid request" };
+  const supabase = await requireUser();
+  try {
+    await deleteCrew(supabase, parsed.data.crewId);
+    revalidateCrews(parsed.data.crewId);
+    revalidatePath("/", "layout");
+    return { error: null };
+  } catch (error: unknown) {
+    return { error: error instanceof Error ? error.message : "Could not delete the crew" };
   }
 }
 

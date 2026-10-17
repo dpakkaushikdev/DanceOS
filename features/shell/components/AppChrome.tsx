@@ -331,7 +331,14 @@ export function AppChrome({
            desk it opens is scoped to the profile whose grid was pressed. */
       ]
     : TAB_SET;
-  const lit = entity ? (pathname === entity.home ? "Home" : entity.inbox && pathname === entity.inbox ? "Inbox" : null) : activeTab;
+  const routeLit = entity ? (pathname === entity.home ? "Home" : entity.inbox && pathname === entity.inbox ? "Inbox" : null) : activeTab;
+  /* ⚠ THE TAB MOVES ON THE PRESS, NOT ON THE ARRIVAL (18 Oct 2026, the user:
+     "navbar below should have some animation when switching"). The pressed tab
+     lights at once and plays its pop while the page is still on its way; keyed
+     on the page it was pressed FROM, so the arrival hands back to the route's
+     own answer without an effect writing state. */
+  const [pressedTab, setPressedTab] = useState<{ label: TabLabel; from: string } | null>(null);
+  const lit = pressedTab && pressedTab.from === pathname ? pressedTab.label : routeLit;
   /* THE SWITCHER'S OPEN STATE IS KEYED ON THE PAGE IT WAS OPENED ON: a navigation
      changes the pathname, so the menu closes by itself without an effect writing
      state (this repo's setState-in-effect rule) */
@@ -656,44 +663,32 @@ export function AppChrome({
               place, and the switcher is the photo chip at the far right of the
               bar. What the 21 Sep note above got right and this keeps is that the
               switcher is CONSTANT — the chip is on every screen. */}
-          {/* ⚠⚠ THE WORDMARK IS WHOLE OR ABSENT, NEVER "Dan…" (5 Oct 2026).
-              It used to ellipsise, and on a drill page at 390px — back chip,
-              mark, four chips on the right — that left "Dan…" in the top left of
-              every screen behind a tab, which reads as a broken logo rather than
-              a short one. The mark and the word now stand in one row that WRAPS
-              inside a fixed 42px height with `overflow: hidden`: when the word
-              does not fit beside the mark it falls onto a second line nobody
-              can see, so what is drawn is the mark alone. No measuring, no
-              effect, nothing to go stale on rotate — the browser's own line
-              breaking decides. The mark IS the logo, so it is still constant. */}
+          {/* ⚠⚠ THE LOGO IS CENTRED (18 Oct 2026, the user: "Dance os name and logo
+              on top bar should be in centre aligned"). Absolutely placed on the
+              bar's middle so the back chip on the left and the bell and the
+              picture on the right never push it off centre; the word scales with
+              the phone (clamp) so it fits between them at 360px. It replaces the
+              5 Oct wrap-to-hide row, which only existed because the word shared
+              the left edge with the back chip. */}
           <span
             data-testid="brand"
             style={{
+              position: "absolute",
+              left: "50%",
+              top: "var(--dos-safe-top)",
+              bottom: 0,
+              transform: "translateX(-50%)",
               display: "flex",
-              flexWrap: "wrap",
               alignItems: "center",
-              alignContent: "flex-start",
-              columnGap: 9,
-              height: 46,
-              overflow: "hidden",
-              /* ⚠⚠ THE MARK WAS CLIPPED ON ITS LEFT EDGE (11 Oct 2026). It sat at
-                 `marginLeft: -2` inside this `overflow: hidden` row, so its left
-                 two pixels — and its 1px ring — were cut on every screen, most
-                 visibly beside the back chip. The clip box now starts 4px to the
-                 LEFT of the mark (padding inside, the same negative margin
-                 outside, so nothing moves sideways), and the row can never
-                 shrink below the mark itself, so a crowded drill page at 360px
-                 drops the WORD and keeps the whole mark. */
-              paddingLeft: 4,
-              marginLeft: -4,
-              minWidth: 37,
-              flex: 1,
+              columnGap: 7,
+              pointerEvents: "none",
+              whiteSpace: "nowrap",
             }}
           >
-            <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", height: 46, lineHeight: 0 }}>
-              <DosMark size={36} />
+            <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", lineHeight: 0 }}>
+              <DosMark size={32} />
             </span>
-            <span data-testid="wordmark" style={{ flexShrink: 0, fontSize: 25, lineHeight: "46px", fontWeight: 900, letterSpacing: -0.3, color: INK, fontFamily: DOS_UI, whiteSpace: "nowrap" }}>
+            <span data-testid="wordmark" style={{ flexShrink: 0, fontSize: "clamp(19px, 5.4vw, 23px)", fontWeight: 900, letterSpacing: -0.3, color: INK, fontFamily: DOS_UI, whiteSpace: "nowrap" }}>
               Dance<span style={{ color: "#EC4899" }}>OS</span>
             </span>
           </span>
@@ -761,13 +756,9 @@ export function AppChrome({
                 <span aria-hidden="true" style={{ color: "#fff", fontSize: 12.5, fontWeight: 900 }}>{hereItem ? initialsOf(hereItem.label) : "?"}</span>
               )}
             </button>
-            {/* what is new across every profile's tools (18 Oct 2026) — outside the
-                button, which clips its picture */}
-            {toolTotal ? (
-              <span aria-hidden="true" data-testid="switcher-count" style={{ position: "absolute", top: -3, right: -3, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 999, background: RED, color: "#fff", fontSize: 10, fontWeight: 900, display: "inline-flex", alignItems: "center", justifyContent: "center", border: "2px solid var(--solid)", pointerEvents: "none", boxSizing: "content-box" }}>
-                {toolTotal > 9 ? "9+" : toolTotal}
-              </span>
-            ) : null}
+            {/* ⚠ NO COUNT ON THE PICTURE (18 Oct 2026, the user: "no notification
+                red dot on the profile switcher on the profile pic"). The counts
+                stay inside the drawer, on each profile row and each tool row. */}
             </span>
           )}
         </span>
@@ -1005,7 +996,10 @@ export function AppChrome({
                 href={href}
                 aria-label={label}
                 aria-current={on ? "page" : undefined}
+                className="dos-tab"
+                onClick={() => { if (!on) setPressedTab({ label, from: pathname }); }}
                 style={{
+                  animation: on ? "dosTabIn .42s cubic-bezier(.34,1.56,.64,1)" : "none",
                   height: 44,
                   cursor: "pointer",
                   borderRadius: 999,
@@ -1027,7 +1021,9 @@ export function AppChrome({
                   textDecoration: "none",
                 }}
               >
-                {TAB_ICONS[label](c)}
+                <span aria-hidden="true" style={{ display: "inline-flex", animation: on ? "dosTabPop .5s cubic-bezier(.34,1.56,.64,1)" : "none" }}>
+                  {TAB_ICONS[label](c)}
+                </span>
                 <span
                   style={{
                     fontSize: 12,

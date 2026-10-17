@@ -6,7 +6,7 @@ import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findProfileById } from "@/repositories/profiles";
 import { createRoom } from "@/repositories/rooms";
-import { createBusinessWithOwner, setBusinessLocation, updateBusinessProfile } from "@/repositories/businesses";
+import { createBusinessWithOwner, deleteStudio, setBusinessLocation, updateBusinessProfile } from "@/repositories/businesses";
 import type { BusinessType } from "@/types/business";
 
 export interface BusinessActionState {
@@ -222,3 +222,23 @@ export async function createBusinessAction(
   return { error: null, created: true, note, businessId: businessId };
 }
 
+/** The studio's main owner deletes it (18 Oct 2026). The app asked first; the
+ *  RPC holds every rule and its words are what a refusal prints. */
+export async function deleteStudioAction(input: { businessId: string }): Promise<{ error: string | null }> {
+  const parsed = z.object({ businessId: z.string().uuid() }).safeParse(input);
+  if (!parsed.success) return { error: "Invalid request" };
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+  try {
+    await deleteStudio(supabase, parsed.data.businessId);
+  } catch (error: unknown) {
+    return { error: error instanceof Error ? error.message : "Could not delete the studio" };
+  }
+  revalidatePath("/business");
+  revalidatePath("/discover");
+  revalidatePath("/", "layout");
+  return { error: null };
+}

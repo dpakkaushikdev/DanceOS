@@ -1840,7 +1840,7 @@ test.describe.serial("DanceOS, end to end", () => {
       const row = page.getByText(text).first();
       if (await row.isVisible().catch(() => false)) return row;
       try { await expect(row).toBeVisible({ timeout: 4_000 }); return row; } catch {}
-      await page.getByTestId("notif-tab-earlier").click();
+      await page.getByTestId("notif-tab-history").click();
       await expect(row).toBeVisible({ timeout: 15_000 });
       return row;
     };
@@ -1864,9 +1864,9 @@ test.describe.serial("DanceOS, end to end", () => {
     const markClasses = owner.getByRole("button", { name: "Mark Classes read" });
     if (await markClasses.isVisible().catch(() => false)) {
       await markClasses.click();
-      await expect(owner.getByText("Classes marked read")).toBeVisible();
+      await expect(owner.getByText("Classes read")).toBeVisible();
     }
-    await owner.getByTestId("notif-tab-earlier").click();
+    await owner.getByTestId("notif-tab-history").click();
     await expect(owner.getByText(booked).first()).toBeVisible({ timeout: 15_000 });
     // an area switched off "here" is hidden from the screen, and nothing is deleted
     await owner.getByRole("button", { name: "Notification settings" }).click();
@@ -1892,15 +1892,16 @@ test.describe.serial("DanceOS, end to end", () => {
     await pickChip(trainer, "crew");
     const roster = `${crewName} wants you on the roster`;
     await findRow(trainer, roster);
-    // Clear hides what is read: mark the area read, then clear Earlier
+    // HISTORY IS NEVER CLEARED (18 Oct 2026): mark the area read, and the row is
+    // in History, by day, with no Clear and no Hide anywhere on the screen
     await trainer.getByTestId("notif-tab-new").click();
     const markCrews = trainer.getByTestId("notif-read-all");
     if (await markCrews.isVisible().catch(() => false)) await markCrews.click();
-    await trainer.getByTestId("notif-tab-earlier").click();
+    await trainer.getByTestId("notif-tab-history").click();
     await expect(trainer.getByText(roster).first()).toBeVisible({ timeout: 15_000 });
-    await trainer.getByTestId("notif-clear").click();
-    await expect(trainer.getByText(/hidden — nothing is deleted/i)).toBeVisible();
-    await expect(trainer.getByText(roster)).toHaveCount(0);
+    await expect(trainer.getByTestId("notif-day").first()).toBeVisible();
+    await expect(trainer.getByTestId("notif-clear")).toHaveCount(0);
+    await expect(trainer.getByRole("button", { name: /^Hide:/ })).toHaveCount(0);
   });
 
   test("stats: three columns, every profile", async () => {

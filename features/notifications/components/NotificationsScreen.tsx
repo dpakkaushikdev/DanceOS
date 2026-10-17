@@ -1,13 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { ColumnCount, columnTab, columnTrack } from "@/components/ui/ColumnTabs";
 import { DeskBody, DeskTop } from "@/components/ui/DeskSections";
 import { Portal } from "@/components/ui/Portal";
 import { HueHead } from "@/features/businesses/components/biz-kit";
-import { clearNotificationsAction, markNotificationsReadAction, setNotificationPrefsAction } from "@/features/notifications/server-actions/notifications";
+import { markNotificationsReadAction, setNotificationPrefsAction } from "@/features/notifications/server-actions/notifications";
 import { PushDevice, type PushDeviceState } from "@/features/notifications/components/PushDevice";
 import { DOS_DISPLAY, DOS_UI, INK, LILAC, MUTED, SUB } from "@/lib/design/tokens";
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
@@ -22,33 +22,35 @@ import {
   type NotificationPrefs,
 } from "@/types/notification";
 
-/** ⚠⚠ THE NOTIFICATIONS SCREEN, REVAMPED (11 Oct 2026, the user: "fix
- *  notifications completely revamp it according to new needs with notification
- *  history and settings managed properly"). Their choices:
+/** ⚠⚠ THE NOTIFICATIONS SCREEN, SECOND REVAMP (18 Oct 2026, the user:
+ *  "notifications should be swipable. and earlier should not be removable and a
+ *  history tab day wise collapsible notifications history which should not get
+ *  cleared. notifications should be crisp and short mostly. should be swipeable
+ *  and collapsible according to type of notification. type filters for
+ *  notifications. notification settings extra text should be removed").
  *
- *   GROUPS BY APP AREA — Classes · Studios & team · Crews & practice ·
- *     Enquiries · Money · DanceOS (`NOTIF_GROUPS`). Every row wears its group's
- *     tint and opens the screen where you act, marking itself read on the way.
- *   HISTORY IS TWO COLUMNS — New · Earlier, the app's own column switch
- *     (`ColumnTabs`, Classes' To do · Past). New is what you have not opened;
- *     opening one, or Mark all read, moves it to Earlier. Chips under the
- *     columns narrow by group — every chip always drawn, a 0 drawn quiet.
- *     NOTHING IS DELETED: Earlier keeps everything, and its Clear only HIDES
- *     (`clear_notifications` is a soft delete).
- *   SETTINGS BEHIND THE GEAR — this phone's push on top, then one row per group
- *     with two switches: Here (shown in the app) and Push (sent to the phone,
- *     off with a reason while push is off or this phone has none). WhatsApp and
- *     email are gone from the screen; the columns stay in the database.
- *
- *  The retired Events feature's old rows (`event`, all read) are drawn in
- *  Earlier as "Events (retired)" and have no settings row. */
+ *   NEW — what you have not opened, one collapsible section per TYPE (Classes ·
+ *     Studios & team · …), each with its count and its own "Read". A row
+ *     SWIPES either way: past the threshold it is marked read and moves to
+ *     History. Tapping opens the screen where you act, marking it read.
+ *   HISTORY — everything read, by IST DAY, each day a collapsible section (today
+ *     and yesterday open). ⚠ NOTHING IN HISTORY CAN BE REMOVED: there is no
+ *     Clear and no ×, and rows an older Clear soft-deleted are read back
+ *     (`findMyNotifications`). `clear_notifications` stays in the database with
+ *     no caller.
+ *   TYPE CHIPS narrow either column — every chip always drawn, a 0 drawn quiet.
+ *   ROWS ARE ONE LINE OF TITLE AND ONE OF BODY — the whole text is on the screen
+ *     the row opens.
+ *   SETTINGS — this phone, the master Push switch, then one row per type with
+ *     Here · Push. No sub-lines, no footnotes. */
 
-type Column = "new" | "earlier";
+type Column = "new" | "history";
 type Filter = "all" | NotificationKind;
 
 const pressable = { cursor: "pointer", fontFamily: "inherit" } as const;
+const SWIPE_AT = 90;
 
-const chip = (on: boolean, quiet: boolean): React.CSSProperties => ({
+const chip = (on: boolean, quiet: boolean, tint?: string): React.CSSProperties => ({
   flexShrink: 0,
   padding: "8px 13px",
   borderRadius: 999,
@@ -56,30 +58,38 @@ const chip = (on: boolean, quiet: boolean): React.CSSProperties => ({
   fontSize: 12,
   fontWeight: 800,
   fontFamily: "inherit",
-  border: `1.5px solid ${on ? "var(--text)" : "var(--el)"}`,
-  background: on ? "var(--text)" : "var(--card)",
-  color: on ? "var(--solid)" : quiet ? MUTED : "var(--text)",
+  border: `1.5px solid ${on ? (tint ?? "var(--text)") : "var(--el)"}`,
+  background: on ? (tint ?? "var(--text)") : "var(--card)",
+  color: on ? (tint ? "#fff" : "var(--solid)") : quiet ? MUTED : "var(--text)",
   whiteSpace: "nowrap",
 });
 
 const headBtn: React.CSSProperties = { position: "relative", width: 38, height: 38, borderRadius: 19, border: "1.5px solid var(--chip-line)", background: "var(--chip-bg)", color: "var(--text)", display: "inline-flex", alignItems: "center", justifyContent: "center", padding: 0, ...pressable };
 
-const smallBtn = (tone: "plain" | "quiet"): React.CSSProperties => ({
-  padding: "8px 13px",
+const smallBtn: React.CSSProperties = {
+  padding: "6px 11px",
   borderRadius: 999,
   border: "1.5px solid var(--el)",
-  background: tone === "plain" ? "var(--card)" : "transparent",
-  color: tone === "plain" ? INK : SUB,
-  fontSize: 11.5,
+  background: "var(--card)",
+  color: INK,
+  fontSize: 11,
   fontWeight: 900,
   whiteSpace: "nowrap",
   ...pressable,
-});
+};
+
+const oneLine: React.CSSProperties = { display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
 
 const GearIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <circle cx="12" cy="12" r="3" />
     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+  </svg>
+);
+
+const Chevron = ({ open }: { open: boolean }) => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform .18s" }}>
+    <path d="M9 6l6 6-6 6" />
   </svg>
 );
 
@@ -150,10 +160,9 @@ function SettingsSheet({ prefs, busy, onSave, onClose }: { prefs: NotificationPr
   useCloseOnBack(onClose);
   const [draft, setDraft] = useState<NotificationPrefs>(prefs);
   const [device, setDevice] = useState<PushDeviceState>("checking");
-  const pushOff = !draft.push;
-  const noDevice = device !== "on";
-  const why = pushOff ? "Push is off for your account." : device === "checking" ? "Checking this phone…" : noDevice ? "This phone has no push — turn it on above." : null;
+  const pushBlocked = !draft.push || device !== "on";
   const flip = (map: "kinds" | "pushKinds", g: NotificationGroup) => setDraft({ ...draft, [map]: { ...draft[map], [g]: !draft[map][g] } });
+  const colHead: React.CSSProperties = { width: 42, textAlign: "center", fontSize: 9.5, fontWeight: 900, letterSpacing: 0.8, textTransform: "uppercase", color: MUTED };
   return (
     <Portal>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 940 }}>
@@ -165,21 +174,18 @@ function SettingsSheet({ prefs, busy, onSave, onClose }: { prefs: NotificationPr
           style={{ background: "var(--solid)", color: INK, borderRadius: "24px 24px 0 0", padding: "14px 16px 26px", width: "100%", maxWidth: 430, boxSizing: "border-box", maxHeight: "88vh", overflowY: "auto", animation: "dosSheetUp .22s ease-out", fontFamily: DOS_UI }}
         >
           <div style={{ width: 40, height: 4, borderRadius: 2, background: "var(--el)", margin: "0 auto 12px" }} />
-          <div style={{ fontSize: 16, fontWeight: 900 }}>Notification settings</div>
+          <div style={{ fontSize: 17, fontWeight: 900, fontFamily: DOS_DISPLAY }}>Notifications</div>
 
           <PushDevice onState={setDevice} />
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 0", borderBottom: "1.5px solid var(--el)" }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 800 }}>Push to my phones</div>
-              <div style={{ fontSize: 10.5, color: SUB, marginTop: 2 }}>Off stops every push, on every phone.</div>
-            </div>
+            <div style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 800 }}>Push</div>
             <Toggle on={draft.push} label="Push to my phones" tint="#22C55E" testId="notif-push-master" onPress={() => setDraft({ ...draft, push: !draft.push })} />
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "14px 0 2px" }}>
-            <span style={{ flex: 1, fontSize: 9.5, fontWeight: 900, letterSpacing: 1.1, textTransform: "uppercase", color: MUTED }}>By area</span>
-            <span style={{ width: 42, textAlign: "center", fontSize: 9.5, fontWeight: 900, letterSpacing: 0.8, textTransform: "uppercase", color: MUTED }}>Here</span>
-            <span style={{ width: 42, textAlign: "center", fontSize: 9.5, fontWeight: 900, letterSpacing: 0.8, textTransform: "uppercase", color: MUTED }}>Push</span>
+            <span style={{ flex: 1 }} />
+            <span style={colHead}>Here</span>
+            <span style={colHead}>Push</span>
           </div>
           {NOTIF_GROUPS.map((g) => {
             const k = g.k as NotificationGroup;
@@ -188,21 +194,12 @@ function SettingsSheet({ prefs, busy, onSave, onClose }: { prefs: NotificationPr
                 <span style={{ width: 30, height: 30, borderRadius: 10, flexShrink: 0, background: `${g.tint}22`, color: g.tint, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
                   <GroupGlyph glyph={g.glyph} size={15} />
                 </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 800 }}>{g.label}</div>
-                  <div style={{ fontSize: 10.5, color: SUB, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.about}</div>
-                </div>
+                <div style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 800 }}>{g.label}</div>
                 <Toggle on={draft.kinds[k]} label={`${g.label} here`} tint={g.tint} testId={`notif-here-${k}`} onPress={() => flip("kinds", k)} />
-                <Toggle on={draft.pushKinds[k]} label={`${g.label} push`} tint={g.tint} disabled={pushOff || noDevice} testId={`notif-pushkind-${k}`} onPress={() => flip("pushKinds", k)} />
+                <Toggle on={draft.pushKinds[k]} label={`${g.label} push`} tint={g.tint} disabled={pushBlocked} testId={`notif-pushkind-${k}`} onPress={() => flip("pushKinds", k)} />
               </div>
             );
           })}
-          {why ? (
-            <div data-testid="notif-push-why" style={{ fontSize: 10.5, color: MUTED, marginTop: 8 }}>
-              Push switches: {why}
-            </div>
-          ) : null}
-          <div style={{ fontSize: 10.5, color: MUTED, marginTop: 6 }}>An area off “here” is hidden from this screen and the bell. Nothing is deleted.</div>
           <button
             type="button"
             disabled={busy}
@@ -215,6 +212,96 @@ function SettingsSheet({ prefs, busy, onSave, onClose }: { prefs: NotificationPr
         </div>
       </div>
     </Portal>
+  );
+}
+
+/** IST calendar day of an instant, "2026-10-18" — History's sections */
+const istDay = (iso: string): string => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+const dayWords = (day: string, today: string, yesterday: string): string => {
+  if (day === today) return "Today";
+  if (day === yesterday) return "Yesterday";
+  const d = new Date(`${day}T12:00:00+05:30`);
+  return d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "Asia/Kolkata", ...(day.slice(0, 4) !== today.slice(0, 4) ? { year: "numeric" } : {}) });
+};
+
+/** A ROW THAT SWIPES. Pointer events, `touch-action: pan-y` so a vertical
+ *  scroll is still the page's; past `SWIPE_AT` the row slides out and `onSwipe`
+ *  runs. A drag of more than a few pixels is not a tap, so it never opens. */
+function SwipeRow({ enabled, tint, onSwipe, children }: { enabled: boolean; tint: string; onSwipe: () => void; children: ReactNode }) {
+  const [dx, setDx] = useState(0);
+  const [gone, setGone] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const start = useRef<{ x: number; y: number; id: number } | null>(null);
+  const moved = useRef(false);
+  const end = () => {
+    start.current = null;
+    setDragging(false);
+    if (Math.abs(dx) >= SWIPE_AT) {
+      setGone(dx > 0 ? 1 : -1);
+      window.setTimeout(onSwipe, 160);
+    } else {
+      setDx(0);
+    }
+  };
+  const offset = gone ? gone * 480 : dx;
+  const reveal = Math.min(1, Math.abs(dx) / SWIPE_AT);
+  return (
+    <div style={{ position: "relative", marginBottom: 8, borderRadius: 16, overflow: "hidden" }}>
+      {enabled ? (
+        <div
+          aria-hidden="true"
+          style={{ position: "absolute", inset: 0, borderRadius: 16, background: tint, opacity: 0.18 + reveal * 0.6, display: "flex", alignItems: "center", justifyContent: dx >= 0 ? "flex-start" : "flex-end", padding: "0 18px", color: "#fff", fontSize: 11.5, fontWeight: 900, letterSpacing: 0.6, textTransform: "uppercase" }}
+        >
+          ✓ Read
+        </div>
+      ) : null}
+      <div
+        onPointerDown={(e) => {
+          if (!enabled || (e.pointerType === "mouse" && e.button !== 0)) return;
+          start.current = { x: e.clientX, y: e.clientY, id: e.pointerId };
+          moved.current = false;
+        }}
+        onPointerMove={(e) => {
+          const s = start.current;
+          if (!s || s.id !== e.pointerId) return;
+          const x = e.clientX - s.x;
+          const y = e.clientY - s.y;
+          if (!moved.current) {
+            if (Math.abs(x) < 8) return;
+            if (Math.abs(y) > Math.abs(x)) {
+              start.current = null;
+              return;
+            }
+            moved.current = true;
+            setDragging(true);
+            (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+          }
+          setDx(x);
+        }}
+        onPointerUp={end}
+        onClickCapture={(e) => {
+          /* a drag is not a tap — the row it ended on must not open */
+          if (moved.current) {
+            e.preventDefault();
+            e.stopPropagation();
+            moved.current = false;
+          }
+        }}
+        onPointerCancel={() => {
+          start.current = null;
+          setDragging(false);
+          setDx(0);
+        }}
+        style={{
+          position: "relative",
+          transform: `translateX(${offset}px)`,
+          transition: dragging ? "none" : "transform .18s ease-out",
+          touchAction: enabled ? "pan-y" : "auto",
+        }}
+      >
+        {children}
+      </div>
+    </div>
   );
 }
 
@@ -236,21 +323,24 @@ export function NotificationsScreen({
   /* an area switched off "here" is not drawn at all — the bell already leaves it
      out (`my_unread_notifications`), so the screen and the badge agree */
   const shownHere = (k: NotificationKind) => k === "event" || prefs.kinds[k] !== false;
-  const visible = notifications.filter((n) => shownHere(n.kind));
-  const hiddenBySettings = notifications.length - visible.length;
+  /* a row swiped read moves to History at once, before the server answers */
+  const [readNow, setReadNow] = useState<Record<string, string>>({});
+  const visible = notifications.filter((n) => shownHere(n.kind)).map((n) => (readNow[n.id] && !n.readAt ? { ...n, readAt: readNow[n.id] } : n));
+  const hiddenBySettings = notifications.filter((n) => !shownHere(n.kind)).length;
   const fresh = visible.filter((n) => !n.readAt);
-  const earlier = visible.filter((n) => n.readAt);
+  const history = visible.filter((n) => n.readAt);
 
-  const [column, setColumn] = useState<Column>(initialColumn ?? (fresh.length > 0 ? "new" : "earlier"));
+  const [column, setColumn] = useState<Column>(initialColumn ?? (fresh.length > 0 ? "new" : "history"));
   const groupKeys: NotificationKind[] = [...NOTIF_GROUPS.map((g) => g.k), ...(notifications.some((n) => n.kind === "event") ? (["event"] as NotificationKind[]) : [])];
   const [filter, setFilter] = useState<Filter>(groupKeys.includes(initialGroup as NotificationKind) ? (initialGroup as NotificationKind) : "all");
+  /* a section's open state is what the person CHANGED — default open is decided
+     on the fly, so no effect has to write it */
+  const [toggled, setToggled] = useState<Record<string, boolean>>({});
   const [prefOpen, setPrefOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  /* the column and the chip are the ADDRESS too, REPLACED rather than pushed — a
-     setting of a page replaces (the 19 Sep rule), so back still leaves */
   const write = (c: Column, f: Filter) => {
     if (typeof window === "undefined") return;
     const q = new URLSearchParams();
@@ -269,9 +359,9 @@ export function NotificationsScreen({
 
   const fire = (m: string) => {
     setToast(m);
-    setTimeout(() => setToast(null), 2200);
+    setTimeout(() => setToast(null), 2000);
   };
-  const run = async (op: () => Promise<{ error: string | null }>, done: string): Promise<boolean> => {
+  const run = async (op: () => Promise<{ error: string | null }>, done: string | null): Promise<boolean> => {
     if (busy) return false;
     setBusy(true);
     setError(null);
@@ -281,12 +371,12 @@ export function NotificationsScreen({
       setError(out.error);
       return false;
     }
-    fire(done);
+    if (done) fire(done);
     router.refresh();
     return true;
   };
 
-  const inColumn = column === "new" ? fresh : earlier;
+  const inColumn = column === "new" ? fresh : history;
   const shown = filter === "all" ? inColumn : inColumn.filter((n) => n.kind === filter);
   const filterLabel = filter === "all" ? null : groupOf(filter).label;
 
@@ -301,26 +391,33 @@ export function NotificationsScreen({
     }
   };
 
-  const markShownRead = () =>
-    void run(
-      () => (filter === "all" ? markNotificationsReadAction({}) : markNotificationsReadAction({ kind: filter })),
-      filter === "all" ? "All marked read" : `${filterLabel} marked read`,
-    );
-  /* Clear hides what Earlier is showing — never a New one, and never erased */
-  const clearShown = () => {
-    const ids = shown.map((n) => n.id).slice(0, 200);
-    if (!ids.length) return;
-    void run(() => clearNotificationsAction({ ids }), ids.length === 1 ? "Hidden — nothing is deleted" : `${ids.length} hidden — nothing is deleted`);
+  const swipeRead = (n: AppNotification) => {
+    setReadNow((m) => ({ ...m, [n.id]: new Date().toISOString() }));
+    void markNotificationsReadAction({ ids: [n.id] }).then((out) => {
+      if (out.error) {
+        setError(out.error);
+        setReadNow((m) => {
+          const next = { ...m };
+          delete next[n.id];
+          return next;
+        });
+      } else {
+        router.refresh();
+      }
+    });
   };
+
+  const isOpen = (key: string, byDefault: boolean) => (key in toggled ? toggled[key] : byDefault);
+  const flipOpen = (key: string, byDefault: boolean) => setToggled((t) => ({ ...t, [key]: !(key in t ? t[key] : byDefault) }));
 
   const tabs = (
     <div role="tablist" aria-label="Notifications" style={{ ...columnTrack(), marginTop: 12 }}>
-      {(["new", "earlier"] as Column[]).map((c) => {
+      {(["new", "history"] as Column[]).map((c) => {
         const on = column === c;
-        const n = c === "new" ? fresh.length : earlier.length;
+        const n = c === "new" ? fresh.length : history.length;
         return (
           <button key={c} type="button" role="tab" aria-selected={on} data-testid={`notif-tab-${c}`} onClick={() => pickColumn(c)} style={columnTab(on)}>
-            {c === "new" ? "New" : "Earlier"}
+            {c === "new" ? "New" : "History"}
             {n > 0 ? <ColumnCount n={n} on={on} attention={c === "new"} /> : null}
           </button>
         );
@@ -328,10 +425,8 @@ export function NotificationsScreen({
     </div>
   );
 
-  /* ⚠ EVERY CHIP IS ALWAYS DRAWN, a 0 included (the Classes rule) — an empty one
-     is drawn quiet, and an area switched off "here" says so */
   const chips = (
-    <div role="group" aria-label="Show" data-testid="notif-chips" style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 2, marginTop: 10 }}>
+    <div role="group" aria-label="Type" data-testid="notif-chips" style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 2, marginTop: 10 }}>
       <button type="button" aria-pressed={filter === "all"} data-testid="notif-chip-all" onClick={() => pickFilter("all")} style={chip(filter === "all", inColumn.length === 0)}>
         All · {inColumn.length}
       </button>
@@ -340,7 +435,7 @@ export function NotificationsScreen({
         const off = !shownHere(k);
         const n = inColumn.filter((x) => x.kind === k).length;
         return (
-          <button key={k} type="button" aria-pressed={filter === k} data-testid={`notif-chip-${k}`} onClick={() => pickFilter(k)} style={chip(filter === k, n === 0)}>
+          <button key={k} type="button" aria-pressed={filter === k} data-testid={`notif-chip-${k}`} onClick={() => pickFilter(k)} style={chip(filter === k, n === 0, g.tint)}>
             {g.label} · {off ? "off" : n}
           </button>
         );
@@ -348,44 +443,64 @@ export function NotificationsScreen({
     </div>
   );
 
-  const row = (n: AppNotification) => {
+  const row = (n: AppNotification, showGroup: boolean) => {
     const g = groupOf(n.kind);
     const unread = !n.readAt;
     return (
-      <div
-        key={n.id}
-        data-testid="notif-row"
-        data-kind={n.kind}
-        data-read={unread ? "no" : "yes"}
-        style={{ display: "flex", alignItems: "flex-start", gap: 6, background: "var(--card)", border: `1.5px solid ${unread ? `${g.tint}66` : "var(--el)"}`, borderRadius: 16, marginBottom: 8, padding: "4px 6px 4px 4px" }}
-      >
-        <button
-          type="button"
-          aria-label={`Open: ${n.title}`}
-          onClick={() => void openRow(n)}
-          style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 6px", background: "transparent", border: "none", textAlign: "left", color: INK, ...pressable }}
-        >
-          <span style={{ position: "relative", width: 34, height: 34, borderRadius: 11, flexShrink: 0, background: `${g.tint}22`, color: g.tint, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-            <GroupGlyph glyph={g.glyph} />
-            {unread ? <span aria-hidden="true" data-testid="notif-unread-dot" style={{ position: "absolute", top: -2, right: -2, width: 9, height: 9, borderRadius: 5, background: g.tint, border: "2px solid var(--solid)" }} /> : null}
-          </span>
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ display: "block", fontSize: 9, fontWeight: 900, letterSpacing: 0.9, textTransform: "uppercase", color: g.tint }}>
-              {g.label} · <span style={{ color: MUTED }}>{agoWords(n.createdAt, nowIso)}</span>
-            </span>
-            <span style={{ display: "block", fontSize: 13, fontWeight: unread ? 800 : 600, lineHeight: 1.35, marginTop: 2, overflowWrap: "anywhere" }}>{n.title}</span>
-            {n.body ? <span style={{ display: "block", fontSize: 11, color: SUB, marginTop: 2, lineHeight: 1.4, overflowWrap: "anywhere" }}>{n.body}</span> : null}
-          </span>
-          {n.href ? <span aria-hidden="true" style={{ color: MUTED, fontSize: 15, alignSelf: "center", flexShrink: 0 }}>›</span> : null}
-        </button>
-        {!unread ? (
-          <button type="button" disabled={busy} aria-label={`Hide: ${n.title}`} onClick={() => void run(() => clearNotificationsAction({ ids: [n.id] }), "Hidden — nothing is deleted")} style={{ flexShrink: 0, width: 30, height: 30, marginTop: 6, borderRadius: 15, border: "none", background: "transparent", color: MUTED, fontSize: 16, lineHeight: 1, ...pressable }}>
-            ×
-          </button>
-        ) : null}
-      </div>
+      <SwipeRow key={n.id} enabled={unread} tint={g.tint} onSwipe={() => swipeRead(n)}>
+          <div
+            data-testid="notif-row"
+            data-kind={n.kind}
+            data-read={unread ? "no" : "yes"}
+            style={{ background: "var(--solid)", borderRadius: 16 }}
+          >
+            <button
+              type="button"
+              aria-label={`Open: ${n.title}`}
+              onClick={() => void openRow(n)}
+              style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "var(--card)", border: `1.5px solid ${unread ? `${g.tint}66` : "var(--el)"}`, borderRadius: 16, textAlign: "left", color: INK, ...pressable }}
+            >
+              <span style={{ position: "relative", width: 32, height: 32, borderRadius: 10, flexShrink: 0, background: `${g.tint}22`, color: g.tint, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                <GroupGlyph glyph={g.glyph} size={15} />
+                {unread ? <span aria-hidden="true" data-testid="notif-unread-dot" style={{ position: "absolute", top: -2, right: -2, width: 9, height: 9, borderRadius: 5, background: g.tint, border: "2px solid var(--solid)" }} /> : null}
+              </span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                  <span style={{ ...oneLine, flex: 1, minWidth: 0, fontSize: 13, fontWeight: unread ? 800 : 600 }}>{n.title}</span>
+                  <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 700, color: MUTED }}>{agoWords(n.createdAt, nowIso)}</span>
+                </span>
+                {n.body || showGroup ? (
+                  <span style={{ ...oneLine, fontSize: 11, color: SUB, marginTop: 2 }}>
+                    {showGroup ? <span style={{ color: g.tint, fontWeight: 800 }}>{g.label}{n.body ? " · " : ""}</span> : null}
+                    {n.body}
+                  </span>
+                ) : null}
+              </span>
+            </button>
+          </div>
+      </SwipeRow>
     );
   };
+
+  const sectionHead = (key: string, open: boolean, byDefault: boolean, label: ReactNode, count: number, tint: string | null, right?: ReactNode) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "4px 0 8px" }}>
+      <button
+        type="button"
+        aria-expanded={open}
+        data-testid={`notif-section-${key}`}
+        onClick={() => flipOpen(key, byDefault)}
+        style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8, padding: "6px 2px", border: "none", background: "transparent", color: INK, ...pressable }}
+      >
+        <span style={{ color: tint ?? SUB, display: "inline-flex" }}>
+          <Chevron open={open} />
+        </span>
+        <span style={{ fontSize: 11, fontWeight: 900, letterSpacing: 0.9, textTransform: "uppercase", color: tint ?? SUB }}>{label}</span>
+        <span style={{ fontSize: 10.5, fontWeight: 800, color: MUTED }}>{count}</span>
+        <span style={{ flex: 1, height: 1.5, background: "var(--el)" }} />
+      </button>
+      {right}
+    </div>
+  );
 
   const empty = (text: ReactNode) => (
     <div data-testid="notif-empty" style={{ textAlign: "center", padding: "30px 18px", color: SUB, border: "1.5px dashed var(--el)", borderRadius: 20, fontSize: 13, lineHeight: 1.5, marginTop: 6 }}>
@@ -403,27 +518,76 @@ export function NotificationsScreen({
               <div style={{ marginTop: 3 }}>{filterLabel ? `Nothing new in ${filterLabel}.` : "Nothing new."}</div>
             </>,
           )
-        : empty(filterLabel ? `Nothing earlier in ${filterLabel}.` : "Nothing earlier yet.");
-  } else {
+        : empty(filterLabel ? `No ${filterLabel} history yet.` : "No history yet.");
+  } else if (column === "new") {
+    /* NEW, ONE SECTION PER TYPE, every one open until it is folded */
+    const kinds = groupKeys.filter((k) => shown.some((n) => n.kind === k));
     body = (
-      <div data-testid={`notif-${column}`}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "2px 0 10px", flexWrap: "wrap" }}>
-          <span style={{ flex: 1, minWidth: 0, fontSize: 10, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase", color: SUB }}>
-            {column === "new" ? "New" : "Earlier"}
-            {filterLabel ? ` · ${filterLabel}` : ""} · {shown.length}
-          </span>
-          {column === "new" ? (
-            <button type="button" disabled={busy} data-testid="notif-read-all" aria-label={filterLabel ? `Mark ${filterLabel} read` : "Mark all read"} onClick={markShownRead} style={smallBtn("plain")}>
-              {filterLabel ? `Mark ${filterLabel} read` : "Mark all read"}
-            </button>
-          ) : (
-            <button type="button" disabled={busy} data-testid="notif-clear" aria-label={filterLabel ? `Clear earlier ${filterLabel}` : "Clear earlier"} onClick={clearShown} style={smallBtn("quiet")}>
-              Clear
-            </button>
-          )}
+      <div data-testid="notif-new">
+        <div style={{ display: "flex", justifyContent: "flex-end", margin: "0 0 6px" }}>
+          <button
+            type="button"
+            disabled={busy}
+            data-testid="notif-read-all"
+            aria-label={filterLabel ? `Mark ${filterLabel} read` : "Mark all read"}
+            onClick={() => void run(() => (filter === "all" ? markNotificationsReadAction({}) : markNotificationsReadAction({ kind: filter })), filter === "all" ? "All read" : `${filterLabel} read`)}
+            style={smallBtn}
+          >
+            {filterLabel ? `Mark ${filterLabel} read` : "Mark all read"}
+          </button>
         </div>
-        {shown.map(row)}
-        {column === "earlier" ? <div style={{ fontSize: 10.5, color: MUTED, textAlign: "center", marginTop: 6 }}>Clear hides a notification — nothing is deleted.</div> : null}
+        {kinds.map((k) => {
+          const g = groupOf(k);
+          const rows = shown.filter((n) => n.kind === k);
+          const key = `new-${k}`;
+          const open = isOpen(key, true);
+          return (
+            <section key={k} data-testid="notif-type-section" data-kind={k}>
+              {sectionHead(
+                key,
+                open,
+                true,
+                g.label,
+                rows.length,
+                g.tint,
+                <button type="button" disabled={busy} aria-label={`Read every ${g.label} notification`} data-testid={`notif-read-${k}`} onClick={() => void run(() => markNotificationsReadAction({ kind: k }), `${g.label} read`)} style={smallBtn}>
+                  Read
+                </button>,
+              )}
+              {open ? rows.map((n) => row(n, false)) : null}
+            </section>
+          );
+        })}
+      </div>
+    );
+  } else {
+    /* HISTORY, BY IST DAY — today and yesterday open, older days folded */
+    const today = istDay(nowIso);
+    const yesterday = istDay(new Date(new Date(nowIso).getTime() - 864e5).toISOString());
+    const days: string[] = [];
+    const byDay = new Map<string, AppNotification[]>();
+    for (const n of shown) {
+      const d = istDay(n.createdAt);
+      if (!byDay.has(d)) {
+        byDay.set(d, []);
+        days.push(d);
+      }
+      byDay.get(d)!.push(n);
+    }
+    body = (
+      <div data-testid="notif-history">
+        {days.map((d) => {
+          const key = `day-${d}`;
+          const byDefault = d === today || d === yesterday || d === days[0];
+          const open = isOpen(key, byDefault);
+          const rows = byDay.get(d)!;
+          return (
+            <section key={d} data-testid="notif-day" data-day={d}>
+              {sectionHead(key, open, byDefault, dayWords(d, today, yesterday), rows.length, null)}
+              {open ? rows.map((n) => row(n, true)) : null}
+            </section>
+          );
+        })}
       </div>
     );
   }
@@ -431,15 +595,12 @@ export function NotificationsScreen({
   return (
     <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "2px 16px 40px", boxSizing: "border-box", overflowX: "hidden" }}>
       <DeskTop style={{ paddingBottom: 12 }}>
-        {/* the hero, in the notifications tint (DosHero), with the gear on its corner */}
-        {/* ⚠ THE HUE HEADING (12 Oct 2026): `TAB_TITLE` over the notifications'
-            violet, the gear on its line — the page's own `<h1>` */}
         <HueHead
           title="Notifications"
           color="#6D28D9"
           bottom="4px"
           subTestId="notif-counts"
-          sub={`${fresh.length} new · ${visible.length} in all`}
+          sub={`${fresh.length} new`}
           right={
             <button type="button" aria-label="Notification settings" data-testid="notif-settings" onClick={() => setPrefOpen(true)} style={headBtn}>
               <GearIcon />
@@ -449,12 +610,9 @@ export function NotificationsScreen({
         {tabs}
         {chips}
         {hiddenBySettings > 0 ? (
-          <div style={{ fontSize: 10.5, color: MUTED, marginTop: 8 }}>
-            {hiddenBySettings} from areas switched off ·{" "}
-            <button type="button" onClick={() => setPrefOpen(true)} style={{ border: "none", background: "transparent", padding: 0, color: INK, fontWeight: 800, fontSize: 10.5, textDecoration: "underline", ...pressable }}>
-              Settings
-            </button>
-          </div>
+          <button type="button" onClick={() => setPrefOpen(true)} style={{ marginTop: 8, border: "none", background: "transparent", padding: 0, color: MUTED, fontSize: 10.5, fontWeight: 700, ...pressable }}>
+            {hiddenBySettings} off in settings ›
+          </button>
         ) : null}
       </DeskTop>
       <DeskBody style={{ paddingTop: 4 }}>
@@ -472,7 +630,7 @@ export function NotificationsScreen({
           busy={busy}
           onClose={() => setPrefOpen(false)}
           onSave={(p) =>
-            void run(() => setNotificationPrefsAction({ kinds: p.kinds, pushKinds: p.pushKinds, push: p.push }), "Settings saved").then((ok) => {
+            void run(() => setNotificationPrefsAction({ kinds: p.kinds, pushKinds: p.pushKinds, push: p.push }), "Saved").then((ok) => {
               if (ok) setPrefOpen(false);
             })
           }
@@ -487,4 +645,3 @@ export function NotificationsScreen({
     </div>
   );
 }
-

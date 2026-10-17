@@ -36,8 +36,17 @@ const toNotification = (r: Row): AppNotification => ({
   createdAt: r.created_at,
 });
 
-/** The signed-in person's live notifications, newest first — New and Earlier
- *  are the same list split on `read_at`. */
+/** The signed-in person's notifications, newest first — New and History are the
+ *  same list split on `read_at`.
+ *
+ *  ⚠ HISTORY IS NEVER CLEARED (18 Oct 2026, the user: "earlier should not be
+ *  removable … a history tab … which should not get cleared"). A READ row is
+ *  read back whether or not an older "Clear" soft-deleted it, so everything
+ *  hidden before today comes back into History; an UNREAD row that was hidden
+ *  stays hidden. The own-row SELECT policy carries no `deleted_at` filter
+ *  (Step 24), so this asks for nothing RLS did not already admit. */
+const MAX_HISTORY = 500;
+
 export async function findMyNotifications(supabase: SupabaseClient): Promise<AppNotification[]> {
   const {
     data: { user },
@@ -49,9 +58,9 @@ export async function findMyNotifications(supabase: SupabaseClient): Promise<App
     .from("notifications")
     .select("id, kind, title, body, href, read_at, created_at")
     .eq("user_id", user.id)
-    .is("deleted_at", null)
+    .or("deleted_at.is.null,read_at.not.is.null")
     .order("created_at", { ascending: false })
-    .limit(MAX_LIST);
+    .limit(MAX_HISTORY);
   if (error) {
     throw new Error(`notifications.findMine failed: ${error.message}`);
   }

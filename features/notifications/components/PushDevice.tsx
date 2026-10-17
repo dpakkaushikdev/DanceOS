@@ -107,18 +107,18 @@ export function PushDevice({ onState }: { onState?: (s: PushDeviceState) => void
   };
 
   const words: Record<State, string> = {
-    checking: "Checking this phone…",
-    unsupported: "This browser cannot take pushes. On iPhone, add DanceOS to the Home Screen first.",
-    denied: "Blocked in this browser's settings — allow notifications for DanceOS there, then come back.",
-    off: "Not on for this phone yet.",
-    on: "On for this phone.",
+    checking: "Checking…",
+    unsupported: "Not supported here · iPhone: add to Home Screen",
+    denied: "Blocked in browser settings",
+    off: "Off",
+    on: "On",
   };
 
   return (
     <div data-testid="push-device" data-state={state} style={{ padding: "11px 0", borderBottom: "1.5px solid var(--el)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 800, color: INK }}>Push to this phone</div>
+          <div style={{ fontSize: 12.5, fontWeight: 800, color: INK }}>This phone</div>
           <div style={{ fontSize: 10.5, color: SUB, marginTop: 2 }}>{words[state]}</div>
         </div>
         {state === "off" || state === "on" ? (

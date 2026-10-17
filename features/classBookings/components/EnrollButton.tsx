@@ -101,10 +101,19 @@ export function EnrollButton({
   /* A business browses Discover and books nothing — said, not refused after the
      press. ⚠ Only where there is nothing to cancel: a seat taken before the
      person switched profiles would otherwise lose its way out. */
+  /* ⚠ THE BUTTON STAYS, DISABLED (18 Oct 2026, the user: "if cant book a class due
+     to permissions and rules book now button should be visible but disabled").
+     Every card keeps the same action row, and the reason is the button's own
+     accessible description and one small line under it. */
   if (cannotBookWhy && !mine) {
     return (
-      <div data-testid="org-cannot-book" style={{ fontSize: 10.5, fontWeight: 700, color: "var(--muted)", lineHeight: 1.45, padding: "4px 2px" }}>
-        {cannotBookWhy}
+      <div data-testid="org-cannot-book" style={{ width: "100%" }}>
+        <button type="button" disabled aria-disabled="true" aria-describedby={`no-book-${sessionId}`} title={cannotBookWhy} style={{ ...btn(true), width: "100%", opacity: 0.42, cursor: "not-allowed" }}>
+          Book Now
+        </button>
+        <div id={`no-book-${sessionId}`} style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", lineHeight: 1.4, marginTop: 4, textAlign: "center" }}>
+          {cannotBookWhy}
+        </div>
       </div>
     );
   }

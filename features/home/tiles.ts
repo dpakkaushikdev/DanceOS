@@ -20,34 +20,50 @@ export type HomeKind = "user" | "artist";
  *  20 Sep, Team for everybody 11 Oct, Memberships and Earnings for a user 21 Sep,
  *  Subscription last 26 Sep). An artist's Team, Students, Earnings and Assets open
  *  the artist page they OWN, or the hub where it is made. */
+/* ⚠ THE ORDER IS BY HOW OFTEN A TOOL IS REACHED FOR (18 Oct 2026, the user:
+   "rearrange tools order in profile switcher"): the day's work first (Classes,
+   Calendar), then the people and the passes, then the groups you belong to,
+   then the library and the money, Subscription always last. A stored
+   arrangement (`profiles.layout`) still wins over this. */
 export const tilesFor = (kind: HomeKind, pageId: string | null): Tile[] => {
-  const person: Tile[] = [
-    { name: DOS_TOOLS.classes.name, href: "/my-classes", k: "classesmod", c: DOS_TOOLS.classes.c },
-    { name: DOS_TOOLS.calendar.name, href: "/calendar", k: "calendar", c: DOS_TOOLS.calendar.c },
-    { name: DOS_TOOLS.crews.name, href: "/crews", k: "crews", c: DOS_TOOLS.crews.c },
-    { name: DOS_TOOLS.practice.name, href: "/practice", k: "practice", c: DOS_TOOLS.practice.c },
-    { name: DOS_TOOLS.studios.name, href: "/business", k: "studios", c: DOS_TOOLS.studios.c },
-    { name: DOS_TOOLS.routines.name, href: "/routines", k: "routines", c: DOS_TOOLS.routines.c },
-  ];
-  const subscription: Tile = { name: DOS_TOOLS.subscription.name, href: "/subscription", k: "subscription", c: DOS_TOOLS.subscription.c };
+  const t = {
+    classes: { name: DOS_TOOLS.classes.name, href: "/my-classes", k: "classesmod", c: DOS_TOOLS.classes.c },
+    calendar: { name: DOS_TOOLS.calendar.name, href: "/calendar", k: "calendar", c: DOS_TOOLS.calendar.c },
+    crews: { name: DOS_TOOLS.crews.name, href: "/crews", k: "crews", c: DOS_TOOLS.crews.c },
+    practice: { name: DOS_TOOLS.practice.name, href: "/practice", k: "practice", c: DOS_TOOLS.practice.c },
+    studios: { name: DOS_TOOLS.studios.name, href: "/business", k: "studios", c: DOS_TOOLS.studios.c },
+    routines: { name: DOS_TOOLS.routines.name, href: "/routines", k: "routines", c: DOS_TOOLS.routines.c },
+    memberships: { name: DOS_TOOLS.memberships.name, href: "/memberships", k: "memberships", c: DOS_TOOLS.memberships.c },
+    subscription: { name: DOS_TOOLS.subscription.name, href: "/subscription", k: "subscription", c: DOS_TOOLS.subscription.c },
+  } satisfies Record<string, Tile>;
   if (kind !== "artist") {
     return [
-      ...person,
+      t.classes,
+      t.calendar,
+      t.memberships,
       { name: DOS_TOOLS.team.name, href: "/team", k: "team", c: DOS_TOOLS.team.c },
-      { name: DOS_TOOLS.memberships.name, href: "/memberships", k: "memberships", c: DOS_TOOLS.memberships.c },
+      t.crews,
+      t.practice,
+      t.studios,
+      t.routines,
       { name: DOS_TOOLS.earn.name, href: "/earnings", k: "earn", c: DOS_TOOLS.earn.c },
-      subscription,
+      t.subscription,
     ];
   }
   const desk = (path: string) => (pageId ? `/business/${pageId}/${path}` : "/business");
   return [
-    ...person,
-    { name: DOS_TOOLS.team.name, href: pageId ? desk("staff") : "/team", k: "team", c: DOS_TOOLS.team.c },
+    t.classes,
+    t.calendar,
     { name: DOS_TOOLS.students.name, href: desk("students"), k: "students", c: DOS_TOOLS.students.c },
+    { name: DOS_TOOLS.team.name, href: pageId ? desk("staff") : "/team", k: "team", c: DOS_TOOLS.team.c },
+    t.memberships,
     { name: DOS_TOOLS.earn.name, href: desk("earnings"), k: "earn", c: DOS_TOOLS.earn.c },
-    { name: DOS_TOOLS.memberships.name, href: "/memberships", k: "memberships", c: DOS_TOOLS.memberships.c },
+    t.crews,
+    t.practice,
+    t.studios,
+    t.routines,
     { name: DOS_TOOLS.assets.name, href: desk("assets"), k: "assets", c: DOS_TOOLS.assets.c },
-    subscription,
+    t.subscription,
   ];
 };
 
@@ -61,25 +77,25 @@ export const studioTilesFor = (businessId: string, memberRole: MemberRole): Tile
   return [
     { name: DOS_TOOLS.classes.name, href: desk("classes"), k: "classesmod", c: DOS_TOOLS.classes.c },
     { name: DOS_TOOLS.calendar.name, href: desk("calendar"), k: "calendar", c: DOS_TOOLS.calendar.c },
-    { name: DOS_TOOLS.team.name, href: desk("staff"), k: "team", c: DOS_TOOLS.team.c },
     ...(memberRole === "visiting_faculty" || memberRole === "assistant"
       ? []
       : ([{ name: DOS_TOOLS.students.name, href: desk("students"), k: "students", c: DOS_TOOLS.students.c }] as Tile[])),
+    { name: DOS_TOOLS.team.name, href: desk("staff"), k: "team", c: DOS_TOOLS.team.c },
+    { name: DOS_TOOLS.rooms.name, href: desk("rooms"), k: "rooms", c: DOS_TOOLS.rooms.c },
     ...(isOwner
       ? ([
-          { name: DOS_TOOLS.earn.name, href: desk("earnings"), k: "earn", c: DOS_TOOLS.earn.c },
           { name: DOS_TOOLS.memberships.name, href: desk("memberships"), k: "memberships", c: DOS_TOOLS.memberships.c },
+          { name: DOS_TOOLS.earn.name, href: desk("earnings"), k: "earn", c: DOS_TOOLS.earn.c },
           { name: DOS_TOOLS.assets.name, href: desk("assets"), k: "assets", c: DOS_TOOLS.assets.c },
         ] as Tile[])
       : []),
-    { name: DOS_TOOLS.rooms.name, href: desk("rooms"), k: "rooms", c: DOS_TOOLS.rooms.c },
     ...(isOwner ? [{ name: DOS_TOOLS.subscription.name, href: desk("subscription"), k: "subscription", c: DOS_TOOLS.subscription.c } as Tile] : []),
   ];
 };
 
 /** A CREW'S TOOLS — the leader's three desks (moved from `CrewHome`). */
 export const crewTilesFor = (crewId: string): Tile[] => [
-  { name: DOS_TOOLS.team.name, href: `/crews/${crewId}/manage/team`, k: "team", c: DOS_TOOLS.team.c },
   { name: DOS_TOOLS.practice.name, href: `/crews/${crewId}/manage/practice`, k: "practice", c: DOS_TOOLS.practice.c },
   { name: DOS_TOOLS.calendar.name, href: `/crews/${crewId}/manage/calendar`, k: "calendar", c: DOS_TOOLS.calendar.c },
+  { name: DOS_TOOLS.team.name, href: `/crews/${crewId}/manage/team`, k: "team", c: DOS_TOOLS.team.c },
 ];

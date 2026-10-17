@@ -122,15 +122,9 @@ export function CrewsHub({ led }: { led: CrewSummary[] }) {
         </DeskTop>
         <DeskBody style={{ margin: "0" }}>
           <LedColumn led={led} />
-          {/* the crews you dance in are on Teams now — one line so nobody hunts */}
-          <Link
-            href="/team"
-            data-testid="crews-other-teams-pointer"
-            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "11px 13px", borderRadius: 14, background: "var(--card)", border: "1.5px solid var(--el)", color: INK, textDecoration: "none", fontSize: 12.5, fontWeight: 800, marginTop: 6 }}
-          >
-            <span>Crews you are in, and crew invites</span>
-            <span style={{ color: SUB, fontSize: 11.5 }}>Teams › Other Teams</span>
-          </Link>
+          {/* ⚠ NO POINTER TO OTHER TEAMS (18 Oct 2026, the user: "no. crews you are
+              in and crew invites in crew tab") — the Crews tab is the crews you
+              lead and nothing else; Team › Other Teams holds the rest. */}
         </DeskBody>
       </div>
     </div>

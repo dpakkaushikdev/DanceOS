@@ -2,8 +2,13 @@
 
 import { useState } from "react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { DOS_UI } from "@/lib/design/tokens";
+import { DOS_DISPLAY, DOS_UI } from "@/lib/design/tokens";
+import { DOS_TOOLS } from "@/features/businesses/components/biz-kit";
+import { GLYPH } from "@/features/home/components/tool-grid";
 import type { PassForSession } from "@/repositories/memberships";
+
+/** the Memberships tool's own colour — the tile, the desk and this card read one vocabulary */
+const MC = DOS_TOOLS.memberships.c;
 
 /** PAY WITH YOUR MEMBERSHIP (18 Oct 2026, the user: "use membership to be
  *  handled better with ui ux in mind and should ask before using membership for
@@ -42,37 +47,58 @@ export function UseMembership({
   return (
     <div
       data-testid="pass-strip"
-      style={{ marginBottom: 10, borderRadius: 16, border: `1.5px solid ${col}55`, background: `linear-gradient(180deg, ${col}1c, ${col}08)`, padding: "11px 12px 12px" }}
+      style={{ marginBottom: 10, borderRadius: 18, border: `1.5px solid ${MC}55`, background: `linear-gradient(160deg, ${MC}22, ${MC}08 70%)`, padding: 12 }}
     >
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
-        <span style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: 0.9, color: "var(--sub)" }}>PAY WITH YOUR MEMBERSHIP</span>
-        <span style={{ fontSize: 10, fontWeight: 800, color: "var(--muted)" }}>
-          {usable === 0 ? "none covers this" : `${usable} can cover this`}
+      {/* ⚠ THE MEMBERSHIPS TOOL'S OWN MARK AND COLOUR (18 Oct 2026, the user:
+          "pay with membership tile … better with membership icon logo from tools
+          … similar to membership tile visible at studio profile pages") */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+        <span aria-hidden="true" style={{ width: 34, height: 34, borderRadius: 11, display: "grid", placeItems: "center", background: MC, color: "#fff", flexShrink: 0, boxShadow: `0 6px 14px ${MC}55` }}>
+          {GLYPH.memberships}
         </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 900, fontFamily: DOS_DISPLAY, color: "var(--text)" }}>Pay with a membership</div>
+          <div style={{ fontSize: 11, color: "var(--sub)", marginTop: 1 }}>
+            {usable === 0 ? "None of yours covers this class" : usable === 1 ? "One of yours covers this class" : `${usable} of yours cover this class`}
+          </div>
+        </div>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {passes.map((p) => {
           const left = Math.max(0, p.unitsTotal - p.unitsUsed);
           const total = Math.max(1, p.unitsTotal);
           const leftPct = Math.min(100, (left / total) * 100);
           const takePct = p.enough ? Math.min(leftPct, (p.unitsNeeded / total) * 100) : 0;
+          const after = Math.max(0, left - p.unitsNeeded);
           return (
             <div
               key={p.passId}
               data-testid="pass-row"
-              style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 11px", borderRadius: 13, background: "var(--card)", border: "1.5px solid var(--el)", opacity: p.enough ? 1 : 0.6 }}
+              style={{ padding: 12, borderRadius: 14, background: "var(--card)", border: "1.5px solid var(--el)", opacity: p.enough ? 1 : 0.62 }}
             >
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.membershipName}</div>
-                <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.businessName}</div>
-                {/* what is left, with this class's share of it marked */}
-                <div aria-hidden="true" style={{ position: "relative", height: 6, borderRadius: 999, background: "var(--el)", marginTop: 7, overflow: "hidden" }}>
-                  <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${leftPct}%`, background: `${col}66`, borderRadius: 999 }} />
-                  {takePct > 0 ? <span style={{ position: "absolute", left: `${leftPct - takePct}%`, top: 0, bottom: 0, width: `${takePct}%`, background: col, borderRadius: 999 }} /> : null}
-                </div>
-                <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 4 }}>
-                  {unitWord(p.unit, left)} left · this class takes {unitWord(p.unit, p.unitsNeeded)}
-                </div>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
+                <span style={{ fontSize: 14, fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{p.membershipName}</span>
+                <span style={{ fontSize: 11, color: "var(--muted)", flexShrink: 0, maxWidth: "45%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.businessName}</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginTop: 9 }}>
+                {[
+                  ["Left", unitWord(p.unit, left)],
+                  ["This class", unitWord(p.unit, p.unitsNeeded)],
+                  ["After", p.enough ? unitWord(p.unit, after) : "—"],
+                ].map(([k, v]) => (
+                  <div key={k} style={{ borderRadius: 10, background: `${MC}12`, padding: "6px 8px" }}>
+                    <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.4, color: "var(--muted)", textTransform: "uppercase" }}>{k}</div>
+                    <div style={{ fontSize: 12.5, fontWeight: 900, color: "var(--text)", marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v}</div>
+                  </div>
+                ))}
+              </div>
+              {/* what is left, with this class's share of it marked */}
+              <div aria-hidden="true" style={{ position: "relative", height: 6, borderRadius: 999, background: "var(--el)", marginTop: 9, overflow: "hidden" }}>
+                <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${leftPct}%`, background: `${MC}66`, borderRadius: 999 }} />
+                {takePct > 0 ? <span style={{ position: "absolute", left: `${leftPct - takePct}%`, top: 0, bottom: 0, width: `${takePct}%`, background: col, borderRadius: 999 }} /> : null}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--sub)", marginTop: 5 }}>
+                {unitWord(p.unit, left)} left · this class takes {unitWord(p.unit, p.unitsNeeded)}
               </div>
               <button
                 type="button"
@@ -85,21 +111,21 @@ export function UseMembership({
                   setAsking(p);
                 }}
                 style={{
-                  flexShrink: 0,
-                  minHeight: 36,
-                  padding: "0 14px",
+                  width: "100%",
+                  marginTop: 10,
+                  minHeight: 40,
                   borderRadius: 999,
                   border: p.enough ? "none" : "1.5px solid var(--el)",
-                  background: p.enough ? "var(--text)" : "transparent",
-                  color: p.enough ? "var(--solid)" : "var(--muted)",
+                  background: p.enough ? MC : "transparent",
+                  color: p.enough ? "#fff" : "var(--muted)",
                   fontFamily: DOS_UI,
-                  fontSize: 11.5,
+                  fontSize: 12.5,
                   fontWeight: 900,
                   cursor: p.enough ? "pointer" : "not-allowed",
-                  whiteSpace: "nowrap",
+                  boxShadow: p.enough ? `0 6px 14px ${MC}44` : "none",
                 }}
               >
-                {p.enough ? "Use" : "Not enough left"}
+                {p.enough ? "Use it for this class" : "Not enough left"}
               </button>
             </div>
           );
@@ -115,6 +141,16 @@ export function UseMembership({
           err={err}
           body={
             <div data-testid="pass-confirm" style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+              {/* the spend at a glance: what you have → what this takes → what stays */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "12px 10px", borderRadius: 14, background: `linear-gradient(160deg, ${MC}24, ${MC}0c)`, marginBottom: 4 }}>
+                <span aria-hidden="true" style={{ width: 30, height: 30, borderRadius: 10, display: "grid", placeItems: "center", background: MC, color: "#fff" }}>
+                  {GLYPH.memberships}
+                </span>
+                <b style={{ fontSize: 20, fontFamily: DOS_DISPLAY, color: "var(--text)" }}>{Math.max(0, asking.unitsTotal - asking.unitsUsed)}</b>
+                <span style={{ fontSize: 13, fontWeight: 900, color: MC }}>− {asking.unitsNeeded} →</span>
+                <b style={{ fontSize: 20, fontFamily: DOS_DISPLAY, color: "var(--text)" }}>{Math.max(0, asking.unitsTotal - asking.unitsUsed - asking.unitsNeeded)}</b>
+                <span style={{ fontSize: 11, fontWeight: 800, color: "var(--sub)" }}>{asking.unit === "hours" ? "hours" : "classes"}</span>
+              </div>
               {[
                 ["Class", classTitle],
                 ["When", whenText],

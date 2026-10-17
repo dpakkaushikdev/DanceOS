@@ -16,7 +16,7 @@ import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
 import type { MemberRole, TeamMember } from "@/repositories/businesses";
 import type { BusinessType } from "@/types/business";
 import { KIND_WORD, kindOf } from "@/types/profile";
-import { MEMBER_LABEL, MEMBER_ROLE_WORD, labelsFor } from "@/types/staff";
+import { MEMBER_LABEL, MEMBER_ROLE_WORD, ROLE_CARRIES, TEAM_PERMISSIONS, labelsFor } from "@/types/staff";
 
 const CARD = "var(--card)";
 const EL = "var(--el)";
@@ -157,18 +157,19 @@ export function MemberManage({
                   );
                 })}
               </div>
+              {ROLE_CARRIES[businessType === "artist_page" ? "artist_page" : "studio"][m.role] ? (
+                <div data-testid="role-carries" style={{ fontSize: 11.5, color: SUB, lineHeight: 1.4 }}>
+                  {ROLE_CARRIES[businessType === "artist_page" ? "artist_page" : "studio"][m.role]}
+                </div>
+              ) : null}
 
               {/* an owner holds both by their seat — a switch that cannot be turned off is not a switch */}
               {m.role !== "owner" ? (
                 <>
                   <div style={{ fontSize: 10.5, fontWeight: 900, letterSpacing: 1.1, color: "var(--muted)", margin: "14px 0 7px" }}>PERMISSIONS</div>
                   <div style={{ border: `1.5px solid ${EL}`, borderRadius: 14, padding: "0 12px", background: CARD }}>
-                    {(
-                      [
-                        ["attendance", "Run the register", "Check people in on any class here"],
-                        ["refunds", "Settle refunds", "Decide refunds on any class here"],
-                      ] as const
-                    ).map(([key, title, why], i) => {
+                    {/* each kind its own list (18 Oct 2026) */}
+                    {(TEAM_PERMISSIONS[businessType === "artist_page" ? "artist_page" : "studio"]).map(({ key, title, why }, i) => {
                       const on = key === "attendance" ? m.canAttendance : m.canRefunds;
                       return (
                         <div key={key} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 0", borderTop: i === 0 ? "none" : `1.5px solid ${EL}` }}>

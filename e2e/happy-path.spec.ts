@@ -1242,16 +1242,22 @@ test.describe.serial("DanceOS, end to end", () => {
     /* ⚠ `exact` (3 Oct 2026): the block's own Share button reads "Share", and a
        bare string is a case-insensitive SUBSTRING match — the heading and the
        button both matched */
-    await expect(owner.getByText("SHARE", { exact: true })).toBeVisible();
-    const shareQr = owner.getByRole("img", { name: `Booking link for ${classTitle}` });
-    await expect(shareQr).toBeVisible();
-    await expect(shareQr).toHaveAttribute("data-qr-scannable", "yes");
-    await expect(owner.getByText(new RegExp(`/c/${shareSlug}$`))).toBeVisible();
+    /* ⚠ 18 Oct 2026: two buttons under the card — Copy link, and Share class,
+       which opens the code in a sheet. No SHARE section at the foot any more. */
+    await expect(owner.getByText("SHARE", { exact: true })).toHaveCount(0);
     await owner.getByRole("button", { name: "Copy the booking link" }).click();
     await expect(owner.getByText("Copied ✓")).toBeVisible();
-    /* and SHARE beside it (3 Oct 2026) — the phone's own sheet; not pressed here,
-       because a headless browser either has no sheet or opens one nobody closes */
-    await expect(owner.getByRole("button", { name: "Share the booking link" })).toBeVisible();
+    await owner.getByRole("button", { name: "Share class", exact: true }).click();
+    const shareSheet = owner.getByRole("dialog", { name: `Share ${classTitle}` });
+    const shareQr = shareSheet.getByRole("img", { name: `Booking link for ${classTitle}` });
+    await expect(shareQr).toBeVisible();
+    await expect(shareQr).toHaveAttribute("data-qr-scannable", "yes");
+    await expect(shareSheet.getByText(new RegExp(`/c/${shareSlug}$`))).toBeVisible();
+    /* the phone's own sheet; not pressed here, because a headless browser either
+       has no sheet or opens one nobody closes */
+    await expect(shareSheet.getByRole("button", { name: "Share the booking link" })).toBeVisible();
+    await shareSheet.getByRole("button", { name: "Done" }).click();
+    await expect(shareSheet).toHaveCount(0);
 
     // ---- learner: signup → onboard → open the shared link → book ----------
     learnerId = await signUp(learner, `e2e-learner-${stamp}@example.com`);
@@ -2988,7 +2994,7 @@ test.describe.serial("DanceOS, end to end", () => {
     // learner already holds a seat on this class, so no pass strip is offered
     // there — a seat is taken once, and the bar only offers what can happen.
     await learner.goto(`/c/${shareSlug}`);
-    await expect(learner.getByText("A studio's pass covers a seat")).toBeVisible({ timeout: 15_000 });
+    await expect(learner.getByTestId("policy-memberships")).toContainText("Studio passes accepted", { timeout: 15_000 });
     await expect(learner.getByTestId("pass-strip")).toHaveCount(0);
 
     // ⚠ SPENDING A PASS ON A SEAT is proven by the migration's own rolled-back

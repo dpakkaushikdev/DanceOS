@@ -678,7 +678,8 @@ const enterEdit = async (page) => {
     const qrModules = Number(await qrSvg.getAttribute("data-qr-modules"));
     check(qrModules >= 29 && qrModules <= 45 && (qrModules - 21) % 4 === 0, `owner QR sheet: a real QR size, sized to the link rather than fixed (drew ${qrModules}; the old square was always 13)`);
     check((await qrSvg.getAttribute("data-qr-scannable")) === "yes", "owner QR sheet: drawn big enough for a camera to resolve a module");
-    check((await qrSvg.locator("rect").count()) > 40, "owner QR sheet: real modules, not three drawn eyes and a hash field");
+    /* the fancy profile code (18 Oct 2026) draws its modules as dots OR rounded rects */
+    check((await qrSvg.locator("rect, circle").count()) > 40, "owner QR sheet: real modules, not three drawn eyes and a hash field");
     check((await qrSheet.getByRole("button", { name: "Copy link" }).count()) === 0, "owner QR sheet: no Copy link — the chip beside it is the share (21 Sep 2026)");
     check((await qrSheet.getByText(/vercel\.app|localhost:/).count()) === 0, "owner QR sheet: the link is not printed — the button opens a QR, not a link");
     /* the one thing no assertion settles: "should look better" is a thing to

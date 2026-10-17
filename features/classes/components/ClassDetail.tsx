@@ -48,7 +48,7 @@ import { refundPolicyWords } from "@/lib/format/refundPolicy";
 import type { DraftState } from "@/features/classes/classesScreen";
 import { ScanSheet, type ScanOutcome } from "@/features/people/components/ScanSheet";
 import type { PoolHit } from "@/features/people/components/PeoplePicker";
-import { ClassShare } from "./ClassShare";
+import { ClassShareButtons } from "./ClassShare";
 import { ClassDeleteChip } from "./ClassDeleteChip";
 import { PlusIcon, pictureChipPaint } from "@/features/profiles/components/profile-kit";
 import { DancerIcon, Half, SeatBar, WhenTile } from "./ClassTile";
@@ -74,16 +74,6 @@ const SHEET_TOP = {
 } as const;
 
 const DOS_MONO ='ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace';
-
-/* one k/v line inside a section — prototype Row */
-function Row({ k, v }: { k: string; v: string }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "5px 0", fontSize: 12.5 }}>
-      <span style={{ color: "var(--sub)" }}>{k}</span>
-      <b style={{ textAlign: "right", minWidth: 0 }}>{v}</b>
-    </div>
-  );
-}
 
 /* prototype dosStyleInk (1697-1708): walk the style's colour toward the theme's ink
    until it clears 4.2:1 on the page background, so the headline is always readable */
@@ -145,6 +135,30 @@ function Sec({ icon, label, col, children }: { icon: ReactNode; label: string; c
   );
 }
 
+/** ⚠ A CLASS YOU CANNOT BOOK STILL SHOWS ITS BUTTON, DISABLED (18 Oct 2026, the
+ *  user: "if cant book a class due to permissions and rules book now button should
+ *  be visible but disabled"). One shape for every closed door on the bar — a
+ *  profile that does not book, a class waiting for a teacher, one that has
+ *  started, one that is full — with the reason as the button's description. */
+function NoBookBar({ testId, why, label = "Book Now" }: { testId: string; why: string; label?: string }) {
+  const descId = `${testId}-why`;
+  return (
+    <div data-testid={testId}>
+      <button
+        type="button"
+        disabled
+        aria-disabled="true"
+        aria-describedby={descId}
+        style={{ display: "block", width: "100%", textAlign: "center", padding: "15px", borderRadius: 999, fontWeight: 900, fontSize: 14.5, background: "var(--text)", color: "var(--solid)", border: "none", opacity: 0.4, cursor: "not-allowed" }}
+      >
+        {label}
+      </button>
+      <div id={descId} style={{ fontSize: 10.5, fontWeight: 700, color: "var(--sub)", textAlign: "center", marginTop: 6, lineHeight: 1.4 }}>
+        {why}
+      </div>
+    </div>
+  );
+}
 
 export interface ClassDetailProps {
   danceClass: PublicClassListing;
@@ -968,6 +982,11 @@ export function ClassDetail({
           </div>
         </div>
 
+        {/* ── COPY LINK · SHARE CLASS, under the card (18 Oct 2026) — the foot's
+            SHARE block is gone; the code lives in Share class's sheet. Published
+            only, for the reason on `shareLink`. ── */}
+        {!isDraft && <ClassShareButtons link={shareLink} title={c.title} col={col} fire={fire} />}
+
         {/* ── Details / Attendance belongs to the card, not the page under it
             (prototype 11961-11970) ── */}
         {ownerTabs && (
@@ -1552,54 +1571,37 @@ export function ClassDetail({
             {/* ⚠ THE STUDIO'S OWN WINDOW (11 Oct 2026, `businesses.refund_window_hours`) —
                 the number `_cancel_one_class_booking` reads, so the page cannot
                 promise what the refund does not do */}
-            <Row
-              k="Refund"
-              v={isFree ? "Not applicable — free" : refundPolicyWords(refundWindowHours)}
-            />
-            {/* ── MEMBERSHIPS (19 Sep 2026, the user: "Memberships should be
-                allowed … in Class form and Policy section in Class Detail as
-                well"). The class's own two switches, said to the person about to
-                book — and the same booleans the database reads when a pass is
-                spent, so the page cannot promise what the RPC refuses. ── */}
-            <Row
-              k="Memberships"
-              /* only a studio sells a pass since 4 Oct 2026; an artist's class in a
-                 studio's room takes THAT studio's pass once it said yes and the
-                 artist switched it on (18 Oct 2026) — `passes_for_session`'s rule */
-              v={
-                !c.allowsStudioMemberships
-                  ? "Not accepted — this one is booked seat by seat"
-                  : c.venueStatus === "accepted"
-                    ? `A ${c.venue?.name ?? "the studio's"} pass covers a seat`
-                    : c.venueBusinessId || c.owner?.kind === "artist"
-                      ? "Not accepted — this one is booked seat by seat"
-                      : "A studio's pass covers a seat"
-              }
-            />
+            {/* ⚠ CRISP: TWO TILES, ONE FACT EACH (18 Oct 2026, the user: "policy
+                section can be better and crisp"). The memberships wording is the
+                class's own two switches — the same booleans the database reads
+                when a pass is spent (`passes_for_session`), so the page cannot
+                promise what the RPC refuses. */}
+            {(() => {
+              const memberWords = !c.allowsStudioMemberships
+                ? "Not accepted"
+                : c.venueStatus === "accepted"
+                  ? `${c.venue?.name ?? "Studio"} passes accepted`
+                  : c.venueBusinessId || c.owner?.kind === "artist"
+                    ? "Not accepted"
+                    : "Studio passes accepted";
+              const memberOk = memberWords !== "Not accepted";
+              const tile = (k: string, v: string, ok: boolean, testId: string) => (
+                <div data-testid={testId} style={{ borderRadius: 12, padding: "9px 10px", background: ok ? `${col}14` : "var(--el)", minWidth: 0 }}>
+                  <div style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: 0.6, color: "var(--muted)", textTransform: "uppercase" }}>{k}</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text)", marginTop: 2, lineHeight: 1.3 }}>{v}</div>
+                </div>
+              );
+              return (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  {tile("Refund", isFree ? "Free class" : refundPolicyWords(refundWindowHours), !isFree, "policy-refund")}
+                  {tile("Memberships", memberWords, memberOk, "policy-memberships")}
+                </div>
+              );
+            })()}
           </Sec>
         )}
 
-        {/* ── SHARE — the code, the address and one press to copy (29 Sep 2026;
-            the reasoning is on `shareLink`). ⚠ PUBLISHED ONLY: a draft's
-            `/c/{slug}` resolves for the studio's own people and 404s for
-            everybody else, so handing its owner a code to point somebody at
-            would be a link that works for exactly the person holding it. ── */}
-        {!isDraft && (
-          <Sec
-            col={col}
-            label="SHARE"
-            icon={
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={col} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="18" cy="5" r="2.6" />
-                <circle cx="6" cy="12" r="2.6" />
-                <circle cx="18" cy="19" r="2.6" />
-                <path d="M8.4 10.8 15.6 6.4M8.4 13.2l7.2 4.4" />
-              </svg>
-            }
-          >
-            <ClassShare link={shareLink} title={c.title} fire={fire} />
-          </Sec>
-        )}
+        {/* ⚠ THE SHARE SECTION MOVED UNDER THE CARD (18 Oct 2026) — `ClassShareButtons`. */}
           </>
         )}
 
@@ -2018,20 +2020,13 @@ export function ClassDetail({
             /* A BUSINESS DOES NOT BOOK (19 Sep 2026). It reads the page — this
                is its own studio's class as often as not — and the bar says so
                rather than offering a press that would be refused. */
-            <div data-testid="org-cannot-book" style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 14px", borderRadius: 16, background: "var(--card)", border: "1.5px solid var(--el)" }}>
-              <span aria-hidden="true" style={{ flexShrink: 0, fontSize: 15 }}>🏛</span>
-              <div style={{ fontSize: 11, color: "var(--sub)", lineHeight: 1.45 }}>{cannotBookWhy ?? "This profile does not book classes. Switch to your own to take a place."}</div>
-            </div>
+            /* ⚠ and since 18 Oct 2026 it is the Book Now button, DISABLED, with the
+               reason under it — the user: "book now button should be visible but disabled" */
+            <NoBookBar testId="org-cannot-book" why={cannotBookWhy ?? "This profile does not book classes. Switch to your own to take a place."} />
           ) : waitingForTeacher && !booked ? (
             /* ⚠ D4: the database refuses every booking door on a published class
                with no confirmed teacher — the bar says so before the press */
-            <div data-testid="waiting-for-teacher" style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 14px", borderRadius: 16, background: "rgba(245,158,11,.12)", border: "1.5px solid rgba(245,158,11,.4)" }}>
-              <span aria-hidden="true" style={{ flexShrink: 0, fontSize: 15 }}>⏳</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 900, color: "#F59E0B" }}>Waiting for a new teacher</div>
-                <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 1 }}>Booking opens again once somebody says yes to taking it.</div>
-              </div>
-            </div>
+            <NoBookBar testId="waiting-for-teacher" why="Waiting for a new teacher — booking opens once somebody says yes" />
           ) : sessionPhase === "live" && !booked ? (
             /* ⚠⚠ A CLASS THAT HAS STARTED CANNOT BE BOOKED, AND NOW SAYS SO
                (30 Sep 2026). `book_class_session` refuses `starts_at <= now()`
@@ -2043,46 +2038,11 @@ export function ClassDetail({
                `cannotBookWhy`, `why_no_membership`. This is that one.
                ⚠ The DOOR is the way in now, which is what the line names — the
                studio can book somebody at the register until the session ends. */
-            <div data-testid="class-already-started" style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 14px", borderRadius: 16, background: "var(--card)", border: "1.5px solid var(--el)" }}>
-              <span aria-hidden="true" style={{ flexShrink: 0, fontSize: 15 }}>⏱</span>
-              <div style={{ fontSize: 11, color: "var(--sub)", lineHeight: 1.45 }}>
-                This class has already started, so it cannot be booked here. If you are at the door, the studio can still take you in on its register.
-              </div>
-            </div>
+            <NoBookBar testId="class-already-started" why="This class has already started — the studio can still take you in at the door" />
           ) : soldOut && !booked ? (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "13px 14px",
-                borderRadius: 16,
-                background: "rgba(239,68,68,.12)",
-                border: "1.5px solid rgba(239,68,68,.4)",
-              }}
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#F87171"
-                strokeWidth="1.9"
-                strokeLinecap="round"
-                style={{ flexShrink: 0 }}
-              >
-                <circle cx="12" cy="12" r="8.5" />
-                <path d="m8.5 8.5 7 7M15.5 8.5l-7 7" />
-              </svg>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                {/* ⚠ NO WAITLIST (4 Oct 2026, the user: "remove waitlist
-                    mechanism") — a full class is full, and the bar offers nothing */}
-                <div style={{ fontSize: 13, fontWeight: 900, color: "#F87171" }}>Class full</div>
-                <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 1 }}>
-                  All {c.capacity} spots are taken.
-                </div>
-              </div>
-            </div>
+            /* ⚠ NO WAITLIST (4 Oct 2026) — a full class is full, and the bar's
+               button says so, disabled (18 Oct 2026) */
+            <NoBookBar testId="class-sold-out" label="Class full" why={`All ${c.capacity} spots are taken`} />
           ) : (
             <>
             {/* ── SPEND A MEMBERSHIP INSTEAD OF PAYING (19 Sep 2026). Offered only

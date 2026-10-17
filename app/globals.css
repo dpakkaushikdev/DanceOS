@@ -540,6 +540,17 @@ a:focus-visible:not([data-slot]) {
   0%, 100% { transform: skewY(0deg) scaleX(1); }
   50% { transform: skewY(-8deg) scaleX(0.86); }
 }
+@keyframes dosQrRing { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+@keyframes dosSceneSweep { 0%, 30% { transform: skewX(-18deg) translateX(0); } 80%, 100% { transform: skewX(-18deg) translateX(170px); } }
+@keyframes dosSceneDance { 0%, 100% { transform: translateY(0) rotate(0deg); } 25% { transform: translateY(-4px) rotate(-5deg); } 75% { transform: translateY(-2px) rotate(5deg); } }
+@keyframes dosSceneNeon { 0%, 100% { opacity: 1; } 45% { opacity: 0.55; } 50% { opacity: 1; } 55% { opacity: 0.7; } }
+@keyframes dosSceneWindow { 0%, 100% { opacity: 0.35; } 40%, 70% { opacity: 1; } }
+@keyframes dosSceneBeam { 0%, 100% { transform: rotate(-12deg); } 50% { transform: rotate(12deg); } }
+@keyframes dosSceneSway { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+@keyframes dosSceneRays { to { transform: rotate(360deg); } }
+@keyframes dosSceneFacet { to { transform: rotate(360deg); } }
+@keyframes dosSceneRise { 0% { transform: translateY(6px); opacity: 0; } 25% { opacity: 1; } 100% { transform: translateY(-46px); opacity: 0; } }
+@keyframes dosSceneEq { from { transform: scaleY(0.25); } to { transform: scaleY(1); } }
 @keyframes dosLogoGlow {
   0%, 100% { opacity: 0.55; }
   50% { opacity: 1; }

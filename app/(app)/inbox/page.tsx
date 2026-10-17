@@ -2,14 +2,12 @@ import { redirect } from "next/navigation";
 import { EnquirySettings } from "@/features/enquiries/components/EnquirySettings";
 import { loadEnquiries } from "@/features/enquiries/server/loadEnquiries";
 import { InboxScreen } from "@/features/inbox/components/InboxScreen";
-import { DOS_TINT } from "@/lib/design/tokens";
+import { INBOX_TINT } from "@/lib/design/tokens";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findMyPendingClassPeople } from "@/repositories/classPeople";
 import { findMyPendingCrewAsks } from "@/repositories/crews";
 import { findMyPendingInvites } from "@/repositories/invites";
 import { findMyMemberships } from "@/repositories/businesses";
-import { findMyArtistPlan } from "@/repositories/plans";
-import { kindOf } from "@/types/profile";
 import { isArtistTeam } from "@/features/inbox/inviteRows";
 
 const stampNowIso = (): string => new Date().toISOString();
@@ -39,7 +37,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
   }
 
   const nowIso = stampNowIso();
-  const [memberships, plan, { show }] = await Promise.all([findMyMemberships(supabase), findMyArtistPlan(supabase), searchParams]);
+  const [memberships, { show }] = await Promise.all([findMyMemberships(supabase), searchParams]);
 
   /* the enquiries, through the loader a studio's Inbox shares; and the three
      counts, each answering an empty list rather than failing the Inbox */
@@ -55,7 +53,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
     (c) => c.status === "asked" && !c.withdrawn && !(c.startsAt && Date.parse(c.startsAt) <= Date.parse(nowIso))
   ).length;
 
-  const accent = DOS_TINT[kindOf(Boolean(plan?.active))];
+  const accent = INBOX_TINT;
 
   return (
     <InboxScreen

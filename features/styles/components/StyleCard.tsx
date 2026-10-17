@@ -26,7 +26,8 @@ export function StyleCard({ style, classes, city, followers }: { style: string; 
       <StyleArt style={style} frame="card" />
       <span style={{ position: "absolute", left: 11, right: 11, bottom: 10, color: "#fff" }}>
         <span style={{ display: "block", fontSize: 9, fontWeight: 900, letterSpacing: 0.8, textTransform: "uppercase", opacity: 0.85 }}>{family}</span>
-        <span style={{ display: "block", fontFamily: DOS_DISPLAY, fontWeight: 900, fontSize: 17, letterSpacing: -0.4, lineHeight: 1.1, marginTop: 2, overflowWrap: "anywhere" }}>{style}</span>
+        {/* one line whatever the name (18 Oct 2026) — a long one steps down, then ellipsises */}
+        <span title={style} style={{ display: "block", fontFamily: DOS_DISPLAY, fontWeight: 900, fontSize: style.length > 14 ? 14 : 17, letterSpacing: -0.4, lineHeight: 1.2, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{style}</span>
         {classes > 0 ? <span style={{ display: "block", fontSize: 10.5, fontWeight: 700, opacity: 0.85, marginTop: 3 }}>{classes} {classes === 1 ? "class" : "classes"} in {city}</span> : null}
       </span>
       {/* the people who carry this style on their profile or want to learn it

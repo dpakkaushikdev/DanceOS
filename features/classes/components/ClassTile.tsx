@@ -437,16 +437,21 @@ export function ClassTile({ danceClass: c, filled = 0, artist, isToday = false, 
           {/* the style and its level, then the chips pushed to the right edge —
               the row WRAPS rather than the style breaking mid-word
               ("Contemporar / y", seen when a chip shared its line) */}
-          <div data-testid="class-title-row" style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "4px 8px", minWidth: 0 }}>
-            {/* ⚠ THE LEVEL SITS UNDER THE STYLE (4 Oct 2026, the user: "level below
-                style name"). The pair never shrinks below its own width (`1 0
-                auto`), so when the chips cannot share the line they wrap under it
-                rather than the style breaking mid-word. */}
-            <span style={{ flex: "1 0 auto", minWidth: 0, maxWidth: "100%", display: "block" }}>
-              {/* ⚠ BIGGER (4 Oct 2026, the user: "Bigger Style Name") — 25px, the
-                  size a tool card's own heading is set at */}
-              <span data-testid="class-title" style={{ display: "block", fontFamily: DOS_DISPLAY, fontSize: 25, fontWeight: 900, letterSpacing: -0.9, lineHeight: 1.05, color: ink, overflowWrap: "normal", wordBreak: "normal" }}>{headText}</span>
-              <span data-testid="class-level" style={{ display: "block", marginTop: 4, fontSize: 10, fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", color: MUTED }}>{levelWord}</span>
+          {/* ⚠ ONE LINE, WHATEVER THE STYLE IS CALLED (18 Oct 2026, the user: "cards
+              alignments should not change if dance style name is bigger
+              anywhere"). The row no longer wraps: a long name steps its type down
+              and then ellipsises, so every card in a rail is the same height and
+              its chips stay on the title's line. The full name is the `title`. */}
+          <div data-testid="class-title-row" style={{ display: "flex", flexWrap: "nowrap", alignItems: "flex-start", gap: 8, minWidth: 0 }}>
+            <span style={{ flex: "1 1 0", minWidth: 0, display: "block" }}>
+              <span
+                data-testid="class-title"
+                title={headText}
+                style={{ display: "block", fontFamily: DOS_DISPLAY, fontSize: headText.length > 16 ? 18 : headText.length > 11 ? 21 : 25, fontWeight: 900, letterSpacing: -0.9, lineHeight: 1.12, height: 28, color: ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+              >
+                {headText}
+              </span>
+              <span data-testid="class-level" style={{ display: "block", marginTop: 1, fontSize: 10, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", color: MUTED }}>{levelWord}</span>
             </span>
             <span style={{ marginLeft: "auto", marginTop: 3, flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6 }}>
               {timeBadge}

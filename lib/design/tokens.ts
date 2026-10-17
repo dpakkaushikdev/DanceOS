@@ -61,6 +61,11 @@ export const TAB_SUB = {
  *  wears the artist pink, a user the dancer cyan. Typed on PersonKind so a
  *  stale key is a compile error, not an undefined colour.
  *  ⚠ The `org` key (the studio blue) went with organizations on 29 Sep 2026. */
+/** THE INBOX'S ONE COLOUR (18 Oct 2026, the user: "inbox color changing in
+ *  different profiles should be consistent") — the bar's own Inbox tint, on a
+ *  person's, an artist's and a studio's Inbox alike. */
+export const INBOX_TINT = "#8B5CF6";
+
 export const DOS_TINT: Record<"user" | "artist", string> = {
   artist: "#EC4899",
   user: "#5AC8FA",

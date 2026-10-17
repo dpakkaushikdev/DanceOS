@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useOptimisticNav } from "@/features/shell/components/SegmentedNav";
-import { DiscoverLogo } from "./DiscoverLogo";
+import { DiscoverScene } from "./DiscoverLogo";
 
 /** DISCOVER'S SECTION TILES (4571-4585), PRESSED THE MOMENT THEY ARE TAPPED
  *  (20 Sep 2026, the user: *"see such bug doesnt appear anywhere in the system
@@ -57,30 +57,43 @@ export function DiscoverTabs({
             style={{
               flex: 1,
               minWidth: 0,
-              textAlign: "center",
-              padding: "10px 2px 8px",
-              borderRadius: 14,
+              position: "relative",
+              overflow: "hidden",
+              height: 104,
+              borderRadius: 16,
               textDecoration: "none",
-              background: on
-                ? `linear-gradient(135deg, ${a}, ${b})`
-                : `linear-gradient(135deg, color-mix(in srgb, ${a} 16%, var(--card)), color-mix(in srgb, ${b} 10%, var(--card)))`,
-              color: on ? "#fff" : `color-mix(in srgb, ${a} 70%, var(--text))`,
-              border: `1.5px solid ${on ? "transparent" : `color-mix(in srgb, ${a} 35%, transparent)`}`,
-              boxShadow: on ? `0 6px 16px color-mix(in srgb, ${a} 38%, transparent)` : "none",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 4,
+              background: `linear-gradient(135deg, ${a}, ${b})`,
+              color: "#fff",
+              /* chosen: a ring in the tile's own colour, clear of it by the page's
+                 ground, and a lift; the others stay full-colour and sit back a touch */
+              boxShadow: on
+                ? `0 0 0 2px var(--bg), 0 0 0 4px ${a}, 0 8px 18px color-mix(in srgb, ${a} 45%, transparent)`
+                : "0 2px 6px rgba(0,0,0,.18)",
+              transform: on ? "translateY(-2px)" : undefined,
+              filter: on ? undefined : "saturate(.82) brightness(.94)",
               animation: `dosTileIn .4s cubic-bezier(.34,1.56,.64,1) ${i * 60}ms both`,
             }}
           >
-            <span
-              aria-hidden="true"
-              style={{ display: "inline-flex", animation: on ? "dosTabPop .5s cubic-bezier(.34,1.56,.64,1)" : "none" }}
+            {DiscoverScene({ k: t.key }) ?? (
+              <span aria-hidden="true" style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>{t.icon}</span>
+            )}
+            <div
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                bottom: 0,
+                padding: "14px 2px 6px",
+                textAlign: "center",
+                fontSize: 11,
+                fontWeight: 900,
+                letterSpacing: 0.2,
+                background: "linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.62))",
+                textShadow: "0 1px 2px rgba(0,0,0,.5)",
+              }}
             >
-              {DiscoverLogo({ k: t.key }) ?? t.icon}
-            </span>
-            <div style={{ fontSize: 10, fontWeight: 800 }}>{t.word}</div>
+              {t.word}
+            </div>
           </a>
         );
       })}

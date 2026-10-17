@@ -98,6 +98,47 @@ export const MEMBER_GRANTS: Record<MemberRole, string> = {
   assistant: "the classes they assist on · a register when it is handed to them",
 };
 
+/** ⚠ A STUDIO'S TEAM AND AN ARTIST'S TEAM ARE TOLD APART (18 Oct 2026, the user:
+ *  "seprate permission for studio and artist team permissions").
+ *
+ *  The database's two grantable powers are the same columns on both
+ *  (`business_members.can_attendance` / `can_refunds`), but what they REACH is
+ *  not: on a studio they reach every class held under it; on an artist's page
+ *  they reach that one person's classes. So the member sheet draws each kind's
+ *  own list, in its own words, and says what the role itself carries there. */
+export type TeamKind = "studio" | "artist_page";
+export interface TeamPermission {
+  key: "attendance" | "refunds";
+  title: string;
+  why: string;
+}
+export const TEAM_PERMISSIONS: Record<TeamKind, ReadonlyArray<TeamPermission>> = {
+  studio: [
+    { key: "attendance", title: "Run the register", why: "Check people in on every class at this studio" },
+    { key: "refunds", title: "Settle refunds", why: "Decide refunds on this studio's classes" },
+  ],
+  artist_page: [
+    { key: "attendance", title: "Run your register", why: "Check people in on the classes you teach" },
+    { key: "refunds", title: "Settle your refunds", why: "Decide refunds on the classes you teach" },
+  ],
+};
+/** what the ROLE carries by itself, per kind — drawn under the role chips */
+export const ROLE_CARRIES: Record<TeamKind, Partial<Record<MemberRole, string>>> = {
+  studio: {
+    owner: "Everything — the money, the plan, the badge and who runs it",
+    manager: "Every desk here; reads the ledgers, moves no money",
+    trainer: "Teaches the studio's classes they accept",
+    visiting_faculty: "Teaches the one class they accepted",
+    assistant: "Assists on the studio's classes they are asked onto",
+    staff: "A place on the studio's team",
+  },
+  artist_page: {
+    owner: "Your page — its classes, money and team",
+    assistant: "Assists on your classes when you ask them",
+    staff: "A place on your team",
+  },
+};
+
 /** THE WORDS ON THE TEAM DESK (18 Sep 2026, the user: "add Faculty, Assistants and
  *  other type of members"; an outside teacher who accepts "becomes Visiting
  *  Faculty in Team"). `trainer` is the role's name in the database and Faculty

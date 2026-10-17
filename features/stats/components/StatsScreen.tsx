@@ -331,6 +331,16 @@ export function StatsScreen({
   const valueOf = (r: ChartRow) => (metric === "overall" ? r.points : metric === "conducted" ? r.conducted : metric === "assisted" ? r.assisted : metric === "attended" ? r.attended : Math.round(r.hours * 10) / 10);
   const unit = CHART_METRICS.find((m) => m.k === metric)?.unit ?? "pts";
   const board = metric === "overall" ? chart : [...chart].sort((a, b) => valueOf(b) - valueOf(a)).map((r, i) => ({ ...r, place: i + 1 }));
+  /* ⚠ A PODIUM AND A BAR (18 Oct 2026, the user: "better rankings mechanism and
+     page for all profiles"). The first three stand on a podium when the board
+     really starts at #1 (a filtered city can start anywhere), and every row
+     below carries a bar of its value against the leader's — so a gap reads as a
+     gap, not as two numbers to subtract. Nothing about the ORDER changed: it is
+     still the database's board (`dance_chart`), measured the same way. */
+  const leaderValue = Math.max(1, ...board.map((r) => valueOf(r)));
+  const podiumRows = board.length >= 3 && board[0].place === 1 ? board.slice(0, 3) : [];
+  const listRows = podiumRows.length ? board.slice(3) : board;
+  const hrefOf = (r: ChartRow) => (r.kind === "crew" ? `/crew/${r.id}` : r.kind === "studio" ? `/studio/${r.id}` : `/person/${r.id}`);
 
   /* ── WHOSE RECORD, AND WHAT CAN BE SAID ABOUT IT ─────────────────────────── */
   const isPerson = subjectKind === "person";
@@ -916,8 +926,29 @@ export function StatsScreen({
                 <div style={{ fontSize: 11.5, color: SUB, marginTop: 4 }}>Nobody in {city ?? "any city"} has finished a session on this board — a board of nobody is not a ranking.</div>
               </div>
             ) : (
-              board.map((r) => {
-                const href = r.kind === "crew" ? `/crew/${r.id}` : r.kind === "studio" ? `/studio/${r.id}` : `/person/${r.id}`;
+              <>
+              {podiumRows.length ? (
+                <div data-testid="board-podium" style={{ display: "grid", gridTemplateColumns: "1fr 1.15fr 1fr", alignItems: "end", gap: 8, margin: "4px 0 12px" }}>
+                  {[podiumRows[1], podiumRows[0], podiumRows[2]].map((r) => {
+                    const medal = r.place === 1 ? "#F59E0B" : r.place === 2 ? "#94A3B8" : "#B45309";
+                    const tall = r.place === 1 ? 70 : r.place === 2 ? 52 : 40;
+                    return (
+                      <Link key={`pod-${r.kind}-${r.id}`} href={hrefOf(r)} aria-label={`${r.name} — place ${r.place} of ${r.population}`} style={{ display: "flex", flexDirection: "column", alignItems: "center", textDecoration: "none", color: INK, minWidth: 0 }}>
+                        <span style={{ width: r.place === 1 ? 54 : 44, height: r.place === 1 ? 54 : 44, borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", background: `linear-gradient(135deg,${dosStyleColor(r.style ?? "Hip-Hop")},#7C3AED)`, color: "#fff", fontWeight: 900, fontFamily: DOS_DISPLAY, fontSize: r.place === 1 ? 17 : 14, boxShadow: `0 0 0 3px ${medal}`, marginBottom: 6 }}>
+                          {initialsOf(r.name)}
+                        </span>
+                        <span style={{ fontSize: 11.5, fontWeight: 900, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: MUTED, marginBottom: 5 }}>{valueOf(r)} {unit}</span>
+                        <span style={{ width: "100%", height: tall, borderRadius: "12px 12px 4px 4px", background: `linear-gradient(180deg, ${medal}, ${medal}55)`, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 6, color: "#fff", fontFamily: DOS_DISPLAY, fontWeight: 900, fontSize: 20 }}>
+                          {r.place}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : null}
+              {listRows.map((r) => {
+                const href = hrefOf(r);
                 const line =
                   r.kind === "crew"
                     ? `${r.conducted} event${r.conducted === 1 ? "" : "s"} entered · ${r.extra} member${r.extra === 1 ? "" : "s"}`
@@ -947,6 +978,9 @@ export function StatsScreen({
                       </span>
                       <span style={{ display: "block", fontSize: 10, color: SUB, marginTop: 1 }}>{[r.city, r.style].filter(Boolean).join(" · ")}</span>
                       <span style={{ display: "block", fontSize: 9.5, color: MUTED, marginTop: 2 }}>{line}</span>
+                      <span aria-hidden="true" style={{ display: "block", height: 4, borderRadius: 999, background: LINE, marginTop: 5, overflow: "hidden" }}>
+                        <span style={{ display: "block", height: "100%", width: `${Math.max(4, (valueOf(r) / leaderValue) * 100)}%`, borderRadius: 999, background: "linear-gradient(90deg,#7C3AED,#EC4899)" }} />
+                      </span>
                     </span>
                     <span style={{ textAlign: "right", flexShrink: 0 }}>
                       <span style={{ display: "block", ...figure, fontSize: 13 }}>{valueOf(r)}</span>
@@ -954,7 +988,8 @@ export function StatsScreen({
                     </span>
                   </Link>
                 );
-              })
+              })}
+              </>
             )}
               </SectionCard>
             ) : null}

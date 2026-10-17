@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { EnquirySettings } from "@/features/enquiries/components/EnquirySettings";
 import { loadEnquiries } from "@/features/enquiries/server/loadEnquiries";
 import { InboxScreen } from "@/features/inbox/components/InboxScreen";
-import { gradientOf } from "@/features/profiles/components/profile-kit";
+import { INBOX_TINT } from "@/lib/design/tokens";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findVenueRequestsForBusinesses } from "@/repositories/classes";
 import { findMyMemberships, runsTheBusiness } from "@/repositories/businesses";
@@ -66,7 +66,7 @@ export default async function StudioInboxPage({ params, searchParams }: { params
 
   return (
     <InboxScreen
-      accent={gradientOf(business.name)[1]}
+      accent={INBOX_TINT}
       enquiriesIn={enq.enquiriesIn}
       enquiriesOut={[]}
       receivedOnly

@@ -336,7 +336,9 @@ export function NotificationsScreen({
   const fresh = visible.filter((n) => !n.readAt);
   const history = visible.filter((n) => n.readAt);
 
-  const [column, setColumn] = useState<Column>(initialColumn ?? (fresh.length > 0 ? "new" : "history"));
+  /* ⚠ ALWAYS OPENS ON NEW (18 Oct 2026, the user: "notification should by default
+     open on new") — even when nothing is new; History is a tap away */
+  const [column, setColumn] = useState<Column>(initialColumn ?? "new");
   const groupKeys: NotificationKind[] = [...NOTIF_GROUPS.map((g) => g.k), ...(notifications.some((n) => n.kind === "event") ? (["event"] as NotificationKind[]) : [])];
   const [filter, setFilter] = useState<Filter>(groupKeys.includes(initialGroup as NotificationKind) ? (initialGroup as NotificationKind) : "all");
   /* a section's open state is what the person CHANGED — default open is decided

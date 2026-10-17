@@ -96,25 +96,31 @@ export function ProfileShare({ path, name, watchCheckIn = false }: { path: strin
             aria-modal="true"
             aria-label={`Share ${name}`}
             onClick={(e) => e.stopPropagation()}
-            style={{ ...CENTER_CARD, fontFamily: DOS_UI, textAlign: "center" }}
+            style={{ ...CENTER_CARD, fontFamily: DOS_UI, textAlign: "center", animation: "dosPopIn .35s cubic-bezier(.22,1.2,.36,1)" }}
           >
-            <b style={{ fontSize: 17, fontFamily: DOS_DISPLAY }}>{approved ? "Class confirmed" : name}</b>
-            <div aria-live="polite" style={{ fontSize: 12, color: approved ? "#16A34A" : "var(--sub)", fontWeight: approved ? 800 : 400, margin: "4px 0 16px", transition: "color .3s" }}>
-              {approved ? `${approved.classLabel} · you are checked in` : "Point a camera at this to open the profile."}
+            <b style={{ fontSize: 18, fontFamily: DOS_DISPLAY, letterSpacing: -0.3 }}>{approved ? "Class confirmed" : name}</b>
+            <div aria-live="polite" style={{ fontSize: 12, color: approved ? "#16A34A" : "var(--sub)", fontWeight: approved ? 800 : 600, margin: "4px 0 16px", transition: "color .3s" }}>
+              {approved ? `${approved.classLabel} · you are checked in` : "Scan to open the profile"}
             </div>
             <div style={{ display: "flex", justifyContent: "center", marginBottom: 16, position: "relative" }}>
+              {/* the frame is a soft gradient ring that breathes; on approval it
+                  turns solid green and bounces (the 2 Oct behaviour, kept) */}
               <div
                 data-testid="qr-frame"
                 data-anim={approved ? "approved" : undefined}
                 style={{
-                  padding: 6,
-                  borderRadius: 22,
-                  border: `3px solid ${approved ? "#22C55E" : "transparent"}`,
-                  transition: "border-color .25s",
-                  animation: approved ? "dosApprovedBounce .9s cubic-bezier(.22,1.2,.36,1)" : undefined,
+                  padding: 4,
+                  borderRadius: 26,
+                  background: approved ? "#22C55E" : "linear-gradient(135deg,#7C3AED,#EC4899,#F59E0B,#0EA5E9)",
+                  backgroundSize: "300% 300%",
+                  boxShadow: approved ? "0 0 0 6px rgba(34,197,94,.18)" : "0 14px 34px rgba(124,58,237,.28)",
+                  transition: "background .3s, box-shadow .3s",
+                  animation: approved ? "dosApprovedBounce .9s cubic-bezier(.22,1.2,.36,1)" : "dosQrRing 6s ease-in-out infinite",
                 }}
               >
-                <QRBlock code={link} size={232} label={`Profile code for ${name}`} />
+                <div style={{ background: "#fff", borderRadius: 22, padding: 8 }}>
+                  <QRBlock code={link} size={232} label={`Profile code for ${name}`} variant="fancy" />
+                </div>
               </div>
               {approved ? (
                 <span

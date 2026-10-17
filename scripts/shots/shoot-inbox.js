@@ -175,7 +175,7 @@ const pressed = async (loc) => (await loc.getAttribute("aria-pressed").catch(() 
     check(/\/team|show=other/.test(sp.url()), `the old Crews › Member address lands on Other Teams (${sp.url()})`);
     check((await sp.getByTestId("crew-invite").count()) >= 1, "…with the crew ask on it");
     await sp.goto(`${BASE}/crews`, { waitUntil: "networkidle" });
-    check((await sp.getByTestId("crew-invite").count()) === 0 && (await sp.getByTestId("crews-other-teams-pointer").count()) === 1, "the Crews hub carries no asks, only a pointer to Other Teams");
+    check((await sp.getByTestId("crew-invite").count()) === 0 && (await sp.getByTestId("crews-other-teams-pointer").count()) === 0, "the Crews hub carries no asks and no pointer — only the crews you lead");
     await sp.goto(`${BASE}/team`, { waitUntil: "networkidle" });
     const cInv = sp.getByTestId("crew-invite").filter({ hasText: `Nu Crew ${stamp}` });
     check((await cInv.count()) === 1, "Other Teams carries the crew ask's card");

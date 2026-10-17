@@ -1,0 +1,19 @@
+# SQL IS LF ON EVERY MACHINE, ALWAYS.
+#
+# 17 Oct 2026: replaying all 171 migrations onto a new Supabase project failed
+# on 20260926090000. The cause was line endings, and it is worth writing down
+# because nothing in the toolchain can see it:
+#
+#   * git stores every migration as LF, but `core.autocrlf=true` on a Windows
+#     clone checks 132 of them out as CRLF;
+#   * several migrations edit a LIVE function body by asserted anchor
+#     (`_dos_swap`) - they read `pg_get_functiondef()` and require a byte-exact
+#     substring to appear exactly N times;
+#   * a CRLF file stores its function body with \r\n, while the anchor in the
+#     editing migration carries a plain \n (written as a literal \n escape).
+#     The anchor then matches 0 times and the migration refuses - correctly,
+#     but for a reason that has nothing to do with the rule it is protecting.
+#
+# Typecheck, lint and the build cannot see any of this. Pinning eol=lf is what
+# makes the migration set replayable on any machine.
+*.sql text eol=lf

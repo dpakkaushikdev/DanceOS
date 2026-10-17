@@ -74,9 +74,20 @@ declare
   v_orders integer;
 begin
   select count(*) into v_orders from public.orders where event_id is not null;
-  if v_orders <> 4 then
+  -- 4 is the count on the database this file was written against, and it is the
+  -- entire reason the four event tables stay as tombstones below instead of
+  -- being dropped: a ledger does not forget money (Rule 9).
+  --
+  -- 0 is a REPLAY onto a fresh database — 17 Oct 2026, migrating to a new
+  -- Supabase project. No ticket was ever sold there, so there is no money for a
+  -- tombstone to protect and the decision this guard defends is unaffected. The
+  -- tables are still kept, so the two databases end up with the same shape.
+  --
+  -- Any OTHER number means the state is not one this file reasoned about, and it
+  -- still stops rather than proceeding on a stale belief.
+  if v_orders not in (0, 4) then
     raise exception
-      'expected 4 orders naming an event (the tombstone reason); found %. Stop and re-read before dropping anything.',
+      'expected 4 orders naming an event (the tombstone reason), or 0 on a fresh replay; found %. Stop and re-read before dropping anything.',
       v_orders;
   end if;
 end;

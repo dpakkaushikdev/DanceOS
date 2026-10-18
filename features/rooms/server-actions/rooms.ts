@@ -79,7 +79,7 @@ export async function createRoomAction(input: {
 }): Promise<RoomActionResult> {
   const parsed = createSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid room" };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {
@@ -100,7 +100,7 @@ export async function updateRoomAction(input: {
 }): Promise<RoomActionResult> {
   const parsed = updateSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid room" };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {
@@ -121,7 +121,7 @@ export async function deleteRoomAction(input: {
 }): Promise<RoomActionResult> {
   const parsed = deleteSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: "Invalid room" };
+    return { error: "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {

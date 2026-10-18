@@ -66,7 +66,7 @@ export async function updateBusinessProfileAction(input: BusinessProfileActionIn
   const parsed = businessProfileSchema.safeParse(input);
   if (!parsed.success) {
     const first = parsed.error.issues[0];
-    return { error: first ? `${first.path.join(".") || "business"}: ${first.message}` : "Invalid request" };
+    return { error: first ? `${first.path.join(".") || "business"}: ${first.message}` : "Something went wrong — please try again." };
   }
   const supabase = await createSupabaseServerClient();
   const {
@@ -100,7 +100,7 @@ export async function setRefundWindowAction(input: { businessId: string; hours: 
     })
     .safeParse(input);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid window", hours: null };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again.", hours: null };
   }
   const supabase = await createSupabaseServerClient();
   const {

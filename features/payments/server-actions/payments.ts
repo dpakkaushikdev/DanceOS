@@ -100,7 +100,7 @@ export async function startCheckoutAction(input: {
 }): Promise<StartCheckoutResult> {
   const parsed = startSchema.safeParse(input);
   if (!parsed.success) {
-    return { checkout: null, error: "Invalid booking request" };
+    return { checkout: null, error: "Something went wrong — please try again." };
   }
   const { supabase, user } = await requireUser();
   if (!isCashfreeConfigured()) {
@@ -178,7 +178,7 @@ const startMembershipSchema = z.object({
 export async function startMembershipCheckoutAction(input: { passId: string; businessName: string; description: string }): Promise<StartCheckoutResult> {
   const parsed = startMembershipSchema.safeParse(input);
   if (!parsed.success) {
-    return { checkout: null, error: "Invalid membership request" };
+    return { checkout: null, error: "Something went wrong — please try again." };
   }
   const { supabase, user } = await requireUser();
   if (!isCashfreeConfigured()) {
@@ -216,7 +216,7 @@ export async function startEnquiryCheckoutAction(input: {
 }): Promise<StartCheckoutResult> {
   const parsed = startEnquirySchema.safeParse(input);
   if (!parsed.success) {
-    return { checkout: null, error: "Invalid payment request" };
+    return { checkout: null, error: "Something went wrong — please try again." };
   }
   const { supabase, user } = await requireUser();
   if (!isCashfreeConfigured()) {
@@ -253,7 +253,7 @@ export interface ConfirmCheckoutResult {
 export async function confirmCheckoutAction(input: { orderId: string }): Promise<ConfirmCheckoutResult> {
   const parsed = confirmSchema.safeParse(input);
   if (!parsed.success) {
-    return { outcome: null, error: "Invalid payment response" };
+    return { outcome: null, error: "Something went wrong — please try again." };
   }
   const { supabase, user } = await requireUser();
   if (!isCashfreeConfigured()) {
@@ -342,7 +342,7 @@ export async function cancelBookingAction(input: {
 }): Promise<CancelBookingResult> {
   const parsed = cancelSchema.safeParse(input);
   if (!parsed.success) {
-    return { message: null, error: "Invalid cancel request" };
+    return { message: null, error: "Something went wrong — please try again." };
   }
   const { supabase } = await requireUser();
   try {

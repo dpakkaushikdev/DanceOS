@@ -33,7 +33,7 @@ const refresh = () => {
 export async function suspendAccountAction(input: unknown): Promise<{ error: string | null }> {
   const parsed = suspendSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again." };
   }
   const supabase = await createSupabaseServerClient();
   try {
@@ -62,7 +62,7 @@ const restoreSchema = z.object({
 export async function restoreAccountAction(input: unknown): Promise<{ error: string | null }> {
   const parsed = restoreSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again." };
   }
   const supabase = await createSupabaseServerClient();
   try {
@@ -90,7 +90,7 @@ export async function restoreAccountAction(input: unknown): Promise<{ error: str
 export async function unsuspendAccountAction(input: unknown): Promise<{ error: string | null }> {
   const parsed = liftSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again." };
   }
   const supabase = await createSupabaseServerClient();
   try {

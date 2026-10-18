@@ -50,7 +50,7 @@ type RegisterOp = (
 async function runRegisterOp(op: RegisterOp, input: { classBookingId: string }): Promise<RegisterActionResult> {
   const parsed = idSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: "Invalid booking" };
+    return { error: "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {
@@ -140,7 +140,7 @@ const paidSchema = z.object({ classBookingId: z.string().uuid(), paid: z.boolean
 export async function setDoorPaidAction(input: { classBookingId: string; paid: boolean }): Promise<RegisterActionResult> {
   const parsed = paidSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: "Invalid booking" };
+    return { error: "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {

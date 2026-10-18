@@ -158,7 +158,7 @@ export async function requestPasswordResetAction(
 ): Promise<AuthActionState> {
   const parsed = emailSchema.safeParse(formData.get("email"));
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid email" };
+    return { error: parsed.error.issues[0]?.message ?? "Enter a valid email address." };
   }
 
   const origin = await emailLinkOrigin();
@@ -226,7 +226,7 @@ export async function completeProfileAction(
     city: (formData.get("city") as string) || undefined,
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again." };
   }
 
   const supabase = await createSupabaseServerClient();
@@ -277,7 +277,7 @@ const deletionSchema = z.object({ reason: z.string().trim().max(1000).nullable()
 export async function requestAccountDeletionAction(input: z.input<typeof deletionSchema>): Promise<AuthActionState> {
   const parsed = deletionSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid request" };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again." };
   }
   const supabase = await createSupabaseServerClient();
   const {
@@ -312,7 +312,7 @@ export async function requestAccountDeletionAction(input: z.input<typeof deletio
 export async function saveProfileBasicsAction(input: unknown): Promise<{ error: string | null; created: boolean }> {
   const parsed = completeProfileSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input", created: false };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again.", created: false };
   }
   const supabase = await createSupabaseServerClient();
   const {
@@ -381,7 +381,7 @@ export async function resendEmailAction(
 ): Promise<ResendState> {
   const parsed = emailSchema.safeParse(formData.get("email"));
   if (!parsed.success) {
-    return { ...prev, error: parsed.error.issues[0]?.message ?? "Invalid email" };
+    return { ...prev, error: parsed.error.issues[0]?.message ?? "Enter a valid email address." };
   }
   const mode = formData.get("mode") === "reset" ? "reset" : "verify";
 

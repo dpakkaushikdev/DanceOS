@@ -179,7 +179,7 @@ export async function updateCrewAction(input: z.input<typeof updateSchema>): Pro
 
 export async function askCrewMemberAction(input: { crewId: string; userId: string }): Promise<CrewActionResult> {
   const parsed = z.object({ crewId: uuid, userId: uuid }).safeParse(input);
-  if (!parsed.success) return { error: "Invalid request" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await requireUser();
   try {
     await askCrewMember(supabase, parsed.data.crewId, parsed.data.userId);
@@ -192,7 +192,7 @@ export async function askCrewMemberAction(input: { crewId: string; userId: strin
 
 export async function respondToCrewAskAction(input: { memberId: string; accept: boolean }): Promise<CrewActionResult> {
   const parsed = z.object({ memberId: uuid, accept: z.boolean() }).safeParse(input);
-  if (!parsed.success) return { error: "Invalid request" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await requireUser();
   try {
     await respondToCrewAsk(supabase, parsed.data.memberId, parsed.data.accept);
@@ -205,7 +205,7 @@ export async function respondToCrewAskAction(input: { memberId: string; accept: 
 
 export async function withdrawCrewAskAction(input: { memberId: string; crewId?: string }): Promise<CrewActionResult> {
   const parsed = z.object({ memberId: uuid, crewId: uuid.optional() }).safeParse(input);
-  if (!parsed.success) return { error: "Invalid request" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await requireUser();
   try {
     await withdrawCrewAsk(supabase, parsed.data.memberId);
@@ -218,7 +218,7 @@ export async function withdrawCrewAskAction(input: { memberId: string; crewId?: 
 
 export async function removeCrewMemberAction(input: { memberId: string; crewId?: string }): Promise<CrewActionResult> {
   const parsed = z.object({ memberId: uuid, crewId: uuid.optional() }).safeParse(input);
-  if (!parsed.success) return { error: "Invalid request" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await requireUser();
   try {
     await removeCrewMember(supabase, parsed.data.memberId);
@@ -244,7 +244,7 @@ export async function removeCrewMemberAction(input: { memberId: string; crewId?:
  *  the screen prints on a refusal. */
 export async function reclaimCrewAction(input: { crewId: string }): Promise<CrewActionResult> {
   const parsed = z.object({ crewId: uuid }).safeParse(input);
-  if (!parsed.success) return { error: "Invalid request" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await requireUser();
   try {
     await reclaimCrew(supabase, parsed.data.crewId);
@@ -259,7 +259,7 @@ export async function reclaimCrewAction(input: { crewId: string }): Promise<Crew
  *  decides who may, and its words are what a refusal prints. */
 export async function deleteCrewAction(input: { crewId: string }): Promise<CrewActionResult> {
   const parsed = z.object({ crewId: uuid }).safeParse(input);
-  if (!parsed.success) return { error: "Invalid request" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await requireUser();
   try {
     await deleteCrew(supabase, parsed.data.crewId);
@@ -273,7 +273,7 @@ export async function deleteCrewAction(input: { crewId: string }): Promise<CrewA
 
 export async function setCrewMemberRoleAction(input: { memberId: string; crewId: string; role: "leader" | "member" | "trainee" }): Promise<CrewActionResult> {
   const parsed = z.object({ memberId: uuid, crewId: uuid, role: z.enum(["leader", "member", "trainee"]) }).safeParse(input);
-  if (!parsed.success) return { error: "Invalid request" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await requireUser();
   try {
     await setCrewMemberRole(supabase, parsed.data.memberId, parsed.data.role);
@@ -286,7 +286,7 @@ export async function setCrewMemberRoleAction(input: { memberId: string; crewId:
 
 export async function reorderCrewMembersAction(input: { crewId: string; memberIds: string[] }): Promise<CrewActionResult> {
   const parsed = z.object({ crewId: uuid, memberIds: z.array(uuid).max(200) }).safeParse(input);
-  if (!parsed.success) return { error: "Invalid request" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await requireUser();
   try {
     await reorderCrewMembers(supabase, parsed.data.crewId, parsed.data.memberIds);

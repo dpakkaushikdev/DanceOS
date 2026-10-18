@@ -33,7 +33,7 @@ export async function enrollAction(
 ): Promise<EnrollActionState> {
   const parsed = enrollSchema.safeParse({ sessionId: formData.get("sessionId") });
   if (!parsed.success) {
-    return { error: "Invalid session", outcome: null };
+    return { error: "Something went wrong — please try again.", outcome: null };
   }
 
   const supabase = await requireUser();
@@ -66,7 +66,7 @@ export async function cancelClassBookingAction(
 ): Promise<EnrollActionState> {
   const parsed = cancelSchema.safeParse({ classBookingId: formData.get("classBookingId") });
   if (!parsed.success) {
-    return { error: "Invalid booking", outcome: null };
+    return { error: "Something went wrong — please try again.", outcome: null };
   }
 
   const supabase = await requireUser();

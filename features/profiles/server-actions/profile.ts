@@ -62,7 +62,7 @@ export async function updateMyProfileAction(input: MyProfileInput): Promise<{ er
   const parsed = schema.safeParse(input);
   if (!parsed.success) {
     const first = parsed.error.issues[0];
-    return { error: first ? `${first.path.join(".") || "profile"}: ${first.message}` : "Invalid request" };
+    return { error: first ? `${first.path.join(".") || "profile"}: ${first.message}` : "Something went wrong — please try again." };
   }
   const supabase = await createSupabaseServerClient();
   const {

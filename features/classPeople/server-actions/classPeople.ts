@@ -63,7 +63,7 @@ export async function askClassPersonAction(input: {
 }): Promise<ClassPersonActionResult> {
   const parsed = askSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: "Invalid request" };
+    return { error: "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {
@@ -95,7 +95,7 @@ export async function respondToClassAskAction(input: {
 }): Promise<ClassPersonActionResult> {
   const parsed = respondSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: "Invalid response" };
+    return { error: "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {
@@ -110,7 +110,7 @@ export async function respondToClassAskAction(input: {
 export async function withdrawClassAskAction(input: { classPersonId: string }): Promise<ClassPersonActionResult> {
   const parsed = classPersonIdSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: "Invalid request" };
+    return { error: "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {
@@ -132,7 +132,7 @@ const stepDownSchema = z.object({
 export async function stepDownFromClassAction(input: { classPersonId: string; reason?: string }): Promise<ClassPersonActionResult> {
   const parsed = stepDownSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: "Invalid request" };
+    return { error: "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {
@@ -155,7 +155,7 @@ export async function setClassPersonPowersAction(input: {
 }): Promise<ClassPersonActionResult> {
   const parsed = powersSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: "Invalid request" };
+    return { error: "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {

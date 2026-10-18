@@ -92,7 +92,7 @@ export async function inviteToBusinessAction(input: {
 }): Promise<StaffActionResult> {
   const parsed = inviteSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid invite" };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {
@@ -113,7 +113,7 @@ export async function invitePersonAction(input: {
 }): Promise<StaffActionResult> {
   const parsed = roleSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid invite" };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {
@@ -132,7 +132,7 @@ export async function reorderMembersAction(input: {
 }): Promise<StaffActionResult> {
   const parsed = z.object({ businessId: z.string().uuid(), userIds: z.array(z.string().uuid()).max(100) }).safeParse(input);
   if (!parsed.success) {
-    return { error: "Invalid order" };
+    return { error: "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {
@@ -170,7 +170,7 @@ export async function payTeamMemberAction(input: {
     })
     .safeParse(input);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid payment" };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {
@@ -199,7 +199,7 @@ export async function revokeInviteAction(input: {
 }): Promise<StaffActionResult> {
   const parsed = inviteIdSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: "Invalid invite" };
+    return { error: "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {
@@ -218,7 +218,7 @@ export async function setMemberRoleAction(input: {
 }): Promise<StaffActionResult> {
   const parsed = relabelSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid role" };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {
@@ -242,7 +242,7 @@ export async function setMemberPowersAction(input: {
 }): Promise<StaffActionResult> {
   const parsed = powersSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid request" };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {
@@ -260,7 +260,7 @@ export async function removeMemberAction(input: {
 }): Promise<StaffActionResult> {
   const parsed = memberSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: "Invalid member" };
+    return { error: "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {
@@ -284,7 +284,7 @@ export async function removeOwnerAction(input: {
 }): Promise<StaffActionResult> {
   const parsed = memberSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: "Invalid member" };
+    return { error: "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {

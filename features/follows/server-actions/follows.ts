@@ -26,7 +26,7 @@ const schema = z.object({
 export async function setFollowAction(input: { businessId: string; on: boolean }): Promise<FollowActionResult> {
   const parsed = schema.safeParse(input);
   if (!parsed.success) {
-    return { state: null, error: "Invalid request" };
+    return { state: null, error: "Something went wrong — please try again." };
   }
   const supabase = await createSupabaseServerClient();
   const {
@@ -58,7 +58,7 @@ const personSchema = z.object({
 export async function setPersonFollowAction(input: { userId: string; on: boolean }): Promise<FollowActionResult> {
   const parsed = personSchema.safeParse(input);
   if (!parsed.success) {
-    return { state: null, error: "Invalid request" };
+    return { state: null, error: "Something went wrong — please try again." };
   }
   const supabase = await createSupabaseServerClient();
   const {
@@ -87,7 +87,7 @@ const crewSchema = z.object({
 export async function setCrewFollowAction(input: { crewId: string; on: boolean }): Promise<FollowActionResult> {
   const parsed = crewSchema.safeParse(input);
   if (!parsed.success) {
-    return { state: null, error: "Invalid request" };
+    return { state: null, error: "Something went wrong — please try again." };
   }
   const supabase = await createSupabaseServerClient();
   const {

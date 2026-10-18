@@ -78,7 +78,7 @@ export async function createLeadAction(input: {
 }): Promise<LeadActionResult> {
   const parsed = createSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid lead" };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {
@@ -108,7 +108,7 @@ export async function updateLeadAction(input: {
 }): Promise<LeadActionResult> {
   const parsed = updateSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid change" };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   const { leadId, businessId, ...patch } = parsed.data;
@@ -127,7 +127,7 @@ export async function deleteLeadAction(input: {
 }): Promise<LeadActionResult> {
   const parsed = deleteSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: "Invalid lead" };
+    return { error: "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {

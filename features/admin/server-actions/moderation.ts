@@ -41,7 +41,7 @@ const refresh = () => {
 export async function setBusinessVisibilityAction(input: unknown): Promise<{ error: string | null }> {
   const parsed = visibilitySchema.safeParse(input);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again." };
   }
   const supabase = await createSupabaseServerClient();
   try {
@@ -56,7 +56,7 @@ export async function setBusinessVisibilityAction(input: unknown): Promise<{ err
 export async function decideReportAction(input: unknown): Promise<{ error: string | null }> {
   const parsed = reportSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again." };
   }
   const supabase = await createSupabaseServerClient();
   try {

@@ -36,7 +36,7 @@ async function requireUser() {
 
 export async function setMyAvatarAction(input: { path: string | null }): Promise<PhotoActionResult> {
   const parsed = path.safeParse(input.path);
-  if (!parsed.success) return { error: "Invalid photo" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await requireUser();
   const { data, error } = await supabase.rpc("set_my_profile_photo", { p_path: parsed.data });
   if (error) {
@@ -48,7 +48,7 @@ export async function setMyAvatarAction(input: { path: string | null }): Promise
 
 export async function setBusinessPhotoAction(input: { businessId: string; path: string | null }): Promise<PhotoActionResult> {
   const parsed = z.object({ businessId: z.string().uuid(), path }).safeParse(input);
-  if (!parsed.success) return { error: "Invalid photo" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await requireUser();
   const { data, error } = await supabase.rpc("set_business_profile_photo", { p_business_id: parsed.data.businessId, p_path: parsed.data.path });
   if (error) {
@@ -68,7 +68,7 @@ export async function setBusinessPhotoAction(input: { businessId: string; path: 
  *  and the drawn sleeve comes back. */
 export async function setPosterAction(input: { kind: "class" | "event"; id: string; path: string | null }): Promise<PhotoActionResult> {
   const parsed = z.object({ kind: z.enum(["class", "event"]), id: z.string().uuid(), path }).safeParse(input);
-  if (!parsed.success) return { error: "Invalid poster" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await requireUser();
   const { error } =
     parsed.data.kind === "class"
@@ -88,7 +88,7 @@ export async function setPosterAction(input: { kind: "class" | "event"; id: stri
  *  `set_asset_photo` re-checks the owner AND the folder. Null takes it off. */
 export async function setAssetPhotoAction(input: { assetId: string; businessId: string; path: string | null }): Promise<PhotoActionResult> {
   const parsed = z.object({ assetId: z.string().uuid(), businessId: z.string().uuid(), path }).safeParse(input);
-  if (!parsed.success) return { error: "Invalid photo" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await requireUser();
   const { error } = await supabase.rpc("set_asset_photo", { p_asset_id: parsed.data.assetId, p_path: parsed.data.path });
   if (error) {
@@ -105,7 +105,7 @@ export async function setAssetPhotoAction(input: { assetId: string; businessId: 
  *  photo flow here that does not leave an orphan behind. */
 export async function addMyGalleryPhotoAction(input: { path: string }): Promise<PhotoActionResult> {
   const parsed = z.string().trim().min(1).max(300).safeParse(input.path);
-  if (!parsed.success) return { error: "Invalid photo" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await requireUser();
   const { data, error } = await supabase.rpc("add_my_header_photo", { p_path: parsed.data });
   if (error) {
@@ -118,7 +118,7 @@ export async function addMyGalleryPhotoAction(input: { path: string }): Promise<
 
 export async function removeMyGalleryPhotoAction(input: { id: string }): Promise<PhotoActionResult> {
   const parsed = z.string().uuid().safeParse(input.id);
-  if (!parsed.success) return { error: "Invalid photo" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await requireUser();
   const { data, error } = await supabase.rpc("remove_my_header_photo", { p_id: parsed.data });
   if (error) {
@@ -135,7 +135,7 @@ export async function removeMyGalleryPhotoAction(input: { id: string }): Promise
  *  removing returns the path so the browser takes the object out too. */
 export async function addCrewHeaderPhotoAction(input: { crewId: string; path: string }): Promise<PhotoActionResult> {
   const parsed = z.object({ crewId: z.string().uuid(), path: z.string().trim().min(1).max(300) }).safeParse(input);
-  if (!parsed.success) return { error: "Invalid photo" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await requireUser();
   const { data, error } = await supabase.rpc("add_crew_header_photo", { p_crew_id: parsed.data.crewId, p_path: parsed.data.path });
   if (error) {
@@ -148,7 +148,7 @@ export async function addCrewHeaderPhotoAction(input: { crewId: string; path: st
 
 export async function removeCrewHeaderPhotoAction(input: { id: string; crewId?: string }): Promise<PhotoActionResult> {
   const parsed = z.object({ id: z.string().uuid(), crewId: z.string().uuid().optional() }).safeParse(input);
-  if (!parsed.success) return { error: "Invalid photo" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await requireUser();
   const { data, error } = await supabase.rpc("remove_crew_header_photo", { p_id: parsed.data.id });
   if (error) {
@@ -164,7 +164,7 @@ export async function removeCrewHeaderPhotoAction(input: { id: string; crewId?: 
 
 export async function setCrewPhotoAction(input: { crewId: string; path: string | null }): Promise<PhotoActionResult> {
   const parsed = z.object({ crewId: z.string().uuid(), path }).safeParse(input);
-  if (!parsed.success) return { error: "Invalid photo" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await requireUser();
   const { data, error } = await supabase.rpc("set_crew_photo", { p_crew_id: parsed.data.crewId, p_path: parsed.data.path });
   if (error) {

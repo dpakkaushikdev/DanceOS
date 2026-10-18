@@ -51,7 +51,7 @@ const refresh = (threadId: string) => {
 export async function postSupportMessageAction(input: unknown): Promise<{ error: string | null }> {
   const parsed = bodySchema.safeParse(input);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again." };
   }
   const supabase = await createSupabaseServerClient();
   try {
@@ -68,7 +68,7 @@ export async function postSupportMessageAction(input: unknown): Promise<{ error:
 export async function openSupportThreadAction(input: unknown): Promise<{ error: string | null; threadId: string | null }> {
   const parsed = openSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input", threadId: null };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again.", threadId: null };
   }
   const supabase = await createSupabaseServerClient();
   /* five new conversations an hour (18 Sep 2026) — replies inside one are not counted */
@@ -88,7 +88,7 @@ export async function openSupportThreadAction(input: unknown): Promise<{ error: 
 export async function adminOpenSupportThreadAction(input: unknown): Promise<{ error: string | null; threadId: string | null }> {
   const parsed = adminOpenSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input", threadId: null };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again.", threadId: null };
   }
   const supabase = await createSupabaseServerClient();
   try {
@@ -103,7 +103,7 @@ export async function adminOpenSupportThreadAction(input: unknown): Promise<{ er
 export async function setSupportThreadStatusAction(input: unknown): Promise<{ error: string | null }> {
   const parsed = statusSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: "Invalid input" };
+    return { error: "Something went wrong — please try again." };
   }
   const supabase = await createSupabaseServerClient();
   try {

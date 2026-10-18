@@ -14,7 +14,7 @@ import { setMyToolOrder } from "@/repositories/layout";
  *  is never trusted, and Rule 5: the database is reached through a repository).
  *
  *  ⚠ The two bounds below are the CHECK's own, restated rather than assumed: a
- *  key the database would refuse should come back as "Invalid request" here
+ *  key the database would refuse should come back as "Something went wrong — please try again." here
  *  rather than as a raised exception after the press. */
 const schema = z.object({
   key: z.string().regex(/^[a-z][a-z0-9_:-]{0,79}$/),
@@ -34,7 +34,7 @@ export interface ToolOrderResult {
 export async function setToolOrderAction(input: { key: string; order: string[] }): Promise<ToolOrderResult> {
   const parsed = schema.safeParse(input);
   if (!parsed.success) {
-    return { error: "Invalid request" };
+    return { error: "Something went wrong — please try again." };
   }
   const supabase = await createSupabaseServerClient();
   const {

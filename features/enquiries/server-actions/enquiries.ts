@@ -123,7 +123,7 @@ async function act(op: (s: Awaited<ReturnType<typeof requireUser>>) => Promise<u
 const respondSchema = z.object({ enquiryId: z.string().uuid(), accept: z.boolean(), reason: reason.nullable() });
 export async function respondToEnquiryAction(input: z.input<typeof respondSchema>): Promise<EnquiryActionResult> {
   const p = respondSchema.safeParse(input);
-  if (!p.success) return { error: p.error.issues[0]?.message ?? "Invalid request" };
+  if (!p.success) return { error: p.error.issues[0]?.message ?? "Something went wrong — please try again." };
   return act((s) => respondToEnquiry(s, p.data.enquiryId, p.data.accept, p.data.reason || null), p.data.enquiryId, "Could not answer that enquiry");
 }
 
@@ -157,7 +157,7 @@ export async function sendAdditionAction(input: z.input<typeof additionSchema>):
 const quoteRef = z.object({ quoteId: z.string().uuid(), enquiryId: z.string().uuid() });
 export async function cancelAdditionAction(input: z.input<typeof quoteRef>): Promise<EnquiryActionResult> {
   const p = quoteRef.safeParse(input);
-  if (!p.success) return { error: "Invalid request" };
+  if (!p.success) return { error: "Something went wrong — please try again." };
   return act((s) => cancelEnquiryAddition(s, p.data.quoteId), p.data.enquiryId, "Could not take that back");
 }
 
@@ -169,21 +169,21 @@ const answerSchema = z.object({
 });
 export async function answerQuoteAction(input: z.input<typeof answerSchema>): Promise<EnquiryActionResult> {
   const p = answerSchema.safeParse(input);
-  if (!p.success) return { error: p.error.issues[0]?.message ?? "Invalid request" };
+  if (!p.success) return { error: p.error.issues[0]?.message ?? "Something went wrong — please try again." };
   return act((s) => answerEnquiryQuote(s, p.data.quoteId, p.data.answer, p.data.reason || null), p.data.enquiryId, "Could not answer that");
 }
 
 const enquiryRef = z.object({ enquiryId: z.string().uuid() });
 export async function markCompleteAction(input: z.input<typeof enquiryRef>): Promise<EnquiryActionResult> {
   const p = enquiryRef.safeParse(input);
-  if (!p.success) return { error: "Invalid request" };
+  if (!p.success) return { error: "Something went wrong — please try again." };
   return act((s) => markEnquiryComplete(s, p.data.enquiryId), p.data.enquiryId, "Could not mark it complete");
 }
 
 const notYetSchema = z.object({ enquiryId: z.string().uuid(), reason: reason.nullable() });
 export async function declineCompletionAction(input: z.input<typeof notYetSchema>): Promise<EnquiryActionResult> {
   const p = notYetSchema.safeParse(input);
-  if (!p.success) return { error: "Invalid request" };
+  if (!p.success) return { error: "Something went wrong — please try again." };
   return act((s) => declineEnquiryCompletion(s, p.data.enquiryId, p.data.reason || null), p.data.enquiryId, "Could not answer that");
 }
 
@@ -194,7 +194,7 @@ const endSchema = z.object({
 });
 export async function endEnquiryAction(input: z.input<typeof endSchema>): Promise<EnquiryActionResult & { closed?: boolean }> {
   const p = endSchema.safeParse(input);
-  if (!p.success) return { error: p.error.issues[0]?.message ?? "Invalid request" };
+  if (!p.success) return { error: p.error.issues[0]?.message ?? "Something went wrong — please try again." };
   const supabase = await requireUser();
   try {
     const out = await endEnquiry(supabase, p.data.enquiryId, p.data.reason, p.data.refundInr);
@@ -216,7 +216,7 @@ const endingSchema = z.object({
  *  straight after, so a refund is never a promise left lying in the ledger */
 export async function answerEndingAction(input: z.input<typeof endingSchema>): Promise<EnquiryActionResult> {
   const p = endingSchema.safeParse(input);
-  if (!p.success) return { error: p.error.issues[0]?.message ?? "Invalid request" };
+  if (!p.success) return { error: p.error.issues[0]?.message ?? "Something went wrong — please try again." };
   const supabase = await requireUser();
   try {
     const out = await answerEnquiryEnding(supabase, p.data.endingId, p.data.answer, p.data.refundInr, p.data.reason || null);
@@ -233,13 +233,13 @@ export async function answerEndingAction(input: z.input<typeof endingSchema>): P
 const endingRef = z.object({ endingId: z.string().uuid(), enquiryId: z.string().uuid() });
 export async function retractEndingAction(input: z.input<typeof endingRef>): Promise<EnquiryActionResult> {
   const p = endingRef.safeParse(input);
-  if (!p.success) return { error: "Invalid request" };
+  if (!p.success) return { error: "Something went wrong — please try again." };
   return act((s) => retractEnquiryEnding(s, p.data.endingId), p.data.enquiryId, "Could not take those back");
 }
 
 const paymentSchema = z.object({ quoteId: z.string().uuid(), enquiryId: z.string().uuid(), part: z.enum(["advance", "balance", "full", "addition"]) });
 export async function recordEnquiryPaymentAction(input: z.input<typeof paymentSchema>): Promise<EnquiryActionResult> {
   const p = paymentSchema.safeParse(input);
-  if (!p.success) return { error: "Invalid request" };
+  if (!p.success) return { error: "Something went wrong — please try again." };
   return act((s) => recordEnquiryPayment(s, p.data.quoteId, p.data.part), p.data.enquiryId, "Could not record that");
 }

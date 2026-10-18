@@ -50,7 +50,7 @@ const roomSchema = z.object({ businessId: z.string().uuid(), on: z.boolean() });
 export async function setRoomRequestsAction(input: { businessId: string; on: boolean }): Promise<{ error: string | null }> {
   const parsed = roomSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: "Invalid request" };
+    return { error: "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {

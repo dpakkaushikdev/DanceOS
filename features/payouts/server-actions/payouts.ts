@@ -96,7 +96,7 @@ function revalidateMoneySurfaces(businessId?: string) {
   revalidatePath("/");
 }
 
-const firstIssue = (e: z.ZodError) => e.issues[0]?.message ?? "Invalid payment";
+const firstIssue = (e: z.ZodError) => e.issues[0]?.message ?? "Something went wrong — please try again.";
 
 /** PAY ONE PERSON for the classes and enquiries ticked, at the amounts typed. */
 export async function recordSessionPaymentAction(input: z.input<typeof sessionPaySchema>): Promise<PayoutActionResult> {
@@ -141,7 +141,7 @@ export async function recordRentPaymentAction(input: z.input<typeof rentSchema>)
 export async function voidRentPaymentAction(input: { id: string }): Promise<PayoutActionResult> {
   const parsed = idSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: "Invalid request" };
+    return { error: "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {
@@ -160,7 +160,7 @@ export async function setPayoutStatusAction(input: {
 }): Promise<PayoutActionResult> {
   const parsed = statusSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: "Invalid status" };
+    return { error: "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {
@@ -178,7 +178,7 @@ export async function setPayoutStatusAction(input: {
 export async function voidPayoutAction(input: { payoutId: string }): Promise<PayoutActionResult> {
   const parsed = payoutIdSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: "Invalid request" };
+    return { error: "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {

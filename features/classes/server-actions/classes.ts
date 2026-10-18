@@ -198,7 +198,7 @@ export async function createClassAction(
     businessId: formData.get("businessId"),
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again." };
   }
 
   const supabase = await requireUser();
@@ -253,7 +253,7 @@ export async function updateClassAction(
     classId: formData.get("classId"),
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again." };
   }
 
   const supabase = await requireUser();
@@ -357,7 +357,7 @@ export async function publishClassAction(
     businessId: formData.get("businessId"),
   });
   if (!parsed.success) {
-    return { error: "Invalid class" };
+    return { error: "Something went wrong — please try again." };
   }
 
   const supabase = await requireUser();
@@ -388,7 +388,7 @@ export async function deleteClassAction(
     businessId: formData.get("businessId"),
   });
   if (!parsed.success) {
-    return { error: "Invalid class" };
+    return { error: "Something went wrong — please try again." };
   }
 
   const supabase = await requireUser();
@@ -463,7 +463,7 @@ const clashSchema = z
 const venueSchema = z.object({ classId: z.string().uuid(), accept: z.boolean() });
 export async function respondToVenueRequestAction(input: unknown): Promise<ClassActionState> {
   const parsed = venueSchema.safeParse(input);
-  if (!parsed.success) return { error: "Invalid request" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await requireUser();
   try {
     await respondToVenueRequest(supabase, parsed.data.classId, parsed.data.accept);

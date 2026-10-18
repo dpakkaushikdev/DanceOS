@@ -65,7 +65,7 @@ export async function decideRefundAction(input: {
 }): Promise<RefundActionResult> {
   const parsed = decideSchema.safeParse(input);
   if (!parsed.success) {
-    return { message: null, error: "Invalid decision" };
+    return { message: null, error: "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {
@@ -118,7 +118,7 @@ export async function decideRefundAction(input: {
 export async function sendRefundToRailAction(input: { refundId: string }): Promise<RefundActionResult> {
   const parsed = offlineSchema.safeParse(input);
   if (!parsed.success) {
-    return { message: null, error: "Invalid request" };
+    return { message: null, error: "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   if (!isCashfreeConfigured()) {
@@ -152,7 +152,7 @@ export async function settleRefundOfflineAction(input: {
 }): Promise<RefundActionResult> {
   const parsed = offlineSchema.safeParse(input);
   if (!parsed.success) {
-    return { message: null, error: "Invalid request" };
+    return { message: null, error: "Something went wrong — please try again." };
   }
   const supabase = await requireUser();
   try {

@@ -58,7 +58,7 @@ const revalidate = () => {
 
 export async function markNotificationsReadAction(input: { ids?: string[]; kind?: NotificationKind }): Promise<NotificationActionResult> {
   const parsed = target.safeParse(input);
-  if (!parsed.success) return { error: "Invalid request" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await requireUser();
   try {
     const n = await markNotificationsRead(supabase, parsed.data);
@@ -72,7 +72,7 @@ export async function markNotificationsReadAction(input: { ids?: string[]; kind?
 /** Hide — a soft delete, never an erase. */
 export async function clearNotificationsAction(input: { ids?: string[]; kind?: NotificationKind }): Promise<NotificationActionResult> {
   const parsed = target.safeParse(input);
-  if (!parsed.success) return { error: "Invalid request" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   if (!parsed.data.ids?.length && !parsed.data.kind) return { error: "Say which notifications to clear" };
   const supabase = await requireUser();
   try {
@@ -93,7 +93,7 @@ const prefsSchema = z.object({
 
 export async function setNotificationPrefsAction(input: z.input<typeof prefsSchema>): Promise<NotificationActionResult> {
   const parsed = prefsSchema.safeParse(input);
-  if (!parsed.success) return { error: "Invalid settings" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await requireUser();
   try {
     await setNotificationPrefs(supabase, {

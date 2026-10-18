@@ -58,7 +58,7 @@ const message = (e: unknown, fallback: string) => (e instanceof Error ? e.messag
 
 export async function raiseDisputeAction(input: z.input<typeof raiseSchema>): Promise<DisputeActionResult> {
   const parsed = raiseSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid dispute" };
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again." };
   const supabase = await requireUser();
   try {
     await raiseDispute(supabase, parsed.data);
@@ -71,7 +71,7 @@ export async function raiseDisputeAction(input: z.input<typeof raiseSchema>): Pr
 
 export async function answerDisputeAction(input: z.input<typeof answerSchema>): Promise<DisputeActionResult> {
   const parsed = answerSchema.safeParse(input);
-  if (!parsed.success) return { error: "Invalid answer" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await requireUser();
   const { id, accept, response, settleMethod } = parsed.data;
   try {
@@ -118,7 +118,7 @@ export async function answerDisputeAction(input: z.input<typeof answerSchema>): 
 
 export async function withdrawDisputeAction(input: { id: string }): Promise<DisputeActionResult> {
   const parsed = idSchema.safeParse(input);
-  if (!parsed.success) return { error: "Invalid request" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await requireUser();
   try {
     await withdrawDispute(supabase, parsed.data.id);

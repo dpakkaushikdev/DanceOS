@@ -43,7 +43,7 @@ async function me() {
 export async function saveRoutineAction(input: z.input<typeof saveSchema>): Promise<RoutineActionResult> {
   const parsed = saveSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid request" };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again." };
   }
   const supabase = await me();
   try {
@@ -58,7 +58,7 @@ export async function saveRoutineAction(input: z.input<typeof saveSchema>): Prom
 
 export async function deleteRoutineAction(input: { routineId: string }): Promise<RoutineActionResult> {
   const parsed = z.object({ routineId: z.string().uuid() }).safeParse(input);
-  if (!parsed.success) return { error: "Invalid request" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await me();
   try {
     await deleteRoutine(supabase, parsed.data.routineId);
@@ -73,7 +73,7 @@ const onClass = z.object({ classId: z.string().uuid(), routineId: z.string().uui
 
 export async function addClassRoutineAction(input: z.input<typeof onClass>): Promise<RoutineActionResult> {
   const parsed = onClass.safeParse(input);
-  if (!parsed.success) return { error: "Invalid request" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await me();
   try {
     /* ⚠ A ROUTINE OF THE CLASS'S OWN STYLE (4 Oct 2026, the user: "add a routine
@@ -100,7 +100,7 @@ export async function addClassRoutineAction(input: z.input<typeof onClass>): Pro
 
 export async function removeClassRoutineAction(input: z.input<typeof onClass>): Promise<RoutineActionResult> {
   const parsed = onClass.safeParse(input);
-  if (!parsed.success) return { error: "Invalid request" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await me();
   try {
     await removeClassRoutine(supabase, parsed.data.classId, parsed.data.routineId);

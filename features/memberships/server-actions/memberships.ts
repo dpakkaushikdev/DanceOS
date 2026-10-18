@@ -63,7 +63,7 @@ function revalidateMembershipSurfaces(businessId?: string) {
 export async function saveMembershipAction(input: z.input<typeof saveSchema>): Promise<MembershipResult & { membershipId?: string }> {
   const parsed = saveSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid request" };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again." };
   }
   const supabase = await me();
   try {
@@ -77,7 +77,7 @@ export async function saveMembershipAction(input: z.input<typeof saveSchema>): P
 
 export async function deleteMembershipAction(input: { membershipId: string; businessId?: string }): Promise<MembershipResult> {
   const parsed = z.object({ membershipId: z.string().uuid(), businessId: z.string().uuid().optional() }).safeParse(input);
-  if (!parsed.success) return { error: "Invalid request" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await me();
   try {
     await deleteMembership(supabase, parsed.data.membershipId);
@@ -92,7 +92,7 @@ export async function deleteMembershipAction(input: { membershipId: string; busi
  *  waiting for its money, and the caller opens the checkout with the pass id. */
 export async function buyMembershipAction(input: { membershipId: string }): Promise<MembershipResult & { passId?: string; needsPayment?: boolean }> {
   const parsed = z.object({ membershipId: z.string().uuid() }).safeParse(input);
-  if (!parsed.success) return { error: "Invalid request" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await me();
   try {
     const pass = await buyMembership(supabase, parsed.data.membershipId);
@@ -112,7 +112,7 @@ export async function buyMembershipAction(input: { membershipId: string }): Prom
  *  the studio's ledger offers "Send through Cashfree" again. */
 export async function returnMembershipPassAction(input: { passId: string }): Promise<MembershipResult & { message?: string }> {
   const parsed = z.object({ passId: z.string().uuid() }).safeParse(input);
-  if (!parsed.success) return { error: "Invalid request" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await me();
   try {
     const { refund } = await returnMembershipPass(supabase, parsed.data.passId);
@@ -141,7 +141,7 @@ export async function returnMembershipPassAction(input: { passId: string }): Pro
  *  come apart. The RPC checks the class takes this pass and that a unit is left. */
 export async function bookWithMembershipAction(input: { sessionId: string; passId: string; shareSlug?: string }): Promise<MembershipResult> {
   const parsed = z.object({ sessionId: z.string().uuid(), passId: z.string().uuid(), shareSlug: z.string().max(140).optional() }).safeParse(input);
-  if (!parsed.success) return { error: "Invalid request" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await me();
   try {
     await bookWithMembership(supabase, parsed.data.sessionId, parsed.data.passId);

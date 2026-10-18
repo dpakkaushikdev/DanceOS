@@ -56,7 +56,7 @@ type ProfileFollowingRow = { kind: "person" | "business" | "crew"; id: string; n
 
 export async function loadFollowersAction(raw: unknown): Promise<FollowListResult> {
   const parsed = input.safeParse(raw);
-  if (!parsed.success) return { error: "Invalid list", rows: [] };
+  if (!parsed.success) return { error: "Something went wrong — please try again.", rows: [] };
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },

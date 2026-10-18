@@ -31,7 +31,7 @@ export async function savePushSubscriptionAction(input: z.infer<typeof sub>): Pr
 
 export async function removePushSubscriptionAction(input: { endpoint: string }): Promise<{ error: string | null }> {
   const parsed = z.string().url().max(1000).safeParse(input.endpoint);
-  if (!parsed.success) return { error: "Invalid address" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.rpc("remove_push_subscription", { p_endpoint: parsed.data });
   return { error: error ? error.message : null };

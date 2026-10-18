@@ -93,7 +93,7 @@ export interface StartSubscriptionResult {
 export async function startSubscriptionAction(input: unknown): Promise<StartSubscriptionResult> {
   const parsed = startSchema.safeParse(input);
   if (!parsed.success) {
-    return { checkout: null, error: "Invalid subscription request" };
+    return { checkout: null, error: "Something went wrong — please try again." };
   }
   const { supabase, user } = await requireUser();
   if (!isCashfreeConfigured()) {
@@ -190,7 +190,7 @@ export interface ConfirmSubscriptionResult {
 export async function confirmSubscriptionAction(input: unknown): Promise<ConfirmSubscriptionResult> {
   const parsed = idSchema.safeParse(input);
   if (!parsed.success) {
-    return { outcome: null, until: null, error: "Invalid request" };
+    return { outcome: null, until: null, error: "Something went wrong — please try again." };
   }
   const { supabase } = await requireUser();
   if (!isCashfreeConfigured()) {
@@ -243,7 +243,7 @@ export async function confirmSubscriptionAction(input: unknown): Promise<Confirm
 export async function cancelSubscriptionAction(input: unknown): Promise<{ error: string | null; until: string | null }> {
   const parsed = idSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: "Invalid request", until: null };
+    return { error: "Something went wrong — please try again.", until: null };
   }
   const { supabase } = await requireUser();
   try {

@@ -110,7 +110,7 @@ export async function createBusinessAction(
     email: formData.get("contact_email"),
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again." };
   }
 
   const supabase = await createSupabaseServerClient();
@@ -227,7 +227,7 @@ export async function createBusinessAction(
  *  RPC holds every rule and its words are what a refusal prints. */
 export async function deleteStudioAction(input: { businessId: string }): Promise<{ error: string | null }> {
   const parsed = z.object({ businessId: z.string().uuid() }).safeParse(input);
-  if (!parsed.success) return { error: "Invalid request" };
+  if (!parsed.success) return { error: "Something went wrong — please try again." };
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },

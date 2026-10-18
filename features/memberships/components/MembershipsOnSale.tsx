@@ -33,9 +33,12 @@ import { ShelfHead } from "@/features/discovery/components/discover-kit";
  *  same sheet rather than pretending there is a step. */
 
 /* each membership is its own card inside the section (18 Oct 2026) */
-const row: CSSProperties = { padding: "12px 12px 12px", marginTop: 8, border: "1.5px solid var(--el)", borderRadius: 16, background: "var(--card)" };
+/* ⚠ A BIT SMALLER (18 Oct 2026, the user: "Make Membership on Studio Profiles a
+   bit smaller in size") — tighter padding, smaller type and boxes, a slimmer bar
+   and button */
+const row: CSSProperties = { padding: "9px 10px", marginTop: 7, border: "1.5px solid var(--el)", borderRadius: 14, background: "var(--card)" };
 /* the card's one action, a full-width pill (18 Oct 2026) */
-const buyBox: CSSProperties = { flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 118, padding: "11px 18px", borderRadius: 999, fontSize: 13, fontWeight: 900, fontFamily: "inherit", textDecoration: "none", whiteSpace: "nowrap" };
+const buyBox: CSSProperties = { flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 110, padding: "8px 14px", borderRadius: 999, fontSize: 12, fontWeight: 900, fontFamily: "inherit", textDecoration: "none", whiteSpace: "nowrap" };
 const sheetBackdrop: CSSProperties = { position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 700 };
 const sheetBody: CSSProperties = { background: "var(--solid)", color: INK, borderRadius: "24px 24px 0 0", padding: "16px var(--dos-gutter) 30px", width: "100%", maxWidth: 430, boxSizing: "border-box", animation: "dosSheetUp .28s cubic-bezier(.22,.9,.34,1)" };
 
@@ -117,26 +120,26 @@ export function MembershipsOnSale({
               what an hour costs — the bar of what is left, and one full button */}
           <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
             <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ display: "block", fontSize: 15.5, fontWeight: 900, letterSpacing: -0.2, lineHeight: 1.2, overflowWrap: "anywhere" }}>{m.name}</span>
+              <span style={{ display: "block", fontSize: 13.5, fontWeight: 900, letterSpacing: -0.2, lineHeight: 1.2, overflowWrap: "anywhere" }}>{m.name}</span>
               <span style={{ display: "block", fontSize: 10.5, color: SUB, fontWeight: 700, marginTop: 2 }}>{businessName}</span>
             </span>
             <span style={{ flexShrink: 0, textAlign: "right" }}>
-              <span data-testid="membership-price" style={{ display: "block", fontFamily: DOS_DISPLAY, fontSize: 20, fontWeight: 900, letterSpacing: -0.5, lineHeight: 1.05, color: accent }}>
+              <span data-testid="membership-price" style={{ display: "block", fontFamily: DOS_DISPLAY, fontSize: 16.5, fontWeight: 900, letterSpacing: -0.5, lineHeight: 1.05, color: accent }}>
                 {m.priceInr === 0 ? "Free" : rupees(m.priceInr)}
               </span>
               <span style={{ display: "block", fontSize: 9.5, color: "var(--muted)", fontWeight: 800, marginTop: 2 }}>{m.priceInr === 0 ? "no payment" : "one payment"}</span>
             </span>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginTop: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 5, marginTop: 7 }}>
             {[
               { k: "size", label: m.unit === "hours" ? "Hours" : "Classes", value: unitWord(m.unit, m.units), sub: "to dance" },
               { k: "validity", label: "Valid for", value: m.validityDays ? `${m.validityDays} days` : "No expiry", sub: m.validityDays ? "from purchase" : "until used up" },
               { k: "per", label: m.unit === "hours" ? "Per hour" : "Per class", value: per ? rupees(per) : "Free", sub: m.unit === "hours" ? "on average" : "on average" },
             ].map((b) => (
-              <div key={b.k} data-testid={`membership-${b.k}`} style={{ background: "var(--el)", borderRadius: 12, padding: "7px 9px", minWidth: 0 }}>
-                <div style={{ fontSize: 8.5, fontWeight: 900, letterSpacing: 0.8, color: SUB, textTransform: "uppercase" }}>{b.label}</div>
-                <div style={{ fontSize: 13, fontWeight: 900, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.value}</div>
-                <div style={{ fontSize: 9.5, color: "var(--muted)", fontWeight: 700 }}>{b.sub}</div>
+              <div key={b.k} data-testid={`membership-${b.k}`} style={{ background: "var(--el)", borderRadius: 10, padding: "5px 7px", minWidth: 0 }}>
+                <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: 0.7, color: SUB, textTransform: "uppercase" }}>{b.label}</div>
+                <div style={{ fontSize: 11.5, fontWeight: 900, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.value}</div>
+                <div style={{ fontSize: 8.5, color: "var(--muted)", fontWeight: 700 }}>{b.sub}</div>
               </div>
             ))}
           </div>
@@ -145,12 +148,12 @@ export function MembershipsOnSale({
               class's own `SeatBar`, its numbers and colours, in a membership's
               words: "3/20 Sold · 17 Left", amber at the last three, red when
               all are taken */}
-          <div style={{ display: "flex", marginTop: 8 }}>
+          <div style={{ display: "flex", marginTop: 6 }}>
             <SeatBar
               taken={Math.max(0, m.totalCount - m.leftCount)}
               cap={m.totalCount}
               tint={accent}
-              height={24}
+              height={20}
               testId="membership-left"
               barTestId="membership-bar"
               words={{ taken: "Sold", left: "Left", full: "All taken" }}
@@ -163,7 +166,7 @@ export function MembershipsOnSale({
               buys under it, and the button on the right as a full pill. Still
               ONE price (28 Sep 2026: never on the button as well). */}
           {/* the one action, full width under the facts — the price is said once, above */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "stretch", gap: 10, marginTop: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "stretch", gap: 10, marginTop: 7 }}>
             {!signedIn ? (
             <a href="/login" aria-label={`Buy ${m.name}`} style={{ ...buyBox, color: accent, background: `${accent}1f`, border: `1.5px solid ${accent}` }}>
               Sign in to buy

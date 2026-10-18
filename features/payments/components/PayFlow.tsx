@@ -14,7 +14,7 @@ import {
 } from "@/features/payments/server-actions/payments";
 import { openCashfreeCheckout, preloadCheckout, type CashfreeCheckoutResult } from "@/lib/cashfree/checkout-client";
 import { DOS_DISPLAY, DOS_UI, SKY } from "@/lib/design/tokens";
-import { UseMembership } from "@/features/memberships/components/UseMembership";
+import { PassSummary, UseMembership } from "@/features/memberships/components/UseMembership";
 import type { PassForSession } from "@/repositories/memberships";
 import { PayOption, PAY_LABEL } from "@/features/payments/components/PayOption";
 
@@ -100,9 +100,26 @@ export function PayFlow({
   onSpendPass,
 }: PayFlowProps) {
   // free classes skip the how-are-you-paying step (prototype 12439)
-  const [step, setStep] = useState<"how" | "confirm">(isFree ? "confirm" : "how");
+  const step: "how" | "confirm" = isFree ? "confirm" : "how";
+  /* ⚠ ONE STEP FOR A PAID CLASS (18 Oct 2026, the user: "membership usage prompt
+     dialog box and confirm payment - should all be in How are you paying, lets
+     reduce one step"). The way to pay is a choice ON this sheet — a pass or the
+     card — its details are drawn under the options, and the one button spends
+     or pays. The separate confirm sheet and the membership question are gone. */
+  const firstPass = passes.find((p) => p.enough && onSpendPass);
+  const [choice, setChoice] = useState<string>(firstPass ? firstPass.passId : "card");
+  const chosenPass = choice === "card" ? null : passes.find((p) => p.passId === choice && p.enough) ?? null;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const spendPass = async (p: PassForSession) => {
+    if (!onSpendPass) return;
+    setBusy(true);
+    setError(null);
+    const out = await onSpendPass(p);
+    setBusy(false);
+    if (out) return setError(out);
+    onClose();
+  };
   /* the order whose window is open — kept so a window that never reports back
      (a phone that went off to a UPI app) can be checked by hand, rather than
      leaving the sheet on "One moment…" for ever (2 Oct 2026) */
@@ -197,26 +214,15 @@ export function PayFlow({
 
   if (step === "how") {
     return (
-      <div onClick={onClose} style={sheetBackdrop}>
-        <div role="dialog" aria-modal="true" aria-label="How are you paying?" onClick={(e) => e.stopPropagation()} style={sheetBody}>
+      <div onClick={busy ? undefined : onClose} style={sheetBackdrop}>
+        <div role="dialog" aria-modal="true" aria-label="How are you paying?" onClick={(e) => e.stopPropagation()} style={{ ...sheetBody, maxHeight: "92vh", overflowY: "auto" }}>
           {grabber}
           {header("How are you paying?")}
-          {/* ⚠ EVERY WAY TO PAY IS ONE `PayOption`, ONE SIZE (18 Oct 2026, the
-              user: "pay with membership … should come on the screen which says How
-              are you paying … memberships and upi cards etc are similar in size").
-              The memberships this class takes come first, then the card. */}
+          {/* ⚠ EVERY WAY TO PAY IS ONE `PayOption`, ONE SIZE (18 Oct 2026) — and
+              since the same evening a RADIO: the memberships this class takes
+              first, then the card; what the choice means is drawn under them. */}
           {passes.length > 0 && onSpendPass ? (
-            <UseMembership
-              passes={passes}
-              classTitle={classLabel}
-              whenText={whenText}
-              refundWindowHours={refundWindowHours}
-              onSpend={async (p) => {
-                const out = await onSpendPass(p);
-                if (!out) onClose();
-                return out;
-              }}
-            />
+            <UseMembership passes={passes} selectedId={chosenPass ? chosenPass.passId : null} busy={busy} onSelect={(p) => { setError(null); setChoice(p.passId); }} />
           ) : null}
           <div style={PAY_LABEL}>{passes.length > 0 ? "OR PAY" : "PAY"}</div>
           <PayOption
@@ -230,27 +236,66 @@ export function PayFlow({
             title="UPI · Card · Netbanking"
             sub={`${priceText} · secure checkout`}
             ariaLabel="Pay by UPI, card or netbanking"
-            onPick={() => setStep("confirm")}
+            disabled={busy}
+            selected={!chosenPass}
+            onPick={() => { setError(null); setChoice("card"); }}
           />
-          <div
-            role="button"
-            tabIndex={0}
-            onKeyDown={dosKey}
-            onClick={onClose}
-            style={{
-              textAlign: "center",
-              padding: "13px",
-              borderRadius: 999,
-              marginTop: 6,
-              background: "var(--card)",
-              border: "1.5px solid var(--el)",
-              fontWeight: 700,
-              fontSize: 13.5,
-              cursor: "pointer",
-            }}
-          >
-            Cancel
+
+          {/* WHAT THE CHOICE MEANS — the membership question and the payment
+              summary, on this sheet rather than a second one */}
+          <div data-testid="pay-summary" style={{ background: "var(--card)", border: "1.5px solid var(--el)", borderRadius: 16, padding: "11px 13px", margin: "6px 0 12px" }}>
+            {chosenPass ? (
+              <PassSummary pass={chosenPass} classTitle={classLabel} whenText={whenText} refundWindowHours={refundWindowHours} />
+            ) : (
+              <>
+                {[
+                  ["Class", priceText],
+                  ["Paying by", "UPI · Card · Netbanking"],
+                ].map(([k, v]) => (
+                  <div key={k} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "4px 0", fontSize: 12.5 }}>
+                    <span style={{ color: "var(--sub)" }}>{k}</span>
+                    <b style={{ textAlign: "right" }}>{v}</b>
+                  </div>
+                ))}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderTop: "1.5px solid var(--el)", marginTop: 6, paddingTop: 8 }}>
+                  <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: 0.8, color: "var(--muted)" }}>TOTAL</span>
+                  <b style={{ fontSize: 19, fontFamily: DOS_MONO }}>{priceText}</b>
+                </div>
+              </>
+            )}
           </div>
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={onClose}
+              style={{ flex: 1, padding: 13, borderRadius: 999, background: "var(--card)", border: "1.5px solid var(--el)", color: "var(--text)", fontWeight: 700, fontSize: 13.5, cursor: "pointer", fontFamily: "inherit", opacity: busy ? 0.5 : 1 }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                if (chosenPass) void spendPass(chosenPass);
+                else void startPaid();
+              }}
+              style={{ flex: 1.4, padding: 13, borderRadius: 999, background: "var(--text)", color: "var(--solid)", border: "none", fontWeight: 900, fontSize: 13.5, cursor: busy ? "wait" : "pointer", fontFamily: "inherit", opacity: busy ? 0.6 : 1 }}
+            >
+              {busy ? "One moment…" : chosenPass ? "Use membership" : `Pay ${priceText}`}
+            </button>
+          </div>
+          {busy && openOrder ? (
+            <button
+              type="button"
+              onClick={() => void confirmPaid(openOrder)}
+              style={{ display: "block", margin: "12px auto 0", background: "none", border: "none", color: "var(--sub)", fontSize: 11.5, fontWeight: 800, textDecoration: "underline", cursor: "pointer", fontFamily: "inherit" }}
+            >
+              Already paid? Check status
+            </button>
+          ) : null}
+          {error && <div role="alert" style={{ fontSize: 10.5, color: "#EF4444", fontWeight: 700, marginTop: 10, textAlign: "center" }}>{error}</div>}
         </div>
       </div>
     );
@@ -299,8 +344,7 @@ export function PayFlow({
             onKeyDown={dosKey}
             onClick={() => {
               if (busy) return;
-              if (isFree) onClose();
-              else setStep("how");
+              onClose();
             }}
             style={{
               flex: 1,

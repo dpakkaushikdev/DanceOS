@@ -80,7 +80,7 @@ const SIDE_KEYS: CalendarSide[] = ["attending", "assisting", "hosting"];
    one evening. Both are ON by default and counted apart in the drawer. */
 const PRACTICE_KIND: Record<PracticeKind, { key: "crewPractice" | "jobPractice"; label: string; word: string; tint: string }> = {
   crew: { key: "crewPractice", label: "Crew practice", word: "Crew practice", tint: DOS_TOOLS.crews.c },
-  job: { key: "jobPractice", label: "Job practice", word: "Job practice", tint: DOS_TOOLS.enquiries.c },
+  job: { key: "jobPractice", label: "Enquiry practice", word: "Enquiry practice", tint: DOS_TOOLS.enquiries.c },
 };
 const practiceTint = (e: CalendarPracticeEntry): string => (e.cancelled ? "#9CA3AF" : PRACTICE_KIND[practiceKindOf(e)].tint);
 

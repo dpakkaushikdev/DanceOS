@@ -1125,9 +1125,10 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(owner.getByTestId("earn-team").filter({ hasText: "Owed to your team" })).toBeVisible();
     await owner.getByTestId("earn-team").filter({ hasText: "Owed to your team" }).click();
     await owner.waitForURL(/\/business\/[0-9a-f-]+\/staff$/);
-    await expect(owner.getByTestId("team-pay-ledger")).toBeVisible();
-    await expect(owner.getByText(/DanceOS does not move this money/)).toBeVisible();
-    await expect(owner.getByTestId("team-pay-owed")).toHaveText("₹0");
+    /* ⚠ NO SEPARATE LEDGER BELOW THE CARDS (18 Oct 2026): what is owed is in
+       each member's Pay sheet, so nothing is owed and no card says Owed yet. */
+    await expect(owner.getByTestId("team-pay-ledger")).toHaveCount(0);
+    await expect(owner.getByTestId("team-card-owed")).toHaveCount(0);
     await expect(owner.getByText(trainerName).first()).toBeVisible();
     await owner.goto(`/business/${businessId}/earnings`);
 

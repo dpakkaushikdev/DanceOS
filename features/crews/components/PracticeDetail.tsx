@@ -11,7 +11,7 @@ import type { PracticeTileKind } from "./practice-card";
    (the 11 Oct `isClassAsk` lesson). Same words and colours as its chip. */
 const PRACTICE_KIND_LOOK: Record<PracticeTileKind, { word: string; tint: string }> = {
   crew: { word: "CREW", tint: DOS_TOOLS.crews.c },
-  job: { word: "JOB", tint: DOS_TOOLS.enquiries.c },
+  job: { word: "ENQUIRY", tint: DOS_TOOLS.enquiries.c },
 };
 const IST_DAY = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" });
 const practiceDayKey = (iso: string): string => IST_DAY.format(new Date(iso));

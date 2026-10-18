@@ -645,11 +645,9 @@ export function EnquiryDetail({
               </div>
             ))}
           </dl>
-          {e.message ? (
-            <p data-testid="enquiry-message" style={{ margin: "8px 0 0", fontSize: 12, lineHeight: 1.5, color: "var(--sub)", fontStyle: "italic", overflowWrap: "anywhere" }}>
-              “{e.message}”
-            </p>
-          ) : null}
+          {/* ⚠ NO MESSAGE LINE UNDER THE TILES (18 Oct 2026, the user: "Remove the
+              last line in enquiry detail in what they asked for section") — it was
+              mostly the sentence built from the same answers the tiles show */}
         </Surface>
 
         {/* ── WHERE IT STANDS ── */}

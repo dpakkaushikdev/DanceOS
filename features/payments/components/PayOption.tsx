@@ -24,8 +24,11 @@ export function PayOption({
   ariaLabel,
   disabled = false,
   meter,
+  selected,
   onPick,
 }: {
+  /** a radio row on a one-step sheet (18 Oct 2026): undefined draws the old › */
+  selected?: boolean;
   testId?: string;
   tint: string;
   icon: ReactNode;
@@ -42,6 +45,7 @@ export function PayOption({
       type="button"
       data-testid={testId}
       aria-label={ariaLabel}
+      aria-pressed={selected}
       disabled={disabled}
       onClick={disabled ? undefined : onPick}
       style={{
@@ -54,8 +58,9 @@ export function PayOption({
         padding: "12px 13px",
         marginBottom: 8,
         borderRadius: 16,
-        border: "1.5px solid var(--el)",
-        background: "var(--card)",
+        border: selected ? `2px solid ${tint}` : "1.5px solid var(--el)",
+        boxShadow: selected ? `0 0 0 3px ${tint}22` : "none",
+        background: selected ? `linear-gradient(160deg, ${tint}1c, ${tint}08)` : "var(--card)",
         color: "var(--text)",
         textAlign: "left",
         fontFamily: "inherit",
@@ -79,7 +84,12 @@ export function PayOption({
           </span>
         ) : null}
       </span>
-      <span aria-hidden="true" style={{ flexShrink: 0, color: "var(--muted)", fontSize: 18 }}>›</span>
+      {selected === undefined ? (
+        <span aria-hidden="true" style={{ flexShrink: 0, color: "var(--muted)", fontSize: 18 }}>›</span>
+      ) : (
+        /* the radio: a ring, filled in the option's colour when it is the one chosen */
+        <span aria-hidden="true" style={{ flexShrink: 0, width: 22, height: 22, borderRadius: "50%", boxSizing: "border-box", border: selected ? `6px solid ${tint}` : "2px solid var(--el)", background: selected ? "#fff" : "transparent" }} />
+      )}
     </button>
   );
 }

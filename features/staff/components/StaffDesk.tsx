@@ -31,7 +31,8 @@ import { otherTeamsCount, otherTeamsWaiting, type OtherTeamsData } from "@/featu
 import { ColumnCount, columnTab, columnTrack } from "@/components/ui/ColumnTabs";
 import type { TeamMember } from "@/repositories/businesses";
 import type { BusinessPayLedger, MyEarnings, PayoutMethod, PayoutRecord, PayoutStatus } from "@/types/payout";
-import { TeamPayLedger } from "@/features/payouts/components/TeamPayLedger";
+import { recordPayoutAction } from "@/features/payouts/server-actions/payouts";
+import { sessionDayLabel } from "@/lib/format/session";
 import { PaidToYou } from "@/features/staff/components/PaidToYou";
 import type { BusinessType } from "@/types/business";
 import {
@@ -227,6 +228,8 @@ export function StaffDesk({
      payment in it"*), so the two never open together. */
   const [payFor, setPayFor] = useState<TeamMember | null>(null);
   const [pay, setPay] = useState<{ amount: string; method: PayoutMethod; status: PayoutStatus; note: string }>({ amount: "", method: "upi", status: "done", note: "" });
+  /* the owed sessions ticked in the Pay sheet (18 Oct 2026) */
+  const [chosen, setChosen] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -259,6 +262,11 @@ export function StaffDesk({
     setToast(m);
     setTimeout(() => setToast(null), 2400);
   };
+
+  /* the Pay sheet's owed sessions and what the press will record */
+  const owedPerson = payFor ? payLedger?.people.find((p) => p.userId === payFor.userId) ?? null : null;
+  const chosenTotal = (owedPerson?.unpaid ?? []).filter((s) => chosen.has(s.sessionId)).reduce((sum, s) => sum + s.rateInr, 0);
+  const payAmount = chosenTotal > 0 ? chosenTotal : Number(pay.amount) || 0;
 
   const run = async (op: () => Promise<{ error: string | null }>, doneMsg: string | null) => {
     if (busy) return false;
@@ -564,10 +572,20 @@ export function StaffDesk({
                       <button
                         type="button"
                         aria-label={`Pay ${m.name}`}
-                        onClick={() => { setPay({ amount: "", method: "upi", status: "done", note: "" }); setError(null); setPayFor(m); }}
+                        onClick={() => {
+                          /* ⚠ WHAT YOU OWE THEM IS IN THIS SHEET (18 Oct 2026, the user:
+                             "What you owe should be managed alongside the pay button on
+                             the team members with details") — the unpaid sessions arrive
+                             ticked */
+                          const owed = payLedger?.people.find((p) => p.userId === m.userId);
+                          setChosen(new Set((owed?.unpaid ?? []).filter((s) => s.rateInr > 0).map((s) => s.sessionId)));
+                          setPay({ amount: "", method: "upi", status: "done", note: "" });
+                          setError(null);
+                          setPayFor(m);
+                        }}
                         style={toolBtn("primary", TEAM_TINT)}
                       >
-                        Pay
+                        {(owedOf[m.userId] ?? 0) > 0 ? `Pay · ${rupees(owedOf[m.userId] ?? 0)} owed` : "Pay"}
                       </button>
                     </ToolActions>
                   ) : null}
@@ -655,10 +673,11 @@ export function StaffDesk({
           red line is a refusal a screen reader never hears */}
       {error && <div role="alert" style={{ fontSize: 11.5, color: "#F87171", fontWeight: 700, marginTop: 10 }}>{error}</div>}
 
-      {/* WHAT YOU OWE YOUR PEOPLE — the owner's pay ledger, moved here from
-          Earnings (18 Oct 2026, the user: "what you owe should be handled from
-          teams not here") */}
-      {isOwner && payLedger ? <TeamPayLedger businessId={businessId} ledger={payLedger} /> : null}
+      {/* ⚠ NO SEPARATE "WHAT YOU OWE" LEDGER UNDER THE CARDS (18 Oct 2026, the
+          user: "What you owe should be managed alongside the pay button on the
+          team members with details should not be managed seprately below"). Each
+          card's Pay opens what that person is owed, session by session; the
+          settled payments are on their Member Detail page. */}
       </DeskBody>
       </>
       )}
@@ -919,15 +938,60 @@ export function StaffDesk({
               DanceOS records what you have paid — it does not move the money.
             </div>
 
-            <div style={{ fontSize: 12, color: SUB, margin: "0 0 4px" }}>Amount</div>
-            <input
-              value={pay.amount}
-              onChange={(e) => setPay({ ...pay, amount: e.target.value.replace(/[^0-9]/g, "") })}
-              placeholder="e.g. 9000"
-              inputMode="numeric"
-              aria-label="Amount in rupees"
-              style={inputStyle}
-            />
+            {owedPerson && owedPerson.unpaid.length > 0 ? (
+              <div data-testid="pay-owed" style={{ marginBottom: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", margin: "0 0 6px" }}>
+                  <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1, color: SUB }}>WHAT YOU OWE THEM</span>
+                  <b style={{ fontSize: 13, color: INK }}>{rupees(owedPerson.owedInr)}</b>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 5, maxHeight: 220, overflowY: "auto" }}>
+                  {owedPerson.unpaid.map((s) => {
+                    const on = chosen.has(s.sessionId);
+                    const zero = s.rateInr <= 0;
+                    return (
+                      <button
+                        key={s.sessionId}
+                        type="button"
+                        role="checkbox"
+                        aria-checked={on}
+                        disabled={zero}
+                        aria-label={`${s.classTitle} · ${sessionDayLabel(s.startsAt)} · ${rupees(s.rateInr)}`}
+                        onClick={() => {
+                          const next = new Set(chosen);
+                          if (on) next.delete(s.sessionId); else next.add(s.sessionId);
+                          setChosen(next);
+                        }}
+                        style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", borderRadius: 12, background: on ? `${TEAM_TINT}14` : CARD, border: `1.5px solid ${on ? TEAM_TINT : EL}`, cursor: zero ? "default" : "pointer", opacity: zero ? 0.55 : 1, fontFamily: "inherit", textAlign: "left", color: INK }}
+                      >
+                        <span aria-hidden style={{ width: 16, height: 16, borderRadius: 5, flexShrink: 0, border: `2px solid ${on ? TEAM_TINT : EL}`, background: on ? TEAM_TINT : "transparent", color: "#fff", fontSize: 11, lineHeight: "12px", textAlign: "center", fontWeight: 900 }}>{on ? "✓" : ""}</span>
+                        <span style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ display: "block", fontSize: 12, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.classTitle}</span>
+                          <span style={{ display: "block", fontSize: 10.5, color: SUB }}>{sessionDayLabel(s.startsAt)}</span>
+                        </span>
+                        <b style={{ fontSize: 12 }}>{zero ? "No rate" : rupees(s.rateInr)}</b>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{ fontSize: 10.5, color: "var(--muted)", marginTop: 6 }}>
+                  {chosenTotal > 0 ? `Paying ${chosen.size} session${chosen.size === 1 ? "" : "s"} · ${rupees(chosenTotal)}` : "Untick every session to pay an amount of your own instead."}
+                </div>
+              </div>
+            ) : null}
+
+            {chosenTotal > 0 ? null : (
+              <>
+                <div style={{ fontSize: 12, color: SUB, margin: "0 0 4px" }}>Amount</div>
+                <input
+                  value={pay.amount}
+                  onChange={(e) => setPay({ ...pay, amount: e.target.value.replace(/[^0-9]/g, "") })}
+                  placeholder="e.g. 9000"
+                  inputMode="numeric"
+                  aria-label="Amount in rupees"
+                  style={inputStyle}
+                />
+              </>
+            )}
 
             <div style={{ fontSize: 12, color: SUB, margin: "12px 0 4px" }}>How you paid</div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -971,27 +1035,38 @@ export function StaffDesk({
               </button>
               <button
                 type="button"
-                disabled={busy || Number(pay.amount) < 1}
+                disabled={busy || payAmount < 1}
                 aria-label="Record this payment"
                 onClick={async () => {
                   const who = payFor;
+                  const sessions = [...chosen];
                   const done = await run(
                     () =>
-                      payTeamMemberAction({
-                        businessId,
-                        userId: who.userId,
-                        amountInr: Number(pay.amount),
-                        method: pay.method,
-                        status: pay.status,
-                        note: pay.note.trim() || null,
-                      }),
-                    `${rupees(Number(pay.amount))} recorded for ${who.name}`
+                      sessions.length > 0 && chosenTotal > 0
+                        ? recordPayoutAction({
+                            businessId,
+                            userId: who.userId,
+                            sessionIds: sessions,
+                            method: pay.method,
+                            status: pay.status,
+                            providerRef: null,
+                            note: pay.note.trim() || null,
+                          })
+                        : payTeamMemberAction({
+                            businessId,
+                            userId: who.userId,
+                            amountInr: Number(pay.amount),
+                            method: pay.method,
+                            status: pay.status,
+                            note: pay.note.trim() || null,
+                          }),
+                    `${rupees(payAmount)} recorded for ${who.name}`
                   );
                   if (done) setPayFor(null);
                 }}
-                style={{ flex: 1.4, textAlign: "center", padding: "12px", borderRadius: 999, background: Number(pay.amount) >= 1 ? "var(--text)" : EL, color: Number(pay.amount) >= 1 ? "var(--solid)" : "var(--muted)", fontWeight: 900, fontSize: 12.5, cursor: Number(pay.amount) >= 1 ? "pointer" : "default", border: "none", fontFamily: "inherit" }}
+                style={{ flex: 1.4, textAlign: "center", padding: "12px", borderRadius: 999, background: payAmount >= 1 ? "var(--text)" : EL, color: payAmount >= 1 ? "var(--solid)" : "var(--muted)", fontWeight: 900, fontSize: 12.5, cursor: payAmount >= 1 ? "pointer" : "default", border: "none", fontFamily: "inherit" }}
               >
-                {busy ? "Recording…" : "Record payment"}
+                {busy ? "Recording…" : payAmount >= 1 ? `Record ${rupees(payAmount)}` : "Record payment"}
               </button>
             </div>
           </div>

@@ -30,7 +30,7 @@ export type PracticeChip = "all" | "crew" | "job";
 type Group = "today" | "week" | "later" | "past";
 const GROUP_WORD: Record<Group, string> = { today: "Today", week: "This week", later: "Later", past: "Past" };
 const TAB_WORD: Record<PracticeTab, string> = { upcoming: "Upcoming", past: "Past" };
-const CHIP_WORD: Record<PracticeChip, string> = { all: "All", crew: "Crew", job: "Job" };
+const CHIP_WORD: Record<PracticeChip, string> = { all: "All", crew: "Crew", job: "Enquiry" };
 
 type Item = { key: string; kind: "crew" | "job"; startsAt: string; tab: PracticeTab; group: Group; node: ReactNode };
 

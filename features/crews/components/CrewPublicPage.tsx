@@ -10,7 +10,7 @@ import { ProfileLink, ProfileShare } from "@/features/profiles/components/Profil
 import { StatsChip } from "@/features/profiles/components/StatsChip";
 import { HeroDot, HeroFact, HeroId, IdentityHero } from "@/features/profiles/components/hero-kit";
 import { memberNoWords } from "@/types/profile";
-import { Connections, PeopleGrid, PersonChip } from "@/features/profiles/components/profile-kit";
+import { Connections, PeopleGroup, PersonChip } from "@/features/profiles/components/profile-kit";
 import { DOS_UI, GOLD, INK, LILAC, MUTED } from "@/lib/design/tokens";
 import { photoUrl } from "@/lib/media/photo";
 import type { HeaderPhoto } from "@/repositories/headerPhotos";
@@ -208,17 +208,20 @@ export function CrewRoster({ members }: { members: CrewMember[] }) {
   const lead = live.filter((m) => m.role === "leader");
   const rest = live.filter((m) => m.role !== "leader");
   return (
-    /* ⚠ CONNECTIONS, ONE GRID (18 Oct 2026, the user: "remove sub heading for
-       only crew and studio profiles as it is getting repeated") — the leader
-       first, the role on every chip */
+    /* ⚠ CONNECTIONS WITH SUB-HEADINGS AGAIN (18 Oct 2026, the user: "connections
+       - studio and crew sub heading missing get them back") */
     <Connections n={live.length}>
-      <PeopleGrid>
-        {lead.map((m) => (
-          <Person key={m.id} m={m} role="Crew leader" tint={RC} />
-        ))}
+      {lead.length ? (
+        <PeopleGroup title="Crew leader" n={lead.length}>
+          {lead.map((m) => (
+            <Person key={m.id} m={m} role="Crew leader" tint={RC} />
+          ))}
+        </PeopleGroup>
+      ) : null}
+      <PeopleGroup title="Crew members" n={rest.length}>
         {rest.map((m) => <Person key={m.id} m={m} role={m.role === "trainee" ? "Trainee" : "Member"} tint={RC} />)}
         {rest.length ? null : <div style={{ gridColumn: "1 / -1", fontSize: 11.5, color: MUTED, padding: "4px 0" }}>Nobody else in the crew yet.</div>}
-      </PeopleGrid>
+      </PeopleGroup>
     </Connections>
   );
 }

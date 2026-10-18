@@ -72,7 +72,7 @@ const chipBtn: CSSProperties = {
 };
 
 /** a team figure the page points at — what you owe your people, what studios owe you */
-export type TeamLine = { label: string; amountInr?: number; href: string; note?: string };
+export type TeamLine = { label: string; amountInr?: number; href: string; note?: string; side: "revenue" | "expenses" };
 
 /** "2 Oct" in IST */
 const dayWords = (iso: string): string => new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
@@ -248,7 +248,7 @@ export function EarningsScreen({
         </div>
 
         {/* WHAT IS LEFT — revenue minus expenses, nothing else is deducted */}
-        <div style={{ ...card, marginBottom: team.length ? 10 : 0, background: left < 0 ? "rgba(248,113,113,.10)" : "rgba(34,197,94,.10)", border: `1.5px solid ${left < 0 ? RED : GREEN}55` }}>
+        <div style={{ ...card, marginBottom: 0, background: left < 0 ? "rgba(248,113,113,.10)" : "rgba(34,197,94,.10)", border: `1.5px solid ${left < 0 ? RED : GREEN}55` }}>
           <FigureHead
             title={<span style={{ fontSize: 11, fontWeight: 900, letterSpacing: 0.7, color: "var(--muted)" }}>WHAT IS LEFT</span>}
             figure={
@@ -259,19 +259,10 @@ export function EarningsScreen({
           />
         </div>
 
-        {/* the team's money is the Team section's — one line each, a door there */}
-        {team.map((t) => (
-          <Link key={t.label} href={t.href} data-testid="earn-team" style={{ ...card, display: "flex", alignItems: "center", gap: 10, color: INK, textDecoration: "none", marginBottom: 6, padding: "11px 14px" }}>
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ display: "block", fontSize: 12.5, fontWeight: 900 }}>{t.label}</span>
-              {t.note ? <span style={{ display: "block", fontSize: 10.5, color: SUB, fontWeight: 700, marginTop: 1 }}>{t.note}</span> : null}
-            </span>
-            {t.amountInr !== undefined ? <b style={{ fontSize: 14 }}>{money(t.amountInr)}</b> : null}
-            <span aria-hidden="true" style={{ color: SUB }}>
-              ›
-            </span>
-          </Link>
-        ))}
+        {/* ⚠ THE TEAM'S MONEY IS NOT DRAWN HERE ANY MORE (18 Oct 2026, the user:
+            "owed to your team should be in expenses and what studio pays you should
+            be in revenue. not below what is left") — each line sits inside its
+            own section below, as a door to Team */}
       </DeskMiddle>
 
       <DeskBody>
@@ -284,6 +275,7 @@ export function EarningsScreen({
           open={openRev}
           onToggle={() => setOpenRev((o) => !o)}
           onDive={() => setDive("revenue")}
+          team={team.filter((t) => t.side === "revenue")}
         />
         {noExpenses ? null : (
           <Section
@@ -295,6 +287,7 @@ export function EarningsScreen({
             open={openExp}
             onToggle={() => setOpenExp((o) => !o)}
             onDive={() => setDive("expenses")}
+            team={team.filter((t) => t.side === "expenses")}
           />
         )}
 
@@ -417,6 +410,7 @@ function Section({
   open,
   onToggle,
   onDive,
+  team = [],
 }: {
   title: string;
   lines: MoneyLine[];
@@ -426,6 +420,8 @@ function Section({
   open: boolean;
   onToggle: () => void;
   onDive: () => void;
+  /** the Team section's money that belongs on this side — a door, not added to the total */
+  team?: TeamLine[];
 }) {
   const max = Math.max(1, ...lines.map((l) => l.amountInr));
   const word = title.charAt(0) + title.slice(1).toLowerCase();
@@ -454,6 +450,25 @@ function Section({
       </div>
       {open ? lines.map((l) => <BreakupLine key={l.key} line={l} max={max} tone={tone} />) : null}
       {open && lines.length === 0 ? <div style={{ fontSize: 11.5, color: SUB, marginTop: 6 }}>{empty}</div> : null}
+      {open
+        ? team.map((t) => (
+            <Link
+              key={t.label}
+              href={t.href}
+              data-testid="earn-team"
+              style={{ display: "flex", alignItems: "center", gap: 10, color: INK, textDecoration: "none", marginTop: 8, padding: "9px 11px", borderRadius: 12, border: "1.5px dashed var(--el)" }}
+            >
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 12.5, fontWeight: 900 }}>{t.label}</span>
+                {t.note ? <span style={{ display: "block", fontSize: 10.5, color: SUB, fontWeight: 700, marginTop: 1 }}>{t.note}</span> : null}
+              </span>
+              {t.amountInr !== undefined ? <b style={{ fontSize: 13 }}>{money(t.amountInr)}</b> : null}
+              <span aria-hidden="true" style={{ color: SUB }}>
+                ›
+              </span>
+            </Link>
+          ))
+        : null}
     </div>
   );
 }

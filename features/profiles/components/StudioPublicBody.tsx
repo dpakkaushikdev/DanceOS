@@ -6,7 +6,7 @@ import type { CalendarEntry } from "@/types/calendar";
 import type { PublicTeamMember } from "@/types/publicProfile";
 import type { Room } from "@/types/room";
 import { NextSessions, type NextSessionsBooking } from "./NextSessions";
-import { Connections, PeopleGrid, PersonChip } from "./profile-kit";
+import { Connections, PeopleGroup, PersonChip } from "./profile-kit";
 import { StudioPlace } from "./StudioPlace";
 
 /** EVERYTHING UNDER A STUDIO'S TOP PANEL — the place (address, rooms, what it
@@ -51,12 +51,7 @@ export function StudioPublicBody({
   const chip = (m: PublicTeamMember, word: string) => (
     <PersonChip key={m.userId} href={`/person/${m.userId}`} name={m.name} role={word} roleColour={accent} photo={photoUrl(m.photoPath)} />
   );
-  const people = [
-    ...owners.map((m) => chip(m, m.isOrg ? "Organization" : "Owner")),
-    ...faculty.map((m) => chip(m, "Faculty")),
-    ...visiting.map((m) => chip(m, "Visiting faculty")),
-    ...assistants.map((m) => chip(m, "Assistant")),
-  ];
+  const total = owners.length + faculty.length + visiting.length + assistants.length;
   const onSale =<MembershipsOnSale memberships={memberships} businessName={businessName} accent={accent} signedIn={signedIn} canBuy={canBuy} />;
   return (
     <>
@@ -74,13 +69,16 @@ export function StudioPublicBody({
           {isStudio ? null : onSale}
         </InvertedPanel>
       ) : null}
-      {/* ⚠ CONNECTIONS, ONE GRID (18 Oct 2026, the user: "remove sub heading for
-          only crew and studio profiles as it is getting repeated") — the role is
-          on every chip, so a heading per role said it twice. Owners first, then
-          faculty, visiting faculty and assistants, as the groups were ordered. */}
-      {people.length ? (
-        <Connections n={people.length}>
-          <PeopleGrid>{people}</PeopleGrid>
+      {/* ⚠ CONNECTIONS, WITH THE SUB-HEADINGS BACK (18 Oct 2026, the user, a
+          few hours after asking for one grid: "connections - studio and crew sub
+          heading missing get them back") — a counted head per role, as a
+          person's page has. */}
+      {total ? (
+        <Connections n={total}>
+          {owners.length ? <PeopleGroup title="Owner" n={owners.length}>{owners.map((m) => chip(m, m.isOrg ? "Organization" : "Owner"))}</PeopleGroup> : null}
+          {faculty.length ? <PeopleGroup title="Faculty" n={faculty.length}>{faculty.map((m) => chip(m, "Faculty"))}</PeopleGroup> : null}
+          {visiting.length ? <PeopleGroup title="Visiting faculty" n={visiting.length}>{visiting.map((m) => chip(m, "Visiting faculty"))}</PeopleGroup> : null}
+          {assistants.length ? <PeopleGroup title="Assistants" n={assistants.length}>{assistants.map((m) => chip(m, "Assistant"))}</PeopleGroup> : null}
         </Connections>
       ) : null}
     </>

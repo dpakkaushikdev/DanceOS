@@ -254,7 +254,7 @@ const tomorrowIst = () => {
     await member.getByRole("button", { name: "Calendar menu" }).click();
     /* ⚠ two practice calendars since 18 Oct 2026 — Crew practice and Job practice */
     check((await member.getByRole("checkbox", { name: /^Crew practice: 1$/ }).count()) === 1, "…and the drawer's Crew practice checkbox counts one");
-    check((await member.getByRole("checkbox", { name: /^Job practice: 0$/ }).count()) === 1, "…beside a Job practice checkbox of its own, counting none");
+    check((await member.getByRole("checkbox", { name: /^Enquiry practice: 0$/ }).count()) === 1, "…beside an Enquiry practice checkbox of its own, counting none");
     await member.getByRole("button", { name: "Close the menu" }).click();
     check(await member.getByText(new RegExp(crewName)).first().isVisible().catch(() => false), "…naming WHICH crew");
     check(await member.getByText(/^Your crew ·/).first().isVisible().catch(() => false), "…as their crew's");
@@ -292,7 +292,7 @@ const tomorrowIst = () => {
        drawn with its count, the address replaced */
     check((await leader.getByTestId("practice-tab-upcoming").count()) === 1 && (await leader.getByTestId("practice-tab-past").count()) === 1, "⚠⚠ the Practice screen is two columns — Upcoming · Past");
     check((await leader.getByTestId("practice-group-week").count()) + (await leader.getByTestId("practice-group-today").count()) === 1, "…tomorrow's practice sits under This week (or Today across midnight)");
-    check(/^All · \d+$/.test(await leader.getByTestId("practice-chip-all").innerText()) && /^Crew · 1$/.test(await leader.getByTestId("practice-chip-crew").innerText()) && /^Job · 0$/.test(await leader.getByTestId("practice-chip-job").innerText()), "…and the chips All · Crew · Job, every one drawn, a 0 included");
+    check(/^All · \d+$/.test(await leader.getByTestId("practice-chip-all").innerText()) && /^Crew · 1$/.test(await leader.getByTestId("practice-chip-crew").innerText()) && /^Enquiry · 0$/.test(await leader.getByTestId("practice-chip-job").innerText()), "…and the chips All · Crew · Job, every one drawn, a 0 included");
     await leader.getByTestId("practice-chip-job").click();
     await leader.waitForTimeout(300);
     check((await leader.getByText("Studio 4, Baner").count()) === 0 && /kind=job/.test(leader.url()), "…the Job chip leaves the crew practice out and writes ?kind=job");

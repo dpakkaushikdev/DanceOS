@@ -43,7 +43,7 @@ export default async function MyEarningsPage({ searchParams }: { searchParams: P
 
   const team =
     mine && (mine.studios.length > 0 || mine.payouts.length > 0)
-      ? [{ label: "Still due from studios", amountInr: mine.dueTotal, href: "/team#paid-to-you", note: "Each studio's sessions and payments are in Team" }]
+      ? [{ label: "Still due from studios", amountInr: mine.dueTotal, href: "/team#paid-to-you", note: "Each studio's sessions and payments are in Team", side: "revenue" as const }]
       : [];
 
   return <EarningsScreen report={report} title="Earnings" sub="What studios have paid you" basePath="/earnings" noExpenses team={team} />;

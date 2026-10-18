@@ -26,7 +26,7 @@ export type PracticeTileKind = "crew" | "job";
  *  calendar's own two practice calendars read the same two tools */
 export const PRACTICE_KIND_LOOK: Record<PracticeTileKind, { word: string; tint: string }> = {
   crew: { word: "CREW", tint: DOS_TOOLS.crews.c },
-  job: { word: "JOB", tint: DOS_TOOLS.enquiries.c },
+  job: { word: "ENQUIRY", tint: DOS_TOOLS.enquiries.c },
 };
 
 const IST_DAY = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" });

@@ -72,9 +72,10 @@ export default async function BusinessEarningsPage({
       label: "Owed to your team",
       amountInr: ledger?.owedTotal ?? 0,
       href: `/business/${businessId}/staff`,
-      note: ledger ? `${money(ledger.paidTotal)} settled · pay from Team` : "Pay from Team",
+      note: ledger ? `Not paid yet · ${money(ledger.paidTotal)} settled · pay from Team` : "Not paid yet · pay from Team",
+      side: "expenses" as const,
     },
-    ...(business.type === "artist_page" ? [{ label: "What studios pay you", href: "/team#paid-to-you", note: "In Team › Other Teams" }] : []),
+    ...(business.type === "artist_page" ? [{ label: "What studios pay you", href: "/team#paid-to-you", note: "In Team › Other Teams", side: "revenue" as const }] : []),
   ];
   return (
     <EarningsScreen

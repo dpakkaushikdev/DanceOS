@@ -459,6 +459,20 @@ export function AppChrome({
      notifications that open that tool, so landing on it marks exactly those read
      and the chrome re-reads — the badge goes because the thing it counted was
      seen, never on a timer. One call per tool visit, at most 200 ids. */
+  /* ⚠ ONE TOOL LIT AT A TIME (18 Oct 2026, the user: "when clicking on students as
+     an artist - studio and classes both getting highlighted together in profile
+     switcher"). Each drawer row lit itself when the page started with its address,
+     so an artist's Studios tool (`/business`) lit beside Students
+     (`/business/{page}/students`). Only the LONGEST matching address is lit — the
+     same rule the counts below already use. */
+  const activeToolHref = (() => {
+    let best: string | null = null;
+    for (const t of hereItem?.tiles ?? []) {
+      const p = t.href.split("?")[0];
+      if ((pathname === p || pathname.startsWith(`${p}/`)) && (!best || p.length > best.split("?")[0].length)) best = t.href;
+    }
+    return best;
+  })();
   const seenRef = useRef<string>("");
   useEffect(() => {
     /* ⚠ THE LONGEST MATCH, NOT THE FIRST (18 Oct 2026, found auditing the counts):
@@ -1001,7 +1015,7 @@ export function AppChrome({
                         aria-describedby={`tool-count-${hereItem.key}-${t.k}`}
                         {...tapHandlers}
                         onClick={(e) => { wasSwipe(e); }}
-                        style={{ display: "flex", alignItems: "center", gap: 11, padding: "7px 8px", borderRadius: 14, textDecoration: "none", color: "var(--text)", background: pathname === t.href || pathname.startsWith(`${t.href}/`) ? "var(--el)" : "transparent" }}
+                        style={{ display: "flex", alignItems: "center", gap: 11, padding: "7px 8px", borderRadius: 14, textDecoration: "none", color: "var(--text)", background: t.href === activeToolHref ? "var(--el)" : "transparent" }}
                       >
                         <ToolGlyph k={t.k} c={t.c} size={34} />
                         <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 900, letterSpacing: -0.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>

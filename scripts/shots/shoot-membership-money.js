@@ -187,13 +187,14 @@ const passRow = async (id) => (await call("GET", `/rest/v1/membership_passes?id=
     const offerText = offered ? (await bp.getByTestId("pass-strip").innerText()).replace(/\s+/g, " ") : "";
     check(offered === 1 && /3 hours left · this class takes 1 hour/.test(offerText), `the class page offers the pass and says what it will take (${offerText})`);
     if (offered) {
-      /* ⚠ it ASKS first (18 Oct 2026) — the press opens the question, only its button spends */
+      /* ⚠ ONE STEP (18 Oct 2026, later) — picking the pass draws what it takes ON the
+         sheet, and only the sheet's "Use membership" button spends */
       await use.click();
-      const ask = bp.getByRole("alertdialog", { name: `Use ${spendM.name} for this class?` });
+      const ask = how.getByTestId("pass-confirm");
       await ask.waitFor({ timeout: 10000 });
       const askText = (await ask.innerText()).replace(/\s+/g, " ");
-      check(/Left after/.test(askText) && /2 hours of 3 hours/.test(askText), `the question says what will be left (${askText.slice(0, 120)})`);
-      await ask.getByRole("button", { name: "Use membership" }).click();
+      check(/Left after/.test(askText) && /2 hours of 3 hours/.test(askText), `the sheet says what will be left (${askText.slice(0, 120)})`);
+      await how.getByRole("button", { name: "Use membership" }).click();
       await bp.getByText(`Booked with ${spendM.name}`).waitFor({ timeout: 30000 }).catch(() => {});
     }
     let p1 = pass1, seat = [];

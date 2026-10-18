@@ -23,7 +23,7 @@ export function PageSkeleton() {
     <div aria-hidden="true" style={{ height: h, borderRadius: r, background: "var(--card)", border: "1.5px solid var(--el)", opacity: 0.7 }} />
   );
   return (
-    <div role="status" aria-label="Loading" style={{ maxWidth: 430, margin: "0 auto", padding: "12px 16px 40px", display: "flex", flexDirection: "column", gap: 12, minHeight: "60vh" }}>
+    <div role="status" aria-label="Loading" style={{ maxWidth: 430, margin: "0 auto", padding: "12px var(--dos-gutter) 40px", display: "flex", flexDirection: "column", gap: 12, minHeight: "60vh" }}>
       {block(206, 22)}
       {block(56, 14)}
       {block(120)}

@@ -5,7 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findMyLedCrews } from "@/repositories/crews";
 import { findEnquiryById } from "@/repositories/enquiries";
 import { findBusinessTeam, findMyMemberships, runsTheBusiness } from "@/repositories/businesses";
-import { findEnquiryJob } from "@/repositories/enquiryTeam";
+import { findEnquiryFiles, findEnquiryJob } from "@/repositories/enquiryTeam";
 import { MEMBER_ROLE_WORD } from "@/types/staff";
 import type { EnquiryJob } from "@/types/enquiry";
 
@@ -51,14 +51,18 @@ export default async function EnquiryPage({
      `available: false`, and a failed team read is an empty list, so the money
      half of the page never fails over the two new sections. */
   const noJob: EnquiryJob = { available: false, people: [], practices: [] };
-  const [job, team] = mine
-    ? await Promise.all([
-        findEnquiryJob(supabase, enquiry.id).catch(() => noJob),
-        canWork && enquiry.businessId ? findBusinessTeam(supabase, enquiry.businessId).catch(() => []) : Promise.resolve([]),
-      ])
-    : [noJob, []];
+  const noFiles = { available: false, files: [] };
+  const [job, team, files] = await Promise.all([
+    mine ? findEnquiryJob(supabase, enquiry.id).catch(() => noJob) : Promise.resolve(noJob),
+    mine && canWork && enquiry.businessId ? findBusinessTeam(supabase, enquiry.businessId).catch(() => []) : Promise.resolve([]),
+    /* ⚠ FILES ARE BOTH ENDS' (18 Oct 2026, `20261025090000`) — RLS admits the
+       business's members and the sender; a failed read is an empty section */
+    findEnquiryFiles(supabase, enquiry.id).catch(() => noFiles),
+  ]);
   const teamPicks = team.map((t) => ({ userId: t.userId, name: t.name, photoPath: t.avatarPath, seat: MEMBER_ROLE_WORD[t.role] }));
-  const initialTab = show === "team" || show === "practices" ? show : "payments";
+  /* the business's sections are four, the sender's two — EnquiryDetail drops a
+     section the reader does not have */
+  const initialTab = show === "team" || show === "practices" || show === "files" ? show : "payments";
 
   return (
     <EnquiryDetail
@@ -74,6 +78,7 @@ export default async function EnquiryPage({
       job={job}
       team={teamPicks}
       initialTab={initialTab}
+      files={files}
     />
   );
 }

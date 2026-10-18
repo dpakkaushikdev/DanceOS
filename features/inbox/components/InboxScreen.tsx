@@ -16,8 +16,10 @@ import {
   enquiryStage,
   enquiryValueInr,
   type Enquiry,
+  type EnquiryJobAsk,
   type EnquiryTypeKey,
 } from "@/types/enquiry";
+import { EnquiryJobsList } from "@/features/enquiries/components/EnquiryJobsList";
 import { DOS_MONO, moneyShort, pressKey } from "./inbox-kit";
 import { EnquiryCard } from "@/features/enquiries/components/enquiry-kit";
 import { InboxFilters, NO_FILTER, applyInboxFilter, type InboxFilter, type InboxSort } from "./InboxFilters";
@@ -67,6 +69,7 @@ export function InboxScreen({
   receivedOnly = false,
   settings = null,
   pointers = [],
+  jobs = null,
 }: {
   /** the profile-tinted wash the rest of the app opens on (5681) */
   accent: string;
@@ -74,7 +77,7 @@ export function InboxScreen({
   enquiriesOut: Enquiry[];
   nowIso: string;
   /** `?show=done` opens on the Completed side; anything else on Received */
-  initialSection?: "enq" | "done";
+  initialSection?: "enq" | "done" | "jobs";
   /** WHOSE DESK THIS IS, when it is a studio's (27 Sep 2026) */
   deskSub?: string | null;
   /** a studio's desk — what it was asked, and no Sent side */
@@ -84,7 +87,23 @@ export function InboxScreen({
   /** the lines pointing at what moved to its own tile (11 Oct 2026) — each is
    *  drawn only while n > 0 */
   pointers?: InboxPointer[];
+  /** ⚠ THE JOBS YOU WERE PUT ON (18 Oct 2026, `20261025090000`) — a person's own
+   *  Inbox only. Null draws no Enquiries · Jobs switch at all (a studio's desk). */
+  jobs?: EnquiryJobAsk[] | null;
 }) {
+  const [area, setArea] = useState<"enq" | "jobs">(initialSection === "jobs" && jobs ? "jobs" : "enq");
+  const pickArea = (a: "enq" | "jobs") => {
+    setArea(a);
+    /* the address keeps the column, so a reload and a shared link land here */
+    try {
+      const u = new URL(window.location.href);
+      if (a === "jobs") u.searchParams.set("show", "jobs");
+      else u.searchParams.delete("show");
+      window.history.replaceState(window.history.state, "", u.toString());
+    } catch {
+      /* the column still switches */
+    }
+  };
   const [enqSide, setEnqSide] = useState<Side3>(initialSection === "done" ? "done" : "in");
   /* ⚠ ONE FILTER, DISCOVER'S ANATOMY (3 Oct 2026); a side switch clears it,
      because a STAGE picked on one side names nothing on another */
@@ -97,7 +116,8 @@ export function InboxScreen({
   const newIn = enquiriesIn.filter((e) => enquiryStage(e) === "new");
   const live = pointers.filter((p) => p.n > 0);
   /* WHAT WAITS ON YOU: the new enquiries, and what the pointers count */
-  const owed = newIn.length + live.reduce((s, p) => s + p.n, 0);
+  const askedJobs = (jobs ?? []).filter((j) => j.status === "asked").length;
+  const owed = newIn.length + askedJobs + live.reduce((s, p) => s + p.n, 0);
 
   /* ⚠ A CLOSED ENQUIRY — COMPLETED, LOST OR CANCELLED — IS UNDER COMPLETED (2 Oct
      2026), deduped by id because an enquiry sent to your own page is on both sides */
@@ -226,12 +246,36 @@ export function InboxScreen({
             </span>
           </Link>
         ))}
+        {/* ⚠ ENQUIRIES · JOBS (18 Oct 2026) — always drawn on a person's Inbox, each counted */}
+        {jobs ? (
+          <div data-testid="inbox-areas" role="group" aria-label="Enquiries or jobs" style={{ ...columnTrack(), marginTop: 4 }}>
+            {(
+              [
+                ["enq", "Enquiries", liveIn + (receivedOnly ? 0 : liveOut), newIn.length > 0],
+                ["jobs", "Jobs", jobs.length, askedJobs > 0],
+              ] as Array<["enq" | "jobs", string, number, boolean]>
+            ).map(([k, l, n, att]) => (
+              <div key={k} role="button" tabIndex={0} aria-pressed={area === k} aria-label={k === "jobs" ? "Your jobs" : "Your enquiries"} onKeyDown={pressKey(() => pickArea(k))} onClick={() => pickArea(k)} style={columnTab(area === k)}>
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{l}</span>
+                <ColumnCount n={n} on={area === k} attention={att} />
+              </div>
+            ))}
+          </div>
+        ) : null}
         {/* ⚠ NO SENT SIDE ON A STUDIO'S DESK (2 Oct 2026) — an enquiry is sent by a person */}
-        {sideSwitch(enqSide, pickEnqSide, liveIn, receivedOnly ? null : liveOut, doneEnq.length, "enquiries")}
+        {area === "enq" ? sideSwitch(enqSide, pickEnqSide, liveIn, receivedOnly ? null : liveOut, doneEnq.length, "enquiries") : null}
       </TopPanel>
 
+      {area === "jobs" && jobs ? (
+        <InvertedPanel ground="page" style={{ flex: 1, margin: "0 16px calc(var(--dos-foot, 96px) + 12px)", borderRadius: 22, padding: "18px 14px 18px" }}>
+          <div data-testid="inbox-jobs" style={{ position: "relative" }}>
+            <EnquiryJobsList jobs={jobs} />
+          </div>
+        </InvertedPanel>
+      ) : null}
+
       {/* ── THE MIDDLE: the three figures and the Breakup (3 Oct 2026) ── */}
-      {(enqSide !== "done" && side.length > 0) || brkRows.length > 0 ? (
+      {area === "enq" && ((enqSide !== "done" && side.length > 0) || brkRows.length > 0) ? (
         <TopPanel testId="inbox-overview" style={{ margin: "0 16px 12px" }}>
           {enqSide !== "done" && side.length > 0 ? (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 7 }}>
@@ -249,6 +293,7 @@ export function InboxScreen({
       ) : null}
 
       {/* ── THE LOWER PANEL: the search and the cards, on the page's own theme ── */}
+      {area === "enq" ? (
       <InvertedPanel ground="page" style={{ flex: 1, margin: "0 16px calc(var(--dos-foot, 96px) + 12px)", borderRadius: 22, padding: "18px 14px 18px" }}>
         <div data-testid="inbox-panel" style={{ position: "relative" }}>
           {enqBase.length ? <InboxFilters value={fEnq} onChange={setFEnq} noun="enquiries" kinds={enqKinds} stages={enqStages} sorts={ENQ_SORTS} stageLabel="STATUS" quickStages /> : null}
@@ -274,6 +319,7 @@ export function InboxScreen({
           )}
         </div>
       </InvertedPanel>
+      ) : null}
     </div>
   );
 }

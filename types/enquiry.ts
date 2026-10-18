@@ -386,6 +386,73 @@ export interface EnquiryPerson {
   name: string;
   photoPath: string | null;
   city: string | null;
+  /** asked → confirmed; a no soft-deletes the row (`20261025090000`) */
+  status: EnquiryPersonStatus;
+}
+
+export type EnquiryPersonStatus = "asked" | "confirmed";
+
+export const ENQ_PERSON_STATUS_WORD: Record<EnquiryPersonStatus, string> = { asked: "Asked", confirmed: "Confirmed" };
+
+/* ── FILES, JOBS AND MY PRACTICES (18 Oct 2026, `20261025090000`) ─────────── */
+
+export type EnquiryFileKind = "music" | "video" | "document" | "photo" | "link";
+
+export const ENQ_FILE_KINDS: ReadonlyArray<readonly [EnquiryFileKind, string]> = [
+  ["music", "Music"],
+  ["video", "Video"],
+  ["document", "Document"],
+  ["photo", "Photos"],
+  ["link", "Link"],
+];
+
+export interface EnquiryFile {
+  id: string;
+  kind: EnquiryFileKind;
+  label: string;
+  url: string;
+  createdBy: string | null;
+  createdAt: string;
+}
+
+/** an enquiry job somebody was put on — `my_enquiry_jobs()` */
+export interface EnquiryJobAsk {
+  id: string;
+  enquiryId: string;
+  kind: EnquiryPersonKind;
+  role: string | null;
+  status: EnquiryPersonStatus;
+  createdAt: string;
+  hostName: string;
+  hostPhotoPath: string | null;
+  typeKey: string | null;
+  firstDate: string | null;
+}
+
+/** an enquiry practice the caller runs or is on — `my_enquiry_practices()` */
+export interface MyEnquiryPractice {
+  id: string;
+  enquiryId: string;
+  startsAt: string;
+  endsAt: string;
+  place: string;
+  note: string | null;
+  status: "scheduled" | "cancelled";
+  hostName: string;
+  hostPhotoPath: string | null;
+  typeKey: string | null;
+  myPart: "runs" | "team" | "participant";
+  people: number;
+  checkedIn: number;
+}
+
+/** the host of a web link, for a file row — never throws */
+export function linkHost(url: string): string {
+  try {
+    return new URL(url).host.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
 }
 
 export interface EnquiryPractice {
@@ -407,3 +474,13 @@ export interface EnquiryJob {
 }
 
 export const ENQ_PERSON_WORD: Record<EnquiryPersonKind, string> = { team: "Team", participant: "Participant" };
+
+/** what the reader is to an enquiry practice — one map for the card, the
+ *  practice's page and the calendar row (18 Oct 2026) */
+export const ENQ_PART_WORD: Record<MyEnquiryPractice["myPart"], { chip: string; sub: string; tint: string }> = {
+  runs: { chip: "YOU RUN IT", sub: "You run this job", tint: "#15803D" },
+  team: { chip: "TEAM", sub: "You are on the team", tint: "#4338CA" },
+  participant: { chip: "PARTICIPANT", sub: "You are a participant", tint: "#B45309" },
+};
+
+export const enquiryTypeLabel = (k: string | null): string | null => (k ? ENQ_TYPES.find((t) => t.k === k)?.label ?? null : null);

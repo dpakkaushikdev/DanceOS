@@ -129,7 +129,9 @@ const measureHead = (page) =>
     const tallest = c ? Math.max(s.height, c.height) : s.height;
     return {
       tag: title.tagName,
-      titleText: title.textContent.trim(),
+      /* what a screen reader reads: BeatText (18 Oct 2026) draws aria-hidden
+         letters beside a visually-hidden copy, so textContent says the word twice */
+      titleText: (() => { const c = title.cloneNode(true); c.querySelectorAll('[aria-hidden="true"]').forEach((n) => n.remove()); return c.textContent.trim(); })(),
       subText: sub.textContent.trim(),
       font: Math.round(parseFloat(getComputedStyle(title).fontSize) * 10) / 10,
       subFont: Math.round(parseFloat(getComputedStyle(sub).fontSize) * 10) / 10,

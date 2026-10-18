@@ -5,6 +5,7 @@ import { publicProfilePath, publicSchedulePath } from "@/lib/routes/publicProfil
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PUBLIC_SCHEDULE_MONTHS, findPublicBusinessSchedule, publicScheduleToIso } from "@/repositories/calendar";
 import { findPublicBusiness, findPublicStudioTeam } from "@/repositories/publicProfile";
+import { findRoomsByBusiness } from "@/repositories/rooms";
 import type { BusinessType } from "@/types/business";
 
 const stampNowIso = (): string => new Date().toISOString();
@@ -39,14 +40,22 @@ export async function PublicSchedulePage({ businessId, expect }: { businessId: s
     business.type === "artist_page"
       ? ((await findPublicStudioTeam(supabase, businessId).catch(() => [])).find((m) => m.role === "owner")?.userId ?? null)
       : null;
-  const entries = await findPublicBusinessSchedule(
-    supabase,
-    businessId,
-    { name: business.name, city: business.city },
-    now,
-    publicScheduleToIso(now),
-    teacherId
-  );
+  /* ⚠ THE ROOM LIST IS THE STUDIO'S OWN ROOMS (18 Oct 2026, the user: "room drop
+     down not visible in studio classes button. should be always visible"). It was
+     derived from the classes on the page, so a studio with nothing ahead — or
+     classes with no room — drew no dropdown at all. A listed studio's rooms are
+     anybody's to read (Step 11), and a failed read only falls back to the old way. */
+  const [entries, studioRooms] = await Promise.all([
+    findPublicBusinessSchedule(
+      supabase,
+      businessId,
+      { name: business.name, city: business.city },
+      now,
+      publicScheduleToIso(now),
+      teacherId
+    ),
+    business.type === "studio" ? findRoomsByBusiness(supabase, businessId).catch(() => []) : Promise.resolve([]),
+  ]);
 
   return (
     <CalendarScreen
@@ -57,6 +66,7 @@ export async function PublicSchedulePage({ businessId, expect }: { businessId: s
       entries={entries}
       emptyHref={publicProfilePath(business)}
       roomFilter={business.type === "studio"}
+      roomNames={studioRooms.map((r) => r.name)}
     />
   );
 }

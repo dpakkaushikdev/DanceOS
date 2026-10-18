@@ -443,7 +443,7 @@ export function StatsScreen({
           the profile's own picture where initials stood, and the two columns
           inside the same squircle as the heading, as the Inbox's are. Every
           block below is the class page's section card (`SectionCard`). */}
-      <div style={{ padding: "0 16px" }}>
+      <div style={{ padding: "0 var(--dos-gutter)" }}>
       <TopPanel tint={accent} testId="stats-top" style={{ marginTop: 12 }}>
         <div style={{ ...micro, letterSpacing: 2.2, color: SUB }}>{tab === "charts" ? "DanceOS · India" : `${eyebrow} · Record`}</div>
         <div style={{ fontSize: 28, fontWeight: 900, fontFamily: DOS_DISPLAY, letterSpacing: -1.1, lineHeight: 1.05, marginTop: 4 }}>{tab === "charts" ? "Rankings" : "Stats"}</div>

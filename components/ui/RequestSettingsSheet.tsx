@@ -104,7 +104,7 @@ export function BottomSheet({ title, onClose, children, scroll = false }: { titl
           aria-modal="true"
           aria-label={title}
           onClick={(e) => e.stopPropagation()}
-          style={{ background: "var(--solid)", color: "var(--text)", borderRadius: "24px 24px 0 0", padding: "14px 16px 28px", width: "100%", maxWidth: 430, boxSizing: "border-box", animation: "dosSheetUp .22s ease-out", ...(scroll ? { maxHeight: "88vh", display: "flex", flexDirection: "column" as const } : {}) }}
+          style={{ background: "var(--solid)", color: "var(--text)", borderRadius: "24px 24px 0 0", padding: "14px var(--dos-gutter) 28px", width: "100%", maxWidth: 430, boxSizing: "border-box", animation: "dosSheetUp .22s ease-out", ...(scroll ? { maxHeight: "88vh", display: "flex", flexDirection: "column" as const } : {}) }}
         >
           <div style={{ width: 40, height: 4, borderRadius: 2, background: "var(--el)", margin: "0 auto 12px", flexShrink: 0 }} />
           <div style={{ ...FORM_TITLE, flexShrink: 0 }}>{title}</div>

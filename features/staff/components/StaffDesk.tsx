@@ -286,7 +286,7 @@ export function StaffDesk({
         margin: "0 auto",
         fontFamily: DOS_UI,
         minHeight: "100vh",
-        padding: "0 16px 40px",
+        padding: "0 var(--dos-gutter) 40px",
         boxSizing: "border-box",
       }}
     >

@@ -165,7 +165,7 @@ export function EarningsScreen({
   const tops = topGroups(revItems, 5);
 
   return (
-    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "8px 16px 40px", boxSizing: "border-box" }}>
+    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "8px var(--dos-gutter) 40px", boxSizing: "border-box" }}>
       <DeskTop>
         {title === DOS_TOOLS.earn.name ? (
           <DeskHero tool="earn" as="h1" margin="0" />
@@ -571,7 +571,7 @@ function DiveSheet({
           aria-label={`${title} in detail`}
           data-testid="earn-dive"
           onClick={(e) => e.stopPropagation()}
-          style={{ width: "100%", maxWidth: 430, maxHeight: "90vh", overflowY: "auto", background: "var(--solid)", color: INK, borderRadius: "24px 24px 0 0", padding: "10px 16px 28px", boxSizing: "border-box", animation: SHEET_ANIMATION, fontFamily: DOS_UI }}
+          style={{ width: "100%", maxWidth: 430, maxHeight: "90vh", overflowY: "auto", background: "var(--solid)", color: INK, borderRadius: "24px 24px 0 0", padding: "10px var(--dos-gutter) 28px", boxSizing: "border-box", animation: SHEET_ANIMATION, fontFamily: DOS_UI }}
         >
           <div aria-hidden="true" style={{ width: 40, height: 4, borderRadius: 999, background: "var(--el)", margin: "0 auto 12px" }} />
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
@@ -684,7 +684,7 @@ function CustomSheet({ range, onClose, onApply }: { range: { from: string; to: s
           aria-label="Custom dates"
           data-testid="earn-custom-sheet"
           onClick={(e) => e.stopPropagation()}
-          style={{ width: "100%", maxWidth: 430, background: "var(--solid)", color: INK, borderRadius: "24px 24px 0 0", padding: "10px 16px 28px", boxSizing: "border-box", animation: SHEET_ANIMATION, fontFamily: DOS_UI }}
+          style={{ width: "100%", maxWidth: 430, background: "var(--solid)", color: INK, borderRadius: "24px 24px 0 0", padding: "10px var(--dos-gutter) 28px", boxSizing: "border-box", animation: SHEET_ANIMATION, fontFamily: DOS_UI }}
         >
           <div aria-hidden="true" style={{ width: 40, height: 4, borderRadius: 999, background: "var(--el)", margin: "0 auto 12px" }} />
           <h2 style={{ margin: "0 0 12px", fontSize: 19, fontWeight: 900 }}>Custom dates</h2>

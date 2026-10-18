@@ -181,7 +181,7 @@ export function FormPage({
 
   if (!sheet) {
     return (
-      <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "14px 16px 150px", boxSizing: "border-box" }}>
+      <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "14px var(--dos-gutter) 150px", boxSizing: "border-box" }}>
         {head}
         {children}
       </div>
@@ -202,7 +202,7 @@ export function FormPage({
             <div style={{ width: 40, height: 4, borderRadius: 2, background: EL, margin: "10px auto 0", flexShrink: 0 }} />
             {/* the scroller is the panel's own, so the app underneath does not
                 move and the action bar can stick to the panel's bottom edge */}
-            <div style={{ overflowY: "auto", padding: "6px 16px 0", flex: 1, minHeight: 0 }}>
+            <div style={{ overflowY: "auto", padding: "6px var(--dos-gutter) 0", flex: 1, minHeight: 0 }}>
               {head}
               {children}
             </div>
@@ -221,7 +221,7 @@ export function FormBar({ children }: { children: React.ReactNode }) {
   const sheet = useContext(InSheet);
   if (sheet) {
     return (
-      <div style={{ position: "sticky", bottom: 0, margin: "14px -16px 0", zIndex: 2, boxSizing: "border-box", background: "var(--solid)", borderTop: `1.5px solid ${EL}`, padding: "12px 16px calc(14px + env(safe-area-inset-bottom))", display: "flex", gap: 10 }}>
+      <div style={{ position: "sticky", bottom: 0, margin: "14px calc(-1 * var(--dos-gutter)) 0", zIndex: 2, boxSizing: "border-box", background: "var(--solid)", borderTop: `1.5px solid ${EL}`, padding: "12px 16px calc(14px + env(safe-area-inset-bottom))", display: "flex", gap: 10 }}>
         {children}
       </div>
     );
@@ -294,7 +294,7 @@ export function FormConfirm({
         aria-modal="true"
         aria-label={label}
         onClick={(e) => e.stopPropagation()}
-        style={{ background: "var(--solid)", borderRadius: "24px 24px 0 0", padding: "18px 16px 30px", width: "100%", maxWidth: 430, boxSizing: "border-box", color: INK, animation: "dosSheetUp .28s cubic-bezier(.22,.9,.34,1)" }}
+        style={{ background: "var(--solid)", borderRadius: "24px 24px 0 0", padding: "18px var(--dos-gutter) 30px", width: "100%", maxWidth: 430, boxSizing: "border-box", color: INK, animation: "dosSheetUp .28s cubic-bezier(.22,.9,.34,1)" }}
       >
         <div style={{ width: 40, height: 4, borderRadius: 2, background: EL, margin: "0 auto 14px" }} />
         <b style={FORM_TITLE}>{title}</b>

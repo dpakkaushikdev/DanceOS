@@ -177,7 +177,7 @@ function SettingsSheet({ prefs, busy, onSave, onClose }: { prefs: NotificationPr
           aria-modal="true"
           aria-label="Notification settings"
           onClick={(e) => e.stopPropagation()}
-          style={{ background: "var(--solid)", color: INK, borderRadius: "24px 24px 0 0", padding: "14px 16px 26px", width: "100%", maxWidth: 430, boxSizing: "border-box", maxHeight: "88vh", overflowY: "auto", animation: "dosSheetUp .22s ease-out", fontFamily: DOS_UI }}
+          style={{ background: "var(--solid)", color: INK, borderRadius: "24px 24px 0 0", padding: "14px var(--dos-gutter) 26px", width: "100%", maxWidth: 430, boxSizing: "border-box", maxHeight: "88vh", overflowY: "auto", animation: "dosSheetUp .22s ease-out", fontFamily: DOS_UI }}
         >
           <div style={{ width: 40, height: 4, borderRadius: 2, background: "var(--el)", margin: "0 auto 12px" }} />
           <div style={{ fontSize: 17, fontWeight: 900, fontFamily: DOS_DISPLAY }}>Notifications</div>
@@ -601,7 +601,7 @@ export function NotificationsScreen({
   }
 
   return (
-    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "2px 16px 40px", boxSizing: "border-box", overflowX: "hidden" }}>
+    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "2px var(--dos-gutter) 40px", boxSizing: "border-box", overflowX: "hidden" }}>
       <DeskTop style={{ paddingBottom: 12 }}>
         <HueHead
           title="Notifications"

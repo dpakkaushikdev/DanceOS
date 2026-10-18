@@ -37,7 +37,7 @@ const row: CSSProperties = { padding: "12px 12px 12px", marginTop: 8, border: "1
 /* the card's one action, a full-width pill (18 Oct 2026) */
 const buyBox: CSSProperties = { flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 118, padding: "11px 18px", borderRadius: 999, fontSize: 13, fontWeight: 900, fontFamily: "inherit", textDecoration: "none", whiteSpace: "nowrap" };
 const sheetBackdrop: CSSProperties = { position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 700 };
-const sheetBody: CSSProperties = { background: "var(--solid)", color: INK, borderRadius: "24px 24px 0 0", padding: "16px 16px 30px", width: "100%", maxWidth: 430, boxSizing: "border-box", animation: "dosSheetUp .28s cubic-bezier(.22,.9,.34,1)" };
+const sheetBody: CSSProperties = { background: "var(--solid)", color: INK, borderRadius: "24px 24px 0 0", padding: "16px var(--dos-gutter) 30px", width: "100%", maxWidth: 430, boxSizing: "border-box", animation: "dosSheetUp .28s cubic-bezier(.22,.9,.34,1)" };
 
 export function MembershipsOnSale({
   memberships,

@@ -260,7 +260,7 @@ export function SettingsSheet({
 
   return (
     <div onClick={inline ? undefined : onClose} style={inline ? { fontFamily: DOS_UI } : { position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 600, fontFamily: DOS_UI }}>
-      <div role="dialog" aria-modal={inline ? undefined : true} aria-label="Settings" onClick={(e) => e.stopPropagation()} style={inline ? { color: INK, animation: "dosPaneIn .22s cubic-bezier(.22,.9,.34,1)" } : { background: "var(--solid)", borderRadius: "24px 24px 0 0", padding: "16px 16px 30px", width: "100%", maxWidth: 430, boxSizing: "border-box", maxHeight: "84vh", overflowY: "auto", color: INK, animation: "dosSheetUp .28s cubic-bezier(.22,.9,.34,1)" }}>
+      <div role="dialog" aria-modal={inline ? undefined : true} aria-label="Settings" onClick={(e) => e.stopPropagation()} style={inline ? { color: INK, animation: "dosPaneIn .22s cubic-bezier(.22,.9,.34,1)" } : { background: "var(--solid)", borderRadius: "24px 24px 0 0", padding: "16px var(--dos-gutter) 30px", width: "100%", maxWidth: 430, boxSizing: "border-box", maxHeight: "84vh", overflowY: "auto", color: INK, animation: "dosSheetUp .28s cubic-bezier(.22,.9,.34,1)" }}>
         {inline ? (
           <button type="button" onClick={onBack} aria-label="Back to profiles" style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "none", border: "none", color: INK, fontFamily: DOS_UI, fontSize: 13, fontWeight: 800, padding: "2px 0 10px", cursor: "pointer" }}>
             <span aria-hidden="true" style={{ fontSize: 18, lineHeight: 1 }}>‹</span> Back

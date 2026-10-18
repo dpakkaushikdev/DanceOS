@@ -71,7 +71,7 @@ export function PassDeck({ items }: { items: DeckItem[] }) {
           scrollSnapType: "x mandatory",
           scrollbarWidth: "none",
           WebkitOverflowScrolling: "touch",
-          margin: "0 -16px",
+          margin: "0 calc(-1 * var(--dos-gutter))",
           padding: "4px 16px 2px",
           fontFamily: DOS_UI,
         }}

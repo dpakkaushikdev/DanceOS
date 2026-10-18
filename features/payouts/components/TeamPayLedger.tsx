@@ -52,7 +52,7 @@ function Sheet({ title, sub, onClose, children }: { title: string; sub?: string;
         aria-modal="true"
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
-        style={{ background: LILAC, color: INK, width: "100%", maxWidth: 430, borderRadius: "22px 22px 0 0", padding: "18px 16px 26px", maxHeight: "88vh", overflowY: "auto", fontFamily: DOS_UI, boxSizing: "border-box" }}
+        style={{ background: LILAC, color: INK, width: "100%", maxWidth: 430, borderRadius: "22px 22px 0 0", padding: "18px var(--dos-gutter) 26px", maxHeight: "88vh", overflowY: "auto", fontFamily: DOS_UI, boxSizing: "border-box" }}
       >
         <b style={FORM_TITLE}>{title}</b>
         {sub ? <div style={{ fontSize: 12, color: SUB, margin: "5px 0 14px" }}>{sub}</div> : <div style={{ height: 12 }} />}

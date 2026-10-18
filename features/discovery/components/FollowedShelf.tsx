@@ -50,7 +50,13 @@ export function FollowedShelf({ rows }: { rows: FollowedTile[] }) {
       <div style={{ marginBottom: 10 }}>
         <ShelfHead title="Followed by you" count={rows.length} unit="followed" testId="followed-count" />
       </div>
-      <div style={{ display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 2 }}>
+      {/* ⚠ THE RING WAS CUT (18 Oct 2026, the user: "followed by you circles
+          getting cut"). The ring is a box-shadow 3.5px OUTSIDE the 74px face, and
+          `overflow-x: auto` turns overflow-y to auto too, so the scroller clipped
+          the ring's top, the first tile's left edge and the last tile's right.
+          The rail carries 6px of room on every side for the ring, and a negative
+          margin of the same so the tiles still line up with the heading. */}
+      <div style={{ display: "flex", gap: 12, overflowX: "auto", overflowY: "hidden", scrollbarWidth: "none", padding: 6, margin: "-2px -6px -6px" }}>
         {rows.map((x) => (
           <Link key={x.id} href={x.href} aria-label={x.style ? `${x.name} — ${x.tag ?? "your style"}` : `${x.name} — followed ${x.kind}`} data-testid={x.style ? "followed-style" : undefined} style={{ flexShrink: 0, width: 74, color: INK, textDecoration: "none", display: "flex", flexDirection: "column", alignItems: "center" }}>
             {/* the kind's own tint rings the face — the word under the name is

@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findMyCalendar } from "@/repositories/calendar";
 import { calendarFeedPath } from "@/lib/calendar/feedToken";
 import { findMyCrewPractices, practiceToCalendar } from "@/repositories/crewPractices";
+import { enquiryPracticeToCalendar, findMyEnquiryPractices } from "@/repositories/enquiryTeam";
 
 /* the clock lives outside the component (react-hooks/purity) */
 const stampNowIso = (): string => new Date().toISOString();
@@ -39,7 +40,7 @@ export default async function CalendarPage() {
   const toIso = monthStartIso(shiftMonthKey(months[months.length - 1].key, -1));
   const todayKey = dayKeyOf(now);
 
-  const [entries, practices] = await Promise.all([
+  const [entries, practices, jobPractices] = await Promise.all([
     findMyCalendar(supabase, user.id, fromIso, toIso),
     /* ⚠ AND THE PRACTICES OF EVERY CREW THIS PERSON IS ON (27 Sep 2026, the
        user: "practice also get added to calendar"). `my_crew_practices` is
@@ -48,6 +49,10 @@ export default async function CalendarPage() {
        than throwing, because a crew's rehearsals must never be the reason
        somebody's whole calendar refuses to render. */
     findMyCrewPractices(supabase, { from: fromIso, to: toIso }),
+    /* ⚠ AND THE ENQUIRY JOBS' PRACTICES (18 Oct 2026, `20261025090000`) — a job
+       this person runs, is on the team of, or is a confirmed participant in;
+       scoped to `auth.uid()` inside, and an empty list on any failure */
+    findMyEnquiryPractices(supabase, { from: fromIso, to: toIso }).catch(() => []),
   ]);
 
   return (
@@ -56,7 +61,7 @@ export default async function CalendarPage() {
       months={months}
       todayKey={todayKey}
       entries={entries}
-      practices={practices.map(practiceToCalendar)}
+      practices={[...practices.map(practiceToCalendar), ...jobPractices.map(enquiryPracticeToCalendar)]}
       emptyHref="/discover"
       /* the whole calendar as one subscribable feed (12 Oct 2026) */
       feedPath={calendarFeedPath(user.id)}

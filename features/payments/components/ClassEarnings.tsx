@@ -68,7 +68,7 @@ export function ClassEarnings({
   const net = collectedInr + doorInr - refundedInr;
 
   return (
-    <div style={{ padding: "12px 16px 0", position: "relative", zIndex: 1, background: "var(--bg)" }}>
+    <div style={{ padding: "12px var(--dos-gutter) 0", position: "relative", zIndex: 1, background: "var(--bg)" }}>
       <div
         style={{
           background: "var(--card)",

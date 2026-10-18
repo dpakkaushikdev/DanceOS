@@ -79,7 +79,7 @@ export function InvoiceSheet({ title, whenText, whereText, classBookingId, amoun
         style={{
           background: "var(--solid)",
           borderRadius: "24px 24px 0 0",
-          padding: "18px 16px 28px",
+          padding: "18px var(--dos-gutter) 28px",
           width: "100%",
           maxWidth: 430,
           boxSizing: "border-box",

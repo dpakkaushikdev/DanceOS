@@ -138,7 +138,7 @@ export function MembershipsScreen({
     });
 
   return (
-    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "8px 16px 40px", boxSizing: "border-box" }}>
+    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "8px var(--dos-gutter) 40px", boxSizing: "border-box" }}>
       {/* ⚠ THE TOP SECTION (3 Oct 2026, C116): the hero, whose desk it is, the two
           sides and the add button; the passes or the memberships on sale are the
           lower section. `DeskAddButton` carries its own 12px foot, so the top's

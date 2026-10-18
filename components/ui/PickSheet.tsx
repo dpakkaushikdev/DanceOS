@@ -110,7 +110,7 @@ export function PickSheet({
           role="listbox"
           aria-label={ariaLabel}
           onClick={(e) => e.stopPropagation()}
-          style={{ background: "var(--solid)", borderRadius: "24px 24px 0 0", padding: "16px 16px 26px", width: "100%", maxWidth: 430, boxSizing: "border-box", color: INK, maxHeight: "72vh", overflowY: "auto", animation: "dosSheetUp .28s cubic-bezier(.22,.9,.34,1)" }}
+          style={{ background: "var(--solid)", borderRadius: "24px 24px 0 0", padding: "16px var(--dos-gutter) 26px", width: "100%", maxWidth: 430, boxSizing: "border-box", color: INK, maxHeight: "72vh", overflowY: "auto", animation: "dosSheetUp .28s cubic-bezier(.22,.9,.34,1)" }}
         >
           <div style={{ width: 40, height: 4, borderRadius: 2, background: EL, margin: "0 auto 12px" }} />
 

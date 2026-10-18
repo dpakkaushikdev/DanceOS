@@ -1,5 +1,16 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { EnquiryJob, EnquiryPerson, EnquiryPersonKind, EnquiryPractice } from "@/types/enquiry";
+import type { CalendarPracticeEntry } from "@/types/calendar";
+import { ENQ_PART_WORD, enquiryTypeLabel } from "@/types/enquiry";
+import type {
+  EnquiryFile,
+  EnquiryFileKind,
+  EnquiryJob,
+  EnquiryJobAsk,
+  EnquiryPerson,
+  EnquiryPersonKind,
+  EnquiryPractice,
+  MyEnquiryPractice,
+} from "@/types/enquiry";
 
 /** AN ENQUIRY'S TEAM AND PRACTICES (18 Oct 2026, `20261024090000`).
  *
@@ -30,7 +41,7 @@ export async function findEnquiryJob(supabase: SupabaseClient, enquiryId: string
   const [peopleRes, practiceRes] = await Promise.all([
     supabase
       .from("enquiry_people")
-      .select("id, user_id, kind, role, created_at")
+      .select("id, user_id, kind, role, status, created_at")
       .eq("enquiry_id", enquiryId)
       .is("deleted_at", null)
       .order("created_at", { ascending: true })
@@ -54,7 +65,7 @@ export async function findEnquiryJob(supabase: SupabaseClient, enquiryId: string
     throw new Error(`enquiryTeam.practices failed: ${practiceRes.error.message}`);
   }
 
-  const rows = (peopleRes.data ?? []) as Array<{ id: string; user_id: string; kind: EnquiryPersonKind; role: string | null }>;
+  const rows = (peopleRes.data ?? []) as Array<{ id: string; user_id: string; kind: EnquiryPersonKind; role: string | null; status: string | null }>;
   const practices = (practiceRes.data ?? []) as Array<{ id: string; starts_at: string; ends_at: string; place: string; note: string | null; status: "scheduled" | "cancelled" }>;
 
   /* names and pictures: `enquiry_people.user_id` references profiles, but a
@@ -92,6 +103,7 @@ export async function findEnquiryJob(supabase: SupabaseClient, enquiryId: string
       name: p?.full_name ?? "Somebody",
       photoPath: p?.profile_photo_path ?? null,
       city: p?.city ?? null,
+      status: r.status === "asked" ? "asked" : "confirmed",
     };
   });
   const list: EnquiryPractice[] = practices.map((p) => ({
@@ -136,3 +148,172 @@ export const cancelEnquiryPractice = (supabase: SupabaseClient, practiceId: stri
 
 export const checkInEnquiryPractice = (supabase: SupabaseClient, practiceId: string, userId: string, on: boolean) =>
   call(supabase, on ? "check_in_enquiry_practice" : "undo_enquiry_practice_check_in", { p_practice_id: practiceId, p_user_id: userId });
+
+/* ── A JOB IS ASKED, FILES, AND MY PRACTICES (18 Oct 2026, `20261025090000`) ── */
+
+/** the person's own answer to a job — the RPC is theirs alone and tells the owners */
+export const respondToEnquiryJob = (supabase: SupabaseClient, personId: string, accept: boolean) =>
+  call(supabase, "respond_to_enquiry_job", { p_person_id: personId, p_accept: accept });
+
+interface JobRow {
+  id: string;
+  enquiry_id: string;
+  kind: EnquiryPersonKind;
+  role: string | null;
+  status: string;
+  created_at: string;
+  host_name: string | null;
+  host_photo_path: string | null;
+  type_key: string | null;
+  first_date: string | null;
+}
+
+/** every enquiry job the caller was put on, asked ones first — scoped to
+ *  `auth.uid()` inside the function. A missing schema is an empty list. */
+export async function findMyEnquiryJobs(supabase: SupabaseClient): Promise<EnquiryJobAsk[]> {
+  const { data, error } = await supabase.rpc("my_enquiry_jobs");
+  if (error) {
+    if (isMissingSchema(error)) return [];
+    throw new Error(`my_enquiry_jobs failed: ${error.message}`);
+  }
+  return ((data ?? []) as JobRow[]).map((r) => ({
+    id: r.id,
+    enquiryId: r.enquiry_id,
+    kind: r.kind,
+    role: r.role,
+    status: r.status === "asked" ? "asked" : "confirmed",
+    createdAt: r.created_at,
+    hostName: r.host_name ?? "A business",
+    hostPhotoPath: r.host_photo_path,
+    typeKey: r.type_key,
+    firstDate: r.first_date,
+  }));
+}
+
+interface MyPracticeRow {
+  id: string;
+  enquiry_id: string;
+  starts_at: string;
+  ends_at: string;
+  place: string;
+  note: string | null;
+  status: string;
+  host_name: string | null;
+  host_photo_path: string | null;
+  type_key: string | null;
+  my_part: string | null;
+  people: number | null;
+  checked_in: number | null;
+}
+
+const toMyPractice = (r: MyPracticeRow): MyEnquiryPractice => ({
+  id: r.id,
+  enquiryId: r.enquiry_id,
+  startsAt: r.starts_at,
+  endsAt: r.ends_at,
+  place: r.place,
+  note: r.note,
+  status: r.status === "cancelled" ? "cancelled" : "scheduled",
+  hostName: r.host_name ?? "A business",
+  hostPhotoPath: r.host_photo_path,
+  typeKey: r.type_key,
+  myPart: r.my_part === "runs" ? "runs" : r.my_part === "team" ? "team" : "participant",
+  people: Number(r.people ?? 0),
+  checkedIn: Number(r.checked_in ?? 0),
+});
+
+/** every enquiry practice the caller runs or is confirmed on, in a window —
+ *  ⚠ a failed read is an empty list: a practice is a section of a page that has
+ *  other things on it (the calendar), the same rule `findMyCrewPractices` keeps */
+export async function findMyEnquiryPractices(supabase: SupabaseClient, opts: { from: string; to: string }): Promise<MyEnquiryPractice[]> {
+  const { data, error } = await supabase.rpc("my_enquiry_practices", { p_from: opts.from, p_to: opts.to });
+  if (error) return [];
+  return ((data ?? []) as MyPracticeRow[]).map(toMyPractice);
+}
+
+export interface EnquiryPracticeDetail {
+  practice: MyEnquiryPractice;
+  /** the job's confirmed people and who is checked in — the runner's register */
+  people: EnquiryPerson[];
+  checkedIn: string[];
+}
+
+/** ONE enquiry practice, for its own page. The row is read under RLS (members and
+ *  the job's confirmed people), then `my_enquiry_practices` over that practice's
+ *  own minutes says what the caller is to it — so somebody who is neither the
+ *  runner nor confirmed on the job gets null, and the page says not found. */
+export async function findEnquiryPracticeDetail(supabase: SupabaseClient, practiceId: string): Promise<EnquiryPracticeDetail | null> {
+  const { data: row, error } = await supabase.from("enquiry_practices").select("id, enquiry_id, starts_at, ends_at").eq("id", practiceId).is("deleted_at", null).maybeSingle();
+  if (error || !row) return null;
+  const r = row as { id: string; enquiry_id: string; starts_at: string; ends_at: string };
+  const from = new Date(new Date(r.starts_at).getTime() - 60_000).toISOString();
+  const to = new Date(new Date(r.ends_at).getTime() + 60_000).toISOString();
+  const mine = (await findMyEnquiryPractices(supabase, { from, to })).find((p) => p.id === practiceId);
+  if (!mine) return null;
+  const job = await findEnquiryJob(supabase, r.enquiry_id).catch(() => null);
+  const practice = job?.practices.find((p) => p.id === practiceId);
+  return {
+    practice: mine,
+    people: (job?.people ?? []).filter((p) => p.status === "confirmed"),
+    checkedIn: practice?.checkedIn ?? [],
+  };
+}
+
+/** ⚠ AN ENQUIRY JOB'S PRACTICE ON A PERSON'S CALENDAR (18 Oct 2026) — the crew
+ *  row's shape (`practiceToCalendar`), IST day and hour computed once here, the
+ *  host's name where the crew's would be, and the row opening the practice's own
+ *  page. `standing` is "member" only so the shape holds; `standingWord` is what
+ *  the row prints. */
+export function enquiryPracticeToCalendar(p: MyEnquiryPractice): CalendarPracticeEntry {
+  const f = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hour12: false });
+  const parts = Object.fromEntries(f.formatToParts(new Date(p.startsAt)).map((x) => [x.type, x.value]));
+  return {
+    practiceId: p.id,
+    crewId: p.enquiryId,
+    crewName: p.hostName,
+    style: enquiryTypeLabel(p.typeKey) ?? "Enquiry",
+    startsAt: p.startsAt,
+    endsAt: p.endsAt,
+    dayKey: `${parts.year}-${parts.month}-${parts.day}`,
+    hour: Number(parts.hour === "24" ? "0" : parts.hour),
+    place: p.place,
+    note: p.note,
+    cancelled: p.status === "cancelled",
+    standing: "member",
+    standingWord: ENQ_PART_WORD[p.myPart].sub,
+    going: p.checkedIn,
+    asked: p.people,
+    href: `/practice/job/${p.id}`,
+  };
+}
+
+/** an enquiry's links, newest last — either end reads them (RLS: `is_enquiry_end`) */
+export async function findEnquiryFiles(supabase: SupabaseClient, enquiryId: string): Promise<{ available: boolean; files: EnquiryFile[] }> {
+  const { data, error } = await supabase
+    .from("enquiry_files")
+    .select("id, kind, label, url, created_by, created_at")
+    .eq("enquiry_id", enquiryId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: true })
+    .limit(200);
+  if (error) {
+    if (isMissingSchema(error)) return { available: false, files: [] };
+    throw new Error(`enquiry_files failed: ${error.message}`);
+  }
+  return {
+    available: true,
+    files: ((data ?? []) as Array<{ id: string; kind: EnquiryFileKind; label: string; url: string; created_by: string | null; created_at: string }>).map((f) => ({
+      id: f.id,
+      kind: f.kind,
+      label: f.label,
+      url: f.url,
+      createdBy: f.created_by,
+      createdAt: f.created_at,
+    })),
+  };
+}
+
+export const addEnquiryFile = (supabase: SupabaseClient, enquiryId: string, kind: EnquiryFileKind, label: string, url: string) =>
+  call(supabase, "add_enquiry_file", { p_enquiry_id: enquiryId, p_kind: kind, p_label: label, p_url: url });
+
+export const removeEnquiryFile = (supabase: SupabaseClient, fileId: string) => call(supabase, "remove_enquiry_file", { p_file_id: fileId });

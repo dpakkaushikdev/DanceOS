@@ -9,6 +9,7 @@ import { findMyPendingCrewAsks } from "@/repositories/crews";
 import { findMyPendingInvites } from "@/repositories/invites";
 import { findMyMemberships } from "@/repositories/businesses";
 import { isArtistTeam } from "@/features/inbox/inviteRows";
+import { findMyEnquiryJobs } from "@/repositories/enquiryTeam";
 
 const stampNowIso = (): string => new Date().toISOString();
 
@@ -41,11 +42,14 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
 
   /* the enquiries, through the loader a studio's Inbox shares; and the three
      counts, each answering an empty list rather than failing the Inbox */
-  const [enq, classPeopleIn, invitesIn, crewIn] = await Promise.all([
+  const [enq, classPeopleIn, invitesIn, crewIn, jobs] = await Promise.all([
     loadEnquiries(supabase, { kind: "person", userId: user.id, memberships }),
     findMyPendingClassPeople(supabase).catch(() => []),
     findMyPendingInvites(supabase).catch(() => []),
     findMyPendingCrewAsks(supabase, ["asked"]).catch(() => []),
+    /* ⚠ THE JOBS YOU WERE PUT ON (18 Oct 2026) — an empty list before the
+       migration or on any failure, so the Inbox never fails over them */
+    findMyEnquiryJobs(supabase).catch(() => []),
   ]);
   /* ⚠ an ask whose class has STARTED waits on nobody (B15, 11 Oct 2026) — it is
      Expired under Classes › Answered, so the pointer does not count it */
@@ -68,7 +72,8 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
         { testId: "artist-invites-pointer", n: invitesIn.filter((i) => isArtistTeam(i.businessType)).length, href: "/team", one: "artist team invite", many: "artist team invites", where: "Answered on Team › Other Teams", tint: "#0EA5E9" },
         { testId: "crew-invites-pointer", n: crewIn.length, href: "/team", one: "crew invite", many: "crew invites", where: "Answered on Team › Other Teams", tint: "#DC2626" },
       ]}
-      initialSection={show === "done" ? "done" : undefined}
+      initialSection={show === "done" ? "done" : show === "jobs" ? "jobs" : undefined}
+      jobs={jobs}
       nowIso={nowIso}
     />
   );

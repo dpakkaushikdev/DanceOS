@@ -2,6 +2,30 @@
 
 ## LAST SESSION (17–18 Oct 2026) — replaced on every push (Rule 13)
 
+> ### A JOB IS ASKED, AN ENQUIRY HAS FILES, ENQUIRY PRACTICES IN THE PRACTICE TOOL AND THE CALENDAR, A TIGHTER GUTTER, AND A STUDIO'S ROOM FILTER ALWAYS THERE (18 Oct 2026, latest) — ⚠ Rule 9 (one new table, RLS) · ✅ `20261025090000_a_job_is_asked_files_and_my_practices` APPLIED by the previous chat (`db-push -DryRun` this chat: nothing pending, local = remote)
+> The previous chat wrote, dry-ran and applied the migration, had two helpers build the screens, and died on "Prompt is too long" before integrating. It never answered two later asks. This chat waited for the helpers' last writes (the tree was still moving at 07:38), then verified, finished and pushed.
+> * **The migration:** `enquiry_people.status` is asked → confirmed | declined, and `respond_to_enquiry_job` belongs to the person asked. Only CONFIRMED people are told about practices or checked in. `my_enquiry_jobs()` and `my_enquiry_practices(from, to)` are both scoped to `auth.uid()`. `enquiry_files` holds http(s) links only, read by either end, added by either end, and removed by whoever added the link or works the enquiry.
+> * **The screens (helpers):**
+>   * the enquiry page gets a **Files** section and a revamped Payments section;
+>   * the Inbox gets a **Jobs** column with Accept / Decline (`?show=jobs`);
+>   * Practice is split into crew and job practices, with detail pages `/practice/crew/{id}` and `/practice/job/{id}` and the register inside;
+>   * enquiry practices are on the calendar;
+>   * Discover's heading counters lose "in {city}", the Followed-by-you circles are no longer cut, and the tab tiles are full-tile animated pictures.
+> * **A tighter side gutter, app-wide** (the user: *"reduce space on left and right sides on the entire app for all pages"*):
+>   * `--dos-gutter: 10px` replaces the 16px that each page wrote for itself — 45 page roots and bottom sheets, ~24 page wrappers, and the five negative margins that bleed back out of the gutter;
+>   * the sweep was a Node script asserting every count, and is pure: every file with unequal +/- lines is a helper's;
+>   * ⚠ a sixth negative margin sat inside a ternary in `CalendarScreen` and was missed by the first search; the probe caught a 6px sideways scroll on every public schedule (396 vs 390).
+> * **A studio profile's room count is gone** from the line above the figures, and **a studio's Classes page always draws its room dropdown**. The options come from the studio's own rooms (`findRoomsByBusiness`, readable by anyone for a listed studio) rather than only the rooms the listed classes name, so a studio with nothing ahead still shows "All rooms".
+> * **`shoot-discover`'s heading check was stale** since the 18 Oct `BeatText` change: `textContent` reads the visually-hidden copy and the aria-hidden letters, giving "DiscoverDiscover". It reads what a screen reader reads now.
+> * **Verified:**
+>   * typecheck 0 · lint 0 · `audit:reads` 0 · build green;
+>   * proofs `enquiries` · `crews` · `notifications` 3/3, leftover guard OK;
+>   * on `:3100`: `stranger-smoke` 9/9 · `shoot-inbox` 64/64 · `shoot-practice` 44/44 · `shoot-tiles` 129/129 · `shoot-hero` 186/186 · `shoot-classes` 132/132 · `shoot-discover` 43/43;
+>   * a public probe 26/26 (both themes: the gutter at 10px, no room count, the dropdown on three studios, no sideways scroll, no page error);
+>   * a signed-in probe 64/64 (demo.rhythm through a real magic link: 32 screens at 390 and 360, no sideways scroll, no page error);
+>   * the whole e2e suite **54 passed / 2 failed in 15.6 min** on one worker. Both reds are `paid-webhook`'s known `test-number sign-in failed … 403`: the new account has the PHONE provider disabled (recorded 18 Oct), so it is not this push. The happy path's 19 segments are all among the passes.
+> * ⚠ **Not done:** no shoot or e2e drives a job ask, Files or a job practice end to end (the migration's dry run covers the database); Discover's new tiles and the enquiry page have not been looked at by eye beyond the probes' screenshots.
+
 > ### DISCOVER HEADINGS WITH TOTALS, CRISPER EARNINGS, PROFILE CLASSES, A NEW LOGO, ENQUIRIES AS A TOOL WITH PAYMENTS · TEAM · PRACTICES (18 Oct 2026, latest) — ⚠ Rule 9 (three new tables) · ✅ `20261024090000_an_enquiry_has_a_team_and_practices` APPLIED (dry run **48/48** re-run, the only pending file, live read-back **7/7**, PostgREST reloaded) · ✅ PUSHED AND LIVE (`e0f3801`: Vercel READY, alias confirmed on the sha through the API, `stranger-smoke` **9/9** on the live site)
 > The user's long list (quoted in the previous chat's transcript `dcef8cf5`): Discover's shelf heads bold, all-caps, with totals and the filters under them, Followed by you on Classes (studios + artists), no sub-line there, no city line on style tiles, centred names; Earnings shorter, collapsible, a deep-dive sheet per section, a custom range, more charts, and "what you owe" / "what studios pay you" moved to Team (`TeamPayLedger`, `PaidToYou`; `MyEarnings` deleted); the poster sheet shows style and level once with a bigger poster; profiles' Schedule is **Classes**, published only, sorted, the room filter a studio's alone; no back chip beside the logo and a new logo; the Inbox off the bottom bar as an **Enquiries** tool; each enquiry has **Payments · Team · Practices** (`?show=team|practices`, `EnquiryJobPanels`, `repositories/enquiryTeam.ts`). Built by five parallel agents in the previous chat, which ended before integrating; this chat verified, applied and pushed.
 > * **The migration:** `enquiry_people` (team | participant, a role), `enquiry_practices` (scheduled | cancelled), `enquiry_practice_attendance`; SELECT-only RLS (the business's members; an assigned person reads the practices and their own rows, never the enquiry); seven definer functions gated on `can_work_enquiry`; nothing existing moved. The list went in front of the user before the apply.
@@ -13768,6 +13792,7 @@ for the database schema. **The UI is not redesigned** — see Rule 2.
 
 ### Progress tracker — update after EVERY push (Rule 11)
 
+- **A JOB IS ASKED, ENQUIRY FILES, JOB PRACTICES IN PRACTICE AND THE CALENDAR, A 10px GUTTER, A STUDIO'S ROOM FILTER ALWAYS ON — 18 Oct 2026, no step number ⚠ (Rule 9) — `20261025090000` APPLIED.** Detail at the top.
 - **PICTURE SCENES ON DISCOVER, A FANCY PROFILE QR, A DISABLED BOOK NOW, PERMISSIONS BY TEAM KIND, A BETTER MEMBERSHIP TILE, COPY · SHARE UNDER THE CLASS CARD, ONE INBOX COLOUR, A RANKINGS PODIUM — 18 Oct 2026, no step number — no migration, PUSHED AND LIVE (`be27162`).** Detail at the top.
 - **CLIPART LOGOS ON DISCOVER AND TEAM › OTHER TEAMS — 18 Oct 2026, no step number — no migration, PUSHED AND LIVE (`93f73fc`).** Row C171. Detail at the top.
 - **RUNNING HEADINGS, COUNTS IN THE TOOL'S COLOUR, MEMBERSHIP NOTIFICATIONS, A CENTRED ANIMATED BRAND, ROUND FACES, A BETTER CROPPER, A SWIPEABLE VIEWER — 18 Oct 2026, no step number ⚠ (Rule 9) — `20261023090000` APPLIED, PUSHED AND LIVE (`38491c5`).** Detail at the top.

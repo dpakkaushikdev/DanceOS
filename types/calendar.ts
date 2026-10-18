@@ -148,6 +148,10 @@ export interface CalendarPracticeEntry {
   cancelled: boolean;
   /** what the reader is to it — You arranged it · Your crew */
   standing: PracticeStanding;
+  /** ⚠ AN ENQUIRY JOB'S PRACTICE (18 Oct 2026) rides the same row and says what
+   *  the reader is to the JOB instead — You run this job · Team · Participant.
+   *  Absent on a crew's, which reads `PRACTICE_WORD[standing]`. */
+  standingWord?: string;
   going: number;
   asked: number;
   href: string;

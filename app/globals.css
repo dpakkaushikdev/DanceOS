@@ -230,6 +230,11 @@ html.light .dos-invert {
   --dos-safe-bottom: 0px;
   --dos-bar: 54px;
   --dos-top: 78px; /* 78 since 12 Oct 2026, "top bar becomes a bit more bigger" */
+  /* The page's side gutter (18 Oct 2026, the user: "reduce space on left and
+     right sides on the entire app for all pages"). It was 16px written into
+     each page; every page root, bottom sheet and the negative margins that
+     bleed back out of the gutter read this one value now. */
+  --dos-gutter: 10px;
 }
 @supports (top: env(safe-area-inset-top)) {
   :root {
@@ -591,6 +596,17 @@ html.light .dos-wordmark {
 @keyframes dosSceneFacet { to { transform: rotate(360deg); } }
 @keyframes dosSceneRise { 0% { transform: translateY(6px); opacity: 0; } 25% { opacity: 1; } 100% { transform: translateY(-46px); opacity: 0; } }
 @keyframes dosSceneEq { from { transform: scaleY(0.25); } to { transform: scaleY(1); } }
+/* the tiles' moving ground and their title row (18 Oct 2026, third pass): a
+   300-unit gradient slides under the 100-unit view, three lights drift over it,
+   the icon has its own loop and the word's letters lift one after another */
+@keyframes dosSceneBg { from { transform: translateX(0); } to { transform: translateX(-200px); } }
+@keyframes dosSceneBlobA { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(46px, 18px) scale(1.25); } }
+@keyframes dosSceneBlobB { 0%, 100% { transform: translate(0, 0) scale(1.1); } 50% { transform: translate(-50px, -30px) scale(0.85); } }
+@keyframes dosSceneWalk { from { transform: translateX(0); } to { transform: translateX(30px); } }
+@keyframes dosSceneFall { 0% { transform: translateY(0) rotate(0deg); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(96px) rotate(540deg); opacity: 0; } }
+@keyframes dosTileIconPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.22); } }
+@keyframes dosTileIconWiggle { 0%, 100% { transform: rotate(-14deg) translateY(0); } 50% { transform: rotate(14deg) translateY(-2px); } }
+@keyframes dosTileLetter { 0%, 22%, 100% { transform: translateY(0) scale(1); } 9% { transform: translateY(-3px) scale(1.14); } }
 @keyframes dosLogoGlow {
   0%, 100% { opacity: 0.55; }
   50% { opacity: 1; }

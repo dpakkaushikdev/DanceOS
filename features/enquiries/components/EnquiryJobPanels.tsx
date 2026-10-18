@@ -6,14 +6,28 @@ import { EnqFace } from "@/features/enquiries/components/enquiry-kit";
 import { Eyebrow, Surface } from "@/features/inbox/components/inbox-kit";
 import { PeoplePicker } from "@/features/people/components/PeoplePicker";
 import {
+  addEnquiryFileAction,
   addEnquiryPersonAction,
   cancelEnquiryPracticeAction,
-  checkInEnquiryPracticeAction,
+  removeEnquiryFileAction,
   removeEnquiryPersonAction,
   saveEnquiryPracticeAction,
   type JobActionResult,
 } from "@/features/enquiries/server-actions/enquiryTeam";
-import { ENQ_PERSON_WORD, istDayKey, type EnquiryJob, type EnquiryPersonKind } from "@/types/enquiry";
+import { DeleteIconButton } from "@/components/ui/DeleteIconButton";
+import { ToolChip, toolBtn } from "@/components/ui/ToolCard";
+import { EnquiryPracticeCard } from "./EnquiryPracticeCard";
+import {
+  ENQ_FILE_KINDS,
+  ENQ_PERSON_STATUS_WORD,
+  ENQ_PERSON_WORD,
+  istDayKey,
+  linkHost,
+  type EnquiryFile,
+  type EnquiryFileKind,
+  type EnquiryJob,
+  type EnquiryPersonKind,
+} from "@/types/enquiry";
 
 /** THE TEAM AND PRACTICES SEGMENTS of an enquiry (18 Oct 2026). Short words, one
  *  control per act; every rule is the RPC's and its refusal is printed as given.
@@ -145,6 +159,16 @@ export function EnquiryTeamPanel({
                   <div style={{ fontSize: 13, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
                   <div style={{ fontSize: 10.5, color: "var(--sub)" }}>{p.role ?? ENQ_PERSON_WORD[p.kind]}</div>
                 </div>
+                {/* ⚠ ASKED IS NOT ON IT (18 Oct 2026, `20261025090000`): the person
+                    says yes from their Inbox › Jobs before they are told about
+                    practices or counted on a register */}
+                <span data-testid="enquiry-person-status" data-status={p.status}>
+                  <ToolChip
+                    word={ENQ_PERSON_STATUS_WORD[p.status].toUpperCase()}
+                    fg={p.status === "confirmed" ? "#15803D" : "#B45309"}
+                    bg={p.status === "confirmed" ? "#22C55E22" : "#F59E0B22"}
+                  />
+                </span>
                 {canWork ? (
                   <button type="button" disabled={busy} aria-label={`Remove ${p.name}`} onClick={() => void run(() => removeEnquiryPersonAction({ enquiryId, personId: p.id }))} style={{ ...ghost, padding: "6px 10px", fontSize: 11 }}>
                     Remove
@@ -211,6 +235,9 @@ export function EnquiryPracticesPanel({
   closed,
   nowIso,
   tint,
+  hostName,
+  hostPhotoPath,
+  typeKey,
 }: {
   enquiryId: string;
   job: EnquiryJob;
@@ -218,10 +245,14 @@ export function EnquiryPracticesPanel({
   closed: boolean;
   nowIso: string;
   tint: string;
+  /** whose job it is — the card leads with it */
+  hostName: string;
+  hostPhotoPath: string | null;
+  typeKey: string | null;
 }) {
+  const router = useRouter();
   const { busy, error, run } = useRun();
   const [form, setForm] = useState<null | { practiceId: string | null; date: string; start: string; end: string; place: string; note: string }>(null);
-  const [openReg, setOpenReg] = useState<string | null>(null);
   if (!job.available) return <Off />;
 
   const coming = job.practices.filter((p) => p.endsAt >= nowIso);
@@ -235,26 +266,37 @@ export function EnquiryPracticesPanel({
     if (ok) setForm(null);
   };
 
+  /* ⚠ THE CARD IS THE ONE PRACTICE CARD, AND IT OPENS THE PRACTICE'S OWN PAGE
+     (18 Oct 2026) — the register lives there, not inline: two registers for one
+     practice is the two-doors shape this repo has paid for twice */
+  const confirmed = job.people.filter((x) => x.status === "confirmed").length;
+  const now = new Date(nowIso).getTime();
   const card = (p: EnquiryJob["practices"][number]) => {
     const off = p.status === "cancelled";
-    const reg = openReg === p.id;
+    const ended = p.endsAt < nowIso;
     return (
-      <div key={p.id} data-testid="enquiry-practice" style={{ padding: "10px 0", borderBottom: "1.5px solid var(--el)", opacity: off ? 0.6 : 1 }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-          <b style={{ fontSize: 13, textDecoration: off ? "line-through" : "none" }}>{dayOf(p.startsAt)}</b>
-          <span style={{ fontSize: 12, color: "var(--sub)" }}>
-            {clockOf(p.startsAt)}–{clockOf(p.endsAt)}
-          </span>
-          <span style={{ marginLeft: "auto", fontSize: 10, fontWeight: 900, color: off ? "#F87171" : tint }}>{off ? "CALLED OFF" : `${p.checkedIn.length}/${job.people.length} IN`}</span>
-        </div>
-        <div style={{ fontSize: 12, marginTop: 2 }}>{p.place}</div>
-        {p.note ? <div style={{ fontSize: 11, color: "var(--sub)", marginTop: 2 }}>{p.note}</div> : null}
-        {canWork && !off ? (
-          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-            <button type="button" onClick={() => setOpenReg(reg ? null : p.id)} aria-expanded={reg} style={{ ...pill, padding: "6px 11px", fontSize: 11 }}>
-              Register
-            </button>
-            <button
+      <div key={p.id} data-testid="enquiry-practice">
+        <EnquiryPracticeCard
+          now={now}
+          practice={{
+            id: p.id,
+            enquiryId,
+            startsAt: p.startsAt,
+            endsAt: p.endsAt,
+            place: p.place,
+            note: p.note,
+            status: p.status,
+            hostName,
+            hostPhotoPath,
+            typeKey,
+            myPart: canWork ? "runs" : "team",
+            people: confirmed,
+            checkedIn: p.checkedIn.length,
+          }}
+          actions={
+            canWork && !off && !ended ? (
+              <>
+                <button
               type="button"
               onClick={() =>
                 setForm({
@@ -266,39 +308,28 @@ export function EnquiryPracticesPanel({
                   note: p.note ?? "",
                 })
               }
-              style={{ ...ghost, padding: "6px 11px", fontSize: 11 }}
+              style={toolBtn("secondary", tint)}
+              aria-label={`Edit the practice on ${dayOf(p.startsAt)}`}
             >
               Edit
             </button>
-            <button type="button" disabled={busy} onClick={() => void run(() => cancelEnquiryPracticeAction({ enquiryId, practiceId: p.id }))} style={{ ...ghost, padding: "6px 11px", fontSize: 11, color: "#F87171" }}>
-              Call off
-            </button>
-          </div>
-        ) : null}
-        {reg ? (
-          <div data-testid="enquiry-register" style={{ marginTop: 8 }}>
-            {job.people.length === 0 ? <div style={{ fontSize: 11.5, color: "var(--sub)" }}>Add people in Team first.</div> : null}
-            {job.people.map((person) => {
-              const isIn = p.checkedIn.includes(person.userId);
-              return (
-                <div key={person.id} style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 0" }}>
-                  <EnqFace path={person.photoPath} name={person.name} size={26} tint={tint} />
-                  <span style={{ flex: 1, fontSize: 12.5, fontWeight: 700 }}>{person.name}</span>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    aria-pressed={isIn}
-                    aria-label={`${isIn ? "Undo" : "Check in"} ${person.name}`}
-                    onClick={() => void run(() => checkInEnquiryPracticeAction({ enquiryId, practiceId: p.id, userId: person.userId, on: !isIn }))}
-                    style={{ ...(isIn ? { ...pill, background: "#22C55E", color: "#07240F" } : ghost), padding: "5px 11px", fontSize: 11 }}
-                  >
-                    {isIn ? "✓ In" : "Check in"}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        ) : null}
+                <DeleteIconButton
+                  label={`Call off the practice on ${dayOf(p.startsAt)}`}
+                  title="Call off this practice?"
+                  body={`${dayOf(p.startsAt)}, ${clockOf(p.startsAt)} — everybody on the job is told it is off.`}
+                  goWord="Call it off"
+                  word="Call off"
+                  onConfirm={async () => {
+                    const r = await cancelEnquiryPracticeAction({ enquiryId, practiceId: p.id });
+                    if (r.error) return r.error;
+                    router.refresh();
+                    return null;
+                  }}
+                />
+              </>
+            ) : null
+          }
+        />
       </div>
     );
   };
@@ -361,6 +392,127 @@ export function EnquiryPracticesPanel({
         </Surface>
       ) : null}
       {!form ? <Err text={error} /> : null}
+    </div>
+  );
+}
+
+/* ── FILES ────────────────────────────────────────────────────────────────── */
+
+const FILE_ICON: Record<EnquiryFileKind, string> = { music: "♪", video: "▶", document: "▤", photo: "◩", link: "↗" };
+
+/** LINKS SHARED ON AN ENQUIRY (18 Oct 2026, `20261025090000`) — music, a video, a
+ *  document, photos; ⚠ never an upload, only a web link, refused unless it is
+ *  http(s) here, in the action and in the RPC. Either end adds; whoever added a
+ *  link, or whoever works the enquiry, takes it down. */
+export function EnquiryFilesPanel({
+  enquiryId,
+  available,
+  files,
+  meId,
+  canWork,
+  closed,
+  tint,
+}: {
+  enquiryId: string;
+  available: boolean;
+  files: EnquiryFile[];
+  meId: string;
+  canWork: boolean;
+  closed: boolean;
+  tint: string;
+}) {
+  const router = useRouter();
+  const { busy, error, run } = useRun();
+  const [kind, setKind] = useState<EnquiryFileKind>("music");
+  const [name, setName] = useState("");
+  const [url, setUrl] = useState("");
+  if (!available) return <Off />;
+
+  const add = async () => {
+    const ok = await run(() => addEnquiryFileAction({ enquiryId, kind, label: name.trim(), url: url.trim() }));
+    if (ok) {
+      setName("");
+      setUrl("");
+    }
+  };
+
+  return (
+    <div data-testid="enquiry-files">
+      {!closed ? (
+        <Surface tint={tint}>
+          <Eyebrow tint={tint}>ADD A LINK</Eyebrow>
+          <div role="group" aria-label="What kind of link" style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+            {ENQ_FILE_KINDS.map(([k, word]) => (
+              <button
+                key={k}
+                type="button"
+                aria-pressed={kind === k}
+                onClick={() => setKind(k)}
+                style={{ ...(kind === k ? { ...pill, background: tint, color: "#fff" } : ghost), padding: "6px 11px", fontSize: 11.5 }}
+              >
+                <span aria-hidden="true" style={{ marginRight: 5 }}>
+                  {FILE_ICON[k]}
+                </span>
+                {word}
+              </button>
+            ))}
+          </div>
+          <label style={label} htmlFor="ef-name">
+            NAME
+          </label>
+          <input id="ef-name" value={name} maxLength={80} onChange={(ev) => setName(ev.target.value)} placeholder="Final mix" style={{ ...field, marginBottom: 8 }} />
+          <label style={label} htmlFor="ef-url">
+            LINK
+          </label>
+          <input id="ef-url" type="url" inputMode="url" value={url} maxLength={600} onChange={(ev) => setUrl(ev.target.value)} placeholder="https://…" style={{ ...field, marginBottom: 10 }} />
+          <button type="button" disabled={busy || !name.trim() || !url.trim()} onClick={() => void add()} style={{ ...pill, width: "100%", padding: 11 }}>
+            Add link
+          </button>
+          <Err text={error} />
+        </Surface>
+      ) : null}
+      <Surface>
+        <Eyebrow>{`LINKS · ${files.length}`}</Eyebrow>
+        {files.length === 0 ? <div style={{ fontSize: 12, color: "var(--sub)" }}>Nothing shared yet.</div> : null}
+        {files.map((f) => {
+          const mayRemove = f.createdBy === meId || canWork;
+          const word = ENQ_FILE_KINDS.find(([k]) => k === f.kind)?.[1] ?? "Link";
+          return (
+            <div key={f.id} data-testid="enquiry-file" data-kind={f.kind} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1.5px solid var(--el)" }}>
+              <span aria-hidden="true" style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", flexShrink: 0, background: `${tint}1f`, color: tint, fontWeight: 900, fontSize: 15 }}>
+                {FILE_ICON[f.kind]}
+              </span>
+              <a
+                href={f.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Open ${f.label} — ${word}, ${linkHost(f.url)}`}
+                style={{ flex: 1, minWidth: 0, color: "var(--text)", textDecoration: "none" }}
+              >
+                <span style={{ display: "block", fontSize: 13, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.label}</span>
+                <span style={{ display: "block", fontSize: 10.5, color: "var(--sub)", marginTop: 1 }}>
+                  {word} · {linkHost(f.url)}
+                </span>
+              </a>
+              {mayRemove ? (
+                <DeleteIconButton
+                  label={`Remove ${f.label}`}
+                  title="Remove this link?"
+                  body={`${f.label} — the other end will no longer see it.`}
+                  goWord="Remove"
+                  word="Remove"
+                  onConfirm={async () => {
+                    const r = await removeEnquiryFileAction({ enquiryId, fileId: f.id });
+                    if (r.error) return r.error;
+                    router.refresh();
+                    return null;
+                  }}
+                />
+              ) : null}
+            </div>
+          );
+        })}
+      </Surface>
     </div>
   );
 }

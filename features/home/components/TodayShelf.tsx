@@ -26,7 +26,7 @@ import type { DeckItem } from "@/types/home";
  *  page's padding, is not clipped. */
 export function TodayShelf({ deck }: { deck: DeckItem[] }) {
   return (
-    <div id="today-schedule" data-dosfold="deck" style={{ margin: "10px -16px 14px", padding: "0 16px", scrollMarginTop: "calc(var(--dos-top) + 12px)" }}>
+    <div id="today-schedule" data-dosfold="deck" style={{ margin: "10px calc(-1 * var(--dos-gutter)) 14px", padding: "0 var(--dos-gutter)", scrollMarginTop: "calc(var(--dos-top) + 12px)" }}>
       <CheckedInReveal />
       <DosShelfHead pad="2px 0 8px">
         Today’s schedule

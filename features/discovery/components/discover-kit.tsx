@@ -97,13 +97,11 @@ export function FollowerPill({ n }: { n: number }) {
  *  near you, upcoming classes, artist and styles … bolder with totals written
  *  properly and all in caps. followed by you section should also have same
  *  heading"). The words in caps at weight 900 in the display face, the total as a
- *  solid figure pill beside them, and — where it says something — the place in a
- *  quiet word after it. Every shelf on the page and "Followed by you" draw this
- *  one component, so the two can never drift apart.
- *  ⚠ `testId` sits on the wrapper of the figure and the place word together:
- *  `shoot-inbox` reads the number AND "in all cities" off one element, and
- *  `shoot-invert` measures its ink against the panel. */
-export function ShelfHead({ title, count, unit, place, testId }: { title: string; count: number; unit: string; place?: string | null; testId?: string }) {
+ *  solid figure pill beside them, and nothing after it. Every shelf on the page
+ *  and "Followed by you" draw this one component, so the two can never drift.
+ *  ⚠ `testId` sits on the figure's wrapper: `shoot-inbox` reads the number off
+ *  it, and `shoot-invert` measures its ink against the panel. */
+export function ShelfHead({ title, count, unit, testId }: { title: string; count: number; unit: string; testId?: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0, flexWrap: "wrap" }}>
       <h2 style={{ margin: 0, fontFamily: DOS_DISPLAY, fontSize: 15.5, fontWeight: 900, letterSpacing: 0.9, lineHeight: 1.15, textTransform: "uppercase", color: INK }}>{title}</h2>
@@ -114,9 +112,10 @@ export function ShelfHead({ title, count, unit, place, testId }: { title: string
         >
           {fmtF(count)}
         </span>
-        {/* ⚠ not text-transformed: `innerText` applies text-transform, and
-            shoot-inbox reads "in all cities" off this element */}
-        {place ? <span style={{ fontSize: 11.5, fontWeight: 800, color: SUB, whiteSpace: "nowrap" }}>in {place}</span> : null}
+        {/* ⚠ NOTHING AFTER THE TOTAL (18 Oct 2026, the user: "nothing to be
+            written in front o heading counters on discover like in Gurgaon
+            etc."). The place word is gone — the place chip in the top squircle
+            already says where the list is from, so it was said twice. */}
       </span>
     </div>
   );

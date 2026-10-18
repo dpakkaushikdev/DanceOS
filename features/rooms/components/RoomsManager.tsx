@@ -149,7 +149,7 @@ export function RoomsManager({
   };
 
   return (
-    <div style={{ maxWidth: 430, margin: "0 auto", padding: "0 16px 40px", fontFamily: DOS_UI, color: "var(--text)" }}>
+    <div style={{ maxWidth: 430, margin: "0 auto", padding: "0 var(--dos-gutter) 40px", fontFamily: DOS_UI, color: "var(--text)" }}>
       <DeskTop>
         {/* the shared tool hero — the page's own `<h1>` (22 Sep 2026) */}
         <DeskHero tool="rooms" as="h1" margin="0 0 12px" />

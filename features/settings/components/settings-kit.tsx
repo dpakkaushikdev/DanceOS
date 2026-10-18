@@ -105,7 +105,7 @@ export function BizPage({
   children: ReactNode;
 }) {
   return (
-    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "8px 16px 40px", boxSizing: "border-box" }}>
+    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "8px var(--dos-gutter) 40px", boxSizing: "border-box" }}>
       {/* ⚠ THE TOP SECTION (3 Oct 2026, C116): the heading and the controls that
           choose what is shown; the figures (if any) in the middle; the page's own
           content in the lower section — Discover's and the Inbox's three shapes. */}

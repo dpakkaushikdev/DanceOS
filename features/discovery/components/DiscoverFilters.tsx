@@ -360,7 +360,7 @@ export function DiscoverFilters({ tab, city, filters, styleOrder, tabs, as = nul
       {/* THE FILTER SHEET (4827) */}
       {open ? (
         <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.62)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 660 }}>
-          <div role="dialog" aria-modal="true" aria-label="Filters" onClick={(e) => e.stopPropagation()} style={{ background: "var(--solid)", color: "var(--text)", borderRadius: "24px 24px 0 0", padding: "14px 16px 24px", width: "100%", maxWidth: 430, boxSizing: "border-box", maxHeight: "86vh", overflowY: "auto", animation: "dosSheetUp .28s cubic-bezier(.22,.9,.34,1)" }}>
+          <div role="dialog" aria-modal="true" aria-label="Filters" onClick={(e) => e.stopPropagation()} style={{ background: "var(--solid)", color: "var(--text)", borderRadius: "24px 24px 0 0", padding: "14px var(--dos-gutter) 24px", width: "100%", maxWidth: 430, boxSizing: "border-box", maxHeight: "86vh", overflowY: "auto", animation: "dosSheetUp .28s cubic-bezier(.22,.9,.34,1)" }}>
             <div style={{ width: 40, height: 4, borderRadius: 2, background: "var(--el)", margin: "0 auto 14px" }} />
             <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 16 }}>
               <span style={{ ...shelf, color: "var(--text)" }}>Filters</span>

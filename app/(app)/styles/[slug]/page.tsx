@@ -234,7 +234,7 @@ export default async function StylePage({
           the shape every tab and tool page stands on — with the two columns in
           the same squircle as the heading, and the ink the page's own (white on
           a light style's colour was the one place the title could vanish). */}
-      <div style={{ padding: "12px 16px 0" }}>
+      <div style={{ padding: "12px var(--dos-gutter) 0" }}>
         <SegmentedPanels
           key={show}
           label="Style"

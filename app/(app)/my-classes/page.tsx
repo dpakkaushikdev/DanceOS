@@ -283,7 +283,7 @@ export default async function MyClassesPage({ searchParams }: { searchParams: Pr
   ) : null;
 
   return (
-    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "2px 16px 40px", boxSizing: "border-box" }}>
+    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "2px var(--dos-gutter) 40px", boxSizing: "border-box" }}>
       <ClassesHome
         /* the key is the ADDRESS's answer, so a link naming another tab wins over
            whatever this screen last showed. ⚠ Never the computed default: answering

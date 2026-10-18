@@ -769,7 +769,7 @@ export function ClassDetail({
       {/* ⚠ B19: a DRAFT whose date passed was never a class that ran — it is
           "Closed" (its badge and footer say so), never "Class completed" */}
       {((done && !isDraft) || assisting) && (
-        <div style={{ padding: "14px 16px 0", position: "relative", zIndex: 1, background: "var(--bg)", ...SHEET_TOP }}>
+        <div style={{ padding: "14px var(--dos-gutter) 0", position: "relative", zIndex: 1, background: "var(--bg)", ...SHEET_TOP }}>
           <div
             data-testid={done ? "class-over-band" : "class-assisting-band"}
             style={{
@@ -1030,7 +1030,7 @@ export function ClassDetail({
         )}
       </div>
 
-      <div style={{ padding: "12px 16px 0", position: "relative", zIndex: 1, background: "var(--bg)" }}>
+      <div style={{ padding: "12px var(--dos-gutter) 0", position: "relative", zIndex: 1, background: "var(--bg)" }}>
         {/* ── YOU HAVE BEEN ASKED — consent is the person's own answer, so it is
             asked where the class is (prototype 15455: "They are asked to
             confirm. A class does not go on Discover until they do."). ── */}
@@ -2151,7 +2151,7 @@ export function ClassDetail({
             margin: "0 auto",
             background: "var(--solid)",
             borderTop: "1.5px solid var(--el)",
-            padding: "12px 16px 26px",
+            padding: "12px var(--dos-gutter) 26px",
             boxShadow: "0 -6px 20px rgba(0,0,0,.32)",
           }}
         >
@@ -2262,7 +2262,7 @@ export function ClassDetail({
       )}
       {posterOpen && (
         <div onClick={() => setPosterOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 660 }}>
-          <div role="dialog" aria-modal="true" aria-label="Poster" onClick={(e) => e.stopPropagation()} style={{ background: "var(--solid)", borderRadius: "24px 24px 0 0", padding: "16px 16px 26px", width: "100%", maxWidth: 430, boxSizing: "border-box", color: "var(--text)", maxHeight: "82vh", overflowY: "auto", animation: "dosSheetUp .28s cubic-bezier(.22,.9,.34,1)" }}>
+          <div role="dialog" aria-modal="true" aria-label="Poster" onClick={(e) => e.stopPropagation()} style={{ background: "var(--solid)", borderRadius: "24px 24px 0 0", padding: "16px var(--dos-gutter) 26px", width: "100%", maxWidth: 430, boxSizing: "border-box", color: "var(--text)", maxHeight: "82vh", overflowY: "auto", animation: "dosSheetUp .28s cubic-bezier(.22,.9,.34,1)" }}>
             <div style={{ width: 40, height: 4, borderRadius: 2, background: "var(--el)", margin: "0 auto 12px" }} />
             <b style={{ fontSize: 16, fontFamily: DOS_DISPLAY }}>Poster</b>
             {/* ⚠ YOUR OWN PICTURE SITS FIRST, as it does in the prototype

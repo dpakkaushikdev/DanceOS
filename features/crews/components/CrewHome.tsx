@@ -54,7 +54,7 @@ export function CrewHome({ crew, members, header = [], followers = 0, editOpen =
     <EditModeProvider>
     <RecordListsProvider styles={crew.styles.length ? crew.styles : crew.style ? [crew.style] : []} socials={crew.socials}>
     <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, boxSizing: "border-box", paddingBottom: "var(--dos-foot)" }}>
-      <div style={{ padding: "0 16px" }}>
+      <div style={{ padding: "0 var(--dos-gutter)" }}>
         {/* the top of the home as a squircle, nothing behind the posters (3 Oct 2026) */}
         <TopPanel style={{ marginTop: 12 }}>
         <IdentityHero

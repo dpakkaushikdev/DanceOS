@@ -145,7 +145,7 @@ export function MyProfilePage({
   return (
     <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", paddingBottom: 40, boxSizing: "border-box" }}>
       <style>{`@keyframes dosSheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}`}</style>
-      <div style={{ padding: "0 16px" }}>
+      <div style={{ padding: "0 var(--dos-gutter)" }}>
         {/* ⚠ TWO SHAPES, AS HOME IS (3 Oct 2026, the user: "dual tone, rounded
             squircles … on public view for all profiles similar to home tab") */}
         <TopPanel style={{ marginTop: 12 }}>

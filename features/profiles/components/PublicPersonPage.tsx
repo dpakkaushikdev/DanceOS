@@ -124,7 +124,7 @@ export function PublicPersonPage({
 
   return (
     <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", paddingBottom: 40, boxSizing: "border-box" }}>
-      <div style={{ padding: "0 16px" }}>
+      <div style={{ padding: "0 var(--dos-gutter)" }}>
         {/* ⚠ TWO SHAPES, AS HOME IS (3 Oct 2026, the user: "dual tone, rounded
             squircles … on public view for all profiles similar to home tab") — this
             squircle on the page's theme, and `PersonBody`'s InvertedPanel below */}

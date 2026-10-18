@@ -523,7 +523,7 @@ export default async function DiscoverPage({
         margin: "0 auto",
         fontFamily: DOS_UI,
         minHeight: "100vh",
-        padding: "16px 16px 40px",
+        padding: "16px var(--dos-gutter) 40px",
         boxSizing: "border-box",
         transition: "background .25s",
       }}
@@ -615,7 +615,6 @@ export default async function DiscoverPage({
               title={shelfHead}
               count={shelfCount}
               unit={tab === "styles" ? "styles" : tab === "classes" ? "classes" : tab === "artists" ? "artists" : "studios"}
-              place={tab === "styles" ? null : placeWord}
               testId="shelf-count"
             />
             <DiscoverFilters part="bar" tab={tab} city={city} filters={filters} styleOrder={styleOrder} as={asRaw} priceCeil={priceCeil} />

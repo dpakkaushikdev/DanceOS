@@ -34,6 +34,7 @@ export function PracticeCard({
   now,
   actions = null,
   foot = null,
+  href,
 }: {
   practice: CrewPractice;
   /** the clock, handed in: a component may not call `Date.now()` during render
@@ -44,11 +45,89 @@ export function PracticeCard({
   actions?: ReactNode;
   /** anything that opens UNDER the bar — the leader's register */
   foot?: ReactNode;
+  /** the practice's own page — the whole card is the door (18 Oct 2026) */
+  href?: string;
 }) {
-  const cancelled = p.status === "cancelled";
-  const past = new Date(p.endsAt).getTime() < now;
-  const d = dateParts(p.startsAt);
-  const share = p.asked > 0 ? Math.min(1, p.going / p.asked) : 0;
+  return (
+    <PracticeCardShell
+      testId="practice-card"
+      href={href}
+      hrefLabel={href ? `Open the practice — ${p.crewName}, ${practiceWhenShort(p.startsAt)}` : undefined}
+      name={p.crewName}
+      photoPath={p.crewPhotoPath}
+      eyebrow={`Crew practice${p.crewStyle ? ` · ${p.crewStyle}` : ""}`}
+      sub={p.iLead ? "You lead this crew" : "You dance in this crew"}
+      chipWord={PRACTICE_WORD[p.myStatus].toUpperCase()}
+      chipTint={PRACTICE_TINT[p.myStatus]}
+      startsAt={p.startsAt}
+      endsAt={p.endsAt}
+      place={p.place}
+      note={p.note}
+      cancelled={p.status === "cancelled"}
+      going={p.going}
+      of={p.asked}
+      now={now}
+      actions={actions}
+      foot={foot}
+    />
+  );
+}
+
+const practiceWhenShort = (iso: string): string =>
+  new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true }).format(new Date(iso));
+
+/** THE ONE PRACTICE CARD FOR BOTH KINDS (18 Oct 2026, the user: *"same better
+ *  card for both practices"*). A crew practice and an enquiry's practice are the
+ *  same shape — who it is for, when, where, and how full the register is — so the
+ *  card is drawn from those facts alone; what a caller knows about its own kind
+ *  (the crew, the host, where you stand) arrives as words. */
+export function PracticeCardShell({
+  testId,
+  href,
+  hrefLabel,
+  name,
+  photoPath,
+  eyebrow,
+  sub,
+  chipWord,
+  chipTint,
+  startsAt,
+  endsAt,
+  place,
+  note,
+  cancelled,
+  going,
+  of,
+  now,
+  actions = null,
+  foot = null,
+}: {
+  testId: string;
+  href?: string;
+  hrefLabel?: string;
+  name: string;
+  photoPath: string | null;
+  eyebrow: string;
+  sub: string;
+  chipWord: string;
+  chipTint: string;
+  startsAt: string;
+  endsAt: string;
+  place: string;
+  note: string | null;
+  cancelled: boolean;
+  /** checked in, of how many on the register */
+  going: number;
+  of: number;
+  now: number;
+  actions?: ReactNode;
+  foot?: ReactNode;
+}) {
+  const p = { startsAt, endsAt, place, note, going, asked: of };
+  const past = new Date(endsAt).getTime() < now;
+  const d = dateParts(startsAt);
+  const share = of > 0 ? Math.min(1, going / of) : 0;
+  const soon = !cancelled && !past && new Date(startsAt).getTime() - now < 36 * 3600_000;
   /* ⚠ THE CARD IS ARRANGED IN THE ORDER IT IS READ (2 Oct 2026, the user:
      "better practice cards, with crew profile photo and arrangement"): WHO it is
      for — the crew's own face and name — then WHEN, as a date block you can read
@@ -60,20 +139,23 @@ export function PracticeCard({
      is a door to its page, and every button — the answer pair and whatever the
      caller adds — sits on one bar under a hairline. */
   return (
-    <ToolCard testId="practice-card" dim={cancelled}>
+    <ToolCard testId={testId} dim={cancelled} href={href} hrefLabel={hrefLabel}>
       <ToolHead
         tint={TINT}
-        name={p.crewName}
-        photoPath={p.crewPhotoPath}
+        name={name}
+        photoPath={photoPath}
         /* no profile door on a card's face (12 Oct 2026, the user: "should take to
            detail inside the cards always") */
-        eyebrow={`Crew practice${p.crewStyle ? ` · ${p.crewStyle}` : ""}`}
-        sub={p.iLead ? "You lead this crew" : "You dance in this crew"}
+        eyebrow={eyebrow}
+        sub={sub}
         right={
           cancelled ? (
             <ToolChip word="CALLED OFF" fg={SUB} bg="var(--el)" />
           ) : (
-            <ToolChip word={PRACTICE_WORD[p.myStatus].toUpperCase()} fg={PRACTICE_TINT[p.myStatus]} bg={`${PRACTICE_TINT[p.myStatus]}22`} />
+            <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+              <ToolChip word={chipWord} fg={chipTint} bg={`${chipTint}22`} />
+              {soon ? <ToolChip word="SOON" fg="#B45309" bg="#F59E0B22" /> : null}
+            </span>
           )
         }
       />

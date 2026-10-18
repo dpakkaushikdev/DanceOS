@@ -214,7 +214,7 @@ export default async function HomePage() {
         boxSizing: "border-box",
       }}
     >
-      <div style={{ padding: "0 16px" }}>
+      <div style={{ padding: "0 var(--dos-gutter)" }}>
         {/* ⚠ THE TOP OF HOME IS A SQUIRCLE (3 Oct 2026, the user: "even top of all
             home, dicover and inbox to be rounded squircle. remove the top backdrop
             from home tab completly behinde posters") — the hero, the band and the
@@ -409,7 +409,7 @@ export default async function HomePage() {
                 line for each tile"). The tools are the drawer the profile picture
                 opens, for every profile; what stays here is the one sentence that is
                 about this account's own tools. */}
-            <div style={{ padding: "12px 16px 0" }}>
+            <div style={{ padding: "12px var(--dos-gutter) 0" }}>
               {/* THE PAGE COULD NOT BE MADE (18 Sep 2026): the plan is live and Home just
                   tried to provision the page the artist tools run through, and the
                   database said no — a refusal Home swallows so it never fails on it.

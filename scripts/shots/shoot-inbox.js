@@ -265,10 +265,12 @@ const pressed = async (loc) => (await loc.getAttribute("aria-pressed").catch(() 
     await gp.waitForLoadState("networkidle");
     const allText = await gp.getByTestId("shelf-count").innerText().catch(() => "");
     const all = Number((allText.match(/\d+/) || ["0"])[0]);
-    check(/in all cities/.test(allText) && all >= pune, `classes: "${allText}" — at least Pune's ${pune}`);
+    /* ⚠ the shelf head prints its total and nothing after it (18 Oct 2026) — the
+       place lives on the chip alone, so the head must NOT say "in …" */
+    check(!/\bin\b/.test(allText) && all >= pune, `classes: "${allText}" — at least Pune's ${pune}, no place word`);
     await gp.goto(`${BASE}/discover?city=all&tab=studios`, { waitUntil: "networkidle" });
     const stText = await gp.getByTestId("shelf-count").innerText().catch(() => "");
-    check(/in all cities/.test(stText), `studios: "${stText}"`);
+    check(/^\s*\d/.test(stText) && !/\bin\b/.test(stText), `studios: "${stText}" — a total and no place word`);
     const chip = await gp.getByRole("button", { name: "Where to look" }).locator("..").innerText().catch(() => "");
     check(/All cities/.test(chip), "the chip says All cities");
     /* ⚠ ANCHORED — "Within 5 km" is the radius quick chip and is not a distance */
@@ -276,7 +278,7 @@ const pressed = async (loc) => (await loc.getAttribute("aria-pressed").catch(() 
     check(kms === 0, `no distance is printed nationwide (${kms})`);
     /* ⚠ no Crews tab since 18 Oct 2026 — the artists shelf reads across every city too */
     await gp.goto(`${BASE}/discover?city=all&tab=artists`, { waitUntil: "networkidle" });
-    check(/in all cities/.test(await gp.getByTestId("shelf-count").innerText().catch(() => "")), "artists: read across every city");
+    check(/All cities/.test(await gp.getByRole("button", { name: "Where to look" }).locator("..").innerText().catch(() => "")), "artists: read across every city");
 
     /* ── A CLASS ASK POINTS AT CLASSES, NOT THE INBOX (11 Oct 2026, 20261017090000,
        B14). Class requests left the Inbox for Classes on 11 Oct, and the

@@ -343,9 +343,12 @@ export interface CalendarScreenProps {
    *  carry the rooms of the studios they teach at, which are not theirs to
    *  filter by. Off unless the caller says so. */
   roomFilter?: boolean;
+  /** public only: the studio's own rooms, so the dropdown is always there (18 Oct
+   *  2026) — merged with any room a listed class names */
+  roomNames?: string[];
 }
 
-export function CalendarScreen({ mode, months, todayKey, entries, practices = [], emptyHref, title: pageTitle, feedPath, roomFilter = false }: CalendarScreenProps) {
+export function CalendarScreen({ mode, months, todayKey, entries, practices = [], emptyHref, title: pageTitle, feedPath, roomFilter = false, roomNames = [] }: CalendarScreenProps) {
   const isPublic = mode === "public";
   const isCrew = mode === "crew";
   const idx = (monthKey: string) => months.findIndex((m) => m.key === monthKey);
@@ -425,7 +428,7 @@ export function CalendarScreen({ mode, months, todayKey, entries, practices = []
      number-and-list disagreement `publicScheduleToIso` exists to prevent. A
      stranger came to see when they can dance, not to operate a room filter;
      the filter stays, one tap away. */
-  const rooms = [...new Set(entries.map((e) => e.room).filter((r): r is string => !!r))].sort();
+  const rooms = [...new Set([...roomNames, ...entries.map((e) => e.room)].filter((r): r is string => !!r))].sort();
   const [room, setRoom] = useState<string | null>(mode === "studio" && rooms.length > 1 ? rooms[0] : null);
   const [ddOpen, setDdOpen] = useState(false);
   /* ⚠ `fabOpen` went with the compose FAB (29 Sep 2026): it opened the sheet
@@ -693,7 +696,7 @@ export function CalendarScreen({ mode, months, todayKey, entries, practices = []
         >
           <span style={{ ...CHIP_NAME, textDecoration: e.cancelled ? "line-through" : "none" }}>{e.crewName} · Practice</span>
           <span style={CHIP_SUB}>
-            {[e.cancelled ? "Called off" : PRACTICE_WORD[e.standing], compactRangeOf(e.startsAt, e.endsAt), e.place].filter(Boolean).join(" · ")}
+            {[e.cancelled ? "Called off" : e.standingWord ?? PRACTICE_WORD[e.standing], compactRangeOf(e.startsAt, e.endsAt), e.place].filter(Boolean).join(" · ")}
           </span>
         </Link>
       );
@@ -775,7 +778,7 @@ export function CalendarScreen({ mode, months, todayKey, entries, practices = []
           : [draftWord, room === null ? r.e.room : null].filter(Boolean).join(" · ")
         : cancelled
           ? "Called off"
-          : PRACTICE_WORD[r.e.standing];
+          : r.e.standingWord ?? PRACTICE_WORD[r.e.standing];
     const label = r.k === "class" ? `Open ${r.e.title}` : `${r.e.crewName} practice, ${practiceWhen(r.startsAt)}${cancelled ? " — called off" : ""}`;
     return (
       <Link
@@ -877,7 +880,7 @@ export function CalendarScreen({ mode, months, todayKey, entries, practices = []
         margin: "0 auto",
         fontFamily: DOS_UI,
         minHeight: "100vh",
-        padding: "14px 16px 40px",
+        padding: "14px var(--dos-gutter) 40px",
         boxSizing: "border-box",
       }}
     >
@@ -914,8 +917,9 @@ export function CalendarScreen({ mode, months, todayKey, entries, practices = []
              padding) and wears the section's own ground — the card veil over
              the page — opaque, so the sessions scroll under it unseen */
           background: isPublic ? LILAC : `linear-gradient(${CARD}, ${CARD}), ${LILAC}`,
-          margin: isPublic ? "0 -16px" : "0 -14px",
-          padding: isPublic ? "8px 16px 6px" : "8px 14px 6px",
+          /* a public schedule bleeds back out of the PAGE gutter (--dos-gutter since 18 Oct 2026) */
+          margin: isPublic ? "0 calc(-1 * var(--dos-gutter))" : "0 -14px",
+          padding: isPublic ? "8px var(--dos-gutter) 6px" : "8px 14px 6px",
           borderBottom: `1.5px solid ${LINE}`,
         }}
       >
@@ -930,7 +934,8 @@ export function CalendarScreen({ mode, months, todayKey, entries, practices = []
         {/* one studio = one location — only rooms need filtering (9076-9098) */}
         {/* ⚠ a studio's rooms moved into the drawer (10 Oct 2026, Google's "My
             calendars"); only a public schedule keeps this dropdown on the page */}
-        {isPublic && roomFilter && rooms.length > 0 ? (
+        {/* ⚠ ALWAYS drawn on a studio's page (18 Oct 2026) — "All rooms" alone when it has none */}
+        {isPublic && roomFilter ? (
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
             <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
               <div

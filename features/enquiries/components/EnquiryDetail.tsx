@@ -19,7 +19,7 @@ import {
 import { confirmCheckoutAction, startEnquiryCheckoutAction } from "@/features/payments/server-actions/payments";
 import { EnqFace, EnquiryRoad, stageTint } from "@/features/enquiries/components/enquiry-kit";
 import { QuoteComposer, QuoteLines, type ComposerValue } from "@/features/enquiries/components/QuoteComposer";
-import { EnquiryPracticesPanel, EnquiryTeamPanel, type TeamPick } from "@/features/enquiries/components/EnquiryJobPanels";
+import { EnquiryFilesPanel, EnquiryPracticesPanel, EnquiryTeamPanel, type TeamPick } from "@/features/enquiries/components/EnquiryJobPanels";
 import { DosHero, EnqIcon, Eyebrow, Surface, agoWords, dateWords, money } from "@/features/inbox/components/inbox-kit";
 import { DOS_MONO } from "@/features/inbox/components/inbox-kit";
 import { openCashfreeCheckout, preloadCheckout } from "@/lib/cashfree/checkout-client";
@@ -39,6 +39,7 @@ import {
   quoteExpired,
   revisionAsked,
   type Enquiry,
+  type EnquiryFile,
   type EnquiryJob,
   type EnquiryQuote,
 } from "@/types/enquiry";
@@ -91,14 +92,20 @@ const fieldStyle: React.CSSProperties = {
 };
 const smallLabel: React.CSSProperties = { fontSize: 9, fontWeight: 900, letterSpacing: 0.7, color: "var(--muted)" };
 
-export type EnquirySection = "payments" | "team" | "practices";
-const SECTIONS: Array<{ k: EnquirySection; label: string }> = [
-  { k: "payments", label: "Payments" },
-  { k: "team", label: "Team" },
-  { k: "practices", label: "Practices" },
+export type EnquirySection = "payments" | "team" | "practices" | "files";
+/* ⚠ the sender sees Payments · Files; the business all four (18 Oct 2026) */
+const SECTIONS: Array<{ k: EnquirySection; label: string; both: boolean }> = [
+  { k: "payments", label: "Payments", both: true },
+  { k: "team", label: "Team", both: false },
+  { k: "practices", label: "Practices", both: false },
+  { k: "files", label: "Files", both: true },
 ];
 
 const signed = (n: number) => `${n < 0 ? "−" : ""}${money(Math.abs(n))}`;
+
+/** a history row's date — "18 Oct, 6:30 pm", IST */
+const historyDate = (iso: string) =>
+  new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true }).format(new Date(iso));
 
 const quoteWord = (q: EnquiryQuote, nowIso: string): string =>
   q.kind === "addition"
@@ -165,7 +172,10 @@ export function EnquiryDetail({
   job = { available: false, people: [], practices: [] },
   team = [],
   initialTab = "payments",
+  files = { available: false, files: [] },
 }: {
+  /** the links shared on the enquiry (`20261025090000`), read for both ends */
+  files?: { available: boolean; files: EnquiryFile[] };
   /** the job's people and practices (`20261024090000`) — `available: false` before it is applied */
   job?: EnquiryJob;
   /** the business's own people, offered as Team */
@@ -210,7 +220,8 @@ export function EnquiryDetail({
   const [askReason, setAskReason] = useState("");
   const [askAmount, setAskAmount] = useState("");
   const [openOrder, setOpenOrder] = useState<string | null>(null);
-  const [tab, setTab] = useState<EnquirySection>(initialTab);
+  const sections = SECTIONS.filter((s) => s.both || mine);
+  const [tab, setTab] = useState<EnquirySection>(sections.some((s) => s.k === initialTab) ? initialTab : "payments");
   /* the section is the address (`?show=`), replaced — a tap is not a page */
   const pickTab = (k: EnquirySection) => {
     setTab(k);
@@ -340,6 +351,29 @@ export function EnquiryDetail({
   const accepted = e.endings.find((x) => x.status === "accepted");
   const lastRefused = [...e.endings].reverse().find((x) => x.status === "refused");
 
+  /* ── the payments summary (18 Oct 2026) — every figure from `enquiryMoney`,
+     the quote being priced standing in for the project before one is accepted ── */
+  const priced = base ?? live;
+  const quotedInr = base ? m.totalInr : live ? live.costInr : 0;
+  const advInr = priced ? priced.advanceInr : 0;
+  const acceptedAdds = adds.filter((a) => a.status === "accepted");
+  const addsNet = acceptedAdds.reduce((s, a) => s + a.costInr, 0);
+  const backInr = e.endings.filter((x) => x.status === "accepted").reduce((s, x) => s + x.refundInr, 0);
+  const moneyFigures: Array<[string, string, string, string]> = [
+    ["Quoted", priced ? money(quotedInr) : "—", base ? "accepted" : live ? quoteWord(live, nowIso).toLowerCase() : "no quote yet", "#3B82F6"],
+    ["Received", money(m.paidInr), m.paidInr > 0 ? "recorded" : "nothing yet", "#22C55E"],
+    ["Due", base ? money(m.outstandingInr) : "—", base ? (m.outstandingInr > 0 ? "still to come" : "settled") : "once accepted", "#F59E0B"],
+    ["Advance", priced ? (advInr > 0 ? money(advInr) : "None") : "—", !priced || advInr === 0 ? "up front" : base?.advancePaidAt ? "paid" : base ? "due" : `${priced.advancePct}% up front`, "#8B5CF6"],
+  ];
+  const breakup: Array<[string, string]> = [
+    ["Quote", priced ? money(priced.costInr) : "—"],
+    ["Advance", priced ? money(advInr) : "—"],
+    ["Balance", priced ? money(Math.max(priced.costInr - advInr, 0)) : "—"],
+    ["Additions", acceptedAdds.length ? `${addsNet > 0 ? "+" : ""}${signed(addsNet)}` : "—"],
+    ["Waiting", m.additionsWaiting ? `${m.additionsWaiting}` : "—"],
+    ["Refunds", backInr > 0 ? money(backInr) : "—"],
+  ];
+
   /* ── the "say why" box, drawn where it was asked for ── */
   const askBox = (key: string) =>
     ask && ask.key === key ? (
@@ -397,7 +431,7 @@ export function EnquiryDetail({
           </span>
         }
       />
-      <div style={{ padding: "12px 16px 0" }}>
+      <div style={{ padding: "12px var(--dos-gutter) 0" }}>
         {/* ── WHO ── */}
         <Surface>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -461,11 +495,18 @@ export function EnquiryDetail({
 
         {/* ── THREE SECTIONS (18 Oct 2026): Payments · Team · Practices — the
             business's side only; the sender reads the money alone ── */}
-        {mine ? (
+        {sections.length > 1 ? (
           <div role="tablist" aria-label="Enquiry sections" style={{ display: "flex", gap: 4, padding: 4, borderRadius: 999, background: "var(--el)", marginBottom: 10 }}>
-            {SECTIONS.map((s) => {
+            {sections.map((s) => {
               const on = tab === s.k;
-              const count = s.k === "team" ? job.people.length : s.k === "practices" ? job.practices.filter((p) => p.status === "scheduled" && p.endsAt >= nowIso).length : null;
+              const count =
+                s.k === "team"
+                  ? job.people.length
+                  : s.k === "practices"
+                    ? job.practices.filter((p) => p.status === "scheduled" && p.endsAt >= nowIso).length
+                    : s.k === "files"
+                      ? files.files.length
+                      : null;
               return (
                 <button
                   key={s.k}
@@ -485,30 +526,39 @@ export function EnquiryDetail({
         ) : null}
 
         {tab === "team" && mine ? <EnquiryTeamPanel enquiryId={e.id} job={job} canWork={canWork} team={team} tint={tint} /> : null}
-        {tab === "practices" && mine ? <EnquiryPracticesPanel enquiryId={e.id} job={job} canWork={canWork} closed={closed} nowIso={nowIso} tint={tint} /> : null}
-
-        {tab === "payments" || !mine ? (
-          <>
-        {/* ── EARNINGS — what the job is worth, what came in, what is due ── */}
-        {m.totalInr > 0 ? (
-          <Surface tint="#22C55E">
-            <Eyebrow tint="#22C55E">EARNINGS</Eyebrow>
-            <div data-testid="enquiry-earnings" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-              {(
-                [
-                  ["Total", m.totalInr],
-                  ["Received", m.paidInr],
-                  ["Due", m.outstandingInr],
-                ] as const
-              ).map(([k, v]) => (
-                <div key={k} style={{ background: "var(--solid)", borderRadius: 12, padding: "9px 10px", border: "1.5px solid var(--el)" }}>
-                  <div style={{ fontSize: 15, fontWeight: 900 }}>{money(v)}</div>
-                  <div style={smallLabel}>{k.toUpperCase()}</div>
-                </div>
-              ))}
-            </div>
-          </Surface>
+        {tab === "practices" && mine ? (
+          <EnquiryPracticesPanel enquiryId={e.id} job={job} canWork={canWork} closed={closed} nowIso={nowIso} tint={tint} hostName={e.businessName} hostPhotoPath={e.toPhotoPath} typeKey={e.typeKey} />
         ) : null}
+        {tab === "files" ? <EnquiryFilesPanel enquiryId={e.id} available={files.available} files={files.files} meId={meId} canWork={mine && canWork} closed={closed} tint={tint} /> : null}
+
+        {tab === "payments" ? (
+          <>
+        {/* ── THE MONEY, ALWAYS DRAWN (18 Oct 2026, the user: "payments to be
+            better") — the four figures read ₹0 or "—" before there is a quote,
+            because a summary that appears only once there is money says nothing
+            about where an enquiry is. Then the breakup: what the quote is made of,
+            what was added or taken off, and what went back. ── */}
+        <Surface tint="#22C55E">
+          <Eyebrow tint="#22C55E">PAYMENTS</Eyebrow>
+          <div data-testid="enquiry-money" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
+            {moneyFigures.map(([k, v, sub, colour]) => (
+              <div key={k} data-testid={`money-${k.toLowerCase()}`} style={{ background: "var(--solid)", borderRadius: 12, padding: "10px 11px", border: "1.5px solid var(--el)", borderTop: `3px solid ${colour}` }}>
+                <div style={{ fontSize: 17, fontWeight: 900, fontFamily: DOS_MONO, letterSpacing: -0.3 }}>{v}</div>
+                <div style={smallLabel}>{k.toUpperCase()}</div>
+                <div style={{ fontSize: 10, color: "var(--sub)", marginTop: 2, fontWeight: 700 }}>{sub}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ ...smallLabel, marginTop: 12, marginBottom: 6 }}>BREAKUP</div>
+          <div data-testid="enquiry-breakup" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+            {breakup.map(([k, v]) => (
+              <div key={k} data-testid={`breakup-${k.toLowerCase().replace(/[^a-z]+/g, "-")}`} style={{ background: "var(--card)", borderRadius: 10, padding: "8px 9px", border: "1.5px solid var(--el)", minWidth: 0 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 900, fontFamily: DOS_MONO, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v}</div>
+                <div style={{ ...smallLabel, fontSize: 8.5, marginTop: 1 }}>{k.toUpperCase()}</div>
+              </div>
+            ))}
+          </div>
+        </Surface>
 
         {paidBack ? (
           <div
@@ -1020,7 +1070,7 @@ export function EnquiryDetail({
         {/* ── QUOTE HISTORY ── every quote and every reason, oldest first */}
         {quotes.length ? (
           <Surface>
-            <Eyebrow>{`QUOTE HISTORY · ${quotes.length}`}</Eyebrow>
+            <Eyebrow>{`HISTORY · ${quotes.length}`}</Eyebrow>
             <div data-testid="quote-history">
               {quotes.map((q, i) => {
                 const prev = quotes[i - 1];
@@ -1032,24 +1082,33 @@ export function EnquiryDetail({
                       <span style={{ width: 10, height: 10, borderRadius: 5, background: quoteColour(q, nowIso), marginTop: 4 }} />
                       {i < quotes.length - 1 ? <span style={{ flex: 1, width: 2, background: "var(--el)", marginTop: 2 }} /> : null}
                     </div>
-                    <div style={{ flex: 1, minWidth: 0, paddingBottom: i < quotes.length - 1 ? 12 : 0 }}>
+                    <div data-testid={`quote-${q.n}`} style={{ flex: 1, minWidth: 0, marginBottom: i < quotes.length - 1 ? 10 : 0, background: "var(--solid)", border: "1.5px solid var(--el)", borderRadius: 12, padding: "9px 11px" }}>
                       <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}>
-                        <span style={{ fontSize: 9.5, fontWeight: 900, color: "var(--muted)", fontFamily: DOS_MONO }}>#{q.n}</span>
-                        <b style={{ fontSize: 13, textDecoration: dead ? "line-through" : "none" }}>{money(q.costInr)}</b>
-                        {delta ? (
-                          <span style={{ fontSize: 10, fontWeight: 800, color: delta < 0 ? "#22C55E" : "#F59E0B" }}>
-                            {delta < 0 ? "▼" : "▲"} {money(Math.abs(delta))}
-                          </span>
-                        ) : null}
+                        <span style={{ fontSize: 9.5, fontWeight: 900, color: "var(--muted)", fontFamily: DOS_MONO }}>{i === 0 ? `#${q.n} · FIRST` : `#${q.n} · REVISION ${i}`}</span>
                         <span data-testid={`quote-${q.n}-state`} style={{ marginLeft: "auto", fontSize: 9.5, fontWeight: 800, color: quoteColour(q, nowIso) }}>
                           {quoteWord(q, nowIso)}
                         </span>
                       </div>
+                      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 3 }}>
+                        <b style={{ fontSize: 16, fontFamily: DOS_MONO, textDecoration: dead ? "line-through" : "none" }}>{money(q.costInr)}</b>
+                        {delta ? (
+                          <span data-testid={`quote-${q.n}-delta`} style={{ fontSize: 10.5, fontWeight: 900, color: delta < 0 ? "#22C55E" : "#F59E0B" }}>
+                            {delta < 0 ? "▼" : "▲"} {money(Math.abs(delta))}
+                          </span>
+                        ) : prev ? (
+                          <span style={{ fontSize: 10.5, fontWeight: 800, color: "var(--muted)" }}>no change</span>
+                        ) : null}
+                        <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--sub)", fontWeight: 700 }}>{historyDate(q.createdAt)}</span>
+                      </div>
                       <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 2 }}>
                         {q.items.length ? `${q.items.length} line${q.items.length > 1 ? "s" : ""} · ` : ""}
-                        {q.advancePct > 0 ? `${money(q.advanceInr)} (${q.advancePct}%) up front` : "No advance"} · {agoWords(q.createdAt, nowIso)}
+                        {q.advancePct > 0 ? `${money(q.advanceInr)} (${q.advancePct}%) up front` : "No advance"}
                       </div>
-                      {q.answerReason ? <div style={{ fontSize: 11, marginTop: 3 }}>“{q.answerReason}”</div> : null}
+                      {q.answerReason ? (
+                        <div data-testid={`quote-${q.n}-reason`} style={{ fontSize: 11, marginTop: 5, padding: "6px 8px", borderRadius: 8, background: "var(--el)" }}>
+                          <span style={{ ...smallLabel, display: "block", marginBottom: 2 }}>{q.revisionAskedAt ? "REVISION ASKED" : "REASON"}</span>“{q.answerReason}”
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 );

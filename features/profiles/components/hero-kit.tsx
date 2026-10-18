@@ -282,7 +282,7 @@ export function IdentityHero({
   return (
     <div
       data-testid={testId}
-      style={bare ? { position: "relative" } : { margin: "0 -16px", position: "relative", overflow: "hidden", background: LILAC }}
+      style={bare ? { position: "relative" } : { margin: "0 calc(-1 * var(--dos-gutter))", position: "relative", overflow: "hidden", background: LILAC }}
     >
       {/* THE CORNER IS A COLUMN (19 Sep 2026, the user: "give an eye to view
           profile on the home tab below edit on top right") — the pencil, then

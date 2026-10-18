@@ -120,7 +120,7 @@ export function StudentsDesk({
   };
 
   return (
-    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "0 16px 40px", boxSizing: "border-box" }}>
+    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "0 var(--dos-gutter) 40px", boxSizing: "border-box" }}>
       <DeskTop>
       {/* ⚠ THE TOP SECTION (3 Oct 2026, C116) — the hero, Invite, the search and what the list is */}
       <DeskHero tool="students" as="h1" margin="0 0 12px" />
@@ -296,7 +296,7 @@ function InviteSheet({
         aria-modal="true"
         aria-label="Invite Student"
         onClick={(e) => e.stopPropagation()}
-        style={{ background: "var(--solid)", color: INK, borderRadius: "24px 24px 0 0", padding: "18px 16px 28px", width: "100%", maxWidth: 430, boxSizing: "border-box", animation: "dosSheetUp .28s cubic-bezier(.22,.9,.34,1)" }}
+        style={{ background: "var(--solid)", color: INK, borderRadius: "24px 24px 0 0", padding: "18px var(--dos-gutter) 28px", width: "100%", maxWidth: 430, boxSizing: "border-box", animation: "dosSheetUp .28s cubic-bezier(.22,.9,.34,1)" }}
       >
         <div style={{ width: 40, height: 4, borderRadius: 2, background: EL, margin: "0 auto 14px" }} />
         {/* ⚠ NOTHING UNDER THE HEADING (4 Oct 2026, the user: "invite student form

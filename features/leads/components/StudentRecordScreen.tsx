@@ -308,7 +308,7 @@ export function StudentRecordScreen({ businessId, businessName, record, show }: 
     </div>
   );
   return (
-    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "14px 16px 40px", boxSizing: "border-box" }}>
+    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "14px var(--dos-gutter) 40px", boxSizing: "border-box" }}>
       <SegmentedPanels
         /* the key is the SERVER's answer, so a link carrying `?show=` wins */
         key={show}

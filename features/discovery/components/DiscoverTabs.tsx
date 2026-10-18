@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useOptimisticNav } from "@/features/shell/components/SegmentedNav";
-import { DiscoverScene } from "./DiscoverLogo";
+import { DiscoverScene, DiscoverTileIcon } from "./DiscoverLogo";
 
 /** DISCOVER'S SECTION TILES (4571-4585), PRESSED THE MOMENT THEY ARE TAPPED
  *  (20 Sep 2026, the user: *"see such bug doesnt appear anywhere in the system
@@ -77,22 +77,38 @@ export function DiscoverTabs({
             {DiscoverScene({ k: t.key }) ?? (
               <span aria-hidden="true" style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>{t.icon}</span>
             )}
+            {/* THE TITLE ROW, ANIMATED (18 Oct 2026, the user: "titles and icon
+                being animated"): the tile's own icon on its loop, then the word
+                with its letters lifting one after another. Decorative only — the
+                anchor's `aria-label` is the name, so the letters are hidden. */}
             <div
+              aria-hidden="true"
               style={{
                 position: "absolute",
                 left: 0,
                 right: 0,
                 bottom: 0,
-                padding: "14px 2px 6px",
-                textAlign: "center",
+                padding: "16px 2px 6px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 3,
                 fontSize: 11,
                 fontWeight: 900,
                 letterSpacing: 0.2,
-                background: "linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.62))",
-                textShadow: "0 1px 2px rgba(0,0,0,.5)",
+                whiteSpace: "nowrap",
+                background: "linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.66))",
+                textShadow: "0 1px 2px rgba(0,0,0,.55)",
               }}
             >
-              {t.word}
+              <DiscoverTileIcon k={t.key} />
+              <span style={{ display: "inline-flex" }}>
+                {Array.from(t.word).map((ch, j) => (
+                  <span key={j} style={{ display: "inline-block", animation: `dosTileLetter 2.6s ease-in-out ${i * 0.35 + j * 0.08}s infinite` }}>
+                    {ch}
+                  </span>
+                ))}
+              </span>
             </div>
           </a>
         );

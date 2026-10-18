@@ -319,7 +319,7 @@ export function MembershipUsagePage({
      e2e and `shoot-classes` read its cards without pressing anything. */
   const base = basePath ?? `/memberships/${m.id}`;
   return (
-    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "14px 16px 40px", boxSizing: "border-box" }}>
+    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "14px var(--dos-gutter) 40px", boxSizing: "border-box" }}>
       <SegmentedPanels
         key={show}
         initial={show}

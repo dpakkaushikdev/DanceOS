@@ -40,7 +40,7 @@ const sheetBackdrop: React.CSSProperties = {
 const sheetBody: React.CSSProperties = {
   background: "var(--solid)",
   borderRadius: "24px 24px 0 0",
-  padding: "18px 16px 30px",
+  padding: "18px var(--dos-gutter) 30px",
   width: "100%",
   maxWidth: 430,
   boxSizing: "border-box",

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { DeskAddButton } from "@/features/settings/components/settings-kit";
 import { DOS_TOOLS, DeskHero } from "@/features/businesses/components/biz-kit";
@@ -100,6 +101,12 @@ export function PracticeDesk({ crewId, practices, todayIso }: { crewId: string; 
               <button type="button" onClick={() => openRegister(p.id)} aria-expanded={isOpen} aria-label={`Register for ${practiceWhen(p.startsAt)}`} style={toolBtn("primary", TINT)}>
                 {isOpen ? "Hide the register" : "Register"}
               </button>
+              {/* ⚠ the practice's own page (18 Oct 2026) — a link on the bar, not the
+                  card's stretched link, because the register under the card needs
+                  its own presses */}
+              <Link href={`/practice/crew/${p.id}`} aria-label={`Details of the practice on ${practiceWhen(p.startsAt)}`} style={toolBtn("secondary", TINT)}>
+                Details ›
+              </Link>
               {!cancelled && !past ? (
                 <DeleteIconButton
                   label={`Call off ${practiceWhen(p.startsAt)}`}
@@ -151,7 +158,7 @@ export function PracticeDesk({ crewId, practices, todayIso }: { crewId: string; 
   };
 
   return (
-    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, padding: "0 16px", boxSizing: "border-box", paddingBottom: "var(--dos-foot)" }}>
+    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, padding: "0 var(--dos-gutter)", boxSizing: "border-box", paddingBottom: "var(--dos-foot)" }}>
       <DeskTop style={{ paddingBottom: 2 }}>
       {/* ⚠ THE TOP SECTION (3 Oct 2026, C116) — the hero, whose it is, and Arrange */}
       {/* ⚠ nothing between the heading and the button (4 Oct 2026, the user) */}

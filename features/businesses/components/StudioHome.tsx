@@ -21,7 +21,7 @@ import { EnquiryButton } from "@/features/enquiries/components/EnquirySheet";
 import { StudioLinksRow } from "./StudioLinksRow";
 import { StudioStylesRow } from "./StudioStylesRow";
 import { StudioPicturesButton, StudioPostersButton } from "./StudioPictures";
-import { DOS_UI, INK, LILAC, SUB } from "@/lib/design/tokens";
+import { DOS_UI, INK, LILAC } from "@/lib/design/tokens";
 import type { ProofPhoto } from "@/lib/media/proof";
 import type { DeckItem } from "@/types/home";
 import type { PublicBusiness } from "@/types/publicProfile";
@@ -68,7 +68,6 @@ export function StudioHome({
    *  the pin; null for anybody but the owner, and the pencil is not drawn */
   editable = null,
   deck,
-  roomCount,
   /** what it teaches, off its PUBLISHED classes — a studio with none says nothing (7419-7421) */
   styles,
   /** how many people follow this studio — the figure every profile leads with
@@ -91,7 +90,8 @@ export function StudioHome({
   ownerId: string | null;
   editable?: PublicBusiness | null;
   deck: DeckItem[];
-  roomCount: number;
+  /** no longer drawn (18 Oct 2026) — kept so the route's call still compiles */
+  roomCount?: number;
   styles: string[];
   followers?: number;
   /** ⚠ the studio's TEAM, which is what its Following lists (2 Oct 2026) */
@@ -119,7 +119,6 @@ export function StudioHome({
       ? `On DanceOS since ${new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", year: "numeric" }).format(new Date(editable.createdAt))}`
       : null;
   const pinHref = editable?.locationSetAt && editable.lat != null && editable.lng != null ? mapsPinHref(editable.lat, editable.lng) : null;
-  const roomsWords = `${roomCount} room${roomCount === 1 ? "" : "s"}`;
   /* a photo whose URL could not be signed is not a square the rail can draw —
      it is still one of the studio's pictures, and the Edit sheet still counts it */
   const shots: HeroShot[] = header
@@ -151,7 +150,7 @@ export function StudioHome({
         paddingBottom: "var(--dos-foot)",
       }}
     >
-      <div style={{ padding: "0 16px" }}>
+      <div style={{ padding: "0 var(--dos-gutter)" }}>
         {/* ── the studio, lit like a player: its colour bleeding off the top, its
             pictures as a swipe, its own picture on the disc, then who it is in
             the order you read a business ── */}
@@ -178,11 +177,10 @@ export function StudioHome({
               {/* the city alone, in words (3 Oct 2026) — see `HeroPlace` */}
               {/* ⚠ a pin before the city (4 Oct 2026), the same mark on every profile */}
               {business.city ? <HeroFact icon="pin">{business.city}</HeroFact> : null}
-              {place ? <HeroDot /> : null}
-              {/* "· N rooms" is the hub row's own sub-line (2655), and here it is a door */}
-              <Link href={`/business/${business.id}/rooms`} aria-label="Rooms at this studio" style={{ color: SUB, textDecoration: "none", fontWeight: 800 }}>
-                {roomsWords}
-              </Link>
+              {/* No "· N rooms" here any more (18 Oct 2026, the user: "remove room
+                  count above follower following counts in studio profiles") — the
+                  Rooms desk is a tool in the drawer, and the rooms are listed in
+                  full under At the studio. */}
             </>
           }
           /* ⚠ EMPTY ON PURPOSE — the band below draws them, so they land AFTER

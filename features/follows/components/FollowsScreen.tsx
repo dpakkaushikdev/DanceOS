@@ -125,7 +125,7 @@ export function FollowsScreen({ data, initialTab, initialShow }: { data: FollowP
   };
 
   return (
-    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "6px 16px 40px", boxSizing: "border-box" }}>
+    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "6px var(--dos-gutter) 40px", boxSizing: "border-box" }}>
       {/* WHOSE LIST — the page's own heading, as Instagram puts the handle on top */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 0 12px" }}>
         <span style={{ width: 34, height: 34, borderRadius: 17, overflow: "hidden", flexShrink: 0, background: "linear-gradient(135deg,#5AC8FA,#6D28D9)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 12 }}>

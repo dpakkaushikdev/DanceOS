@@ -97,6 +97,7 @@ export async function cancelCrewPracticeAction(raw: unknown): Promise<PracticeAc
   try {
     await cancelCrewPractice(supabase, parsed.data.practiceId);
     revalidatePractice(parsed.data.crewId);
+    revalidatePath(`/practice/crew/${parsed.data.practiceId}`);
     return { error: null };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "That could not be called off" };
@@ -117,6 +118,8 @@ export async function setPracticeAttendanceAction(raw: unknown): Promise<Practic
     if (present) await checkInPractice(supabase, practiceId, userId);
     else await undoPracticeCheckIn(supabase, practiceId, userId);
     revalidatePractice(crewId);
+    /* the practice's own page carries the register too (18 Oct 2026) */
+    revalidatePath(`/practice/crew/${practiceId}`);
     return { error: null };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "The register could not be changed" };

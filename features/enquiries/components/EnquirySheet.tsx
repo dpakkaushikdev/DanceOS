@@ -355,7 +355,7 @@ export function EnquirySheet({
           background: "var(--solid)",
           color: "var(--text)",
           borderRadius: "24px 24px 0 0",
-          padding: "16px 16px 26px",
+          padding: "16px var(--dos-gutter) 26px",
           width: "100%",
           maxWidth: 430,
           maxHeight: "92vh",

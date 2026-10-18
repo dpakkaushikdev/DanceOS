@@ -69,6 +69,9 @@ export function MyPractices({
       key={p.id}
       practice={p}
       now={now}
+      /* ⚠ the card opens the practice's own page (18 Oct 2026) — its details, and
+         the register for the leader; the bar keeps its own door above the link */
+      href={`/practice/crew/${p.id}`}
       /* the crew's name leads the card now (its head), so the bar carries only the
          door: the register for a practice you arranged, the crew's page otherwise */
       actions={

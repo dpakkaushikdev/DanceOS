@@ -29,7 +29,7 @@ export function JoinInvite({ code, preview }: { code: string; preview: InvitePre
         margin: "0 auto",
         fontFamily: DOS_UI,
         minHeight: "100vh",
-        padding: "18px 16px 40px",
+        padding: "18px var(--dos-gutter) 40px",
         boxSizing: "border-box",
       }}
     >

@@ -5,6 +5,7 @@ import { CARD, DOS_UI, GOLD, GREEN, INK, LINE, SUB } from "@/lib/design/tokens";
 import { PAYOUT_METHOD_LABEL, PAYOUT_STATUS_LABEL, payoutTone, type MyEarnings } from "@/types/payout";
 import { SettlementRow, money } from "@/features/payouts/components/earnings-kit";
 import { coveredWords, PaidCovers } from "@/features/payouts/components/PaidCovers";
+import { disputedInr, type PaymentDispute } from "@/repositories/disputes";
 
 /** PAID TO YOU — WHAT EACH STUDIO HAS PAID YOU AND WHAT IS NOT YET SETTLED
  *  (18 Oct 2026). One card per studio: the sessions you took there, how many
@@ -14,9 +15,10 @@ import { coveredWords, PaidCovers } from "@/features/payouts/components/PaidCove
  *  ⚠ NO "DUE" IN RUPEES: the studio sets the amount when it pays (the user: "no
  *  other way to set price from somewhere else"), so what is unsettled is a COUNT
  *  until then. */
-export function PaidToYou({ data }: { data: MyEarnings }) {
+export function PaidToYou({ data, disputes }: { data: MyEarnings; disputes?: Record<string, PaymentDispute> }) {
   const [open, setOpen] = useState<string | null>(null);
   if (data.studios.length === 0 && data.payouts.length === 0) return null;
+  const disputed = disputes ? disputedInr(Object.values(disputes)) : 0;
 
   return (
     <section id="paid-to-you" data-testid="paid-to-you" style={{ fontFamily: DOS_UI, color: INK, margin: "4px 0 14px" }}>
@@ -27,6 +29,11 @@ export function PaidToYou({ data }: { data: MyEarnings }) {
           {money(data.paidTotal)}
         </b>
       </div>
+      {disputed > 0 ? (
+        <div style={{ fontSize: 11.5, fontWeight: 800, color: "#D97706", margin: "0 2px 8px" }} data-testid="paid-to-you-disputed">
+          {money(disputed)} disputed
+        </div>
+      ) : null}
       {data.unsettledTotal > 0 ? (
         <div style={{ fontSize: 11.5, fontWeight: 800, color: GOLD, margin: "0 2px 8px" }} data-testid="paid-to-you-unsettled">
           {data.unsettledTotal} not settled yet
@@ -68,7 +75,11 @@ export function PaidToYou({ data }: { data: MyEarnings }) {
                         amount={p.amountInr}
                         tone={payoutTone(p.status)}
                       />
-                      <PaidCovers sessions={p.sessions} enquiries={p.enquiries} />
+                      <PaidCovers
+                        sessions={p.sessions}
+                        enquiries={p.enquiries}
+                        dispute={disputes ? { side: "paid", of: "payout", paymentId: p.id, amountInr: p.amountInr, byTarget: disputes } : undefined}
+                      />
                     </div>
                   ))
                 )}

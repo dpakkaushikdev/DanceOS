@@ -13,7 +13,24 @@ Keys for all of these are in `.env.local` (gitignored). Any older record below t
 
 ## LAST SESSION (17–19 Oct 2026) — replaced on every push (Rule 13)
 
-> ### PAY IS SET WHEN PAYING, RENT, A NAME IS 15 CHARACTERS, AND THE DOOR SEARCHES DANCEOS (18–19 Oct 2026, latest) — ⚠ Rule 9 (money + two migrations) · ✅ `20261029090000_pay_is_set_when_paying` and `20261030090000_a_name_is_fifteen_characters` APPLIED
+> ### RENT AS A LUMP SUM, A DISPUTE PER ENTRY, AND DETAIL PAGES FOR EVERY TEAM (19 Oct 2026, latest) — ⚠ Rule 9 (money) · ✅ `20261031090000_rent_as_a_lump_sum_and_disputes` APPLIED (dry run **28/28** rolled back, `db-push -DryRun` exactly the one file, live read-back **9/9**, anon 40, PostgREST reloaded)
+> The user: *"pay rent should also have pay an amount as total"*, Other Teams cards open a detail page of the work done, a better and shorter pay toggle, *"rent received in studio should also be handled inside the person whom it is received from"*, team and other-team detail pages with everything under the right columns and nothing repeated, *"find proper mechanisms for dispute against these payments as well entry wise"*, and *"should give total properly while paying or disputing"*. Then *"push to live"*.
+> * **Rent as a lump sum:** `record_rent_amount` lets the payer business's owner record rent to a venue that accepted one of its classes, with no session lines. `SettleSheet` has a Per class / Lump sum toggle with the total shown.
+> * **Disputes, one per entry:** a new `payment_disputes` table. A dispute's kind is `payout_line`, `payout_enquiry_line`, `payout`, `rent_line` or `rent_payment`, and only one dispute per entry can be open at a time. Only the two ends can read it.
+>   * `raise_payment_dispute`: the person paid, or the venue owner for rent, raises it; the payer's owners are told.
+>   * `answer_payment_dispute`: the payer's owner accepts or rejects it.
+>   * `withdraw_payment_dispute`: whoever raised it can withdraw it.
+>   * `DisputeControl` puts a status pill on every line and lump sum. Its sheets show the totals: Paid · Should be · DISPUTED.
+> * **Detail pages:**
+>   * `/team/other/business/{id}` and `/team/other/crew/{id}`: Other Teams' Detail ›, with Paid (and disputes), Rent and Work columns.
+>   * `/business/{id}/renters/{payerId}`: rent from an artist page that is not on the team.
+>   * A member's Member Detail gains a Rent column (`MemberMoney`, `TeamPaySheet`, `RentReceivedSummary`).
+>   * ⚠ Deviation: an artist pays studio rent from Other Teams › that venue's Rent column, no longer from the Team desk. Restoring it is one line in `StaffDesk.tsx`.
+> * **Verified:** typecheck 0 · lint 0 · build green · dry run 28/28 · live read-back 9/9.
+>   * ⚠ **No e2e, shoot or proof drives the new pages or a dispute yet.** That is the first thing next.
+>   * ⚠ The 19 Oct e2e suite and the re-cut shoots (renamed to ≤15 names) have still not been read back.
+
+> ### PAY IS SET WHEN PAYING, RENT, A NAME IS 15 CHARACTERS, AND THE DOOR SEARCHES DANCEOS (18–19 Oct 2026) — ⚠ Rule 9 (money + two migrations) · ✅ `20261029090000_pay_is_set_when_paying` and `20261030090000_a_name_is_fifteen_characters` APPLIED
 > The user: pay is set only when paying, from the Team section, over the unsettled classes and enquiries (one rate or each line its own); rent to a studio paid the same way from Other Teams (ahead allowed); no rate anywhere else; Earnings shows data and opens nothing outward; a total while paying; then *"fix word limit for all kinds of names and should not be more than 15 letters"* and *"attendance walk in search bar should work like search on discover with only user or artist names"*. Their answers: spaces count, the database enforces it, old names shortened now (the rename list approved as listed), disputes are the NEXT migration with its own list, the walk-in stays as the search's last row.
 > * **Pay** (R88): `SettleSheet` — tick the unsettled sessions and enquiries, a ₹ per line or "Same ₹ for each ticked", a TOTAL, "Record ₹X" (`record_session_payment`), or "Pay an amount (not for a class)"; a disabled Cashfree button and a reference field (record only). Team cards say "Pay · N to settle"; Member Detail says To settle and NOT SETTLED YET (no owed rupees — there is no rate until you pay). `set_member_pay` / `set_class_person_pay` have no caller and their actions are deleted; the RPCs stay. The history CSV carries enquiry lines.
 > * **Rent** (`rent_payments`, `rent_lines`, `record_rent_payment`, `void_rent_payment`, `RentPanel`): an artist page pays the studio whose rooms it uses, per session or ahead; the studio sees what it received.
@@ -11224,7 +11241,14 @@ summary; the report has the evidence.
 
 ## NEXT TO DO — replaced on every push (Rule 13)
 
-0c4. **AFTER THE 19 Oct PUSH:** (1) read the e2e suite's tally (it was running at the push) and fix any red; (2) run the re-cut shoots (`shoot-register`, `shoot-earnings`, `shoot-seats`, `shoot-founder`, `shoot-classes`, `shoot-tiles`, `shoot-hero`) and the proofs (`scripts/run-proofs.ps1`) — the harness was renamed to ≤15 names and none of it has run; (3) **disputes** — one dispute per payment line (`payout_lines`, `payout_enquiry_lines`, `rent_lines`), raised by the payee or the venue, answered by the payer, totals split disputed vs paid — a migration whose list goes to the user BEFORE the apply; (4) re-seed the demo world when wanted (`demo-data.js` now carries the short names).
+0c4. **AFTER THE 19 Oct PUSHES:**
+   1. Run the whole e2e suite on one worker against `:3100` and fix any red. Two pushes have now gone out unread.
+   2. Run the re-cut shoots (`shoot-register`, `shoot-earnings`, `shoot-seats`, `shoot-founder`, `shoot-classes`, `shoot-tiles`, `shoot-hero`) and `scripts/run-proofs.ps1`. The harness was renamed to ≤15 names and none of it has run.
+   3. Add drivers for the new surfaces:
+      * a `rls-proof-disputes.ps1` (raise, answer, withdraw, one open per entry, a stranger reads nothing);
+      * an e2e segment for a lump-sum rent, an Other Teams Detail page, and a dispute raised and answered.
+   4. A dispute is told on raise (the payer's owners) and on answer (whoever raised it); a withdrawal tells nobody. An accepted dispute moves no money — the payer records the difference as a new payment.
+   5. Re-seed the demo world when wanted.
 
 0c3. **CONNECT INSTAGRAM — WHAT IS LEFT (18 Oct 2026).** (1) The user puts `INSTAGRAM_APP_ID` and `INSTAGRAM_APP_SECRET` on Vercel (danceos → Settings → Environment Variables, all three environments — the permission classifier refused it from here as a secret-store write) and **redeploys**; until then the live site draws no Connect button. (2) On the Meta app: `https://danceos-sigma.vercel.app/api/auth/instagram/callback` under Business login settings → OAuth redirect URIs, and the user's Creator/Business account as an Instagram Tester, accepted. (3) **The first real round trip** — the only test of the secret and the redirect URI (a fake code is answered identically for a right and a wrong secret). (4) Then: offer the Instagram picture as the DanceOS photo (backlog), Meta App Review + business verification so non-testers can connect, and WhatsApp (a DanceOS WhatsApp Business number + business portfolio: the person taps, WhatsApp opens with a prefilled code to DanceOS's number, the webhook links the sender's number).
 
@@ -13892,6 +13916,7 @@ for the database schema. **The UI is not redesigned** — see Rule 2.
 
 ### Progress tracker — update after EVERY push (Rule 11)
 
+- **RENT AS A LUMP SUM, A DISPUTE PER ENTRY, DETAIL PAGES FOR EVERY TEAM — 19 Oct 2026, no step number ⚠ (Rule 9) — `20261031090000` APPLIED.** Detail at the top.
 - **A STICKY PROFILE, CONNECTIONS, SINCE {YEAR}, NO SWITCHER TICK — 18 Oct 2026, no step number — no migration.** Rows C174, C175. Detail at the top.
 - **ONE HIGHLIGHTED PROFILE, DISCOVER'S HEADINGS EVERYWHERE, TEAM · PARTICIPANTS, MEMBERSHIPS ON THE PAYMENT SHEET — 18 Oct 2026, no step number — no migration.** Detail at the top.
 - **CONNECT INSTAGRAM — 18 Oct 2026, no step number ⚠ (Rule 9) — `20261028090000` APPLIED.** Row C173. Waiting on the Vercel keys and a real round trip (NEXT TO DO #0c3). Detail at the top.

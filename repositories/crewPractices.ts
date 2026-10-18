@@ -136,6 +136,24 @@ export function practiceToCalendar(p: CrewPractice): CalendarPracticeEntry {
   };
 }
 
+/** WHICH OF THESE PRACTICES THE CALLER WAS CHECKED IN TO (19 Oct 2026, the
+ *  member's own crew detail page). Says `user_id = me` out loud — the crew reads
+ *  every row of its practices, and RLS is a ceiling, not a scope. One read for
+ *  the whole list; a failed read is an empty set (degrade, never fail). */
+export async function findMyPracticeCheckIns(supabase: SupabaseClient, userId: string, practiceIds: string[]): Promise<Set<string>> {
+  const ids = [...new Set(practiceIds)].slice(0, 500);
+  if (ids.length === 0) return new Set();
+  const { data, error } = await supabase
+    .from("crew_practice_attendance")
+    .select("practice_id")
+    .eq("user_id", userId)
+    .in("practice_id", ids)
+    .is("deleted_at", null)
+    .limit(ids.length);
+  if (error) return new Set();
+  return new Set(((data ?? []) as Array<{ practice_id: string }>).map((r) => r.practice_id));
+}
+
 interface PersonRow {
   user_id: string;
   full_name: string;

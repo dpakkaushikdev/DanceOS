@@ -90,11 +90,11 @@ type Lines = {
 async function readLines(supabase: SupabaseClient, by: { businessId?: string; userId?: string }): Promise<Lines> {
   let a = supabase
     .from("payout_lines")
-    .select("payout_id, session_id, user_id, rate_inr, class_sessions (starts_at, classes (style, level))")
+    .select("id, payout_id, session_id, user_id, rate_inr, class_sessions (starts_at, classes (style, level))")
     .is("deleted_at", null);
   let b = supabase
     .from("payout_enquiry_lines")
-    .select("payout_id, enquiry_id, user_id, rate_inr, enquiries (type_key, profiles (full_name))")
+    .select("id, payout_id, enquiry_id, user_id, rate_inr, enquiries (type_key, profiles (full_name))")
     .is("deleted_at", null);
   if (by.businessId) {
     a = a.eq("business_id", by.businessId);
@@ -108,8 +108,8 @@ async function readLines(supabase: SupabaseClient, by: { businessId?: string; us
   if (sRes.error) throw new Error(`payouts.lines(sessions) failed: ${sRes.error.message}`);
   if (eRes.error) throw new Error(`payouts.lines(enquiries) failed: ${eRes.error.message}`);
 
-  type SRow = { payout_id: string; session_id: string; user_id: string; rate_inr: number; class_sessions: unknown };
-  type ERow = { payout_id: string; enquiry_id: string; user_id: string; rate_inr: number; enquiries: unknown };
+  type SRow = { id: string; payout_id: string; session_id: string; user_id: string; rate_inr: number; class_sessions: unknown };
+  type ERow = { id: string; payout_id: string; enquiry_id: string; user_id: string; rate_inr: number; enquiries: unknown };
   const sessions = new Map<string, PayoutWithSessions["sessions"]>();
   const enquiries = new Map<string, PayoutWithSessions["enquiries"]>();
   const settled = new Set<string>();
@@ -117,7 +117,7 @@ async function readLines(supabase: SupabaseClient, by: { businessId?: string; us
     const cs = single(l.class_sessions as { starts_at: string; classes: unknown } | null);
     const cl = single(cs?.classes as { style: string; level: string } | null);
     const list = sessions.get(l.payout_id) ?? [];
-    list.push({ sessionId: l.session_id, classTitle: cl ? dosClassLabel(cl.style, cl.level) : "Class", startsAt: cs?.starts_at ?? "", rateInr: l.rate_inr });
+    list.push({ sessionId: l.session_id, classTitle: cl ? dosClassLabel(cl.style, cl.level) : "Class", startsAt: cs?.starts_at ?? "", rateInr: l.rate_inr, lineId: l.id });
     sessions.set(l.payout_id, list);
     settled.add(`${l.session_id}:${l.user_id}`);
   }
@@ -125,7 +125,7 @@ async function readLines(supabase: SupabaseClient, by: { businessId?: string; us
     const e = single(l.enquiries as { type_key: string; profiles: unknown } | null);
     const who = single(e?.profiles as { full_name: string | null } | null)?.full_name;
     const list = enquiries.get(l.payout_id) ?? [];
-    list.push({ enquiryId: l.enquiry_id, label: e ? enquiryLabel(e.type_key, who) : "An enquiry", rateInr: l.rate_inr });
+    list.push({ enquiryId: l.enquiry_id, label: e ? enquiryLabel(e.type_key, who) : "An enquiry", rateInr: l.rate_inr, lineId: l.id });
     enquiries.set(l.payout_id, list);
     settled.add(`${l.enquiry_id}:${l.user_id}`);
   }

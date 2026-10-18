@@ -1,6 +1,7 @@
 "use client";
 
-import { ToolCard, ToolChip, ToolHead } from "@/components/ui/ToolCard";
+import Link from "next/link";
+import { ToolActions, ToolCard, ToolChip, ToolHead, toolBtn } from "@/components/ui/ToolCard";
 import { CrewInvites, TeamInvites } from "@/features/inbox/components/JoinInvites";
 import { DOS_TOOLS } from "@/features/businesses/components/biz-kit";
 import { VerifiedTick } from "@/features/settings/components/settings-kit";
@@ -8,8 +9,22 @@ import { CrewCard } from "@/features/crews/components/CrewsHub";
 import { publicProfilePath } from "@/lib/routes/publicProfile";
 import { MUTED, SUB } from "@/lib/design/tokens";
 import type { OtherTeamsData } from "@/features/staff/otherTeams";
+import type { RentVenue } from "@/types/payout";
+import { money as rupees } from "@/features/payouts/components/earnings-kit";
 
 const head: React.CSSProperties = { fontSize: 9.5, fontWeight: 900, letterSpacing: 1, color: MUTED, textTransform: "uppercase", margin: "6px 2px 8px" };
+
+/** THE DOOR TO YOUR OWN WORK WITH ONE TEAM (19 Oct 2026, the user: "other team
+ *  cards in team should also have a detail page which shows work done for that
+ *  particular crew, artist and studio"). A button on the card's own bar, so the
+ *  card's stretched link (the team's profile) keeps its name and its press. */
+function DetailLink({ href, name, tint }: { href: string; name: string; tint: string }) {
+  return (
+    <Link href={href} data-testid="other-team-detail" aria-label={`Your work with ${name}`} style={toolBtn("tinted", tint)}>
+      Detail ›
+    </Link>
+  );
+}
 
 /** THE OTHER TEAMS COLUMN (18 Oct 2026, the user: "crew team and studio team
  *  should all be managed within teams in artist teams column and should be
@@ -22,11 +37,16 @@ const head: React.CSSProperties = { fontSize: 9.5, fontWeight: 900, letterSpacin
  *  then the studio teams, the artist teams and the crews you are already on. It
  *  replaced the Studios hub's Team column, the Crews hub's Member column and the
  *  Artist Teams column; the old addresses forward here (Rule 14). */
-export function OtherTeams({ data, stayOn }: { data: OtherTeamsData; stayOn: string }) {
+export function OtherTeams({ data, stayOn, rentVenues = [] }: { data: OtherTeamsData; stayOn: string; rentVenues?: RentVenue[] }) {
   const tint = DOS_TOOLS.team.c;
   const studioTint = DOS_TOOLS.studios.c;
   const { studioInvites, artistInvites, crewAsks, studioTeams, artistTeams, crews } = data;
-  const empty = studioInvites.length + artistInvites.length + crewAsks.length + studioTeams.length + artistTeams.length + crews.length === 0;
+  /* ⚠ A STUDIO YOU RENT FROM AND ARE ON THE TEAM OF IS ONE CARD — its studio-team
+     card's Detail page carries the Rent column too, so it is not listed twice */
+  const seatStudios = new Set(studioTeams.map((t) => t.business.id));
+  const rentOnly = rentVenues.filter((v) => !seatStudios.has(v.venueBusinessId));
+  const rentTint = DOS_TOOLS.rooms.c;
+  const empty = studioInvites.length + artistInvites.length + crewAsks.length + studioTeams.length + artistTeams.length + crews.length + rentOnly.length === 0;
   return (
     <div data-testid="other-teams">
       <TeamInvites invites={studioInvites} stayOn={stayOn} heading="Invited to a studio's team" testId="team-invites" />
@@ -48,6 +68,9 @@ export function OtherTeams({ data, stayOn }: { data: OtherTeamsData; stayOn: str
                   sub={[t.business.area, t.business.city].filter(Boolean).join(", ") || undefined}
                   right={<ToolChip word={t.seatWord} fg={t.seatColour} bg={`${t.seatColour}1f`} />}
                 />
+                <ToolActions>
+                  <DetailLink href={`/team/other/business/${t.business.id}`} name={t.business.name} tint={studioTint} />
+                </ToolActions>
               </ToolCard>
             </div>
           ))}
@@ -68,9 +91,37 @@ export function OtherTeams({ data, stayOn }: { data: OtherTeamsData; stayOn: str
                   sub={t.city ?? undefined}
                   right={<ToolChip word={t.seatWord} fg={t.seatColour} bg={`${t.seatColour}1f`} />}
                 />
+                <ToolActions>
+                  <DetailLink href={`/team/other/business/${t.businessId}`} name={t.name} tint={tint} />
+                </ToolActions>
               </ToolCard>
             </div>
           ))}
+        </div>
+      ) : null}
+
+      {rentOnly.length > 0 ? (
+        <div data-testid="rent-venues">
+          <div style={head}>Studios you rent from · {rentOnly.length}</div>
+          {rentOnly.map((v) => {
+            const paid = v.payments.reduce((n, p) => n + (p.status === "done" ? p.amountInr : 0), 0);
+            return (
+              <div key={v.venueBusinessId} style={{ marginBottom: 10 }}>
+                <ToolCard testId="rent-venue-card">
+                  <ToolHead
+                    tint={rentTint}
+                    name={v.venueName}
+                    photoPath={null}
+                    eyebrow="Studio · You rent here"
+                    sub={`${v.unpaid.length} ${v.unpaid.length === 1 ? "class" : "classes"} not paid for · ${rupees(paid)} paid`}
+                  />
+                  <ToolActions>
+                    <DetailLink href={`/team/other/business/${v.venueBusinessId}?show=rent`} name={v.venueName} tint={rentTint} />
+                  </ToolActions>
+                </ToolCard>
+              </div>
+            );
+          })}
         </div>
       ) : null}
 
@@ -78,7 +129,7 @@ export function OtherTeams({ data, stayOn }: { data: OtherTeamsData; stayOn: str
         <div data-testid="member-crews">
           <div style={head}>Crews you are in · {crews.length}</div>
           {crews.map((c) => (
-            <CrewCard key={c.id} crew={c} own={false} since={c.since} foundedByMe={c.foundedByMe} />
+            <CrewCard key={c.id} crew={c} own={false} since={c.since} foundedByMe={c.foundedByMe} detailHref={`/team/other/crew/${c.id}`} />
           ))}
         </div>
       ) : null}

@@ -7,7 +7,8 @@ import { sentTeamAnsweredRow } from "@/features/inbox/inviteRows";
 import { findBusinessPayLedger, findMyEarnings } from "@/repositories/payouts";
 import { findMyMemberships, findBusinessTeam, runsTheBusiness } from "@/repositories/businesses";
 import { findTeamClassCounts } from "@/repositories/teamMemberWork";
-import { findRentReceived, findRentVenues } from "@/repositories/rent";
+import { findRentReceivedByPerson, findRentVenues } from "@/repositories/rent";
+import type { RenterSummary } from "@/features/staff/components/RentReceivedSummary";
 import { loadOtherTeams } from "@/features/staff/server/loadOtherTeams";
 import { otherTeamsWaiting } from "@/features/staff/otherTeams";
 
@@ -87,8 +88,31 @@ export default async function BusinessStaffPage({
     /* RENT (18 Oct 2026): an artist pays the studios that hold its classes from
        Other Teams; a studio reads the rent it was paid on its own Team desk */
     ownArtistPage ? findRentVenues(supabase, businessId).catch(() => []) : Promise.resolve([]),
-    business.type === "studio" && myRole === "owner" ? findRentReceived(supabase, businessId).catch(() => []) : Promise.resolve([]),
+    business.type === "studio" && myRole === "owner" ? findRentReceivedByPerson(supabase, businessId).catch(() => []) : Promise.resolve([]),
   ]);
+  /* ⚠ RENT RECEIVED, ONE LINE PER RENTER (19 Oct 2026, the user: "rent received
+     in studio should also be handled inside the person whom it is received
+     from"). The payments live on that person's page — their Member Detail Rent
+     column when they are on this team, the renter page when not. */
+  const onTeam = new Set(team.map((m) => m.userId));
+  const renterMap = new Map<string, RenterSummary>();
+  for (const p of rentReceived) {
+    const person = p.recordedBy && onTeam.has(p.recordedBy) ? p.recordedBy : null;
+    let r = renterMap.get(p.payerBusinessId);
+    if (!r) {
+      r = {
+        payerBusinessId: p.payerBusinessId,
+        payerName: p.payerName,
+        count: 0,
+        paidInr: 0,
+        href: person ? `/business/${businessId}/staff/${person}?show=rent` : `/business/${businessId}/renters/${p.payerBusinessId}`,
+      };
+      renterMap.set(p.payerBusinessId, r);
+    }
+    r.count += 1;
+    if (p.status === "done") r.paidInr += p.amountInr;
+  }
+  const renters = [...renterMap.values()].sort((a, b) => b.paidInr - a.paidInr || a.payerName.localeCompare(b.payerName));
   /* `?show=artists` is the column's name before 18 Oct 2026 — Rule 14 */
   const wantsOther = asked === "other" || asked === "artists";
 
@@ -104,7 +128,7 @@ export default async function BusinessStaffPage({
       payLedger={myRole === "owner" ? ledger : null}
       paidToYou={paidToYou}
       rentVenues={rentVenues}
-      rentReceived={rentReceived}
+      renters={renters}
       classCounts={classCounts ? Object.fromEntries(classCounts) : null}
       // asking and removing are the owner's alone (§10.9); everyone else reads
       isOwner={myRole === "owner"}

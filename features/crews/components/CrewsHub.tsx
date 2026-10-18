@@ -27,8 +27,28 @@ const sinceWords = (iso: string) => new Intl.DateTimeFormat("en-IN", { timeZone:
  *  its page for one you are in — through the stretched link, under the same
  *  accessible name the hub has always given it. The buttons are the two doors
  *  said out loud, on their own bar. */
-export function CrewCard({ crew, own, since, foundedByMe = false }: { crew: CrewSummary; own: boolean; since: string; foundedByMe?: boolean }) {
+export function CrewCard({
+  crew,
+  own,
+  since,
+  foundedByMe = false,
+  detailHref,
+}: {
+  crew: CrewSummary;
+  own: boolean;
+  since: string;
+  foundedByMe?: boolean;
+  /** a crew you are IN, on Team › Other Teams: the door to your own work with it
+   *  (19 Oct 2026, the user: "other team cards in team should also have a detail
+   *  page which shows work done for that particular crew, artist and studio") */
+  detailHref?: string;
+}) {
   const tint = CREW_TINT;
+  const detail = detailHref ? (
+    <Link href={detailHref} data-testid="other-team-detail" aria-label={`Your work with ${crew.name}`} style={toolBtn("tinted", tint)}>
+      Detail ›
+    </Link>
+  ) : null;
   return (
     <ToolCard href={own ? `/crews/${crew.id}/manage` : `/crew/${crew.id}`} hrefLabel={`${crew.name} — ${own ? "manage the crew" : "open the profile"}`}>
       {/* ⚠ THE FACE AND THE NAME ARE THE DOOR TO THE CREW'S PROFILE (4 Oct 2026,
@@ -76,7 +96,10 @@ export function CrewCard({ crew, own, since, foundedByMe = false }: { crew: Crew
         <ToolActions>
           {/* ⚠ THE FOUNDER'S DOOR BACK (30 Sep 2026), still named "Take {crew} back" */}
           <ReclaimCrewButton crewId={crew.id} crewName={crew.name} wrapStyle={{ flex: "1 1 0", minWidth: 0 }} buttonStyle={{ ...toolBtn("secondary", tint), width: "100%", color: tint }} />
+          {detail}
         </ToolActions>
+      ) : detail ? (
+        <ToolActions>{detail}</ToolActions>
       ) : null}
     </ToolCard>
   );

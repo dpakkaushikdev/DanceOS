@@ -9,12 +9,16 @@ import { FigureHead } from "@/components/ui/FigureHead";
 import { PayHistoryExport } from "./PayHistoryExport";
 import { MemberManage } from "./MemberManage";
 import { TeamClassesPanel } from "./TeamClassesPanel";
+import { MemberToSettle, VoidPayment } from "./MemberMoney";
+import { RentReceivedList } from "./RentReceivedList";
+import { PaidCovers } from "@/features/payouts/components/PaidCovers";
+import type { PaymentDispute } from "@/repositories/disputes";
 import type { BusinessType } from "@/types/business";
 import { DOS_UI, GREEN, INK, LILAC, MUTED, SUB } from "@/lib/design/tokens";
 import { KIND_WORD, kindOf } from "@/types/profile";
 import { PERIODS, bucketKeyOf, bucketLabelOf, bucketStartIso, type Period } from "@/lib/format/month";
 import { MEMBER_LABEL, MEMBER_ROLE_WORD } from "@/types/staff";
-import { PAYOUT_METHOD_LABEL, payoutTone, type PersonPayHistory } from "@/types/payout";
+import { PAYOUT_METHOD_LABEL, payoutTone, type PersonPayHistory, type PersonPayLedger, type RentPayment } from "@/types/payout";
 import type { TeamMember } from "@/repositories/businesses";
 import type { TeamMemberWork } from "@/repositories/teamMemberWork";
 
@@ -209,7 +213,9 @@ function EarningsPanel({
   tint,
   period,
   base,
+  disputes,
 }: {
+  disputes: Record<string, PaymentDispute>;
   history: PersonPayHistory;
   work: TeamMemberWork;
   personName: string;
@@ -352,26 +358,26 @@ function EarningsPanel({
                         </span>
                       </span>
                       <ToolChip word={tone.word} fg={tone.ink} bg={tone.ground} />
+                      <VoidPayment payoutId={p.id} amountWords={rupees(p.amountInr)} />
                     </div>
                     {p.providerRef ? <div style={{ fontSize: 10.5, color: SUB, marginTop: 3 }}>Reference {p.providerRef}</div> : null}
                     {p.note ? <div style={{ fontSize: 12, marginTop: 5 }}>{p.note}</div> : null}
                     {/* WHAT IT COVERED — the half the desk's card only counts */}
-                    {p.sessions.length > 0 ? (
+                    {p.sessions.length > 0 || p.enquiries.length > 0 ? (
                       <div style={{ marginTop: 6 }}>
-                        {p.sessions.map((s) => (
-                          <div key={s.sessionId} style={{ display: "flex", gap: 10, padding: "2px 0", fontSize: 11 }}>
-                            <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: SUB }}>
-                              {s.classTitle}
-                              {s.startsAt ? ` · ${sessionWords(s.startsAt)}` : ""}
-                            </span>
-                            <b style={{ flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{rupees(s.rateInr)}</b>
-                          </div>
-                        ))}
+                        <PaidCovers
+                          sessions={p.sessions}
+                          enquiries={p.enquiries}
+                          dispute={{ side: "payer", of: "payout", paymentId: p.id, amountInr: p.amountInr, byTarget: disputes }}
+                        />
                       </div>
                     ) : (
                       /* ⚠ NOT AN EMPTY LIST — `record_team_payment` writes a payout with
                          no session lines ON PURPOSE (19 Sep 2026, R35) */
-                      <div style={{ fontSize: 10.5, color: SUB, marginTop: 5 }}>Not against sessions.</div>
+                      <>
+                        <div style={{ fontSize: 10.5, color: SUB, marginTop: 5 }}>Not against sessions.</div>
+                        <PaidCovers sessions={[]} dispute={{ side: "payer", of: "payout", paymentId: p.id, amountInr: p.amountInr, byTarget: disputes }} />
+                      </>
                     )}
                   </div>
                 );
@@ -383,11 +389,16 @@ function EarningsPanel({
         <div style={rule} />
         {/* NOT SETTLED YET — sessions no payment covers, with no amount: what
             they are worth is decided when the studio pays (Pay on the Team desk) */}
-        <Fold title="NOT SETTLED YET" count={work.owedEntries.length} noun={["session", "sessions"]} testId="team-fold-to-settle">
+        {/* ⚠ LISTED ONCE (19 Oct 2026, the user: "make sure things aren't
+            repeated") — the sessions themselves are the To settle column's, with
+            the Pay button beside them; this fold only points there */}
+        <Fold title="NOT SETTLED YET" sub="Listed under To settle" testId="team-fold-to-settle">
           {work.owedEntries.length === 0 ? (
             <div style={{ fontSize: 11.5, color: SUB }}>Every session is settled.</div>
           ) : (
-            work.owedEntries.map((e) => <Line key={e.sessionId} label={e.classTitle} sub={sessionWords(e.startsAt)} value="—" testId="team-to-settle-entry" />)
+            <Link href={`${base}?show=settle`} replace scroll={false} style={{ fontSize: 11.5, fontWeight: 800, color: tint }}>
+              Open To settle ›
+            </Link>
           )}
         </Fold>
 
@@ -472,7 +483,9 @@ function StatsPanel({ work, tint }: { work: TeamMemberWork; tint: string }) {
   );
 }
 
-export type TeamMemberShow = "earnings" | "stats" | "classes";
+/* ⚠ "earnings" IS THE PAID COLUMN'S KEY — kept, so `?show=earnings&period=…`
+   links and the column's accessible name ("… earns the team") still land */
+export type TeamMemberShow = "settle" | "earnings" | "stats" | "classes" | "rent";
 
 export function TeamMemberPage({
   businessId,
@@ -481,17 +494,27 @@ export function TeamMemberPage({
   member,
   history,
   work,
+  ledger,
+  rent,
   show,
   period = "all",
   meUserId,
   principalOwnerId,
+  disputes = {},
 }: {
+  /** the latest dispute per entry on this person's payments and rent (19 Oct 2026) */
+  disputes?: Record<string, PaymentDispute>;
   businessId: string;
   businessName: string;
   businessType: BusinessType;
   member: TeamMember;
   history: PersonPayHistory;
   work: TeamMemberWork;
+  /** this person's row of the business's pay ledger — what the To settle column lists */
+  ledger: Pick<PersonPayLedger, "unpaid" | "unpaidEnquiries"> | null;
+  /** rent this person's artist page paid this studio, grouped by page — the Rent
+   *  column, drawn only when there is some (19 Oct 2026) */
+  rent: Array<{ payerName: string; payments: RentPayment[] }>;
   show: TeamMemberShow;
   period?: EarnPeriod;
   meUserId: string;
@@ -531,13 +554,13 @@ export function TeamMemberPage({
         <ToolBody>
           {/* ⚠ CLASSES, NOT SESSIONS (4 Oct 2026): Took and Assisted under Stats
               add up to the sessions, so the card says the one thing nothing
-              below repeats */}
+              below repeats. ⚠ NO PAID TILE (19 Oct 2026, the user: "make sure
+              things aren't repeated") — the Paid column's key stats say it */}
           <ToolFacts
             tint={tint}
             items={[
               { label: work.classes.length === 1 ? "Class" : "Classes", value: work.classes.length, testId: "team-class-count" },
               { label: "Dancers in", value: work.dancers, testId: "team-dancers" },
-              { label: "Paid", value: rupees(history.paidInr) },
             ]}
           />
         </ToolBody>
@@ -556,18 +579,41 @@ export function TeamMemberPage({
         label="Show"
         sections
         top={top}
+        /* TO SETTLE · PAID · CLASSES · STATS (· RENT) — 19 Oct 2026, the user:
+           "handle team detail pages better with everything inside that … under
+           right columns". The page still opens on Paid (the route's default). */
         segments={[
-          { key: "earnings", href: `${base}?show=earnings`, label: "Earnings", aria: `What ${member.name} earns the team` },
-          { key: "stats", href: `${base}?show=stats`, label: "Stats", aria: `${member.name}'s stats here` },
+          { key: "settle", href: `${base}?show=settle`, label: "To settle", aria: `What ${member.name} has not been paid for` },
+          { key: "earnings", href: `${base}?show=earnings`, label: "Paid", aria: `What ${member.name} earns the team` },
           { key: "classes", href: `${base}?show=classes`, label: "Classes", aria: `${member.name}'s classes here` },
+          { key: "stats", href: `${base}?show=stats`, label: "Stats", aria: `${member.name}'s stats here` },
+          ...(rent.length > 0 ? [{ key: "rent", href: `${base}?show=rent`, label: "Rent", aria: `Rent ${member.name} paid here` }] : []),
         ]}
         panels={[
-          { key: "earnings", node: <EarningsPanel history={history} work={work} personName={member.name} businessName={businessName} tint={tint} period={period} base={base} /> },
-          { key: "stats", node: <StatsPanel work={work} tint={tint} /> },
+          {
+            key: "settle",
+            node: <MemberToSettle businessId={businessId} person={{ userId: member.userId, name: member.name, avatarPath: member.avatarPath }} ledger={ledger} tint={tint} />,
+          },
+          { key: "earnings", node: <EarningsPanel history={history} work={work} personName={member.name} businessName={businessName} tint={tint} period={period} base={base} disputes={disputes} /> },
           {
             key: "classes",
             node: <TeamClassesPanel classes={work.classes} tint={tint} memberName={member.name} businessName={businessName} isStudio={businessType === "studio"} />,
           },
+          { key: "stats", node: <StatsPanel work={work} tint={tint} /> },
+          ...(rent.length > 0
+            ? [
+                {
+                  key: "rent",
+                  node: (
+                    <div data-testid="member-rent">
+                      {rent.map((r) => (
+                        <RentReceivedList key={r.payerName} payments={r.payments} payerName={r.payerName} disputes={disputes} />
+                      ))}
+                    </div>
+                  ),
+                },
+              ]
+            : []),
         ]}
       />
     </div>

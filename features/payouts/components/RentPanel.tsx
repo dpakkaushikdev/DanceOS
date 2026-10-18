@@ -6,12 +6,13 @@ import { bizCard } from "@/features/crews/components/crew-kit";
 import { money as rupees } from "@/features/payouts/components/earnings-kit";
 import { PaidCovers, coveredWords } from "@/features/payouts/components/PaidCovers";
 import { SettleSheet } from "@/features/payouts/components/SettleSheet";
-import { recordRentPaymentAction, voidRentPaymentAction } from "@/features/payouts/server-actions/payouts";
+import { recordRentAmountAction, recordRentPaymentAction, voidRentPaymentAction } from "@/features/payouts/server-actions/payouts";
 import { DOS_TOOLS } from "@/features/businesses/components/biz-kit";
 import { toolBtn } from "@/components/ui/ToolCard";
 import { INK, MUTED, SUB } from "@/lib/design/tokens";
 import { sessionDayLabel } from "@/lib/format/session";
 import type { RentPayment, RentVenue } from "@/types/payout";
+import type { PaymentDispute } from "@/repositories/disputes";
 
 /** RENT — the studios an artist's page holds classes in (18 Oct 2026, the user:
  *  "when an artist making class and adding studio should get option to pay that
@@ -24,7 +25,7 @@ const STATE_WORD: Record<RentPayment["status"], string> = { done: "Paid", in_tra
 
 const head: React.CSSProperties = { fontSize: 10.5, fontWeight: 900, letterSpacing: 1, color: SUB, margin: "4px 0 8px", textTransform: "uppercase" };
 
-function PaymentRow({ p, other, onVoid }: { p: RentPayment; other: string; onVoid?: () => void }) {
+function PaymentRow({ p, other, onVoid, dispute }: { p: RentPayment; other: string; onVoid?: () => void; dispute?: { side: "paid" | "payer"; byTarget: Record<string, PaymentDispute> } }) {
   return (
     <div data-testid="rent-payment" style={{ borderTop: "1.5px solid var(--el)", padding: "8px 0 2px" }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
@@ -38,7 +39,10 @@ function PaymentRow({ p, other, onVoid }: { p: RentPayment; other: string; onVoi
         {p.providerRef ? ` · Ref ${p.providerRef}` : ""}
         {p.note ? ` · ${p.note}` : ""}
       </div>
-      <PaidCovers sessions={p.sessions} />
+      <PaidCovers
+        sessions={p.sessions}
+        dispute={dispute ? { side: dispute.side, of: "rent", paymentId: p.id, amountInr: p.amountInr, byTarget: dispute.byTarget } : undefined}
+      />
       {onVoid ? (
         <button type="button" onClick={onVoid} aria-label={`Void the ${rupees(p.amountInr)} rent to ${other}`} style={{ fontSize: 11, fontWeight: 800, color: "#DC2626", background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}>
           Void — recorded by mistake
@@ -49,7 +53,7 @@ function PaymentRow({ p, other, onVoid }: { p: RentPayment; other: string; onVoi
 }
 
 /** The payer's side: one card per studio, Pay rent, and what has been paid. */
-export function RentToPay({ payerBusinessId, venues }: { payerBusinessId: string; venues: RentVenue[] }) {
+export function RentToPay({ payerBusinessId, venues, disputes }: { payerBusinessId: string; venues: RentVenue[]; disputes?: Record<string, PaymentDispute> }) {
   const router = useRouter();
   const [open, setOpen] = useState<RentVenue | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -68,15 +72,16 @@ export function RentToPay({ payerBusinessId, venues }: { payerBusinessId: string
                   {v.unpaid.length} class{v.unpaid.length === 1 ? "" : "es"} not paid for · {rupees(paid)} paid
                 </div>
               </div>
+              {/* always pressable (19 Oct 2026): with every class paid for, rent
+                  can still go as a lump sum */}
               <button
                 type="button"
-                disabled={v.unpaid.length === 0}
                 aria-label={`Pay rent to ${v.venueName}`}
                 onClick={() => {
                   setMsg(null);
                   setOpen(v);
                 }}
-                style={{ ...toolBtn("primary", TINT), flex: "0 0 auto", opacity: v.unpaid.length ? 1 : 0.5 }}
+                style={{ ...toolBtn("primary", TINT), flex: "0 0 auto" }}
               >
                 Pay rent
               </button>
@@ -89,6 +94,7 @@ export function RentToPay({ payerBusinessId, venues }: { payerBusinessId: string
                     key={p.id}
                     p={p}
                     other={v.venueName}
+                    dispute={disputes ? { side: "payer", byTarget: disputes } : undefined}
                     onVoid={async () => {
                       if (!window.confirm(`Void the ${rupees(p.amountInr)} rent to ${v.venueName}? Its classes go back on the list.`)) return;
                       const out = await voidRentPaymentAction({ id: p.id });
@@ -125,6 +131,15 @@ export function RentToPay({ payerBusinessId, venues }: { payerBusinessId: string
             });
             if (!out.error) {
               setMsg(`${rupees(lines.reduce((n, l) => n + l.rateInr, 0))} rent recorded for ${open.venueName}`);
+              setOpen(null);
+              router.refresh();
+            }
+            return out;
+          }}
+          onAmountOnly={async (amountInr, meta) => {
+            const out = await recordRentAmountAction({ payerBusinessId, venueBusinessId: open.venueBusinessId, amountInr, ...meta });
+            if (!out.error) {
+              setMsg(`${rupees(amountInr)} rent recorded for ${open.venueName}`);
               setOpen(null);
               router.refresh();
             }

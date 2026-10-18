@@ -1,7 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import { TeamMemberPage, parseEarnPeriod, type TeamMemberShow } from "@/features/staff/components/TeamMemberPage";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { findPersonPayHistory } from "@/repositories/payouts";
+import { findBusinessPayLedger, findPersonPayHistory } from "@/repositories/payouts";
+import { findRentReceivedByPerson } from "@/repositories/rent";
+import { findDisputesFor, latestByTarget } from "@/repositories/disputes";
+import type { RentPayment } from "@/types/payout";
 import { findTeamMemberWork } from "@/repositories/teamMemberWork";
 import { findMyMemberships, findBusinessTeam, runsTheBusiness } from "@/repositories/businesses";
 import { findPrincipalOwner } from "@/repositories/invites";
@@ -54,15 +57,51 @@ export default async function TeamMemberRoute({
   if (!member) {
     notFound();
   }
-  const work = await findTeamMemberWork(supabase, businessId, userId, new Date(), {
-    businessName: seat.business.name,
-    memberName: member.name,
-    memberPhoto: member.avatarPath,
-  });
+  const now = new Date();
+  const [work, ledger, rentIn] = await Promise.all([
+    findTeamMemberWork(supabase, businessId, userId, now, {
+      businessName: seat.business.name,
+      memberName: member.name,
+      memberPhoto: member.avatarPath,
+    }),
+    /* the To settle column — this person's row of the desk's own ledger, so the
+       page and the card's Pay sheet list the same sessions; fails soft */
+    findBusinessPayLedger(supabase, businessId, now.toISOString()).catch(() => null),
+    /* RENT RECEIVED FROM THIS PERSON (19 Oct 2026) — rent their artist page paid
+       this studio, recorded by them; a studio's alone */
+    seat.business.type === "studio" ? findRentReceivedByPerson(supabase, businessId).catch(() => []) : Promise.resolve([]),
+  ]);
+  const personLedger = ledger?.people.find((p) => p.userId === userId) ?? null;
+  const rentByPage = new Map<string, { payerName: string; payments: RentPayment[] }>();
+  for (const p of rentIn) {
+    if (p.recordedBy !== userId) continue;
+    const g = rentByPage.get(p.payerBusinessId) ?? { payerName: p.payerName, payments: [] };
+    g.payments.push(p);
+    rentByPage.set(p.payerBusinessId, g);
+  }
+  const rent = [...rentByPage.values()];
+  const disputes = Object.fromEntries(
+    latestByTarget(
+      await findDisputesFor(supabase, {
+        payoutIds: history.payouts.map((p) => p.id),
+        rentPaymentIds: rent.flatMap((r) => r.payments.map((p) => p.id)),
+      })
+    )
+  );
 
   /* ⚠ an old `?show=performance` lands on Stats, which holds it now, and an old
-     `?show=payments` on Earnings, which holds the payments (4 Oct 2026) */
-  const show: TeamMemberShow = asked === "stats" || asked === "performance" ? "stats" : asked === "classes" ? "classes" : "earnings";
+     `?show=payments` on Paid (whose key is still "earnings"), which holds the
+     payments (4 Oct 2026); `?show=paid` is the column's new name */
+  const show: TeamMemberShow =
+    asked === "stats" || asked === "performance"
+      ? "stats"
+      : asked === "classes"
+        ? "classes"
+        : asked === "settle"
+          ? "settle"
+          : asked === "rent" && rent.length > 0
+            ? "rent"
+            : "earnings";
   return (
     <TeamMemberPage
       businessId={businessId}
@@ -71,10 +110,13 @@ export default async function TeamMemberRoute({
       member={member}
       history={history}
       work={work}
+      ledger={personLedger}
+      rent={rent}
       show={show}
       period={parseEarnPeriod(askedPeriod)}
       meUserId={user.id}
       principalOwnerId={principalOwnerId}
+      disputes={disputes}
     />
   );
 }

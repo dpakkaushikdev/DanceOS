@@ -108,9 +108,10 @@ export interface BusinessPayLedger {
  *  this says WHICH — because on a page whose whole job is one person's history,
  *  "3 sessions" is the number you would then go looking for the detail of. */
 export interface PayoutWithSessions extends PayoutRecord {
-  sessions: Array<{ sessionId: string; classTitle: string; startsAt: string; rateInr: number }>;
+  /** `lineId` is the pay line's own id — what a dispute names (19 Oct 2026) */
+  sessions: Array<{ sessionId: string; classTitle: string; startsAt: string; rateInr: number; lineId?: string }>;
   /** the enquiries it covered (18 Oct 2026) */
-  enquiries: Array<{ enquiryId: string; label: string; rateInr: number }>;
+  enquiries: Array<{ enquiryId: string; label: string; rateInr: number; lineId?: string }>;
 }
 
 /** Everything one business has paid one person, for that person's own page. */
@@ -175,7 +176,7 @@ export interface RentPayment {
   providerRef: string | null;
   paidOn: string;
   note: string | null;
-  sessions: Array<{ sessionId: string; classTitle: string; startsAt: string; rateInr: number }>;
+  sessions: Array<{ sessionId: string; classTitle: string; startsAt: string; rateInr: number; lineId?: string }>;
 }
 
 /** One studio an artist's page holds classes in: what is not yet paid for, and

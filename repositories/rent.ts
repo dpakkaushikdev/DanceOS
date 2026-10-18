@@ -16,7 +16,7 @@ const MAX = 2000;
 const single = <T,>(x: T | T[] | null | undefined): T | null => (Array.isArray(x) ? (x[0] ?? null) : (x ?? null));
 
 const PAY_SELECT =
-  "id, payer_business_id, venue_business_id, amount_inr, status, method, provider_ref, paid_on, note, payer:businesses!rent_payments_payer_business_id_fkey (name), venue:businesses!rent_payments_venue_business_id_fkey (name), rent_lines (session_id, rate_inr, deleted_at, class_sessions (starts_at, classes (style, level)))";
+  "id, payer_business_id, venue_business_id, amount_inr, status, method, provider_ref, paid_on, note, payer:businesses!rent_payments_payer_business_id_fkey (name), venue:businesses!rent_payments_venue_business_id_fkey (name), rent_lines (id, session_id, rate_inr, deleted_at, class_sessions (starts_at, classes (style, level)))";
 
 type PayRow = {
   id: string;
@@ -30,7 +30,7 @@ type PayRow = {
   note: string | null;
   payer: unknown;
   venue: unknown;
-  rent_lines: Array<{ session_id: string; rate_inr: number; deleted_at: string | null; class_sessions: unknown }> | null;
+  rent_lines: Array<{ id: string; session_id: string; rate_inr: number; deleted_at: string | null; class_sessions: unknown }> | null;
 };
 
 const toPayment = (r: PayRow): RentPayment => ({
@@ -50,7 +50,7 @@ const toPayment = (r: PayRow): RentPayment => ({
     .map((l) => {
       const cs = single(l.class_sessions as { starts_at: string; classes: unknown } | null);
       const cl = single(cs?.classes as { style: string; level: string } | null);
-      return { sessionId: l.session_id, classTitle: cl ? dosClassLabel(cl.style, cl.level) : "Class", startsAt: cs?.starts_at ?? "", rateInr: l.rate_inr };
+      return { sessionId: l.session_id, classTitle: cl ? dosClassLabel(cl.style, cl.level) : "Class", startsAt: cs?.starts_at ?? "", rateInr: l.rate_inr, lineId: l.id };
     })
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt)),
 });
@@ -123,6 +123,53 @@ export async function findRentReceived(supabase: SupabaseClient, venueBusinessId
   return ((data ?? []) as unknown as PayRow[]).map(toPayment);
 }
 
+/** RENT RECEIVED, WITH WHO RECORDED IT (19 Oct 2026, the user: "rent received in
+ *  studio should also be handled inside the person whom it is received from").
+ *  The payer is an artist PAGE; the person behind it is whoever recorded the
+ *  payment — `rent_payments.created_by`, the page's owner. The venue's side,
+ *  scoped to this venue out loud. A new read beside `findRentReceived`, which
+ *  keeps its shape. */
+export async function findRentReceivedByPerson(supabase: SupabaseClient, venueBusinessId: string): Promise<Array<RentPayment & { recordedBy: string | null }>> {
+  const { data, error } = await supabase
+    .from("rent_payments")
+    .select(`${PAY_SELECT}, created_by`)
+    .eq("venue_business_id", venueBusinessId)
+    .is("deleted_at", null)
+    .order("paid_on", { ascending: false })
+    .limit(MAX);
+  if (error) throw new Error(`rent.receivedByPerson failed: ${error.message}`);
+  return ((data ?? []) as unknown as Array<PayRow & { created_by: string | null }>).map((r) => ({ ...toPayment(r), recordedBy: r.created_by ?? null }));
+}
+
+/** The classes one artist page holds in this studio's rooms (accepted), with how
+ *  many sessions have run and are to come — the renter's page on the venue's
+ *  side. The venue's team reads these through the 18 Sep venue policies. */
+export async function findClassesHeldByRenter(
+  supabase: SupabaseClient,
+  venueBusinessId: string,
+  payerBusinessId: string,
+  nowIso: string
+): Promise<Array<{ classId: string; title: string; held: number; upcoming: number; nextAt: string | null; lastAt: string | null }>> {
+  const { data, error } = await supabase
+    .from("classes")
+    .select("id, style, level, class_sessions (id, starts_at, ends_at, deleted_at)")
+    .eq("venue_business_id", venueBusinessId)
+    .eq("business_id", payerBusinessId)
+    .eq("venue_status", "accepted")
+    .is("deleted_at", null)
+    .limit(MAX);
+  if (error) throw new Error(`rent.heldByRenter failed: ${error.message}`);
+  type Row = { id: string; style: string; level: string; class_sessions: Array<{ id: string; starts_at: string; ends_at: string; deleted_at: string | null }> | null };
+  return ((data ?? []) as unknown as Row[])
+    .map((c) => {
+      const live = (c.class_sessions ?? []).filter((s) => s.deleted_at === null);
+      const past = live.filter((s) => s.ends_at <= nowIso).map((s) => s.starts_at).sort();
+      const ahead = live.filter((s) => s.ends_at > nowIso).map((s) => s.starts_at).sort();
+      return { classId: c.id, title: dosClassLabel(c.style, c.level), held: past.length, upcoming: ahead.length, nextAt: ahead[0] ?? null, lastAt: past[past.length - 1] ?? null };
+    })
+    .sort((a, b) => (b.nextAt ?? b.lastAt ?? "").localeCompare(a.nextAt ?? a.lastAt ?? ""));
+}
+
 /** Rent paid by or to these businesses, for the Earnings ledger: the payer's
  *  expense and the venue's revenue. */
 export async function findRentForEarnings(
@@ -161,6 +208,33 @@ export async function recordRentPayment(
     p_payer_business_id: input.payerBusinessId,
     p_venue_business_id: input.venueBusinessId,
     p_lines: input.lines.map((l) => ({ session_id: l.sessionId, rate_inr: l.rateInr })),
+    p_method: input.method,
+    p_status: input.status,
+    p_provider_ref: input.providerRef ?? null,
+    p_paid_on: input.paidOn ?? null,
+    p_note: input.note ?? null,
+  });
+  if (error) throw new Error(error.message);
+}
+
+/** Rent as a lump sum, against no class (19 Oct 2026). */
+export async function recordRentAmount(
+  supabase: SupabaseClient,
+  input: {
+    payerBusinessId: string;
+    venueBusinessId: string;
+    amountInr: number;
+    method: PayoutMethod;
+    status: PayoutStatus;
+    providerRef?: string | null;
+    paidOn?: string | null;
+    note?: string | null;
+  }
+): Promise<void> {
+  const { error } = await supabase.rpc("record_rent_amount", {
+    p_payer_business_id: input.payerBusinessId,
+    p_venue_business_id: input.venueBusinessId,
+    p_amount_inr: input.amountInr,
     p_method: input.method,
     p_status: input.status,
     p_provider_ref: input.providerRef ?? null,

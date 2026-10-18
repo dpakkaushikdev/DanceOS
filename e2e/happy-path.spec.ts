@@ -3304,11 +3304,11 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(owner.getByText("Nothing paid yet")).toHaveCount(0);
     await owner.getByRole("button", { name: `Pay ${learnerName}` }).click();
     /* ⚠ THE SETTLE SHEET (19 Oct 2026): no per-session rate — a payment is either
-       lines ticked with their own ₹, or "Pay an amount (not for a class)". The
-       learner has taught nothing here yet, so it is the amount tab; the TOTAL and
+       lines ticked with their own ₹ ("Per class"), or one figure ("Lump sum"). The
+       learner has taught nothing here yet, so it is the lump sum; the TOTAL and
        the record button both read what is recorded. */
     const paySheet = owner.getByRole("dialog", { name: `Pay ${learnerName}` });
-    await paySheet.getByRole("tab", { name: "Pay an amount (not for a class)" }).click();
+    await paySheet.getByRole("tab", { name: "Lump sum" }).click();
     await paySheet.getByLabel("Amount in rupees").fill("2500");
     await paySheet.getByRole("button", { name: "UPI", exact: true }).click();
     await paySheet.getByLabel("Note").fill("September");

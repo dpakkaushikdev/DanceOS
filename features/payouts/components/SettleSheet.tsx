@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { SheetHandle, sheetBody, sheetWrap } from "@/features/businesses/components/biz-kit";
 import { money as rupees } from "@/features/payouts/components/earnings-kit";
 import { ToolFace } from "@/components/ui/ToolCard";
+import { columnTab, columnTrack } from "@/components/ui/ColumnTabs";
 import { FORM_TITLE } from "@/components/ui/formTitle";
 import { INK, MUTED, SUB } from "@/lib/design/tokens";
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
@@ -101,7 +102,7 @@ export function SettleSheet({
   itemsHead: string;
   emptyWords: string;
   onSettle: (lines: PayLine[], meta: SettleMeta) => Promise<{ error: string | null }>;
-  /** a payment not for any class — offered on the Team desk only */
+  /** a lump sum, not for any class — the Team desk and rent */
   onAmountOnly?: (amountInr: number, meta: SettleMeta) => Promise<{ error: string | null }>;
   onClose: () => void;
 }) {
@@ -179,12 +180,15 @@ export function SettleSheet({
         <div style={{ fontSize: 11.5, color: SUB, margin: "0 0 12px", lineHeight: 1.5 }}>DanceOS records what you have paid — it does not move the money.</div>
 
         {onAmountOnly ? (
-          <div role="tablist" aria-label="What you are paying for" style={{ display: "flex", gap: 6, marginBottom: 12 }}>
-            <button type="button" role="tab" aria-selected={mode === "lines"} onClick={() => setMode("lines")} style={chip(mode === "lines")}>
-              For classes &amp; enquiries
+          /* ONE COLUMN SWITCH, THE APP'S OWN (19 Oct 2026, the user: "better toggle …
+             should be renamed … and should be shorter"): Per class ticks what is being
+             paid for; Lump sum is one figure against nothing in particular. */
+          <div role="tablist" aria-label="What you are paying for" style={{ ...columnTrack(), marginBottom: 12 }}>
+            <button type="button" role="tab" aria-selected={mode === "lines"} onClick={() => setMode("lines")} style={columnTab(mode === "lines")}>
+              Per class
             </button>
-            <button type="button" role="tab" aria-selected={mode === "amount"} onClick={() => setMode("amount")} style={chip(mode === "amount")}>
-              Pay an amount (not for a class)
+            <button type="button" role="tab" aria-selected={mode === "amount"} onClick={() => setMode("amount")} style={columnTab(mode === "amount")}>
+              Lump sum
             </button>
           </div>
         ) : null}
@@ -280,7 +284,7 @@ export function SettleSheet({
           </div>
         ) : (
           <>
-            <div style={label}>Amount</div>
+            <div style={label}>Lump sum</div>
             <input value={lump} onChange={(e) => setLump(digits(e.target.value))} placeholder="e.g. 9000" inputMode="numeric" aria-label="Amount in rupees" style={input} />
           </>
         )}
@@ -293,7 +297,7 @@ export function SettleSheet({
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1, color: SUB }}>TOTAL</div>
             <div style={{ fontSize: 11, color: SUB, marginTop: 2 }}>
-              {mode === "amount" ? "Not for a class" : chosen.length ? countWords : "Nothing ticked"}
+              {mode === "amount" ? "Lump sum" :chosen.length ? countWords : "Nothing ticked"}
               {unpriced > 0 ? ` · ${unpriced} at ₹0` : ""}
             </div>
           </div>

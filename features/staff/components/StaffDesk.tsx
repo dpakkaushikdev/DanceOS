@@ -14,7 +14,6 @@ import { money as rupees } from "@/features/payouts/components/earnings-kit";
 import {
   invitePersonAction,
   inviteToBusinessAction,
-  payTeamMemberAction,
   reorderMembersAction,
   revokeInviteAction,
 } from "@/features/staff/server-actions/staff";
@@ -31,11 +30,9 @@ import { OtherTeams } from "@/features/staff/components/OtherTeams";
 import { otherTeamsCount, otherTeamsWaiting, type OtherTeamsData } from "@/features/staff/otherTeams";
 import { ColumnCount, columnTab, columnTrack } from "@/components/ui/ColumnTabs";
 import type { TeamMember } from "@/repositories/businesses";
-import type { BusinessPayLedger, MyEarnings, PayoutRecord, RentPayment, RentVenue } from "@/types/payout";
-import { RentReceived, RentToPay } from "@/features/payouts/components/RentPanel";
-import { recordSessionPaymentAction } from "@/features/payouts/server-actions/payouts";
-import { SettleSheet } from "@/features/payouts/components/SettleSheet";
-import { sessionDayLabel } from "@/lib/format/session";
+import type { BusinessPayLedger, MyEarnings, PayoutRecord, RentVenue } from "@/types/payout";
+import { TeamPaySheet } from "@/features/staff/components/TeamPaySheet";
+import { RentReceivedSummary, type RenterSummary } from "@/features/staff/components/RentReceivedSummary";
 import { PaidToYou } from "@/features/staff/components/PaidToYou";
 import type { BusinessType } from "@/types/business";
 import {
@@ -155,12 +152,13 @@ export function StaffDesk({
   payLedger = null,
   paidToYou = null,
   rentVenues = [],
-  rentReceived = [],
+  renters = [],
 }: {
   /** the studios this artist page holds classes in — rent paid from Other Teams */
   rentVenues?: RentVenue[];
-  /** rent artists have paid this studio — on its own Team desk */
-  rentReceived?: RentPayment[];
+  /** rent artists have paid this studio, one line per renter (19 Oct 2026) — a
+   *  count and a total with a door each; the payments live on the person's page */
+  renters?: RenterSummary[];
   /** WHAT YOU OWE YOUR PEOPLE (18 Oct 2026 — moved here from Earnings): the
    *  owner's pay ledger; null for anybody else or when the read failed */
   payLedger?: BusinessPayLedger | null;
@@ -377,13 +375,15 @@ export function StaffDesk({
       {col === "other" && otherTeams ? (
         <DeskBody style={{ paddingBottom: 4 }}>
           {paidToYou ? <PaidToYou data={paidToYou} /> : null}
-          <RentToPay payerBusinessId={businessId} venues={rentVenues} />
-          <OtherTeams data={otherTeams.data} stayOn={otherTeams.stayOn} />
+          {/* ⚠ RENT IS A CARD PER STUDIO IN OTHER TEAMS (19 Oct 2026) — a count, a
+              total and a door; Pay rent and the payments are on that studio's own
+              page under Rent, so the list is drawn once */}
+          <OtherTeams data={otherTeams.data} stayOn={otherTeams.stayOn} rentVenues={rentVenues} />
         </DeskBody>
       ) : (
       <>
       <DeskBody style={{ paddingBottom: 4 }}>
-      <RentReceived payments={rentReceived} />
+      <RentReceivedSummary renters={renters} />
       {/* ⚠ THE LOWER SECTION (3 Oct 2026, C116) — the roster and what it says */}
       {/* ── THE ROSTER, GROUPED BY LABEL (20 Sep 2026) ──────────────────────
           The user held up the prototype's own Team screen: *"fix team view like
@@ -913,35 +913,17 @@ export function StaffDesk({
       {/* ── PAY THEM (18 Oct 2026): the amount is set HERE, line by line, with a
           total — the one place a team member's pay is ever priced. ── */}
       {payFor && (
-        <SettleSheet
-          title={`Pay ${payFor.name}`}
-          face={{ name: payFor.name, photoPath: payFor.avatarPath }}
+        /* ⚠ ONE PAY SHEET, TWO DOORS (19 Oct 2026): the same component the Member
+           Detail page's To settle column opens — so the two cannot drift */
+        <TeamPaySheet
+          businessId={businessId}
+          person={payFor}
+          ledger={owedPerson}
           tint={TEAM_TINT}
-          itemsHead="NOT SETTLED YET"
-          emptyWords="Nothing they taught or worked on is waiting to be settled."
-          items={[
-            ...(owedPerson?.unpaid ?? []).map((s) => ({ id: s.sessionId, kind: "session" as const, title: s.classTitle, sub: sessionDayLabel(s.startsAt) })),
-            ...(owedPerson?.unpaidEnquiries ?? []).map((e) => ({ id: e.enquiryId, kind: "enquiry" as const, title: e.label, sub: e.role ? `As ${e.role}` : "On the team" })),
-          ]}
           onClose={() => setPayFor(null)}
-          onSettle={async (lines, meta) => {
-            const who = payFor;
-            const out = await recordSessionPaymentAction({ businessId, userId: who.userId, lines, ...meta });
-            if (!out.error) {
-              fire(`${rupees(lines.reduce((n, l) => n + l.rateInr, 0))} recorded for ${who.name}`);
-              setPayFor(null);
-            }
-            return out;
-          }}
-          onAmountOnly={async (amountInr, meta) => {
-            const who = payFor;
-            const note = [meta.note, meta.providerRef ? `Ref ${meta.providerRef}` : null].filter(Boolean).join(" · ") || null;
-            const out = await payTeamMemberAction({ businessId, userId: who.userId, amountInr, method: meta.method, status: meta.status, paidOn: meta.paidOn, note });
-            if (!out.error) {
-              fire(`${rupees(amountInr)} recorded for ${who.name}`);
-              setPayFor(null);
-            }
-            return out;
+          onDone={(words) => {
+            fire(words);
+            setPayFor(null);
           }}
         />
       )}

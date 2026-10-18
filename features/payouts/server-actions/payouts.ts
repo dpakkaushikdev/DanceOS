@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { recordSessionPayment, setPayoutStatus, voidPayout } from "@/repositories/payouts";
-import { recordRentAmount, recordRentPayment, voidRentPayment } from "@/repositories/rent";
+import { recordRentPayment, voidRentPayment } from "@/repositories/rent";
 
 /** ⚠ Money. Team pay and rent are RECORDS of a settlement already made — DanceOS
  *  moves no money (Step 13), and Cashfree Payouts is "switched on later" (the
@@ -60,14 +60,6 @@ const rentSchema = z
     ...meta,
   })
   .refine((v) => v.lines.some((l) => l.rateInr > 0), { message: "Enter an amount for at least one" });
-
-/* rent as a lump sum, not for any class (19 Oct 2026) */
-const rentAmountSchema = z.object({
-  payerBusinessId: z.string().uuid(),
-  venueBusinessId: z.string().uuid(),
-  amountInr: z.number().int().min(1, "Enter an amount").max(100000000),
-  ...meta,
-});
 
 const statusSchema = z.object({
   payoutId: z.string().uuid(),
@@ -141,23 +133,10 @@ export async function recordRentPaymentAction(input: z.input<typeof rentSchema>)
   }
 }
 
-/** PAY A STUDIO RENT AS A LUMP SUM — not against any class (19 Oct 2026, the
- *  user: "pay rent should also have pay an amount as total"). */
-export async function recordRentAmountAction(input: z.input<typeof rentAmountSchema>): Promise<PayoutActionResult> {
-  const parsed = rentAmountSchema.safeParse(input);
-  if (!parsed.success) {
-    return { error: firstIssue(parsed.error) };
-  }
-  const supabase = await requireUser();
-  try {
-    await recordRentAmount(supabase, parsed.data);
-    revalidateMoneySurfaces(parsed.data.payerBusinessId);
-    revalidateMoneySurfaces(parsed.data.venueBusinessId);
-    return { error: null };
-  } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "Could not record that rent" };
-  }
-}
+/* ⚠ NO LUMP-SUM RENT (19 Oct 2026, the user: "remove lump sump for studio rent")
+   — `recordRentAmountAction` is deleted so nothing in the app can send one; the
+   RPC stays in the database, and a lump sum recorded before today still reads as
+   one ("Lump sum" in its payment row). */
 
 export async function voidRentPaymentAction(input: { id: string }): Promise<PayoutActionResult> {
   const parsed = idSchema.safeParse(input);

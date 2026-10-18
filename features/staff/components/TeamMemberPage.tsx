@@ -10,7 +10,7 @@ import { PayHistoryExport } from "./PayHistoryExport";
 import { MemberManage } from "./MemberManage";
 import { TeamClassesPanel } from "./TeamClassesPanel";
 import { MemberToSettle, VoidPayment } from "./MemberMoney";
-import { RentReceivedList } from "./RentReceivedList";
+import { RentReceivedList, type HeldClass } from "./RentReceivedList";
 import { PaidCovers } from "@/features/payouts/components/PaidCovers";
 import type { PaymentDispute } from "@/repositories/disputes";
 import type { BusinessType } from "@/types/business";
@@ -514,7 +514,7 @@ export function TeamMemberPage({
   ledger: Pick<PersonPayLedger, "unpaid" | "unpaidEnquiries"> | null;
   /** rent this person's artist page paid this studio, grouped by page — the Rent
    *  column, drawn only when there is some (19 Oct 2026) */
-  rent: Array<{ payerName: string; payments: RentPayment[] }>;
+  rent: Array<{ payerName: string; payments: RentPayment[]; classes?: HeldClass[] }>;
   show: TeamMemberShow;
   period?: EarnPeriod;
   meUserId: string;
@@ -607,7 +607,7 @@ export function TeamMemberPage({
                   node: (
                     <div data-testid="member-rent">
                       {rent.map((r) => (
-                        <RentReceivedList key={r.payerName} payments={r.payments} payerName={r.payerName} disputes={disputes} />
+                        <RentReceivedList key={r.payerName} payments={r.payments} payerName={r.payerName} disputes={disputes} classes={r.classes} />
                       ))}
                     </div>
                   ),

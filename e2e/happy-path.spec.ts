@@ -3300,9 +3300,15 @@ test.describe.serial("DanceOS, end to end", () => {
        built at all, and from where they sat it had not. */
     /* ⚠ NO "Nothing paid yet" LINE since 4 Oct 2026 (the user) — the card's Paid
        and Payments tiles say it */
-    await expect(owner.getByRole("button", { name: `Pay ${learnerName}` })).toBeVisible({ timeout: 15_000 });
+    /* ⚠⚠ NO PAY ON THE CARD (19 Oct 2026, the user: "payments should not be
+       visible outside") — the card is a door; paying is Member Detail's To
+       settle column, and the card shows no rupees at all */
+    await expect(owner.getByRole("button", { name: `Pay ${learnerName}` })).toHaveCount(0);
     await expect(owner.getByText("Nothing paid yet")).toHaveCount(0);
-    await owner.getByRole("button", { name: `Pay ${learnerName}` }).click();
+    await owner.getByRole("link", { name: `Member Detail — ${learnerName}` }).click();
+    await owner.waitForURL(new RegExp(`/business/${businessId}/staff/[0-9a-f-]+`));
+    await owner.goto(`${owner.url().split("?")[0]}?show=settle`);
+    await owner.getByTestId("member-pay").click();
     /* ⚠ THE SETTLE SHEET (19 Oct 2026): no per-session rate — a payment is either
        lines ticked with their own ₹ ("Per class"), or one figure ("Lump sum"). The
        learner has taught nothing here yet, so it is the lump sum; the TOTAL and
@@ -3316,11 +3322,10 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(paySheet.getByTestId("settle-record")).toHaveText("Record ₹2,500");
     await paySheet.getByTestId("settle-record").click();
     await expect(owner.getByRole("status")).toContainText("2,500", { timeout: 20_000 });
-    /* the history reads on their OWN ROW now — the total beside the Pay button,
-       so what has been paid is visible without opening anything (20 Sep 2026) */
-    await owner.reload();
-    /* ⚠ the one-line summary is gone (4 Oct 2026); the Paid tile on their card carries it */
-    await expect(owner.getByText("₹2,500", { exact: true }).first()).toBeVisible({ timeout: 15_000 });
+    /* ⚠ AND THE DESK STILL SHOWS NO RUPEES for them (19 Oct 2026) */
+    await owner.goto(`/business/${businessId}/staff`);
+    await expect(owner.getByRole("link", { name: `Member Detail — ${learnerName}` })).toBeVisible({ timeout: 15_000 });
+    await expect(owner.getByText("₹2,500", { exact: true })).toHaveCount(0);
 
     /* ⚠⚠ AND THE HISTORY IS A PAGE (29 Sep 2026, the user: "Team payment history
        to be a button called History which should show all transactions with that

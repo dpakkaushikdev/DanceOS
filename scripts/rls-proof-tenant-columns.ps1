@@ -93,15 +93,15 @@ function Try-Patch($label, $body, $column) {
 
 # 1. VALIDATION. The name: update_business_profile caps it at 80 characters and
 #    businesses_name_check caps it at 140, so a direct PATCH is refused too.
-#    19 Oct 2026: every name is 15 characters at most, so the check writes 16 -
-#    one over the line, which is the sharpest form of the same claim.
+#    19 Oct 2026: every name is 25 characters at most (15 until the same evening),
+#    so the check writes 26 - one over the line, the sharpest form of the claim.
 #    ⚠ This check used to write a 5,000-character About, because About was the
 #    longest free-text column a business had and carried its own CHECK. The
 #    column was dropped on 20 Sep 2026, so the same claim - the DATABASE holds a
 #    rule that a direct PATCH would otherwise walk past - is made on the name.
-$long = "x" * 16
+$long = "x" * 26
 $r = Try-Patch "name" (@{ name = $long } | ConvertTo-Json) "name"
-"1. Owner writes a 16-character name (the CHECK caps it at 15): $(if ($r.ok) {"$($r.how) -- BLOCKED"} else {"WROTE 16 chars -- !!! VALIDATION BYPASSED !!!"})"
+"1. Owner writes a 26-character name (the CHECK caps it at 25): $(if ($r.ok) {"$($r.how) -- BLOCKED"} else {"WROTE 26 chars -- !!! VALIDATION BYPASSED !!!"})"
 if (-not $r.ok) { $pass = $false }
 
 # 2. VALIDATION. The RPC demands a phone that looks like a phone.

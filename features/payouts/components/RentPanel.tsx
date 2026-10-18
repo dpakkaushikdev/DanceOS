@@ -6,12 +6,12 @@ import { bizCard } from "@/features/crews/components/crew-kit";
 import { money as rupees } from "@/features/payouts/components/earnings-kit";
 import { PaidCovers, coveredWords } from "@/features/payouts/components/PaidCovers";
 import { SettleSheet } from "@/features/payouts/components/SettleSheet";
-import { recordRentAmountAction, recordRentPaymentAction, voidRentPaymentAction } from "@/features/payouts/server-actions/payouts";
+import { recordRentPaymentAction, voidRentPaymentAction } from "@/features/payouts/server-actions/payouts";
 import { DOS_TOOLS } from "@/features/businesses/components/biz-kit";
-import { toolBtn } from "@/components/ui/ToolCard";
+import { ToolChip, ToolFacts, toolBtn } from "@/components/ui/ToolCard";
 import { INK, MUTED, SUB } from "@/lib/design/tokens";
 import { sessionDayLabel } from "@/lib/format/session";
-import type { RentPayment, RentVenue } from "@/types/payout";
+import { PAYOUT_METHOD_LABEL, type RentPayment, type RentVenue } from "@/types/payout";
 import type { PaymentDispute } from "@/repositories/disputes";
 
 /** RENT — the studios an artist's page holds classes in (18 Oct 2026, the user:
@@ -24,21 +24,23 @@ const TINT = DOS_TOOLS.rooms.c;
 const STATE_WORD: Record<RentPayment["status"], string> = { done: "Paid", in_transit: "In transit", on_hold: "On hold", failed: "Failed" };
 
 const head: React.CSSProperties = { fontSize: 10.5, fontWeight: 900, letterSpacing: 1, color: SUB, margin: "4px 0 8px", textTransform: "uppercase" };
+const dayWords = (iso: string) => new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" }).format(new Date(`${iso.slice(0, 10)}T00:00:00+05:30`));
 
 function PaymentRow({ p, other, onVoid, dispute }: { p: RentPayment; other: string; onVoid?: () => void; dispute?: { side: "paid" | "payer"; byTarget: Record<string, PaymentDispute> } }) {
   return (
     <div data-testid="rent-payment" style={{ borderTop: "1.5px solid var(--el)", padding: "8px 0 2px" }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-        <span style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 800, color: INK }}>
-          {other} · {coveredWords(p)}
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <b style={{ display: "block", fontSize: 14, fontWeight: 900, color: INK, fontVariantNumeric: "tabular-nums" }}>{rupees(p.amountInr)}</b>
+          <span style={{ display: "block", fontSize: 10.5, color: SUB, marginTop: 1 }}>
+            {dayWords(p.paidOn)} · {PAYOUT_METHOD_LABEL[p.method]} · {coveredWords(p)}
+          </span>
         </span>
-        <b style={{ fontSize: 13, color: INK }}>{rupees(p.amountInr)}</b>
+        <ToolChip word={STATE_WORD[p.status].toUpperCase()} fg={p.status === "done" ? "#16A34A" : p.status === "failed" ? "#DC2626" : "#D97706"} bg={p.status === "done" ? "rgba(34,197,94,.16)" : p.status === "failed" ? "rgba(220,38,38,.14)" : "rgba(245,158,11,.16)"} />
       </div>
-      <div style={{ fontSize: 10.5, color: SUB, margin: "2px 0 4px" }}>
-        {STATE_WORD[p.status]} · {p.paidOn}
-        {p.providerRef ? ` · Ref ${p.providerRef}` : ""}
-        {p.note ? ` · ${p.note}` : ""}
-      </div>
+      {p.providerRef ? <div style={{ fontSize: 10.5, color: SUB, marginTop: 3 }}>Reference {p.providerRef}</div> : null}
+      {p.note ? <div style={{ fontSize: 12, marginTop: 4 }}>{p.note}</div> : null}
+      <div style={{ height: 4 }} aria-hidden="true" />
       <PaidCovers
         sessions={p.sessions}
         dispute={dispute ? { side: dispute.side, of: "rent", paymentId: p.id, amountInr: p.amountInr, byTarget: dispute.byTarget } : undefined}
@@ -52,7 +54,10 @@ function PaymentRow({ p, other, onVoid, dispute }: { p: RentPayment; other: stri
   );
 }
 
-/** The payer's side: one card per studio, Pay rent, and what has been paid. */
+/** The payer's side: one card per studio — what it adds up to, the classes not
+ *  paid for yet, Pay rent, and every payment with the classes it covered.
+ *  ⚠ NO LUMP SUM (19 Oct 2026, the user: "remove lump sump for studio rent"):
+ *  rent is paid per class, so every rupee says which class it was for. */
 export function RentToPay({ payerBusinessId, venues, disputes }: { payerBusinessId: string; venues: RentVenue[]; disputes?: Record<string, PaymentDispute> }) {
   const router = useRouter();
   const [open, setOpen] = useState<RentVenue | null>(null);
@@ -60,35 +65,60 @@ export function RentToPay({ payerBusinessId, venues, disputes }: { payerBusiness
   if (venues.length === 0) return null;
   return (
     <section data-testid="rent-to-pay" style={{ marginBottom: 16 }}>
-      <div style={head}>Studio rent · {venues.length}</div>
       {venues.map((v) => {
         const paid = v.payments.reduce((n, p) => n + (p.status === "done" ? p.amountInr : 0), 0);
+        const pending = v.payments.reduce((n, p) => n + (p.status !== "done" && p.status !== "failed" ? p.amountInr : 0), 0);
+        const linesPaid = v.payments.reduce((n, p) => n + p.sessions.length, 0);
+        const nothingDue = v.unpaid.length === 0;
         return (
           <div key={v.venueBusinessId} data-testid="rent-venue" style={{ ...bizCard, marginBottom: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 900, color: INK }}>{v.venueName}</div>
-                <div style={{ fontSize: 11, color: SUB, marginTop: 2 }}>
-                  {v.unpaid.length} class{v.unpaid.length === 1 ? "" : "es"} not paid for · {rupees(paid)} paid
-                </div>
+                <div style={{ ...head, margin: 0 }}>Rent to</div>
+                <div style={{ fontSize: 15, fontWeight: 900, color: INK }}>{v.venueName}</div>
               </div>
-              {/* always pressable (19 Oct 2026): with every class paid for, rent
-                  can still go as a lump sum */}
               <button
                 type="button"
                 aria-label={`Pay rent to ${v.venueName}`}
+                disabled={nothingDue}
+                title={nothingDue ? "Every class here is paid for" : undefined}
                 onClick={() => {
                   setMsg(null);
                   setOpen(v);
                 }}
-                style={{ ...toolBtn("primary", TINT), flex: "0 0 auto" }}
+                style={{ ...toolBtn("primary", TINT), flex: "0 0 auto", opacity: nothingDue ? 0.45 : 1, cursor: nothingDue ? "default" : "pointer" }}
               >
                 Pay rent
               </button>
             </div>
-            {v.payments.length ? (
-              <details style={{ marginTop: 8 }}>
-                <summary style={{ fontSize: 11.5, fontWeight: 800, color: SUB, cursor: "pointer" }}>Rent paid · {v.payments.length}</summary>
+            <ToolFacts
+              tint={TINT}
+              style={{ marginTop: 10 }}
+              items={[
+                { label: "Paid", value: rupees(paid), testId: "rent-paid-total" },
+                { label: linesPaid === 1 ? "Class paid for" : "Classes paid for", value: linesPaid },
+                { label: "Not paid for", value: v.unpaid.length, testId: "rent-unpaid-count" },
+              ]}
+            />
+            {pending > 0 ? <div style={{ fontSize: 11.5, fontWeight: 800, color: "#F59E0B", marginTop: 6 }}>{rupees(pending)} on its way</div> : null}
+
+            <div style={{ ...head, margin: "12px 0 2px" }}>Not paid for yet · {v.unpaid.length}</div>
+            {nothingDue ? (
+              <div style={{ fontSize: 11.5, color: SUB }}>Every class here is paid for.</div>
+            ) : (
+              v.unpaid.map((s) => (
+                <div key={s.sessionId} data-testid="rent-unpaid" style={{ display: "flex", gap: 8, borderTop: "1.5px solid var(--el)", padding: "6px 0", alignItems: "baseline" }}>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 800, color: INK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.classTitle}</span>
+                  <span style={{ flexShrink: 0, fontSize: 11, color: SUB }}>{sessionDayLabel(s.startsAt)}</span>
+                </div>
+              ))
+            )}
+
+            <div style={{ ...head, margin: "12px 0 2px" }}>Payments · {v.payments.length}</div>
+            {v.payments.length === 0 ? (
+              <div style={{ fontSize: 11.5, color: SUB }}>No rent paid yet.</div>
+            ) : (
+              <div>
                 {v.payments.map((p) => (
                   <PaymentRow
                     key={p.id}
@@ -103,8 +133,8 @@ export function RentToPay({ payerBusinessId, venues, disputes }: { payerBusiness
                     }}
                   />
                 ))}
-              </details>
-            ) : null}
+              </div>
+            )}
           </div>
         );
       })}
@@ -131,15 +161,6 @@ export function RentToPay({ payerBusinessId, venues, disputes }: { payerBusiness
             });
             if (!out.error) {
               setMsg(`${rupees(lines.reduce((n, l) => n + l.rateInr, 0))} rent recorded for ${open.venueName}`);
-              setOpen(null);
-              router.refresh();
-            }
-            return out;
-          }}
-          onAmountOnly={async (amountInr, meta) => {
-            const out = await recordRentAmountAction({ payerBusinessId, venueBusinessId: open.venueBusinessId, amountInr, ...meta });
-            if (!out.error) {
-              setMsg(`${rupees(amountInr)} rent recorded for ${open.venueName}`);
               setOpen(null);
               router.refresh();
             }

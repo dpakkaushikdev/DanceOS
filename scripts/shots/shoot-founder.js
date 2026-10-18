@@ -86,9 +86,11 @@ const signIn = async (ctx, email) => {
  *  the card carries Pay and Member Detail only — so Pay is counted on the desk
  *  first, then the card's door is pressed. */
 const openMemberSheet = async (page, memberName) => {
-  const pay = await page.getByRole("button", { name: `Pay ${memberName}` }).count();
+  /* ⚠ PAY LEFT THE CARD (19 Oct 2026) — it is the To settle column's own button */
   await page.getByRole("link", { name: `Member Detail — ${memberName}` }).click();
   await page.waitForURL(/\/staff\/[0-9a-f-]+$/, { timeout: 20000 });
+  await page.goto(`${page.url()}?show=settle`, { waitUntil: "networkidle" });
+  const pay = await page.getByTestId("member-pay").count();
   await page.getByRole("button", { name: `Manage ${memberName}`, exact: true }).click();
   /* the sheet's own heading is the person's name — waiting for it is what makes
      an ABSENT Remove a real absence rather than a sheet that never opened */

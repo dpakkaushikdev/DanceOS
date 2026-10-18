@@ -170,6 +170,48 @@ export async function findClassesHeldByRenter(
     .sort((a, b) => (b.nextAt ?? b.lastAt ?? "").localeCompare(a.nextAt ?? a.lastAt ?? ""));
 }
 
+/** EVERY ARTIST PAGE THAT HOLDS CLASSES IN THIS STUDIO'S ROOMS (19 Oct 2026, the
+ *  user: "rent received for studio team section should be inside team detail for
+ *  that specific person"). Who rents here, whether or not they have paid yet —
+ *  the Team desk draws them as cards with NO money (money lives on the detail
+ *  page), and Member Detail's Rent column reads the one whose owner it is.
+ *  The venue's team reads these classes through the 18 Sep venue policies. */
+export async function findRenters(
+  supabase: SupabaseClient,
+  venueBusinessId: string
+): Promise<Array<{ payerBusinessId: string; payerName: string; classes: number; ownerUserId: string | null; ownerName: string | null; photoPath: string | null }>> {
+  const { data, error } = await supabase
+    .from("classes")
+    .select("business_id, created_by, owner:businesses!classes_business_id_fkey (name)")
+    .eq("venue_business_id", venueBusinessId)
+    .eq("venue_status", "accepted")
+    .neq("business_id", venueBusinessId)
+    .is("deleted_at", null)
+    .limit(MAX);
+  if (error) throw new Error(`rent.renters failed: ${error.message}`);
+  type G = { payerBusinessId: string; payerName: string; classes: number; ownerUserId: string | null; ownerName: string | null; photoPath: string | null };
+  const by = new Map<string, G>();
+  /* ⚠ THE PERSON BEHIND THE PAGE IS WHOEVER MADE ITS CLASSES — an artist page's
+     classes are created by its owner, and a venue cannot read another business's
+     seats, so `created_by` is the one fact both sides can see */
+  for (const r of (data ?? []) as Array<{ business_id: string; created_by: string | null; owner: unknown }>) {
+    const g = by.get(r.business_id) ?? { payerBusinessId: r.business_id, payerName: single(r.owner as { name: string } | null)?.name ?? "An artist", classes: 0, ownerUserId: r.created_by, ownerName: null, photoPath: null };
+    g.classes += 1;
+    by.set(r.business_id, g);
+  }
+  const ids = [...new Set([...by.values()].flatMap((g) => (g.ownerUserId ? [g.ownerUserId] : [])))];
+  if (ids.length) {
+    const { data: people } = await supabase.from("profiles").select("id, full_name, profile_photo_path").in("id", ids);
+    const pm = new Map(((people ?? []) as Array<{ id: string; full_name: string | null; profile_photo_path: string | null }>).map((p) => [p.id, p]));
+    for (const g of by.values()) {
+      const p = g.ownerUserId ? pm.get(g.ownerUserId) : undefined;
+      g.ownerName = p?.full_name ?? null;
+      g.photoPath = p?.profile_photo_path ?? null;
+    }
+  }
+  return [...by.values()].sort((a, b) => a.payerName.localeCompare(b.payerName));
+}
+
 /** Rent paid by or to these businesses, for the Earnings ledger: the payer's
  *  expense and the venue's revenue. */
 export async function findRentForEarnings(

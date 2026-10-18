@@ -227,7 +227,9 @@ const DESKS = [...RUN_DESKS, ...OWNER_DESKS];
     await oPage.goto(`${BASE}/business/${studio.id}/staff`, { waitUntil: "networkidle" });
     const team = (await oPage.locator("body").innerText()).replace(/\s+/g, " ");
     check(team.includes(faculty.name), "the owner's Team desk still names the faculty seat — they are on the team, they just do not run it");
-    check(/Faculty/.test(team), "…under its own label");
+    /* ⚠ case-insensitive (19 Oct 2026): every place the desk prints the label is
+       an uppercase head or eyebrow, and innerText returns the TRANSFORMED text */
+    check(/faculty/i.test(team), "…under its own label");
 
     /* ── 6. ⚠⚠ AND MANAGER, THE WORD `20260928110000` MADE POSSIBLE ─────────
        The same person, relabelled through the real desk — so every check below

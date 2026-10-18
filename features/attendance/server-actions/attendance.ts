@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { NAME_MAX, nameWords } from "@/lib/constants/names";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   bookAtTheDoor,
@@ -91,7 +92,7 @@ const doorSchema = z
   .object({
     sessionId: z.string().uuid(),
     userId: z.string().uuid().nullish(),
-    name: z.string().trim().max(15, "Keep the name to 15 characters at most").nullish(),
+    name: z.string().trim().max(NAME_MAX, `Keep the name to ${nameWords}`).nullish(),
   })
   .refine((v) => Boolean(v.userId) !== Boolean(v.name && v.name.length > 0), {
     message: "Scan a code or type a name",

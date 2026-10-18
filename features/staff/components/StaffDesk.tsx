@@ -10,7 +10,6 @@ import { CENTER_CARD, CENTER_SCRIM } from "@/components/ui/centerModal";
 import { dosKey } from "@/features/classes/components/ShareSheet";
 import { Toast, bizCard } from "@/features/crews/components/crew-kit";
 import { PeoplePicker } from "@/features/people/components/PeoplePicker";
-import { money as rupees } from "@/features/payouts/components/earnings-kit";
 import {
   invitePersonAction,
   inviteToBusinessAction,
@@ -30,10 +29,8 @@ import { OtherTeams } from "@/features/staff/components/OtherTeams";
 import { otherTeamsCount, otherTeamsWaiting, type OtherTeamsData } from "@/features/staff/otherTeams";
 import { ColumnCount, columnTab, columnTrack } from "@/components/ui/ColumnTabs";
 import type { TeamMember } from "@/repositories/businesses";
-import type { BusinessPayLedger, MyEarnings, PayoutRecord, RentVenue } from "@/types/payout";
-import { TeamPaySheet } from "@/features/staff/components/TeamPaySheet";
-import { RentReceivedSummary, type RenterSummary } from "@/features/staff/components/RentReceivedSummary";
-import { PaidToYou } from "@/features/staff/components/PaidToYou";
+import type { BusinessPayLedger, PayoutRecord, RentVenue } from "@/types/payout";
+import { RentersOnDesk, type RenterSummary } from "@/features/staff/components/RentReceivedSummary";
 import type { BusinessType } from "@/types/business";
 import {
   MEMBER_LABEL,
@@ -143,27 +140,27 @@ export function StaffDesk({
   team,
   invites,
   answered = [],
-  payments = [],
   classCounts = null,
   isOwner,
   meUserId,
   otherTeams = null,
   initialColumn = "mine",
   payLedger = null,
-  paidToYou = null,
   rentVenues = [],
   renters = [],
+  renterOwners = [],
 }: {
   /** the studios this artist page holds classes in — rent paid from Other Teams */
   rentVenues?: RentVenue[];
-  /** rent artists have paid this studio, one line per renter (19 Oct 2026) — a
-   *  count and a total with a door each; the payments live on the person's page */
+  /** the artists renting our rooms who are NOT on this team (19 Oct 2026) — a
+   *  card each with no money; the rent lives on the page it opens */
   renters?: RenterSummary[];
+  /** team members whose own artist page rents our rooms — their card says so,
+   *  and their Member Detail page carries the rent */
+  renterOwners?: string[];
   /** WHAT YOU OWE YOUR PEOPLE (18 Oct 2026 — moved here from Earnings): the
    *  owner's pay ledger; null for anybody else or when the read failed */
   payLedger?: BusinessPayLedger | null;
-  /** WHAT STUDIOS PAY YOU, on your own artist page's Other Teams column */
-  paidToYou?: MyEarnings | null;
   /** the Other Teams column (18 Oct 2026; Artist Teams since 11 Oct) — drawn
    *  only on the viewer's OWN artist page; a studio's desk has one column */
   otherTeams?: { data: OtherTeamsData; stayOn: string } | null;
@@ -179,7 +176,8 @@ export function StaffDesk({
   team: TeamMember[];
   /** the person asked's own picture rides each row (12 Oct 2026) */
   invites: Array<BusinessInvite & { photoPath?: string | null }>;
-  /** everything this business has paid its people — the history, filtered per row */
+  /** ⚠ READ BY NOTHING since 19 Oct 2026 — a card shows no money; the history
+   *  is the Member Detail page's. Kept so a caller passing it still compiles. */
   payments?: PayoutRecord[];
   isOwner: boolean;
   meUserId: string;
@@ -222,7 +220,6 @@ export function StaffDesk({
      sheet nobody had asked for. The manage sheet carries no payment controls now
      (the user: *"manage page for team without option to see history and record
      payment in it"*), so the two never open together. */
-  const [payFor, setPayFor] = useState<TeamMember | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -236,7 +233,8 @@ export function StaffDesk({
   /* ⚠ the member sheet may hand over OWNER; an invite may not (20 Sep 2026) */
   const labels = labelsFor(businessType);
   const onTeam = team.map((m) => m.userId);
-  const paidTo = (userId: string) => payments.filter((p) => p.userId === userId);
+  /* the people on this team whose own artist page rents our rooms (19 Oct 2026) */
+  const rentsHere = new Set(renterOwners);
   /* how many classes and enquiries each person has that are not settled yet —
      a COUNT, never rupees: the amount is set when paying (18 Oct 2026) */
   const toSettleOf: Record<string, number> = Object.fromEntries((payLedger?.people ?? []).map((p) => [p.userId, p.unsettledCount]));
@@ -257,8 +255,6 @@ export function StaffDesk({
     setTimeout(() => setToast(null), 2400);
   };
 
-  /* what the Pay sheet lists as not settled for the person it is open on */
-  const owedPerson = payFor ? payLedger?.people.find((p) => p.userId === payFor.userId) ?? null : null;
 
   const run = async (op: () => Promise<{ error: string | null }>, doneMsg: string | null) => {
     if (busy) return false;
@@ -360,10 +356,9 @@ export function StaffDesk({
         <div style={{ marginTop: 12 }}>
           <ToolFacts
             tint={DOS_TOOLS.team.c}
-            items={[
-              { label: team.length === 1 ? "Member" : "Total members", value: team.length, testId: "team-total" },
-              ...(isOwner && payLedger ? [{ label: "To settle", value: payLedger.unsettledCount, testId: "team-to-settle" }] : []),
-            ]}
+            /* ⚠ NO MONEY ON THE DESK (19 Oct 2026, the user: "payments should not be
+               visible outside") — what is to settle is on each Member Detail page */
+            items={[{ label: team.length === 1 ? "Member" : "Total members", value: team.length, testId: "team-total" }]}
           />
           {roleRows.map((row, i) => (
             <ToolFacts key={i} tint={DOS_TOOLS.team.c} style={{ marginTop: 6 }} items={row} />
@@ -374,16 +369,15 @@ export function StaffDesk({
 
       {col === "other" && otherTeams ? (
         <DeskBody style={{ paddingBottom: 4 }}>
-          {paidToYou ? <PaidToYou data={paidToYou} /> : null}
-          {/* ⚠ RENT IS A CARD PER STUDIO IN OTHER TEAMS (19 Oct 2026) — a count, a
-              total and a door; Pay rent and the payments are on that studio's own
-              page under Rent, so the list is drawn once */}
+          {/* ⚠ NO "PAID TO YOU" HERE (19 Oct 2026, the user: "for users paid to you
+              section should be inside the team you are a part of") — each team's
+              payments are its Detail page's Paid column. RENT IS A CARD PER STUDIO
+              with no money on it; Pay rent and the payments are that studio's page. */}
           <OtherTeams data={otherTeams.data} stayOn={otherTeams.stayOn} rentVenues={rentVenues} />
         </DeskBody>
       ) : (
       <>
       <DeskBody style={{ paddingBottom: 4 }}>
-      <RentReceivedSummary renters={renters} />
       {/* ⚠ THE LOWER SECTION (3 Oct 2026, C116) — the roster and what it says */}
       {/* ── THE ROSTER, GROUPED BY LABEL (20 Sep 2026) ──────────────────────
           The user held up the prototype's own Team screen: *"fix team view like
@@ -459,8 +453,6 @@ export function StaffDesk({
                  for itself (the powers block is still not drawn for an owner, and
                  Remove is still not offered for one). */
               const manageable = isOwner;
-              const paid = paidTo(m.userId);
-              const paidTotal = paid.reduce((n, p) => n + p.amountInr, 0);
               /* ⚠ NO POWERS ON THE CARD (4 Oct 2026, the user: "remove powers from
                  card") — they are the Manage sheet's, on the Member Detail page */
               /* ⚠⚠ A TEAM CARD (3 Oct 2026, the user: *"better and bigger cards …
@@ -537,47 +529,27 @@ export function StaffDesk({
                     }
                   />
                   <ToolBody>
+                    {/* ⚠⚠ NO MONEY ON A TEAM CARD (19 Oct 2026, the user: "should
+                        handle all payments between parties from here … payments should
+                        not be visible outside"). Paid, Payments, To settle and the Pay
+                        button moved INSIDE Member Detail (its To settle, Paid and Rent
+                        columns); the card is the door and says only what they do here.
+                        Whether something is waiting is said as a word, never rupees. */}
                     <ToolFacts
                       tint={TEAM_TINT}
-                      /* Paid · Payments · Classes (4 Oct 2026, the user: "Paid
-                         Payments and Classes for - Team Member Cards") — Classes is
-                         the Member Detail page's own count */
                       items={[
-                        { label: "Paid", value: rupees(paidTotal) },
-                        { label: paid.length === 1 ? "Payment" : "Payments", value: paid.length },
-                        /* what is still owed for sessions taught (18 Oct 2026 — moved
-                           here from Earnings); only when there is something */
-                        ...((toSettleOf[m.userId] ?? 0) > 0 ? [{ label: "To settle", value: toSettleOf[m.userId] ?? 0, testId: "team-card-to-settle" }] : []),
                         ...(classCounts
                           ? [{ label: (classCounts[m.userId] ?? 0) === 1 ? "Class" : "Classes", value: classCounts[m.userId] ?? 0, testId: "team-card-classes" }]
                           : []),
+                        ...(rentsHere.has(m.userId) ? [{ label: "Rents rooms", value: "Yes", testId: "team-card-rents" }] : []),
                       ]}
                     />
-                    {/* ⚠ NO "Nothing paid yet" LINE (4 Oct 2026, the user) — the Paid
-                        and Payments tiles above already say it */}
-                    {/* the seat's rate (11 Oct 2026, `set_member_pay`) — drawn only when
-                        there is one, because "₹0 / session" reads as a claim */}
-{/* ⚠ NO RATE ON THE CARD (18 Oct 2026): pay is set when paying, nowhere else */}
+                    {isOwner && (toSettleOf[m.userId] ?? 0) > 0 ? (
+                      <div data-testid="team-card-waiting" style={{ fontSize: 11, fontWeight: 800, color: "#D97706", marginTop: 6 }}>
+                        Something to settle — open Member Detail
+                      </div>
+                    ) : null}
                   </ToolBody>
-                  {manageable ? (
-                    <ToolActions>
-                      <button
-                        type="button"
-                        aria-label={`Pay ${m.name}`}
-                        onClick={() => {
-                          /* ⚠ WHAT YOU OWE THEM IS IN THIS SHEET (18 Oct 2026, the user:
-                             "What you owe should be managed alongside the pay button on
-                             the team members with details") — the unpaid sessions arrive
-                             ticked */
-                          setError(null);
-                          setPayFor(m);
-                        }}
-                        style={toolBtn("primary", TEAM_TINT)}
-                      >
-                        {(toSettleOf[m.userId] ?? 0) > 0 ? `Pay · ${toSettleOf[m.userId]} to settle` : "Pay"}
-                      </button>
-                    </ToolActions>
-                  ) : null}
                 </ToolCard>
               );
             })}
@@ -623,6 +595,8 @@ export function StaffDesk({
           </div>
         );
       })}
+
+      <RentersOnDesk renters={renters} />
 
       {/* ⚠ A TEAM OF ONE IS WHY PAY LOOKED MISSING (20 Sep 2026). Everything a
           team desk does — labelling, ordering, paying — needs somebody other
@@ -910,23 +884,8 @@ export function StaffDesk({
         </div>
       )}
 
-      {/* ── PAY THEM (18 Oct 2026): the amount is set HERE, line by line, with a
-          total — the one place a team member's pay is ever priced. ── */}
-      {payFor && (
-        /* ⚠ ONE PAY SHEET, TWO DOORS (19 Oct 2026): the same component the Member
-           Detail page's To settle column opens — so the two cannot drift */
-        <TeamPaySheet
-          businessId={businessId}
-          person={payFor}
-          ledger={owedPerson}
-          tint={TEAM_TINT}
-          onClose={() => setPayFor(null)}
-          onDone={(words) => {
-            fire(words);
-            setPayFor(null);
-          }}
-        />
-      )}
+      {/* ⚠ NO PAY SHEET ON THE DESK (19 Oct 2026): paying is Member Detail's To
+          settle column, the one door — the desk shows no money at all */}
 
       {/* ⚠ THE SHARED TOAST (27 Sep 2026) — this was a byte-identical copy of
           `crew-kit`'s, declared inline, which is the same shape as the sheet

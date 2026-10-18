@@ -2,7 +2,8 @@ import { notFound, redirect } from "next/navigation";
 import { TeamMemberPage, parseEarnPeriod, type TeamMemberShow } from "@/features/staff/components/TeamMemberPage";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findBusinessPayLedger, findPersonPayHistory } from "@/repositories/payouts";
-import { findRentReceivedByPerson } from "@/repositories/rent";
+import { findClassesHeldByRenter, findRenters, findRentReceivedByPerson } from "@/repositories/rent";
+import type { HeldClass } from "@/features/staff/components/RentReceivedList";
 import { findDisputesFor, latestByTarget } from "@/repositories/disputes";
 import type { RentPayment } from "@/types/payout";
 import { findTeamMemberWork } from "@/repositories/teamMemberWork";
@@ -58,7 +59,8 @@ export default async function TeamMemberRoute({
     notFound();
   }
   const now = new Date();
-  const [work, ledger, rentIn] = await Promise.all([
+  const isStudio = seat.business.type === "studio";
+  const [work, ledger, rentIn, renting] = await Promise.all([
     findTeamMemberWork(supabase, businessId, userId, now, {
       businessName: seat.business.name,
       memberName: member.name,
@@ -69,17 +71,23 @@ export default async function TeamMemberRoute({
     findBusinessPayLedger(supabase, businessId, now.toISOString()).catch(() => null),
     /* RENT RECEIVED FROM THIS PERSON (19 Oct 2026) — rent their artist page paid
        this studio, recorded by them; a studio's alone */
-    seat.business.type === "studio" ? findRentReceivedByPerson(supabase, businessId).catch(() => []) : Promise.resolve([]),
+    isStudio ? findRentReceivedByPerson(supabase, businessId).catch(() => []) : Promise.resolve([]),
+    /* ⚠ THE RENT COLUMN IS DRAWN WHENEVER THEIR PAGE HOLDS CLASSES HERE (19 Oct
+       2026, the user: "rent received for studio team section should be inside
+       team detail for that specific person") — not only once a payment exists */
+    isStudio ? findRenters(supabase, businessId).catch(() => []) : Promise.resolve([]),
   ]);
   const personLedger = ledger?.people.find((p) => p.userId === userId) ?? null;
-  const rentByPage = new Map<string, { payerName: string; payments: RentPayment[] }>();
-  for (const p of rentIn) {
-    if (p.recordedBy !== userId) continue;
-    const g = rentByPage.get(p.payerBusinessId) ?? { payerName: p.payerName, payments: [] };
-    g.payments.push(p);
-    rentByPage.set(p.payerBusinessId, g);
-  }
-  const rent = [...rentByPage.values()];
+  const pages = new Map<string, string>();
+  for (const r of renting) if (r.ownerUserId === userId) pages.set(r.payerBusinessId, r.payerName);
+  for (const p of rentIn) if (p.recordedBy === userId && !pages.has(p.payerBusinessId)) pages.set(p.payerBusinessId, p.payerName);
+  const rent: Array<{ payerName: string; payments: RentPayment[]; classes: HeldClass[] }> = await Promise.all(
+    [...pages.entries()].map(async ([payerId, payerName]) => ({
+      payerName,
+      payments: rentIn.filter((p) => p.payerBusinessId === payerId),
+      classes: await findClassesHeldByRenter(supabase, businessId, payerId, now.toISOString()).catch(() => []),
+    }))
+  );
   const disputes = Object.fromEntries(
     latestByTarget(
       await findDisputesFor(supabase, {

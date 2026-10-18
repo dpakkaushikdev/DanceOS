@@ -10,7 +10,6 @@ import { publicProfilePath } from "@/lib/routes/publicProfile";
 import { MUTED, SUB } from "@/lib/design/tokens";
 import type { OtherTeamsData } from "@/features/staff/otherTeams";
 import type { RentVenue } from "@/types/payout";
-import { money as rupees } from "@/features/payouts/components/earnings-kit";
 
 const head: React.CSSProperties = { fontSize: 9.5, fontWeight: 900, letterSpacing: 1, color: MUTED, textTransform: "uppercase", margin: "6px 2px 8px" };
 
@@ -104,7 +103,9 @@ export function OtherTeams({ data, stayOn, rentVenues = [] }: { data: OtherTeams
         <div data-testid="rent-venues">
           <div style={head}>Studios you rent from · {rentOnly.length}</div>
           {rentOnly.map((v) => {
-            const paid = v.payments.reduce((n, p) => n + (p.status === "done" ? p.amountInr : 0), 0);
+            /* ⚠ NO MONEY ON THE CARD (19 Oct 2026) — what was paid is on the
+               studio's Detail page, Rent column */
+            const classes = v.unpaid.length + v.payments.reduce((n, p) => n + p.sessions.length, 0);
             return (
               <div key={v.venueBusinessId} style={{ marginBottom: 10 }}>
                 <ToolCard testId="rent-venue-card">
@@ -113,7 +114,7 @@ export function OtherTeams({ data, stayOn, rentVenues = [] }: { data: OtherTeams
                     name={v.venueName}
                     photoPath={null}
                     eyebrow="Studio · You rent here"
-                    sub={`${v.unpaid.length} ${v.unpaid.length === 1 ? "class" : "classes"} not paid for · ${rupees(paid)} paid`}
+                    sub={`${classes} ${classes === 1 ? "class" : "classes"} in its rooms`}
                   />
                   <ToolActions>
                     <DetailLink href={`/team/other/business/${v.venueBusinessId}?show=rent`} name={v.venueName} tint={rentTint} />

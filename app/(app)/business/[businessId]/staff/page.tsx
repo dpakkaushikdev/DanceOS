@@ -4,10 +4,10 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findSentInvites } from "@/repositories/invites";
 import { findProfilePhotoPaths } from "@/repositories/profiles";
 import { sentTeamAnsweredRow } from "@/features/inbox/inviteRows";
-import { findBusinessPayLedger, findMyEarnings } from "@/repositories/payouts";
+import { findBusinessPayLedger } from "@/repositories/payouts";
 import { findMyMemberships, findBusinessTeam, runsTheBusiness } from "@/repositories/businesses";
 import { findTeamClassCounts } from "@/repositories/teamMemberWork";
-import { findRentReceivedByPerson, findRentVenues } from "@/repositories/rent";
+import { findRenters, findRentVenues } from "@/repositories/rent";
 import type { RenterSummary } from "@/features/staff/components/RentReceivedSummary";
 import { loadOtherTeams } from "@/features/staff/server/loadOtherTeams";
 import { otherTeamsWaiting } from "@/features/staff/otherTeams";
@@ -76,43 +76,38 @@ export default async function BusinessStaffPage({
      Only on the viewer's OWN artist page — a studio's desk is its team alone,
      and a studio's invitations are answered on the Studios hub. */
   const ownArtistPage = business.type === "artist_page" && myRole === "owner";
-  /* WHAT STUDIOS PAY YOU sits on this column too (18 Oct 2026, moved here from
-     Earnings) — what OTHER businesses paid this artist, their own left out */
-  const owned = ownArtistPage
-    ? (await findMyMemberships(supabase).catch(() => [])).filter((m) => m.memberRole === "owner").map((m) => m.business.id)
-    : [];
-  const [classCounts, artistData, paidToYou, rentVenues, rentReceived] = await Promise.all([
+  /* ⚠ NO "PAID TO YOU" ON THIS DESK (19 Oct 2026, the user: "for users paid to
+     you section should be inside the team you are a part of") — each team's
+     payments are its Other Teams Detail page's Paid column */
+  const [classCounts, artistData, rentVenues, renting] = await Promise.all([
     findTeamClassCounts(supabase, businessId, team.map((m) => m.userId)).catch(() => null),
     ownArtistPage ? loadOtherTeams(supabase, user.id) : Promise.resolve(null),
-    ownArtistPage ? findMyEarnings(supabase, user.id, stampNowIso(), owned).catch(() => null) : Promise.resolve(null),
     /* RENT (18 Oct 2026): an artist pays the studios that hold its classes from
-       Other Teams; a studio reads the rent it was paid on its own Team desk */
+       Other Teams; a studio sees who rents its rooms on its own Team desk */
     ownArtistPage ? findRentVenues(supabase, businessId).catch(() => []) : Promise.resolve([]),
-    business.type === "studio" && myRole === "owner" ? findRentReceivedByPerson(supabase, businessId).catch(() => []) : Promise.resolve([]),
+    business.type === "studio" && myRole === "owner" ? findRenters(supabase, businessId).catch(() => []) : Promise.resolve([]),
   ]);
-  /* ⚠ RENT RECEIVED, ONE LINE PER RENTER (19 Oct 2026, the user: "rent received
-     in studio should also be handled inside the person whom it is received
-     from"). The payments live on that person's page — their Member Detail Rent
-     column when they are on this team, the renter page when not. */
+  /* ⚠ WHO RENTS OUR ROOMS, WITH NO MONEY (19 Oct 2026, the user: "rent received
+     for studio team section should be inside team detail for that specific
+     person"). A renter on the team is their own card (their Member Detail page
+     has the Rent column); anybody else is a card here opening the renter page. */
   const onTeam = new Set(team.map((m) => m.userId));
-  const renterMap = new Map<string, RenterSummary>();
-  for (const p of rentReceived) {
-    const person = p.recordedBy && onTeam.has(p.recordedBy) ? p.recordedBy : null;
-    let r = renterMap.get(p.payerBusinessId);
-    if (!r) {
-      r = {
-        payerBusinessId: p.payerBusinessId,
-        payerName: p.payerName,
-        count: 0,
-        paidInr: 0,
-        href: person ? `/business/${businessId}/staff/${person}?show=rent` : `/business/${businessId}/renters/${p.payerBusinessId}`,
-      };
-      renterMap.set(p.payerBusinessId, r);
+  const renterOwners: string[] = [];
+  const renters: RenterSummary[] = [];
+  for (const r of renting) {
+    if (r.ownerUserId && onTeam.has(r.ownerUserId)) {
+      renterOwners.push(r.ownerUserId);
+      continue;
     }
-    r.count += 1;
-    if (p.status === "done") r.paidInr += p.amountInr;
+    renters.push({
+      payerBusinessId: r.payerBusinessId,
+      payerName: r.payerName,
+      ownerName: r.ownerName,
+      photoPath: r.photoPath,
+      classes: r.classes,
+      href: `/business/${businessId}/renters/${r.payerBusinessId}`,
+    });
   }
-  const renters = [...renterMap.values()].sort((a, b) => b.paidInr - a.paidInr || a.payerName.localeCompare(b.payerName));
   /* `?show=artists` is the column's name before 18 Oct 2026 — Rule 14 */
   const wantsOther = asked === "other" || asked === "artists";
 
@@ -126,9 +121,9 @@ export default async function BusinessStaffPage({
       answered={answered}
       payments={ledger?.payouts ?? []}
       payLedger={myRole === "owner" ? ledger : null}
-      paidToYou={paidToYou}
       rentVenues={rentVenues}
       renters={renters}
+      renterOwners={renterOwners}
       classCounts={classCounts ? Object.fromEntries(classCounts) : null}
       // asking and removing are the owner's alone (§10.9); everyone else reads
       isOwner={myRole === "owner"}

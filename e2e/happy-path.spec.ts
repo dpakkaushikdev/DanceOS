@@ -1914,7 +1914,9 @@ test.describe.serial("DanceOS, end to end", () => {
     await owner.getByRole("button", { name: /^Notifications/ }).click();
     const notifDrawer = owner.getByTestId("notif-drawer");
     await expect(notifDrawer.getByRole("heading", { level: 1, name: "Notifications" })).toBeVisible({ timeout: 15_000 });
-    await notifDrawer.getByRole("button", { name: "Close notifications" }).click();
+    /* ⚠ the drawer has no ✕ since 18 Oct 2026 — it closes on the scrim, to its right */
+    const vp = owner.viewportSize() ?? { width: 390, height: 844 };
+    await owner.mouse.click(vp.width - 6, Math.round(vp.height / 2));
     await expect(notifDrawer).toHaveCount(0);
     // the address still opens the same screen as a page (Rule 14)
     await owner.goto("/notifications");
@@ -2668,7 +2670,10 @@ test.describe.serial("DanceOS, end to end", () => {
 
     // the learner's Home: one card in the rail, saying what the session is to them — and that it is on now
     await goHome(learner);
-    await expect(learner.getByText("1 today")).toBeVisible();
+    /* the head is Discover's ShelfHead since 18 Oct 2026 — no "N today" words — so
+       the deck's own cards are counted */
+    await expect(learner.getByRole("heading", { level: 2, name: "Today’s schedule" })).toBeVisible();
+    await expect(learner.getByTestId("deck-card")).toHaveCount(1);
     const card = learner.getByTestId("deck-card").first();
     await expect(card.getByRole("link", { name: `Open ${classTitle}` })).toBeVisible();
     await expect(card.getByText("Booked", { exact: true })).toBeVisible();

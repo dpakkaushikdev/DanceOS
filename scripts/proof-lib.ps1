@@ -209,7 +209,8 @@ function Invoke-ProofCleanup($label, [scriptblock]$action) {
 #   * only ones older than two hours, so a parallel run in flight is untouchable;
 #   * failures are swallowed - a proof must never die in its own housekeeping.
 #
-# Proof studio names are "<Something> Studio <HHmmss>", so the prefix is the name
+# Proof studio names are "<Something> Std <HHmmss>" (19 Oct 2026: a name is 15
+# characters at most, so the prefix is 6-8 and "Studio" became "Std"), so the prefix is the name
 # with its trailing digits taken off. A name with no stamp sweeps nothing, which
 # is the safe way round.
 function Sweep-Own-Leftovers($token, $name) {

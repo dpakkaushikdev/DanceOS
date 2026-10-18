@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { nameField } from "@/lib/constants/names";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   acceptInvite,
@@ -15,7 +16,7 @@ import {
   setMemberRole,
 } from "@/repositories/invites";
 import { recordTeamPayment } from "@/repositories/payouts";
-import { reorderBusinessMembers, setBusinessMemberPowers, setMemberPay, type MemberRole } from "@/repositories/businesses";
+import { reorderBusinessMembers, setBusinessMemberPowers, type MemberRole } from "@/repositories/businesses";
 import { INVITABLE_ROLES, MEMBER_LABEL_ORDER, type InvitableRole } from "@/types/staff";
 
 /** Step 12b staff actions. Authorization is NOT here — it is in the RPCs, which
@@ -45,7 +46,7 @@ const ROLE = z.enum(INVITABLE);
 
 const inviteSchema = z.object({
   businessId: z.string().uuid(),
-  name: z.string().trim().min(1, "Who is it?").max(120),
+  name: nameField("Who is it?"),
   email: z.string().trim().toLowerCase().email("That is not an email address").max(254),
   role: ROLE,
 });
@@ -250,32 +251,6 @@ export async function setMemberPowersAction(input: {
     return { error: null };
   } catch (error: unknown) {
     return { error: message(error, "Could not change what they may do") };
-  }
-}
-
-/** WHAT A SESSION PAYS THEM (11 Oct 2026, `set_member_pay`) ⚠ money-adjacent.
- *  It RECORDS a rate — nothing moves through code (Step 13's limit). Shape only:
- *  the RPC is the owner's alone and refuses anybody not on the team. An ask made
- *  afterwards with no rate of its own takes this one. */
-export async function setMemberPayAction(input: {
-  businessId: string;
-  userId: string;
-  rateInr: number;
-}): Promise<StaffActionResult> {
-  const parsed = memberSchema
-    .extend({ rateInr: z.coerce.number().int("Whole rupees only").min(0, "A session pays ₹0 or more").max(200000, "A session pays at most ₹2,00,000") })
-    .safeParse(input);
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid rate" };
-  }
-  const supabase = await requireUser();
-  try {
-    await setMemberPay(supabase, parsed.data.businessId, parsed.data.userId, parsed.data.rateInr);
-    revalidateDesk(parsed.data.businessId);
-    revalidatePath(`/business/${parsed.data.businessId}/staff/${parsed.data.userId}`);
-    return { error: null };
-  } catch (error: unknown) {
-    return { error: message(error, "Could not save what a session pays") };
   }
 }
 

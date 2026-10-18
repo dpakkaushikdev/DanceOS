@@ -72,18 +72,19 @@ const tomorrowIst = () =>
 
 (async () => {
   const stamp = Date.now().toString(36);
+  const tag = stamp.slice(-6);
   const made = { users: [], businesses: [], enquiries: [] };
   const browser = await chromium.launch();
   const errs = [];
   try {
-    const owner = await makeAccount(stamp, "owner", `Job Owner ${stamp}`);
+    const owner = await makeAccount(stamp, "owner", `J Owner ${tag}`);
     made.users.push(owner.id);
-    const sender = await makeAccount(stamp, "sender", `Job Sender ${stamp}`);
+    const sender = await makeAccount(stamp, "sender", `J Sender ${tag}`);
     made.users.push(sender.id);
-    const dancer = await makeAccount(stamp, "dancer", `Job Dancer ${stamp}`);
+    const dancer = await makeAccount(stamp, "dancer", `J Dancer ${tag}`);
     made.users.push(dancer.id);
 
-    const studio = await call("POST", "/rest/v1/rpc/create_business_with_owner", owner.h, { p_type: "studio", p_name: `Job Hall ${stamp}`, p_area: "Kothrud", p_city: "Pune", p_styles: ["Hip-Hop"] });
+    const studio = await call("POST", "/rest/v1/rpc/create_business_with_owner", owner.h, { p_type: "studio", p_name: `Job Hall ${tag}`, p_area: "Kothrud", p_city: "Pune", p_styles: ["Hip-Hop"] });
     made.businesses.push(studio.id);
     await call("PATCH", `/rest/v1/businesses?id=eq.${studio.id}`, svc, { verified_at: new Date().toISOString(), visibility: "listed" });
 
@@ -119,10 +120,10 @@ const tomorrowIst = () =>
     /* ── 2 · THE PARTICIPANT ACCEPTS ON /inbox — a job is a group inside To do since 18 Oct 2026 ── */
     await dp.goto(`${BASE}/inbox?show=jobs`, { waitUntil: "networkidle" });
     check((await dp.getByRole("button", { name: "Your jobs" }).count()) === 0, "participant: no Jobs column — the ask sits under To do");
-    const job = dp.getByTestId("enquiry-job").filter({ hasText: `Job Hall ${stamp}` });
+    const job = dp.getByTestId("enquiry-job").filter({ hasText: `Job Hall ${tag}` });
     await job.waitFor({ timeout: 20000 });
     check((await job.getByTestId("enquiry-job-status").getAttribute("data-status")) === "asked", "participant: the job card reads Asked");
-    await job.getByRole("button", { name: `Accept the job with Job Hall ${stamp}` }).click();
+    await job.getByRole("button", { name: `Accept the job with Job Hall ${tag}` }).click();
     await job.getByTestId("enquiry-job-status").and(dp.locator('[data-status="confirmed"]')).waitFor({ timeout: 20000 });
     check(true, "participant: Accept turns the card to On it");
     const [pRow] = await call("GET", `/rest/v1/enquiry_people?enquiry_id=eq.${enq.id}&user_id=eq.${dancer.id}&deleted_at=is.null&select=status`, svc);

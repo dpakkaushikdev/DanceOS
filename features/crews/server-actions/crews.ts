@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { nameField } from "@/lib/constants/names";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   askCrewMember,
@@ -75,7 +76,7 @@ const emailShape = z.string().trim().email("That is not an email address").max(2
    style, which the trigger also makes the list — and the rest land through
    `set_crew_styles` once the row exists. Twelve is the column's own CHECK. */
 const createSchema = z.object({
-  name: z.string().trim().min(1, "Name your crew first").max(64),
+  name: nameField("Name your crew first"),
   city,
   styles: z.array(style).min(1, "Pick a dance style").max(100, "100 styles at most"),
   phone: phoneShape,
@@ -154,7 +155,7 @@ export async function setCrewSocialsAction(input: { crewId: string; socials: Arr
    address: omitted → unchanged, null → cleared */
 const updateSchema = z.object({
   crewId: uuid,
-  name: z.string().trim().min(1, "Name your crew first").max(64),
+  name: nameField("Name your crew first"),
   city,
   style,
   contactEmail: z.string().trim().email("that is not an email address").max(254).nullable().optional(),

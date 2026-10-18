@@ -87,7 +87,7 @@ $owner = New-EmailUser "ntf-owner-$stamp@example.com" "Owner $stamp" "user"
 $trainer = New-EmailUser "ntf-trainer-$stamp@example.com" "Trainer $stamp" "user"
 $learner = New-EmailUser "ntf-learner-$stamp@example.com" "Learner $stamp" "user"
 $rival = New-EmailUser "ntf-rival-$stamp@example.com" "Rival $stamp" "user"
-$ta = New-Studio $owner.token "Notif Proof Studio $stamp" "Kothrud" "Pune"
+$ta = New-Studio $owner.token "Ntf Std $stamp" "Kothrud" "Pune"
 Subscribe-Studio ([string]$ta.id)
 $tmr = (Get-Date).AddDays(2)
 
@@ -151,7 +151,7 @@ try {
   # 5. NO WAITLIST since 4 Oct 2026 (20261004160000): the full class refuses L2
   #    outright, a freed seat promotes nobody and so tells nobody, and L2 then
   #    books it themselves - which the studio hears as an ordinary booking
-  $l2 = New-EmailUser "ntf-l2-$stamp@example.com" "Learner Two $stamp" "user"
+  $l2 = New-EmailUser "ntf-l2-$stamp@example.com" "Lrn Two $stamp" "user"
   $fullMsg = Fails { Rpc (Api $l2.token) "book_class_session" @{ p_session_id = $sess.id } }
   $firstSeat = (Get-Rows (Api $owner.token) "class_bookings?session_id=eq.$($sess.id)&user_id=eq.$($learner.id)&select=id")[0]
   Rpc (Api $learner.token) "cancel_class_booking" @{ p_class_booking_id = $firstSeat.id } | Out-Null

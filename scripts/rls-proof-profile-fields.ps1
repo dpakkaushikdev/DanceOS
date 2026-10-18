@@ -78,8 +78,8 @@ $SEL = "select=id,full_name,city,age,socials,styles,member_no"
 
 $pass = $true
 $stamp = Get-Date -Format "HHmmss"
-$rhea = New-EmailUser "prof-a-$stamp@example.com" "Rhea Proof $stamp" "user"
-$other = New-EmailUser "prof-b-$stamp@example.com" "Other Proof $stamp" "user"
+$rhea = New-EmailUser "prof-a-$stamp@example.com" "Rhea Prf $stamp" "user"
+$other = New-EmailUser "prof-b-$stamp@example.com" "Othr Prf $stamp" "user"
 
 try {
   # 1. every profile gets a member number at creation, and no two are the same
@@ -90,25 +90,25 @@ try {
 
   # 2. the door writes the caller's own row: name, city, age, two links, three styles
   $links = @(@{ platform = "Instagram"; url = "https://instagram.com/rheamoves" }, @{ platform = "YouTube"; url = "https://youtube.com/@rheamoves" })
-  Rpc (Api $rhea.token) "update_my_profile" (ProfileBody "Rhea Kapoor $stamp" "New Delhi" 24 $links @("Hip-Hop", "Kathak", "Contemporary")) | Out-Null
+  Rpc (Api $rhea.token) "update_my_profile" (ProfileBody "Rhea K $stamp" "New Delhi" 24 $links @("Hip-Hop", "Kathak", "Contemporary")) | Out-Null
   $mine = Rows (Api $rhea.token) "profiles?$SEL&id=eq.$($rhea.id)"
   Check 2 "the caller's row takes the sheet's fields (age $($mine[0].age), $(@($mine[0].socials).Count) links, $(@($mine[0].styles).Count) styles)" (
-    $mine[0].full_name -eq "Rhea Kapoor $stamp" -and $mine[0].city -eq "New Delhi" -and $mine[0].age -eq 24 -and
+    $mine[0].full_name -eq "Rhea K $stamp" -and $mine[0].city -eq "New Delhi" -and $mine[0].age -eq 24 -and
     @($mine[0].socials).Count -eq 2 -and (@($mine[0].styles) -join ",") -eq "Hip-Hop,Kathak,Contemporary")
 
   # 3. ... and nobody else's row moved
   $theirs2 = Rows (Api $other.token) "profiles?$SEL&id=eq.$($other.id)"
   Check 3 "the other person's row is untouched (no p_user_id exists to aim the door at)" (
-    $theirs2[0].full_name -eq "Other Proof $stamp" -and $null -eq $theirs2[0].age -and @($theirs2[0].socials).Count -eq 0)
+    $theirs2[0].full_name -eq "Othr Prf $stamp" -and $null -eq $theirs2[0].age -and @($theirs2[0].socials).Count -eq 0)
 
   # 4. a signed-in person reads the fields back; the public reads nothing at all
   $seen = Rows (Api $other.token) "profiles?$SEL&id=eq.$($rhea.id)"
   $anonSeen = Rows $anonH "profiles?$SEL&id=eq.$($rhea.id)"
   Check 4 "a signed-in person reads the name and the links (Step 1's policy); the public reads $($anonSeen.Count) rows" (
-    $seen.Count -eq 1 -and $seen[0].full_name -eq "Rhea Kapoor $stamp" -and @($seen[0].socials).Count -eq 2 -and $anonSeen.Count -eq 0)
+    $seen.Count -eq 1 -and $seen[0].full_name -eq "Rhea K $stamp" -and @($seen[0].socials).Count -eq 2 -and $anonSeen.Count -eq 0)
 
   # 5. an impossible age is refused with a sentence
-  $r5 = Fails { Rpc (Api $rhea.token) "update_my_profile" (ProfileBody "Rhea Kapoor $stamp" "New Delhi" 7 $links @("Hip-Hop")) }
+  $r5 = Fails { Rpc (Api $rhea.token) "update_my_profile" (ProfileBody "Rhea K $stamp" "New Delhi" 7 $links @("Hip-Hop")) }
   Check 5 "an age of 7 is refused ('$(if ($r5) { ($r5 -split 'message')[1] } else { 'went through' })')" ($r5 -and $r5 -like "*between 13 and 99*")
 
   # 6. THE BIO IS GONE (20 Sep 2026). This check used to prove the 220-character
@@ -117,18 +117,18 @@ try {
   #    instead is that the column really went: asking for it is an error, and the
   #    door refuses the argument that used to carry it.
   $r6 = Fails { Rows (Api $rhea.token) "profiles?select=id,about&id=eq.$($rhea.id)" }
-  $r6b = Fails { Rpc (Api $rhea.token) "update_my_profile" @{ p_full_name = "Rhea Kapoor $stamp"; p_city = "New Delhi"; p_age = 24; p_about = "a bio"; p_socials = $links; p_styles = @("Hip-Hop") } }
+  $r6b = Fails { Rpc (Api $rhea.token) "update_my_profile" @{ p_full_name = "Rhea K $stamp"; p_city = "New Delhi"; p_age = 24; p_about = "a bio"; p_socials = $links; p_styles = @("Hip-Hop") } }
   Check 6 "profiles.about is gone: reading it fails, and p_about is refused" ($r6 -and $r6b)
 
   # 7. a link that is not a web address, and two links for one platform, are refused
-  $r7a = Fails { Rpc (Api $rhea.token) "update_my_profile" (ProfileBody "Rhea Kapoor $stamp" "New Delhi" 24 @(@{ platform = "Instagram"; url = "rheamoves" }) @("Hip-Hop")) }
-  $r7b = Fails { Rpc (Api $rhea.token) "update_my_profile" (ProfileBody "Rhea Kapoor $stamp" "New Delhi" 24 @(@{ platform = "Instagram"; url = "https://a.example" }, @{ platform = "Instagram"; url = "https://b.example" }) @("Hip-Hop")) }
+  $r7a = Fails { Rpc (Api $rhea.token) "update_my_profile" (ProfileBody "Rhea K $stamp" "New Delhi" 24 @(@{ platform = "Instagram"; url = "rheamoves" }) @("Hip-Hop")) }
+  $r7b = Fails { Rpc (Api $rhea.token) "update_my_profile" (ProfileBody "Rhea K $stamp" "New Delhi" 24 @(@{ platform = "Instagram"; url = "https://a.example" }, @{ platform = "Instagram"; url = "https://b.example" }) @("Hip-Hop")) }
   Check 7 "a bare handle is refused ('web address'), and one link per platform" (
     $r7a -and $r7a -like "*web address*" -and $r7b -and $r7b -like "*one link per platform*")
 
   # 8. an empty style is refused; a repeated style is kept once, in order
-  $r8 = Fails { Rpc (Api $rhea.token) "update_my_profile" (ProfileBody "Rhea Kapoor $stamp" "New Delhi" 24 @() @("Hip-Hop", "")) }
-  Rpc (Api $rhea.token) "update_my_profile" (ProfileBody "Rhea Kapoor $stamp" "New Delhi" 24 @() @("Kathak", "Hip-Hop", "Kathak")) | Out-Null
+  $r8 = Fails { Rpc (Api $rhea.token) "update_my_profile" (ProfileBody "Rhea K $stamp" "New Delhi" 24 @() @("Hip-Hop", "")) }
+  Rpc (Api $rhea.token) "update_my_profile" (ProfileBody "Rhea K $stamp" "New Delhi" 24 @() @("Kathak", "Hip-Hop", "Kathak")) | Out-Null
   $mine = Rows (Api $rhea.token) "profiles?$SEL&id=eq.$($rhea.id)"
   Check 8 "an empty style is refused; a repeat is kept once in order (got: $(@($mine[0].styles) -join ','))" (
     $r8 -and (@($mine[0].styles) -join ",") -eq "Kathak,Hip-Hop")
@@ -147,9 +147,9 @@ try {
 
   # 11. clearing: a null age comes back as null, not as an empty string - but a
   #     CITY is required and a USER keeps at least one style (9 Sep 2026, requirements 2 and 3)
-  $r11a = Fails { Rpc (Api $rhea.token) "update_my_profile" (ProfileBody "Rhea Kapoor $stamp" "" $null @() @("Kathak")) }
-  $r11b = Fails { Rpc (Api $rhea.token) "update_my_profile" (ProfileBody "Rhea Kapoor $stamp" "New Delhi" $null @() @()) }
-  Rpc (Api $rhea.token) "update_my_profile" (ProfileBody "Rhea Kapoor $stamp" "New Delhi" $null @() @("Kathak")) | Out-Null
+  $r11a = Fails { Rpc (Api $rhea.token) "update_my_profile" (ProfileBody "Rhea K $stamp" "" $null @() @("Kathak")) }
+  $r11b = Fails { Rpc (Api $rhea.token) "update_my_profile" (ProfileBody "Rhea K $stamp" "New Delhi" $null @() @()) }
+  Rpc (Api $rhea.token) "update_my_profile" (ProfileBody "Rhea K $stamp" "New Delhi" $null @() @("Kathak")) | Out-Null
   $mine = Rows (Api $rhea.token) "profiles?$SEL&id=eq.$($rhea.id)"
   Check 11 "an empty city is refused ($r11a); a user with no style is refused ($r11b); age clears to null, links to 0, the one style stays" (
     ($r11a -like "*city is required*") -and ($r11b -like "*at least one dance style*") -and

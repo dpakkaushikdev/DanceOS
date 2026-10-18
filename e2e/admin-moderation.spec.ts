@@ -189,9 +189,11 @@ test.describe.serial("the admin panel: businesses and reports", () => {
 
   const stamp = Date.now().toString(36).slice(-6);
   const orgName = `Mod Org ${stamp}`;
-  const studioName = `Mod Studio ${stamp}`;
-  const dancerName = `Mod Dancer ${stamp}`;
-  const secondName = `Mod Witness ${stamp}`;
+  /* ⚠ every name ≤ 15 characters since 19 Oct 2026 (NAME_MAX): the box's
+     maxLength truncates a longer fill and the server refuses one */
+  const studioName = `Mod St ${stamp}`;
+  const dancerName = `Mod Dn ${stamp}`;
+  const secondName = `Mod Wt ${stamp}`;
   const adminEmail = () => `mod-admin-${stamp}@example.com`;
   let studioUrl = "";
 

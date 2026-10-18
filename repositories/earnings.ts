@@ -167,7 +167,7 @@ export async function findBusinessEarnings(
   const fromDay = from.slice(0, 10);
   const toDay = to.slice(0, 10);
 
-  const [payments, refunds, payouts, assets, quotes, subs, handBack] = await Promise.all([
+  const [payments, refunds, payouts, assets, quotes, subs, handBack, rent] = await Promise.all([
     /* what students paid — the three subjects an order can name (the CHECK
        `orders_subject_check`), so Classes is the residual once the other two
        are taken out, exactly as `findBusinessIncome` reads it.
@@ -270,9 +270,24 @@ export async function findBusinessEarnings(
       .gte("answered_at", from)
       .lt("answered_at", to)
       .limit(MAX_ROWS),
+    /* ⚠ RENT (18 Oct 2026): an artist page paying a studio for the room its class
+       is held in. Read from BOTH ends — what these businesses PAID (an expense)
+       and what they were PAID (revenue); `done` and `in_transit` only, the rule
+       team pay follows. Two FKs into `businesses`, so each embed names its key. */
+    supabase
+      .from("rent_payments")
+      .select(
+        "amount_inr, paid_on, method, payer_business_id, venue_business_id, payer:businesses!rent_payments_payer_business_id_fkey (name), venue:businesses!rent_payments_venue_business_id_fkey (name)"
+      )
+      .or(`payer_business_id.in.(${businessIds.join(",")}),venue_business_id.in.(${businessIds.join(",")})`)
+      .in("status", ["done", "in_transit"])
+      .is("deleted_at", null)
+      .gte("paid_on", fromDay)
+      .lt("paid_on", toDay)
+      .limit(MAX_ROWS),
   ]);
 
-  for (const r of [payments, refunds, payouts, assets, quotes, subs, handBack]) {
+  for (const r of [payments, refunds, payouts, assets, quotes, subs, handBack, rent]) {
     if (r.error) throw r.error;
   }
   const complete =
@@ -282,8 +297,13 @@ export async function findBusinessEarnings(
     (assets.data?.length ?? 0) < MAX_ROWS &&
     (quotes.data?.length ?? 0) < MAX_ROWS &&
     (subs.data?.length ?? 0) < MAX_ROWS &&
-    (handBack.data?.length ?? 0) < MAX_ROWS;
+    (handBack.data?.length ?? 0) < MAX_ROWS &&
+    (rent.data?.length ?? 0) < MAX_ROWS;
 
+  const rentIn: Bucketed = new Map();
+  const rentOut: Bucketed = new Map();
+  const rentInI: Itemed = new Map();
+  const rentOutI: Itemed = new Map();
   const classes: Bucketed = new Map();
   const memberships: Bucketed = new Map();
   const events: Bucketed = new Map();
@@ -419,6 +439,23 @@ export async function findBusinessEarnings(
     take(plan, planI, s.created_at, s.amount_inr, "Studio subscription", { group: "Subscription", href: b ? `/business/${b}/subscription` : "/subscription" });
   }
 
+  /* a rent payment between two of these businesses (one owner, both sides) is
+     money moved from one pocket to the other — counted on neither side */
+  const mine = new Set(businessIds);
+  type RentRow = { amount_inr: number; paid_on: string; method?: string | null; payer_business_id: string; venue_business_id: string; payer?: unknown; venue?: unknown };
+  for (const r of (rent.data ?? []) as unknown as RentRow[]) {
+    const paid = mine.has(r.payer_business_id);
+    const got = mine.has(r.venue_business_id);
+    if (paid && got) continue;
+    if (paid) {
+      const name = single(r.venue as { name: string } | null)?.name ?? "A studio";
+      take(rentOut, rentOutI, dayToIso(r.paid_on), r.amount_inr, name, { group: name, method: r.method ?? null, href: `/business/${r.payer_business_id}/staff?show=other` });
+    } else if (got) {
+      const name = single(r.payer as { name: string } | null)?.name ?? "An artist";
+      take(rentIn, rentInI, dayToIso(r.paid_on), r.amount_inr, name, { group: name, method: r.method ?? null, href: `/business/${r.venue_business_id}/staff` });
+    }
+  }
+
   const one = businessIds.length === 1 ? businessIds[0] : null;
   return assemble(
     period,
@@ -452,8 +489,12 @@ export async function findBusinessEarnings(
          fails nothing. ⚠ It carries `?as=` when the ledger is one business's, so
          the desk it opens is scoped the way the tile's is. */
       { key: "enquiries", label: "Enquiries", by: enquiries, items: enquiriesI, href: one ? `/business/${one}/inbox?show=enquiries` : "/inbox?show=enquiries" },
+      /* drawn only where there is some — a studio that rents no room out has no
+         reason to read a ₹0 line about it */
+      { key: "rent_in", label: "Rent received", by: rentIn, items: rentInI, hideAtZero: true },
     ],
     [
+      { key: "rent_out", label: "Rent paid", by: rentOut, items: rentOutI, hideAtZero: true },
       /* ⚠ "Team pay", and its desk is the TEAM desk (18 Oct 2026, the user: "what
          you owe should be handled from teams not here") — this line pointed at
          the Earnings desk itself, i.e. the page you were already on */

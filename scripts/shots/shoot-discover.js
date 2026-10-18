@@ -183,6 +183,7 @@ const measureRail = (page, selector) =>
 
 (async () => {
   const stamp = Date.now().toString(36);
+  const tag = stamp.slice(-6);
   const made = { users: [], businesses: [], crews: [], objects: [] };
   const browser = await chromium.launch();
   const errs = [];
@@ -192,7 +193,7 @@ const measureRail = (page, selector) =>
     const owner = await fetch(`${SUPABASE}/auth/v1/admin/generate_link`, { method: "POST", headers: H, body: JSON.stringify({ type: "magiclink", email: `shot.disc.owner.${stamp}@example.com` }) }).then((r) => r.json());
     if (!owner.id) throw new Error(`generate_link failed: ${JSON.stringify(owner)}`);
     made.users.push(owner.id);
-    await rest("POST", "/rest/v1/profiles", { id: owner.id, full_name: `Disc Owner ${stamp}`, role: "user", city: CITY, styles: [STYLE], created_by: owner.id, updated_by: owner.id });
+    await rest("POST", "/rest/v1/profiles", { id: owner.id, full_name: `Disc Own ${tag}`, role: "user", city: CITY, styles: [STYLE], created_by: owner.id, updated_by: owner.id });
 
     /* the studio's own profile picture, in the PUBLIC bucket where a business's disc lives */
     const facePath = `businesses/${stamp}/face.png`;
@@ -205,7 +206,7 @@ const measureRail = (page, selector) =>
 
     const [studio] = await rest("POST", "/rest/v1/businesses", {
       type: "studio",
-      name: `Disc Studio ${stamp}`,
+      name: `Disc Std ${tag}`,
       area: "Salt Lake",
       city: CITY,
       lat: CENTRE.lat,
@@ -239,7 +240,7 @@ const measureRail = (page, selector) =>
     /* an ARTIST for the Artists tab */
     const artist = await fetch(`${SUPABASE}/auth/v1/admin/generate_link`, { method: "POST", headers: H, body: JSON.stringify({ type: "magiclink", email: `shot.disc.artist.${stamp}@example.com` }) }).then((r) => r.json());
     made.users.push(artist.id);
-    await rest("POST", "/rest/v1/profiles", { id: artist.id, full_name: `Disc Artist ${stamp}`, role: "user", city: CITY, styles: [STYLE], created_by: artist.id, updated_by: artist.id });
+    await rest("POST", "/rest/v1/profiles", { id: artist.id, full_name: `Disc Art ${tag}`, role: "user", city: CITY, styles: [STYLE], created_by: artist.id, updated_by: artist.id });
     await rest("POST", "/rest/v1/subscriptions", {
       kind: "artist", user_id: artist.id, plan_key: "artist_monthly", price_inr: 0, period: "monthly", status: "active", granted: true,
       current_period_start: new Date().toISOString().slice(0, 10), current_period_end: new Date(Date.now() + 365 * 864e5).toISOString().slice(0, 10),
@@ -247,7 +248,7 @@ const measureRail = (page, selector) =>
     });
 
     /* a CREW for the Crews tab */
-    const [crew] = await rest("POST", "/rest/v1/crews", { name: `Disc Crew ${stamp}`, city: CITY, style: STYLE, styles: [STYLE], leader_id: owner.id, created_by: owner.id, updated_by: owner.id });
+    const [crew] = await rest("POST", "/rest/v1/crews", { name: `Disc Cr ${tag}`, city: CITY, style: STYLE, styles: [STYLE], leader_id: owner.id, created_by: owner.id, updated_by: owner.id });
     made.crews.push(crew.id);
     await rest("POST", "/rest/v1/crew_members", { crew_id: crew.id, user_id: owner.id, role: "leader", status: "confirmed", sort: 0, created_by: owner.id, updated_by: owner.id });
 
@@ -322,7 +323,7 @@ const measureRail = (page, selector) =>
 
     /* 4. THE ARTIST CARD */
     await page.goto(`${BASE}/discover?city=${encodeURIComponent(CITY)}&tab=artists`, { waitUntil: "networkidle" });
-    const aCard = page.getByRole("link", { name: `Open Disc Artist ${stamp}` });
+    const aCard = page.getByRole("link", { name: `Open Disc Art ${tag}` });
     check((await aCard.count()) === 1, "the artist is on the Artists tab");
     if ((await aCard.count()) === 1) {
       const t = (await aCard.innerText()).replace(/\s+/g, " ");

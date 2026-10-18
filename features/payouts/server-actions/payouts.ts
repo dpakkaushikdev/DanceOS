@@ -4,27 +4,31 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { recordPayout, setPayoutStatus, voidPayout } from "@/repositories/payouts";
+import { recordSessionPayment, setPayoutStatus, voidPayout } from "@/repositories/payouts";
+import { recordRentPayment, voidRentPayment } from "@/repositories/rent";
 
-/** ⚠ Money. Step 13's writes. Two rules the RPCs enforce rather than trust:
- *   · only the studio's OWNER records, changes or voids a payout (the
- *     prototype's SS10.9 — payout approval is owner-only and not grantable), and
- *     only the owner sets what a session pays
- *   · the AMOUNT is never accepted from the client. The action sends session
- *     ids; record_payout counts the total from the rates on record (Step 9's
- *     rule, kept). */
+/** ⚠ Money. Team pay and rent are RECORDS of a settlement already made — DanceOS
+ *  moves no money (Step 13), and Cashfree Payouts is "switched on later" (the
+ *  user's answer, 18 Oct 2026).
+ *
+ *  ⚠ PAY IS SET WHEN PAYING (18 Oct 2026): the amount for each class or enquiry
+ *  is typed in the pay sheet, so it IS taken from the client — bounded here and
+ *  again in the RPC (a whole rupee, at most ₹10,00,000 a line). What the client
+ *  cannot choose is WHAT it pays for: the RPCs refuse a class the person was not
+ *  on, one that has not happened, an enquiry they were not on the team of, and
+ *  anything already settled; and only the payer's OWNER may record at all. */
 
 export interface PayoutActionResult {
   error: string | null;
 }
 
-const recordSchema = z.object({
-  businessId: z.string().uuid(),
-  userId: z.string().uuid(),
-  sessionIds: z.array(z.string().uuid()).min(1).max(200),
-  method: z.enum(["bank_transfer", "upi", "cash", "other"]),
-  status: z.enum(["done", "in_transit", "on_hold", "failed"]),
-  // a UTR or a rail's reference; the studio's own note, not a promise we make
+const METHOD = z.enum(["bank_transfer", "upi", "cash", "other"]);
+const STATUS = z.enum(["done", "in_transit", "on_hold", "failed"]);
+const AMOUNT = z.number().int().min(0).max(1_000_000);
+const meta = {
+  method: METHOD,
+  status: STATUS,
+  /* a UTR, a UPI id or a Cashfree reference — the studio's own note */
   providerRef: z.string().trim().max(120).optional().nullable(),
   paidOn: z
     .string()
@@ -32,14 +36,38 @@ const recordSchema = z.object({
     .optional()
     .nullable(),
   note: z.string().trim().max(500).optional().nullable(),
-});
+};
+
+const lineSchema = z.union([
+  z.object({ sessionId: z.string().uuid(), rateInr: AMOUNT }),
+  z.object({ enquiryId: z.string().uuid(), rateInr: AMOUNT }),
+]);
+
+const sessionPaySchema = z
+  .object({
+    businessId: z.string().uuid(),
+    userId: z.string().uuid(),
+    lines: z.array(lineSchema).min(1).max(200),
+    ...meta,
+  })
+  .refine((v) => v.lines.some((l) => l.rateInr > 0), { message: "Enter an amount for at least one" });
+
+const rentSchema = z
+  .object({
+    payerBusinessId: z.string().uuid(),
+    venueBusinessId: z.string().uuid(),
+    lines: z.array(z.object({ sessionId: z.string().uuid(), rateInr: AMOUNT })).min(1).max(200),
+    ...meta,
+  })
+  .refine((v) => v.lines.some((l) => l.rateInr > 0), { message: "Enter an amount for at least one" });
 
 const statusSchema = z.object({
   payoutId: z.string().uuid(),
-  status: z.enum(["done", "in_transit", "on_hold", "failed"]),
+  status: STATUS,
   providerRef: z.string().trim().max(120).optional().nullable(),
 });
 
+const idSchema = z.object({ id: z.string().uuid() });
 const payoutIdSchema = z.object({ payoutId: z.string().uuid() });
 
 async function requireUser() {
@@ -53,43 +81,70 @@ async function requireUser() {
   return supabase;
 }
 
-/** Both sides of the ledger change at once: the studio's desk and the earnings
- *  screen of whoever was paid. */
+/** Both sides of the ledger change at once: the payer's desk, the payee's Other
+ *  Teams, and both Earnings screens. */
 function revalidateMoneySurfaces(businessId?: string) {
   if (businessId) {
     revalidatePath(`/business/${businessId}/earnings`);
     revalidatePath(`/business/${businessId}/staff`);
   }
   revalidatePath("/business/[businessId]/earnings", "page");
-  /* the pay ledger lives on the Team desk since 18 Oct 2026 — what you owe and
-     what you settled moved there from Earnings, and so did "Paid to you" */
   revalidatePath("/business/[businessId]/staff", "page");
+  revalidatePath("/business/[businessId]/staff/[userId]", "page");
   revalidatePath("/team");
   revalidatePath("/earnings");
   revalidatePath("/");
 }
 
-export async function recordPayoutAction(input: {
-  businessId: string;
-  userId: string;
-  sessionIds: string[];
-  method: "bank_transfer" | "upi" | "cash" | "other";
-  status: "done" | "in_transit" | "on_hold" | "failed";
-  providerRef?: string | null;
-  paidOn?: string | null;
-  note?: string | null;
-}): Promise<PayoutActionResult> {
-  const parsed = recordSchema.safeParse(input);
+const firstIssue = (e: z.ZodError) => e.issues[0]?.message ?? "Invalid payment";
+
+/** PAY ONE PERSON for the classes and enquiries ticked, at the amounts typed. */
+export async function recordSessionPaymentAction(input: z.input<typeof sessionPaySchema>): Promise<PayoutActionResult> {
+  const parsed = sessionPaySchema.safeParse(input);
   if (!parsed.success) {
-    return { error: "Invalid payout" };
+    return { error: firstIssue(parsed.error) };
   }
+  /* a line at ₹0 is a class settled for nothing — allowed (a favour is a real
+     answer), but only beside at least one paid line, said above */
   const supabase = await requireUser();
   try {
-    await recordPayout(supabase, parsed.data);
+    await recordSessionPayment(supabase, parsed.data);
     revalidateMoneySurfaces(parsed.data.businessId);
     return { error: null };
   } catch (error: unknown) {
     return { error: error instanceof Error ? error.message : "Could not record that payment" };
+  }
+}
+
+/** PAY A STUDIO RENT for the classes ticked — past or still to run. */
+export async function recordRentPaymentAction(input: z.input<typeof rentSchema>): Promise<PayoutActionResult> {
+  const parsed = rentSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: firstIssue(parsed.error) };
+  }
+  const supabase = await requireUser();
+  try {
+    await recordRentPayment(supabase, parsed.data);
+    revalidateMoneySurfaces(parsed.data.payerBusinessId);
+    revalidateMoneySurfaces(parsed.data.venueBusinessId);
+    return { error: null };
+  } catch (error: unknown) {
+    return { error: error instanceof Error ? error.message : "Could not record that rent" };
+  }
+}
+
+export async function voidRentPaymentAction(input: { id: string }): Promise<PayoutActionResult> {
+  const parsed = idSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: "Invalid request" };
+  }
+  const supabase = await requireUser();
+  try {
+    await voidRentPayment(supabase, parsed.data.id);
+    revalidateMoneySurfaces();
+    return { error: null };
+  } catch (error: unknown) {
+    return { error: error instanceof Error ? error.message : "Could not void that rent" };
   }
 }
 
@@ -112,9 +167,9 @@ export async function setPayoutStatusAction(input: {
   }
 }
 
-/** Voiding releases the payout's sessions so they can be settled again — for a
- *  payment recorded by mistake. Both sides are soft-deleted, so the mistake
- *  stays readable. */
+/** Voiding releases the payout's classes AND enquiries so they can be settled
+ *  again — for a payment recorded by mistake. Soft-deleted, so the mistake stays
+ *  readable. */
 export async function voidPayoutAction(input: { payoutId: string }): Promise<PayoutActionResult> {
   const parsed = payoutIdSchema.safeParse(input);
   if (!parsed.success) {
@@ -129,8 +184,3 @@ export async function voidPayoutAction(input: { payoutId: string }): Promise<Pay
     return { error: error instanceof Error ? error.message : "Could not void that payment" };
   }
 }
-
-/* ⚠ `setClassPersonPayAction` was here and is gone (28 Sep 2026): it was a SECOND
-   door onto `setClassPersonPay`, and the live one is `services/classPeople.ts`, which
-   reconciles the class form's intent against the people on record. Nothing
-   called this; the rate is still set, on every path that sets it. */

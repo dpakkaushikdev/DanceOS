@@ -1,5 +1,6 @@
 "use client";
 
+import { NAME_MAX } from "@/lib/constants/names";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useState } from "react";
@@ -523,8 +524,9 @@ export function BusinessHub({
               <input
                 name="name"
                 value={name}
+                maxLength={NAME_MAX}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. EEE Dance Studio — Andheri"
+                placeholder="e.g. EEE Studio"
                 style={inp}
               />
               {/* ── WHERE IT IS, RIGHT AFTER THE NAME (11 Sep 2026 — the user:
@@ -640,6 +642,7 @@ export function BusinessHub({
                       <input
                         value={r.name}
                         aria-label={`Room ${i + 1} name`}
+                        maxLength={NAME_MAX}
                         onChange={(e) => setRoom(i, { name: e.target.value })}
                         placeholder={`Room ${i + 1}`}
                         style={{ ...inp, flex: 2, minWidth: 0 }}

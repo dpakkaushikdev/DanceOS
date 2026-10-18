@@ -29,6 +29,7 @@ async function rest(method, pathname, body) {
 
 (async () => {
   const stamp = Date.now().toString(36);
+  const tag = stamp.slice(-6);
   const email = `earn.${stamp}@example.com`;
   const password = `Earn!${stamp}aA1`;
   let userId = null;
@@ -40,10 +41,10 @@ async function rest(method, pathname, body) {
     const made = await rest("POST", "/auth/v1/admin/users", { email, password, email_confirm: true });
     userId = made.id;
     /* 26 Sep 2026: a PERSON owns the studio - the organization login is retired */
-    await rest("POST", "/rest/v1/profiles", { id: userId, full_name: `Earn Owner ${stamp}`, role: "user", city: "Pune", styles: ["Hip-Hop"], created_by: userId, updated_by: userId });
+    await rest("POST", "/rest/v1/profiles", { id: userId, full_name: `Earn Own ${tag}`, role: "user", city: "Pune", styles: ["Hip-Hop"], created_by: userId, updated_by: userId });
 
     const [biz] = await rest("POST", "/rest/v1/businesses", {
-      type: "studio", name: `Earn Studio ${stamp}`, area: "Kothrud", city: "Pune",
+      type: "studio", name: `Earn Std ${tag}`, area: "Kothrud", city: "Pune",
       lat: 18.5204, lng: 73.8567, visibility: "unlisted", styles: ["Hip-Hop"],
       created_by: userId, updated_by: userId,
     });
@@ -89,12 +90,12 @@ async function rest(method, pathname, body) {
       method: "upi", paid_on: today, created_by: userId, updated_by: userId,
     });
     await rest("POST", "/rest/v1/assets", {
-      business_id: businessId, name: `Earn PA ${stamp}`, category: "Speaker", value_inr: 500,
+      business_id: businessId, name: `Earn PA ${tag}`, category: "Speaker", value_inr: 500,
       created_by: userId, updated_by: userId,
     });
     // ⚠ and a LEGACY asset, which must add NOTHING to expenses
     await rest("POST", "/rest/v1/assets", {
-      business_id: businessId, name: `Earn Mirrors ${stamp}`, category: "Mirror", value_inr: 0,
+      business_id: businessId, name: `EMirrors ${tag}`, category: "Mirror", value_inr: 0,
       created_by: userId, updated_by: userId,
     });
     /* ⚠ WHAT THE STUDIO PAYS DANCEOS — ₹1,200 for the studio plan. The payment
@@ -154,7 +155,7 @@ async function rest(method, pathname, body) {
     check(/Team pay/.test(joined), "studio · the expense breakup names Team pay (18 Oct 2026: was 'What you paid your people')");
     check(/Assets bought/.test(joined), "studio · and Assets bought — the price linked to expenses (21 Sep)");
     check(/DanceOS subscription/.test(joined), "studio · and the DanceOS subscription — what it pays to be on Discover, an expense no ledger had ever shown");
-    check(!/Earn Mirrors/.test(joined) && /₹500/.test(joined), "studio · the ₹0 legacy asset adds nothing — only the ₹500 one is counted");
+    check(!/EMirrors/.test(joined) && /₹500/.test(joined), "studio · the ₹0 legacy asset adds nothing — only the ₹500 one is counted");
 
     /* 2 Oct 2026: every line is drawn even at ₹0, and opens onto its rows */
     check(/Memberships/.test(joined) && /Refunds/.test(joined) && /Enquiries/.test(joined), "studio · the ₹0 lines are drawn too — Memberships, Refunds, Enquiries");
@@ -164,7 +165,7 @@ async function rest(method, pathname, body) {
     await assetsBtn.click();
     check((await assetsBtn.getAttribute("aria-expanded")) === "true", "studio · and opens on a press");
     const assetRows = (await page.getByTestId("earn-items").first().innerText());
-    check(/Earn Mirrors/.test(assetRows) && /already had it/.test(assetRows), "studio · Assets bought lists BOTH assets, the ₹0 one said as one already had");
+    check(/EMirrors/.test(assetRows) && /already had it/.test(assetRows), "studio · Assets bought lists BOTH assets, the ₹0 one said as one already had");
     await page.getByRole("button", { name: /^Memberships/ }).click();
     check((await page.getByTestId("earn-items").filter({ hasText: "Nothing in this period" }).count()) === 1, "studio · a ₹0 line opens and says it carried nothing");
     await page.getByRole("button", { name: /^Classes/ }).click();

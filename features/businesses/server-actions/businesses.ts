@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { nameField } from "@/lib/constants/names";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findProfileById } from "@/repositories/profiles";
 import { createRoom } from "@/repositories/rooms";
@@ -29,7 +30,7 @@ export interface BusinessActionState {
  *  capacity each. They ride in as one JSON field because the sheet is a plain
  *  form; the shape is checked here, not trusted. */
 const roomSchema = z.object({
-  name: z.string().trim().min(1, "Give every room a name").max(80),
+  name: nameField("Give every room a name"),
   capacity: z.coerce.number().int().min(1, "A room holds at least one").max(500, "That is too many"),
 });
 
@@ -43,7 +44,7 @@ const roomsSchema = z.array(roomSchema).max(20, "That is a lot of rooms — add 
  *  BEFORE a row is attempted, and what decides which fields are required. */
 const createBusinessSchema = z
   .object({
-    name: z.string().trim().min(1, "Give it a name").max(140),
+    name: nameField("Give it a name"),
     area: z.string().trim().max(140).optional(),
     city: z.string().trim().max(120).optional(),
     rooms: roomsSchema,

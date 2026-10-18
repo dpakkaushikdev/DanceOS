@@ -58,7 +58,7 @@ const PAGES = [
   ["reach-shown", "/admin/reach?tab=shown"],
   ["reach-shown-q", "/admin/reach?tab=shown&q=dance"],
   /* ⚠ A REAL BUSINESS WITH REAL IMPRESSIONS, so the one read a static URL list
-     would otherwise never reach is actually made. EEE Dance Studio is the demo
+     would otherwise never reach is actually made. EEE Studio is the demo
      world's and carried 14 shelves at the time this was written; if the demo
      world is re-seeded the id moves and this page draws the business list
      instead of the figures — which still proves the tab, just not the read.

@@ -71,14 +71,14 @@ $stamp = Get-Date -Format "HHmmss"
 # this run through the admin API and deleted after.
 $cEmail = "proof-c-$stamp@example.com"
 $cUser = Invoke-RestMethod -Method Post -Uri "$base/auth/v1/admin/users" -Headers $svcH -Body (@{ email = $cEmail; password = "Proof-passw0rd!"; email_confirm = $true } | ConvertTo-Json)
-Invoke-RestMethod -Method Post -Uri "$base/rest/v1/profiles" -Headers $svcH -Body (@{ id = $cUser.id; full_name = "Third Person $stamp"; role = "user"; city = "Pune"; created_by = $cUser.id; updated_by = $cUser.id } | ConvertTo-Json) | Out-Null
+Invoke-RestMethod -Method Post -Uri "$base/rest/v1/profiles" -Headers $svcH -Body (@{ id = $cUser.id; full_name = "Third P $stamp"; role = "user"; city = "Pune"; created_by = $cUser.id; updated_by = $cUser.id } | ConvertTo-Json) | Out-Null
 $c = Invoke-RestMethod -Method Post -Uri "$base/auth/v1/token?grant_type=password" -Headers @{ apikey = $anon; "Content-Type" = "application/json" } -Body (@{ email = $cEmail; password = "Proof-passw0rd!" } | ConvertTo-Json)
 # 8 Sep 2026 (R3): only an ORGANIZATION opens a studio, and +918888888888 is a person - so the other
 # studio is an organization's, made for this run (verified by the service role, as an admin would).
 $orgBEmail = "rooms-orgb-$stamp@example.com"
 $orgBUser = Invoke-RestMethod -Method Post -Uri "$base/auth/v1/admin/users" -Headers $svcH -Body (@{ email = $orgBEmail; password = "Proof-passw0rd!"; email_confirm = $true } | ConvertTo-Json)
 # 26 Sep 2026: the other owner is a PERSON - the organization login is retired, and any account opens a studio
-Invoke-RestMethod -Method Post -Uri "$base/rest/v1/profiles" -Headers $svcH -Body (@{ id = $orgBUser.id; full_name = "Other Owner $stamp"; role = "user"; city = "Mumbai"; created_by = $orgBUser.id; updated_by = $orgBUser.id } | ConvertTo-Json) | Out-Null
+Invoke-RestMethod -Method Post -Uri "$base/rest/v1/profiles" -Headers $svcH -Body (@{ id = $orgBUser.id; full_name = "Other O $stamp"; role = "user"; city = "Mumbai"; created_by = $orgBUser.id; updated_by = $orgBUser.id } | ConvertTo-Json) | Out-Null
 $orgB = Invoke-RestMethod -Method Post -Uri "$base/auth/v1/token?grant_type=password" -Headers @{ apikey = $anon; "Content-Type" = "application/json" } -Body (@{ email = $orgBEmail; password = "Proof-passw0rd!" } | ConvertTo-Json)
 $soonStart = (Get-Date).AddMinutes(10).ToString("yyyy-MM-ddTHH:mm:sszzz")
 $soonEnd = (Get-Date).AddMinutes(70).ToString("yyyy-MM-ddTHH:mm:sszzz")
@@ -87,9 +87,9 @@ $farEnd = (Get-Date).AddDays(9).ToString("yyyy-MM-ddT20:30:00zzz")
 $farOverlap = (Get-Date).AddDays(9).ToString("yyyy-MM-ddT20:00:00zzz")
 $farOverlapEnd = (Get-Date).AddDays(9).ToString("yyyy-MM-ddT21:00:00zzz")
 
-$ta = New-Studio $a.access_token "Rooms Proof Studio $stamp" "Kothrud" "Pune"
+$ta = New-Studio $a.access_token "Room Std $stamp" "Kothrud" "Pune"
 Subscribe-Studio ([string]$ta.id)
-$tb = New-Studio $orgB.access_token "Other Studio $stamp" "Andheri" "Mumbai"
+$tb = New-Studio $orgB.access_token "Othr Std $stamp" "Andheri" "Mumbai"
 Subscribe-Studio ([string]$tb.id)
 
 try {

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { askClassPerson, respondToClassAsk, setClassPersonPay, setClassPersonPowers, stepDownFromClass, withdrawClassAsk } from "@/repositories/classPeople";
+import { askClassPerson, respondToClassAsk, setClassPersonPowers, stepDownFromClass, withdrawClassAsk } from "@/repositories/classPeople";
 import { findAssistantPool } from "@/repositories/profiles";
 
 /** Step 11 people actions. Consent is the whole point: the studio ASKS (only
@@ -145,27 +145,8 @@ export async function stepDownFromClassAction(input: { classPersonId: string; re
   }
 }
 
-const paySchema = z.object({
-  classPersonId: z.string().uuid(),
-  payPerSessionInr: z.number().int().min(0).max(1_000_000),
-});
-
-/** WHAT A SESSION PAYS THIS PERSON ON THIS CLASS (11 Oct 2026, D2) — the
- *  OWNER's number; `set_class_person_pay` refuses anybody else. */
-export async function setClassPersonPayAction(input: { classPersonId: string; payPerSessionInr: number }): Promise<ClassPersonActionResult> {
-  const parsed = paySchema.safeParse(input);
-  if (!parsed.success) {
-    return { error: "Enter a whole rupee amount, 0 or more" };
-  }
-  const supabase = await requireUser();
-  try {
-    await setClassPersonPay(supabase, parsed.data.classPersonId, parsed.data.payPerSessionInr);
-    revalidatePeopleSurfaces();
-    return { error: null };
-  } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "Could not set the rate" };
-  }
-}
+/* No rate is set on a class person any more (19 Oct 2026): a rate is written
+ * only when a payment is recorded, from the Team desk's pay sheet. */
 
 export async function setClassPersonPowersAction(input: {
   classPersonId: string;

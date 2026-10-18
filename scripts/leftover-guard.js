@@ -14,7 +14,7 @@
  *   2. Is any LIVE, LISTED business named like a proof/shoot/e2e business AND owned
  *      by a junk email, a kept test phone, or nobody live? (A listed studio is on
  *      Discover — in front of real visitors.) ⚠ A name match under a REAL or a demo
- *      owner is never an offender; "EEE Dance Studio" counts only under a junk
+ *      owner is never an offender; "EEE Dance Studio" / "EEE Studio" counts only under a junk
  *      email, because the demo world has a real one.
  *   3. Is any LIVE profile held by a junk email?
  *

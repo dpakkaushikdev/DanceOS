@@ -107,8 +107,8 @@ Check 0 "The pure arrangement rule holds (a missing tile is kept, a ghost key ig
 $me = $null
 $them = $null
 try {
-  $me = New-EmailUser "layoutproof-me-$stamp@example.com" "Layout Me $stamp"
-  $them = New-EmailUser "layoutproof-them-$stamp@example.com" "Layout Them $stamp"
+  $me = New-EmailUser "layoutproof-me-$stamp@example.com" "Lay Me $stamp"
+  $them = New-EmailUser "layoutproof-them-$stamp@example.com" "Lay Them $stamp"
 
   # -- 1. NOTHING IS BACKFILLED -------------------------------------------------
   # the migration's own claim: every account gets {} and every grid draws exactly

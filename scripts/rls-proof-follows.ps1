@@ -81,12 +81,12 @@ $pass = $true
 $stamp = Get-Date -Format "HHmmss"
 $ownerA = New-EmailUser "follow-ownera-$stamp@example.com" "Owner A $stamp" "user"
 $ownerB = New-EmailUser "follow-ownerb-$stamp@example.com" "Owner B $stamp" "user"
-$l1 = New-EmailUser "follow-l1-$stamp@example.com" "Learner One $stamp" "user"
-$l2 = New-EmailUser "follow-l2-$stamp@example.com" "Learner Two $stamp" "user"
+$l1 = New-EmailUser "follow-l1-$stamp@example.com" "Lrn One $stamp" "user"
+$l2 = New-EmailUser "follow-l2-$stamp@example.com" "Lrn Two $stamp" "user"
 
-$ta = New-Studio $ownerA.token "Follow Proof Studio $stamp" "Kothrud" "Pune"
+$ta = New-Studio $ownerA.token "Fol Std $stamp" "Kothrud" "Pune"
 Subscribe-Studio ([string]$ta.id)
-$tb = New-Studio $ownerB.token "Private Studio $stamp" "Andheri" "Mumbai"
+$tb = New-Studio $ownerB.token "Priv Std $stamp" "Andheri" "Mumbai"
 Subscribe-Studio ([string]$tb.id)
 # B goes private - the one state a listed/unlisted line can be tested against
 Invoke-RestMethod -Method Patch -Uri "$base/rest/v1/businesses?id=eq.$($tb.id)" -Headers $svcH -Body (@{ visibility = "unlisted" } | ConvertTo-Json) | Out-Null

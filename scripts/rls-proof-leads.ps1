@@ -53,18 +53,18 @@ $stamp = Get-Date -Format "HHmmss"
 $orgBEmail = "leads-orgb-$stamp@example.com"
 $orgBUser = Invoke-RestMethod -Method Post -Uri "$base/auth/v1/admin/users" -Headers $svcH -Body (@{ email = $orgBEmail; password = "Proof-passw0rd!"; email_confirm = $true } | ConvertTo-Json)
 # 26 Sep 2026: the rival owner is a PERSON - the organization login is retired, and any account opens a studio
-Invoke-RestMethod -Method Post -Uri "$base/rest/v1/profiles" -Headers $svcH -Body (@{ id = $orgBUser.id; full_name = "Rival Owner $stamp"; role = "user"; city = "Mumbai"; created_by = $orgBUser.id; updated_by = $orgBUser.id } | ConvertTo-Json) | Out-Null
+Invoke-RestMethod -Method Post -Uri "$base/rest/v1/profiles" -Headers $svcH -Body (@{ id = $orgBUser.id; full_name = "Rival O $stamp"; role = "user"; city = "Mumbai"; created_by = $orgBUser.id; updated_by = $orgBUser.id } | ConvertTo-Json) | Out-Null
 $orgB = Invoke-RestMethod -Method Post -Uri "$base/auth/v1/token?grant_type=password" -Headers @{ apikey = $anon; "Content-Type" = "application/json" } -Body (@{ email = $orgBEmail; password = "Proof-passw0rd!" } | ConvertTo-Json)
 
-$ta = New-Studio $a.access_token "Leads Proof Studio $stamp" "Kothrud" "Pune"
+$ta = New-Studio $a.access_token "Lead Std $stamp" "Kothrud" "Pune"
 Subscribe-Studio ([string]$ta.id)
-$tb = New-Studio $orgB.access_token "Rival Studio $stamp" "Andheri" "Mumbai"
+$tb = New-Studio $orgB.access_token "Rivl Std $stamp" "Andheri" "Mumbai"
 Subscribe-Studio ([string]$tb.id)
 
 try {
   # 1. the owner opens a lead
   $lead = Invoke-RestMethod -Method Post -Uri "$base/rest/v1/leads" -Headers (Api $a.access_token) -Body (@{
-    business_id = $ta.id; name = "Priya Iyer $stamp"; mobile = "+91 98110 44219"; interest = "Hip-Hop, evenings"; source = "walk_in" } | ConvertTo-Json)
+    business_id = $ta.id; name = "Priya I $stamp"; mobile = "+91 98110 44219"; interest = "Hip-Hop, evenings"; source = "walk_in" } | ConvertTo-Json)
   $leadRow = if ($lead -is [array]) { $lead[0] } else { $lead }
   Check 1 "Owner opens a lead (stage $($leadRow.status))" ($leadRow.status -eq "new")
 

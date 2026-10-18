@@ -45,6 +45,7 @@ const rest = async (method, url, body) => {
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const stamp = Date.now().toString(36);
+  const tag = stamp.slice(-6);
   const email = `shot.newstudio.${stamp}@example.com`;
   const problems = [];
   const check = (ok, what) => {
@@ -55,7 +56,7 @@ const rest = async (method, url, body) => {
   const link = await fetch(`${SUPABASE}/auth/v1/admin/generate_link`, { method: "POST", headers: H, body: JSON.stringify({ type: "magiclink", email }) }).then((r) => r.json());
   if (!link.hashed_token) throw new Error(`generate_link failed: ${JSON.stringify(link)}`);
   /* 26 Sep 2026: a PERSON - any account opens a studio; the organization login is retired */
-  await rest("POST", "/rest/v1/profiles", { id: link.id, full_name: `Shot New Studio ${stamp}`, role: "user", city: "Pune", styles: ["Hip-Hop"], created_by: link.id, updated_by: link.id });
+  await rest("POST", "/rest/v1/profiles", { id: link.id, full_name: `Shot NS ${tag}`, role: "user", city: "Pune", styles: ["Hip-Hop"], created_by: link.id, updated_by: link.id });
 
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport: { width: 430, height: 932 }, deviceScaleFactor: 2 });
@@ -76,7 +77,7 @@ const rest = async (method, url, body) => {
     await page.getByRole("button", { name: "Add studio" }).first().click();
     const sheet = page.getByRole("dialog", { name: "New studio" });
     await sheet.waitFor();
-    await sheet.locator('input[name="name"]').fill(`Shot Studio ${stamp}`);
+    await sheet.locator('input[name="name"]').fill(`Shot Std ${tag}`);
 
     /* 1. THE ORDER: name, then where it is, then area and city */
     const text = (await sheet.innerText()).replace(/\s+/g, " ");

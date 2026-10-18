@@ -141,12 +141,7 @@ const updateClassSchema = classFields
    added from the class page by the owner or the teacher, each addition an ask. */
 const peopleSchema = z.object({
   artistUserId: z.string().uuid().nullable(),
-  /* ⚠ Step 13: a rate is optional here. Since 11 Oct 2026 the class form sends
-     none — pay is off the form and an ask with no rate takes the SEAT's
-     (`business_members.pay_per_session_inr`). Kept for any caller that names one;
-     validating the range is not the authorization — ask_class_person and
-     set_class_person_pay refuse a rate from anybody but the owner, server-side. */
-  artistPayInr: z.number().int().min(0).max(200000).optional(),
+  /* ⚠ NO RATE (18 Oct 2026): pay is set in the Team desk's pay sheet, nowhere else */
 });
 
 const readPeople = (formData: FormData) => {
@@ -312,11 +307,7 @@ export async function updateClassAction(
         (before.venueBusinessId ?? null) !== (d.venueBusinessId ?? null) ||
         (before.mapsUrl ?? "") !== (d.mapsUrl ?? ""));
     const myMemberships = changed ? await findMyMemberships(supabase) : [];
-    /* an OWNER's re-ask keeps each person's own rate on this class; a manager's
-       cannot (the RPC refuses a rate from anybody but the owner), so it takes
-       the seat's rate (11 Oct 2026) */
-    const keepRates = Boolean(before) && myMemberships.some((m) => m.business.id === before!.businessId && m.memberRole === "owner");
-    await reconcileClassPeople(supabase, d.classId, people, { reconfirm: changed, meId: user?.id, keepRates });
+    await reconcileClassPeople(supabase, d.classId, people, { reconfirm: changed, meId: user?.id });
     /* the studio whose room it is, too: an artist's draft that was given a room
        for one slot goes back to it when the slot moves. A new room or studio is
        already a new ask (the database's own trigger); a studio the artist owns

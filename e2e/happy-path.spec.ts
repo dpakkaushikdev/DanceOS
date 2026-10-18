@@ -347,7 +347,12 @@ test.describe.serial("DanceOS, end to end", () => {
   test.skip(!supabaseUrl || !serviceKey, "Supabase keys missing (.env.local or env)");
 
   const stamp: string = Date.now().toString(36);
-  const studioName: string = `E2E Studio ${stamp}`;
+  /* ⚠ EVERY NAME IS AT MOST 15 CHARACTERS since 19 Oct 2026 (NAME_MAX in
+     lib/constants/names.ts): the box's maxLength TRUNCATES a longer `fill`, and
+     the server refuses one. So every typed name here is "E2E <letter> " + the
+     8-character stamp = 14. The letter says what it is: S studio, T trainer,
+     L learner, C crew, P pass, A asset, M the legacy asset, R routine. */
+  const studioName: string = `E2E S ${stamp}`;
   /* NOT stamped, because it is not typed: since 17 Sep 2026 the form has no name
      field and a class is called "{style} · {level}" (the prototype's own
      dosClassLabel). So this title is shared with every other Bollywood class on
@@ -367,13 +372,13 @@ test.describe.serial("DanceOS, end to end", () => {
      name was "E2E Trainer Mtvv43th" while the spec looked for "…mtvv43th": every
      case-INSENSITIVE locator matched and the one `exact: true` assertion did
      not (10 Sep 2026). Typing what the app will store keeps them in step. */
-  const trainerName: string = `E2E Trainer ${stamp.charAt(0).toUpperCase()}${stamp.slice(1)}`;
+  const trainerName: string = `E2E T ${stamp.charAt(0).toUpperCase()}${stamp.slice(1)}`;
   /* AND THE LEARNER, for the same reason and at the same cost (18 Sep 2026). It
      stayed the constant "E2E Learner" until the class form began searching all of
      DanceOS for whoever takes a class: four leftover learners answered that
      search, `.first()` picked one of them, and the segment then waited for an ask
      to reach an account that was not in this story. */
-  const learnerName: string = `E2E Learner ${stamp.charAt(0).toUpperCase()}${stamp.slice(1)}`;
+  const learnerName: string = `E2E L ${stamp.charAt(0).toUpperCase()}${stamp.slice(1)}`;
 
   let ownerId: string | null = null;
   let learnerId: string | null = null;
@@ -964,20 +969,18 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(trainer.getByTestId("team-invite").filter({ hasText: studioName })).toHaveCount(0, { timeout: 15_000 });
     await expect(trainer.getByRole("link", { name: `${studioName} — open the profile` }).first()).toBeVisible({ timeout: 15_000 });
 
-    // ---- WHAT A SESSION PAYS THEM IS THE TEAM DESK'S (11 Oct 2026) ---------
-    // The class form lost its "What a session pays the artist" field: the rate is
-    // the SEAT's, set on the member sheet (set_member_pay, owner-only), and an
-    // ask with no rate copies it — so the class below is asked at ₹900 without
-    // the form ever naming a number.
+    // ---- NO PER-SESSION RATE ANYWHERE (19 Oct 2026) ---------------------------
+    // The seat's "What a session pays" field is gone with the rate itself: what a
+    // member is paid is settled line by line on the Pay sheet (SettleSheet). Both
+    // ends: the member sheet carries no rate control.
     await owner.goto(`/business/${businessId}/staff`);
     await owner.getByRole("link", { name: `Member Detail — ${trainerName}` }).click();
     await owner.waitForURL(new RegExp(`/business/${businessId}/staff/[0-9a-f-]+$`), { timeout: 20_000 });
     await owner.getByRole("button", { name: `Manage ${trainerName}` }).click();
-    // TODO(11 Oct): the member sheet's dialog name is assumed to be the member's name.
     const trainerSheet = owner.getByRole("dialog", { name: trainerName });
-    await trainerSheet.getByLabel(`What a session pays ${trainerName}`).fill("900");
-    await trainerSheet.getByRole("button", { name: `Save the session rate for ${trainerName}` }).click();
-    await expect(trainerSheet.getByLabel(`What a session pays ${trainerName}`)).toHaveValue("900", { timeout: 15_000 });
+    await expect(trainerSheet).toBeVisible();
+    await expect(trainerSheet.getByLabel(/What a session pays/)).toHaveCount(0);
+    await expect(owner.getByTestId("member-pay-rate")).toHaveCount(0);
 
     // ---- the class form is a two-step wizard (Step 11) --------------------
     await owner.goto(`/business/${businessId}/classes`);
@@ -1011,8 +1014,8 @@ test.describe.serial("DanceOS, end to end", () => {
     await owner.getByRole("button", { name: "Somebody else takes this class" }).click().catch(() => {});
     await owner.getByLabel("Search DanceOS for who takes this class").fill(trainerName);
     await owner.getByRole("button", { name: `${trainerName} takes this class` }).click();
-    /* 11 Oct 2026: NO RATE ON THE FORM — the ₹900 set on the Team desk above is
-       what the ask copies (Step 13's per-session rate, moved to the seat) */
+    /* NO RATE ON THE FORM, and none anywhere since 19 Oct 2026 — what a member
+       is paid is settled on the Team desk's Pay sheet, line by line */
     await expect(owner.getByLabel("What a session pays the artist")).toHaveCount(0);
     await expect(owner.getByText(/Assistants are added from the class page/)).toBeVisible();
     // step 2 — people & price. Free trial: the ₹300 default would route booking
@@ -1117,18 +1120,15 @@ test.describe.serial("DanceOS, end to end", () => {
     await owner.goto(`/business/${businessId}`);
     await (await tools(owner)).getByRole("link", { name: "Earnings", exact: true }).click();
     await owner.waitForURL(/\/business\/[0-9a-f-]+\/earnings$/);
-    /* ⚠ WHAT YOU OWE YOUR PEOPLE IS THE TEAM DESK'S (18 Oct 2026, the user: "what
-       you owe should be handled from teams not here"): Earnings keeps one line
-       pointing there, and the ledger — with its promise — lives on the Team desk.
-       Nothing is owed yet, because the session is three days out. */
+    /* ⚠ WHAT IS NOT SETTLED YET IS THE TEAM DESK'S ALONE (19 Oct 2026): Earnings
+       carries no "Owed to your team" door any more — only PAID team pay is a line
+       here. On the Team desk nothing is to settle yet, because the session is
+       three days out, so no card says "To settle". */
     await expect(owner.getByText(/DanceOS does not move this money/)).toHaveCount(0);
-    await expect(owner.getByTestId("earn-team").filter({ hasText: "Owed to your team" })).toBeVisible();
-    await owner.getByTestId("earn-team").filter({ hasText: "Owed to your team" }).click();
-    await owner.waitForURL(/\/business\/[0-9a-f-]+\/staff$/);
-    /* ⚠ NO SEPARATE LEDGER BELOW THE CARDS (18 Oct 2026): what is owed is in
-       each member's Pay sheet, so nothing is owed and no card says Owed yet. */
+    await expect(owner.getByTestId("earn-team")).toHaveCount(0);
+    await owner.goto(`/business/${businessId}/staff`);
     await expect(owner.getByTestId("team-pay-ledger")).toHaveCount(0);
-    await expect(owner.getByTestId("team-card-owed")).toHaveCount(0);
+    await expect(owner.getByTestId("team-card-to-settle")).toHaveCount(0);
     await expect(owner.getByText(trainerName).first()).toBeVisible();
     await owner.goto(`/business/${businessId}/earnings`);
 
@@ -1625,7 +1625,7 @@ test.describe.serial("DanceOS, end to end", () => {
     // battle and the learner enters it AS THE CREW'S LEADER from the crews they
     // lead — a typed name no longer books — the organiser's register says so,
     // and the crew's page carries the entry as its battle record.
-    crewName = `E2E Crew ${stamp}`;
+    crewName = `E2E C ${stamp}`;
     await learner.goto("/crews");
     /* ⚠ "created", not "lead" (29 Sep 2026). The hub is two columns now — the
        crews you created, and the ones you are a part of — so the empty state of
@@ -2846,7 +2846,7 @@ test.describe.serial("DanceOS, end to end", () => {
     /* ⚠ the follow PAGE since 12 Oct 2026, on its Followers tab */
     await owner.getByTestId("business-followers").click();
     await owner.waitForURL(/\/follows\/business\/[0-9a-f-]+\?tab=followers/);
-    const learnerRow = owner.getByTestId("follows-list").getByRole("link", { name: /E2E Learner/ });
+    const learnerRow = owner.getByTestId("follows-list").getByRole("link", { name: learnerName });
     await expect(learnerRow).toBeVisible();
     await expect(learnerRow).toHaveAttribute("href", `/person/${learnerId}`);
     await learnerRow.click();
@@ -2915,7 +2915,7 @@ test.describe.serial("DanceOS, end to end", () => {
     // able to buy from Studio and Artist Profile Pages and track from
     // memberships section in tools … make sure able to track memberships usage
     // for class and student wise with progress bar for completion."
-    const passName = `E2E Pass ${stamp}`;
+    const passName = `E2E P ${stamp}`;
 
     /* ⚠⚠ A STUDIO'S MEMBERSHIPS ARE ON THE STUDIO'S OWN HOME (21 Sep 2026, the
        user: "fix memberships for studio"), and this segment is re-cut to reach
@@ -3073,7 +3073,7 @@ test.describe.serial("DanceOS, end to end", () => {
        18 Sep on an artist's grid and a studio's, and an ORGANIZATION never had
        the tile at all. Driven from the tile, because the tile is what was
        broken. ---- */
-    const assetName = `E2E PA system ${stamp}`;
+    const assetName = `E2E A ${stamp}`;
 
     await owner.goto(`/business/${businessId}`);
     await (await tools(owner)).getByRole("link", { name: "Assets", exact: true }).click();
@@ -3156,7 +3156,7 @@ test.describe.serial("DanceOS, end to end", () => {
     /* ⚠ ₹0 IS THE "OLD ASSET" ANSWER, not a missing one — the prototype's own
        `₹ (0 = old)` placeholder and its own "₹0 (legacy)" row (16792). There is
        no second control, because two ways to say one thing can disagree. */
-    const legacyName = `E2E Mirrors ${stamp}`;
+    const legacyName = `E2E M ${stamp}`;
     await addAsset(legacyName, "Other assets", "0");
     const legacy = owner.getByTestId("asset-row").filter({ hasText: legacyName });
     await expect(legacy.getByTestId("asset-value")).toHaveText("₹0 (Old)", { timeout: 15_000 });
@@ -3303,11 +3303,18 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(owner.getByRole("button", { name: `Pay ${learnerName}` })).toBeVisible({ timeout: 15_000 });
     await expect(owner.getByText("Nothing paid yet")).toHaveCount(0);
     await owner.getByRole("button", { name: `Pay ${learnerName}` }).click();
+    /* ⚠ THE SETTLE SHEET (19 Oct 2026): no per-session rate — a payment is either
+       lines ticked with their own ₹, or "Pay an amount (not for a class)". The
+       learner has taught nothing here yet, so it is the amount tab; the TOTAL and
+       the record button both read what is recorded. */
     const paySheet = owner.getByRole("dialog", { name: `Pay ${learnerName}` });
+    await paySheet.getByRole("tab", { name: "Pay an amount (not for a class)" }).click();
     await paySheet.getByLabel("Amount in rupees").fill("2500");
     await paySheet.getByRole("button", { name: "UPI", exact: true }).click();
     await paySheet.getByLabel("Note").fill("September");
-    await paySheet.getByRole("button", { name: "Record this payment" }).click();
+    await expect(paySheet.getByTestId("settle-total-figure")).toHaveText("₹2,500");
+    await expect(paySheet.getByTestId("settle-record")).toHaveText("Record ₹2,500");
+    await paySheet.getByTestId("settle-record").click();
     await expect(owner.getByRole("status")).toContainText("2,500", { timeout: 20_000 });
     /* the history reads on their OWN ROW now — the total beside the Pay button,
        so what has been paid is visible without opening anything (20 Sep 2026) */
@@ -3350,8 +3357,15 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(owner.getByText("Not against sessions.")).toBeVisible();
     await owner.getByTestId("team-fold-revenue").locator("summary").click();
     await expect(owner.getByTestId("team-fold-revenue")).toContainText("Membership seats not included");
-    await owner.getByTestId("team-fold-owed").locator("summary").click();
-    await expect(owner.getByTestId("team-fold-owed")).toHaveAttribute("open", "");
+    /* ⚠ "STILL OWED" IS GONE (19 Oct 2026): with no per-session rate nothing can
+       be priced as owed — what is not paid yet is NOT SETTLED YET, a count of
+       sessions with no amount, and the total is revenue − paid. The learner has
+       taught nothing here, so the fold is empty and the figure is 0. */
+    await expect(owner.getByTestId("team-fold-owed")).toHaveCount(0);
+    await expect(owner.getByTestId("team-to-settle")).toContainText("0");
+    await owner.getByTestId("team-fold-to-settle").locator("summary").click();
+    await expect(owner.getByTestId("team-fold-to-settle")).toHaveAttribute("open", "");
+    await expect(owner.getByTestId("team-to-settle-entry")).toHaveCount(0);
     /* ⚠ THE COLUMN IS EARNINGS (4 Oct 2026, the user: "payment section should be
        renamed as Earnings … revenue … what was paid to them … still owed …
        whatever left is the Total earnings") — the ₹2,500 salary is money paid to
@@ -3361,7 +3375,8 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(owner.getByTestId("team-paid")).toContainText("₹2,500");
     await expect(owner.getByTestId("team-earnings-breakup")).toContainText("REVENUE FOR THE TEAM");
     await expect(owner.getByTestId("team-earnings-breakup")).toContainText("PAID TO THEM");
-    await expect(owner.getByTestId("team-earnings-breakup")).toContainText("STILL OWED TO THEM");
+    await expect(owner.getByTestId("team-earnings-breakup")).toContainText("NOT SETTLED YET");
+    await expect(owner.getByTestId("team-earnings-breakup")).not.toContainText("STILL OWED");
     await expect(owner.getByTestId("team-total-line")).toContainText("TOTAL EARNINGS");
     /* ⚠ EVERY SECTION OF EARNINGS FOLDS (4 Oct 2026, the user: "all sections in
        earnings should be collapsible") — key stats open, the total shut onto its sum */
@@ -3884,7 +3899,7 @@ test.describe.serial("DanceOS, end to end", () => {
     // page and should be visible. There should be a way to see the usage for
     // that particular routine — how many sessions taken with this and details of
     // people who have taken classes for this routine and how many."
-    const routineName = `E2E Routine ${stamp}`;
+    const routineName = `E2E R ${stamp}`;
 
     // ── the desk: a routine is made in Routines, never typed on a class (12334)
     await trainer.goto("/routines");

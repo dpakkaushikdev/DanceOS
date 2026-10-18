@@ -91,7 +91,7 @@ const doorSchema = z
   .object({
     sessionId: z.string().uuid(),
     userId: z.string().uuid().nullish(),
-    name: z.string().trim().max(80).nullish(),
+    name: z.string().trim().max(15, "Keep the name to 15 characters at most").nullish(),
   })
   .refine((v) => Boolean(v.userId) !== Boolean(v.name && v.name.length > 0), {
     message: "Scan a code or type a name",

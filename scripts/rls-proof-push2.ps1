@@ -117,11 +117,11 @@ function Set-Crew($u, $crewId, $name, $phone, $phonePublic) {
 $pass = $true
 $stamp = Get-Date -Format "HHmmss"
 $owner = New-EmailUser "p2-owner-$stamp@example.com" "P2 Owner $stamp" "user"
-$lead = New-EmailUser "p2-lead-$stamp@example.com" "P2 Leader $stamp" "user"
-$artist = New-EmailUser "p2-artist-$stamp@example.com" "P2 Artist $stamp" "user"
+$lead = New-EmailUser "p2-lead-$stamp@example.com" "P2 Lead $stamp" "user"
+$artist = New-EmailUser "p2-artist-$stamp@example.com" "P2 Art $stamp" "user"
 $fan = New-EmailUser "p2-fan-$stamp@example.com" "P2 Fan $stamp" "user"
 Grant-ArtistPlan $artist.id
-$studio = New-Studio $owner.token "P2 Studio $stamp" "Kothrud" "Pune"
+$studio = New-Studio $owner.token "P2 Std $stamp" "Kothrud" "Pune"
 Subscribe-Studio ([string]$studio.id)
 $studioId = [string]$studio.id
 $crew = $null

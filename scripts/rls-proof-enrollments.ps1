@@ -37,11 +37,11 @@ $stamp = Get-Date -Format "HHmmss"
 # run through the admin API and deleted after.
 $cEmail = "enroll-c-$stamp@example.com"
 $cUser = Invoke-RestMethod -Method Post -Uri "$base/auth/v1/admin/users" -Headers $svcH -Body (@{ email = $cEmail; password = "Proof-passw0rd!"; email_confirm = $true } | ConvertTo-Json)
-Invoke-RestMethod -Method Post -Uri "$base/rest/v1/profiles" -Headers $svcH -Body (@{ id = $cUser.id; full_name = "Waitlisted $stamp"; role = "user"; city = "Pune"; created_by = $cUser.id; updated_by = $cUser.id } | ConvertTo-Json) | Out-Null
+Invoke-RestMethod -Method Post -Uri "$base/rest/v1/profiles" -Headers $svcH -Body (@{ id = $cUser.id; full_name = "Waitlist $stamp"; role = "user"; city = "Pune"; created_by = $cUser.id; updated_by = $cUser.id } | ConvertTo-Json) | Out-Null
 $c = Invoke-RestMethod -Method Post -Uri "$base/auth/v1/token?grant_type=password" -Headers @{ apikey = $anon; "Content-Type" = "application/json" } -Body (@{ email = $cEmail; password = "Proof-passw0rd!" } | ConvertTo-Json)
 
 # A: studio + published class with capacity 1 (so the SECOND booking is refused)
-$ta = New-Studio $a.access_token "Enroll Studio $stamp" "Kothrud" "Pune"
+$ta = New-Studio $a.access_token "Enrl Std $stamp" "Kothrud" "Pune"
 Subscribe-Studio ([string]$ta.id)
 # FREE, and that is the point: Step 9 made book_class_session refuse a priced
 # class with open seats ("book it from its class page"), so the capacity and

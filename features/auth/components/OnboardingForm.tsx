@@ -1,5 +1,6 @@
 "use client";
 
+import { NAME_MAX } from "@/lib/constants/names";
 import Image from "next/image";
 import { useState, useTransition } from "react";
 import { DosStyleCoin } from "@/components/ui/DosStyleKit";
@@ -200,6 +201,7 @@ export function OnboardingForm({
         <input
           name="name"
           value={name}
+          maxLength={NAME_MAX}
           onChange={(e) => setName(e.target.value.replace(/(^|\s)\S/g, (c) => c.toUpperCase()))}
           placeholder="e.g. Rhea Kapoor"
           autoFocus

@@ -57,7 +57,7 @@ $anonH = @{ apikey = $anon; "Content-Type" = "application/json" }
 $pass = $true
 $stamp = Get-Date -Format "HHmmss"
 
-$ta = New-Studio $a.access_token "Slug Proof Studio $stamp" "Kothrud" "Pune"
+$ta = New-Studio $a.access_token "Slug Std $stamp" "Kothrud" "Pune"
 Subscribe-Studio ([string]$ta.id)
 
 try {

@@ -80,17 +80,17 @@ function Count-Of($headers, $crewId) {
 }
 $pass = $true
 $stamp = Get-Date -Format "HHmmss"
-$lead = New-EmailUser "crew-lead-$stamp@example.com" "Crew Lead $stamp" "user"
-$m1 = New-EmailUser "crew-m1-$stamp@example.com" "Member One $stamp" "user"
-$m2 = New-EmailUser "crew-m2-$stamp@example.com" "Member Two $stamp" "user"
+$lead = New-EmailUser "crew-lead-$stamp@example.com" "Crw Lead $stamp" "user"
+$m1 = New-EmailUser "crew-m1-$stamp@example.com" "Mbr One $stamp" "user"
+$m2 = New-EmailUser "crew-m2-$stamp@example.com" "Mbr Two $stamp" "user"
 $out = New-EmailUser "crew-out-$stamp@example.com" "Outsider $stamp" "user"
 $owner = New-EmailUser "crew-owner-$stamp@example.com" "Owner $stamp" "user"
-$ta = New-Studio $owner.token "Crew Proof Studio $stamp" "Kothrud" "Pune"
+$ta = New-Studio $owner.token "Crew Std $stamp" "Kothrud" "Pune"
 Subscribe-Studio ([string]$ta.id)
 
 try {
   # 1. CREATE: the leader is on the roster confirmed; everyone named is ASKED, not written
-  $crew = Rpc (Api $lead.token) "create_crew" @{ p_name = "Proof Crew $stamp"; p_city = "Pune"; p_style = "Hip-Hop"; p_member_ids = @($m1.id) }
+  $crew = Rpc (Api $lead.token) "create_crew" @{ p_name = "Prf Crew $stamp"; p_city = "Pune"; p_style = "Hip-Hop"; p_member_ids = @($m1.id) }
   $leadRows = Roster (Api $lead.token) $crew.id
   $leaderRow = @($leadRows | Where-Object { $_.user_id -eq $lead.id })[0]
   $m1Row = @($leadRows | Where-Object { $_.user_id -eq $m1.id })[0]

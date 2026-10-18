@@ -128,20 +128,21 @@ const valueOf = (page, label) => page.getByLabel(label).inputValue();
 
 (async () => {
   const stamp = Date.now().toString(36);
+  const tag = stamp.slice(-6);
   const made = { users: [], businesses: [] };
   const browser = await chromium.launch();
   const errs = [];
 
   try {
     /* ── THE WORLD, through the app's own doors ─────────────────────────────── */
-    const owner = await account(`shot.reg.owner.${stamp}@example.com`, `Reg Owner ${stamp}`, "Pune");
-    const learner = await account(`shot.reg.learner.${stamp}@example.com`, `Reg Learner ${stamp}`, "Pune");
-    const stranger = await account(`shot.reg.stranger.${stamp}@example.com`, `Reg Stranger ${stamp}`, "Pune");
+    const owner = await account(`shot.reg.owner.${stamp}@example.com`, `Reg Own ${tag}`, "Pune");
+    const learner = await account(`shot.reg.learner.${stamp}@example.com`, `Reg Lrn ${tag}`, "Pune");
+    const stranger = await account(`shot.reg.stranger.${stamp}@example.com`, `Reg Str ${tag}`, "Pune");
     made.users.push(owner.id, learner.id, stranger.id);
 
     const studio = await rpc(owner.h, "create_business_with_owner", {
       p_type: "studio",
-      p_name: `Reg Studio ${stamp}`,
+      p_name: `Reg Std ${tag}`,
       p_area: "Kothrud",
       p_city: "Pune",
       p_styles: ["Hip-Hop"],
@@ -213,10 +214,10 @@ const valueOf = (page, label) => page.getByLabel(label).inputValue();
     check(classHead.text === "Hip-Hop", `and it is the class's own name — "${classHead.text}"`);
 
     /* ── 2. SCAN TO CHECK IN ────────────────────────────────────────────────── */
-    /* 11 Oct 2026: ONE DOOR CONTROL (test id `door`) — a name field and one
-       button. With the field EMPTY the button reads "Scan a code to check
-       somebody in" (`scan-check-in`) and opens the scan sheet; with a name typed
-       it books a walk-in and checks them in (section 3b). */
+    /* ONE DOOR CONTROL (test id `door`) — a people search (`door-name`) and a
+       scan button. 19 Oct 2026: the button ALWAYS reads "Scan a code to check
+       somebody in" (`scan-check-in`) and opens the scan sheet; a walk-in is the
+       search dropdown's last row (section 3b). */
     await page.getByRole("button", { name: "Attendance", exact: true }).click();
     const door = page.getByTestId("door");
     await door.waitFor({ timeout: 20000 });
@@ -305,7 +306,7 @@ const valueOf = (page, label) => page.getByLabel(label).inputValue();
        on a register is drawn, paid and removed exactly as before. 11 Oct 2026:
        the name is typed into the one door control again (`door-name`), so this
        section drives the walk-in through the SCREEN once more. */
-    const walkName = `Walk In ${stamp}`;
+    const walkName = `Walk In ${tag}`;
     /* 11 Oct 2026: the old name row (`walk-in-name` / `walk-in-add`) is gone for
        good; the name is typed into the ONE door's field and the same button
        books AND checks in, in one press */
@@ -322,10 +323,15 @@ const valueOf = (page, label) => page.getByLabel(label).inputValue();
       emptyDoor = e.message;
     }
     check(/scan a code or type a name/.test(emptyDoor), `⚠ the door refuses a call with neither a person nor a name (${emptyDoor.slice(0, 80)})`);
-    const doorName = page.getByTestId("door").getByLabel("Name of somebody at the door");
+    /* 19 Oct 2026: the door's field is a people SEARCH (`DoorSearch`); somebody
+       not on DanceOS is the dropdown's last row, "Not on DanceOS? Add … as a
+       walk-in" (`door-walk-in`), shown once two letters are typed */
+    const doorName = page.getByTestId("door").getByLabel("Search DanceOS for somebody at the door");
     await doorName.waitFor({ timeout: 20000 });
     await doorName.fill(walkName);
-    await page.getByRole("button", { name: `Check ${walkName} in at the door`, exact: true }).click();
+    const walkInRow = page.getByTestId("door-walk-in");
+    await walkInRow.waitFor({ timeout: 20000 });
+    await walkInRow.click();
     await page.getByText(walkName, { exact: false }).first().waitFor({ timeout: 20000 });
     check(true, "⚠⚠ somebody with NO DanceOS account is recorded at the door by name — typed into the door, one press");
 
@@ -407,7 +413,7 @@ const valueOf = (page, label) => page.getByLabel(label).inputValue();
 
     /* the walk-in planted through the database's door (the register's name row
        is gone since 4 Oct 2026 — see 3b) */
-    const payName = `Cash Walk ${stamp}`;
+    const payName = `Cash Wlk ${tag}`;
     const paySeat = await rpc(owner.h, "book_at_the_door", { p_session_id: paidSession.id, p_user_id: null, p_name: payName }); // 11 Oct 2026: the one door
     await rpc(owner.h, "check_in", { p_class_booking_id: paySeat.id });
     await page.goto(`${BASE}/c/${paidSlug}`, { waitUntil: "networkidle" });
@@ -535,12 +541,13 @@ const valueOf = (page, label) => page.getByLabel(label).inputValue();
     await page.getByLabel("Search DanceOS for who takes this class").fill(stranger.name);
     await page.getByRole("button", { name: `${stranger.name} takes this class` }).click();
 
-    /* 11 Oct 2026: the form carries NO pay field any more — what a session pays
-       somebody is the Team desk's ("What a session pays {name}", set_member_pay),
-       and an ask with no rate copies the seat's. The check is the absence. */
+    /* 11 Oct 2026: the form carries NO pay field any more, and since 19 Oct 2026
+       there is no per-session rate anywhere on screen — the Team desk settles
+       sessions with an amount typed at the time (SettleSheet). The check is the
+       absence. */
     check(
       (await page.getByLabel("What a session pays the artist").count()) === 0,
-      "⚠ the class form has no session-pay field — pay lives on the Team desk now"
+      "⚠ the class form has no session-pay field"
     );
 
     /* 11 Oct 2026: and NO switch that publishes it on the last yes — the user:

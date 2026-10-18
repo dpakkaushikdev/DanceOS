@@ -1,5 +1,6 @@
 "use client";
 
+import { NAME_MAX } from "@/lib/constants/names";
 import { KIND_WORD, kindOf } from "@/types/profile";
 
 import { useState, useSyncExternalStore } from "react";
@@ -19,7 +20,7 @@ import {
 } from "@/features/staff/server-actions/staff";
 import { DeskAddButton } from "@/features/settings/components/settings-kit";
 import { DeskBody, DeskTop } from "@/components/ui/DeskSections";
-import { ToolActions, ToolBody, ToolCard, ToolChip, ToolFace, ToolFacts, ToolHead, toolBtn } from "@/components/ui/ToolCard";
+import { ToolActions, ToolBody, ToolCard, ToolChip, ToolFacts, ToolHead, toolBtn } from "@/components/ui/ToolCard";
 import { DOS_TOOLS, DeskHero, SheetHandle, sheetBody, sheetWrap } from "@/features/businesses/components/biz-kit";
 import { DOS_UI, INK, LILAC, MUTED, SUB } from "@/lib/design/tokens";
 import { FORM_TITLE } from "@/components/ui/formTitle";
@@ -30,8 +31,10 @@ import { OtherTeams } from "@/features/staff/components/OtherTeams";
 import { otherTeamsCount, otherTeamsWaiting, type OtherTeamsData } from "@/features/staff/otherTeams";
 import { ColumnCount, columnTab, columnTrack } from "@/components/ui/ColumnTabs";
 import type { TeamMember } from "@/repositories/businesses";
-import type { BusinessPayLedger, MyEarnings, PayoutMethod, PayoutRecord, PayoutStatus } from "@/types/payout";
-import { recordPayoutAction } from "@/features/payouts/server-actions/payouts";
+import type { BusinessPayLedger, MyEarnings, PayoutRecord, RentPayment, RentVenue } from "@/types/payout";
+import { RentReceived, RentToPay } from "@/features/payouts/components/RentPanel";
+import { recordSessionPaymentAction } from "@/features/payouts/server-actions/payouts";
+import { SettleSheet } from "@/features/payouts/components/SettleSheet";
 import { sessionDayLabel } from "@/lib/format/session";
 import { PaidToYou } from "@/features/staff/components/PaidToYou";
 import type { BusinessType } from "@/types/business";
@@ -136,17 +139,6 @@ const sheet = sheetBody;
    `ToolFace` draws them, in the label's colour. */
 
 
-const PAY_METHODS: ReadonlyArray<readonly [PayoutMethod, string]> = [
-  ["upi", "UPI"],
-  ["bank_transfer", "Bank transfer"],
-  ["cash", "Cash"],
-  ["other", "Other"],
-];
-const PAY_STATES: ReadonlyArray<readonly [PayoutStatus, string]> = [
-  ["done", "Paid"],
-  ["in_transit", "In transit"],
-  ["on_hold", "On hold"],
-];
 
 export function StaffDesk({
   businessId,
@@ -162,7 +154,13 @@ export function StaffDesk({
   initialColumn = "mine",
   payLedger = null,
   paidToYou = null,
+  rentVenues = [],
+  rentReceived = [],
 }: {
+  /** the studios this artist page holds classes in — rent paid from Other Teams */
+  rentVenues?: RentVenue[];
+  /** rent artists have paid this studio — on its own Team desk */
+  rentReceived?: RentPayment[];
   /** WHAT YOU OWE YOUR PEOPLE (18 Oct 2026 — moved here from Earnings): the
    *  owner's pay ledger; null for anybody else or when the read failed */
   payLedger?: BusinessPayLedger | null;
@@ -227,9 +225,6 @@ export function StaffDesk({
      (the user: *"manage page for team without option to see history and record
      payment in it"*), so the two never open together. */
   const [payFor, setPayFor] = useState<TeamMember | null>(null);
-  const [pay, setPay] = useState<{ amount: string; method: PayoutMethod; status: PayoutStatus; note: string }>({ amount: "", method: "upi", status: "done", note: "" });
-  /* the owed sessions ticked in the Pay sheet (18 Oct 2026) */
-  const [chosen, setChosen] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -237,7 +232,6 @@ export function StaffDesk({
   /* system back closes the sheet that is open, exactly as tapping the scrim does */
   useCloseOnBack(() => setAddOpen(false), addOpen);
   useCloseOnBack(() => setShareInvite(null), Boolean(shareInvite));
-  useCloseOnBack(() => setPayFor(null), Boolean(payFor));
 
   /** the labels this profile has to give, and the seats already on the team */
   const roles = rolesFor(businessType);
@@ -245,7 +239,9 @@ export function StaffDesk({
   const labels = labelsFor(businessType);
   const onTeam = team.map((m) => m.userId);
   const paidTo = (userId: string) => payments.filter((p) => p.userId === userId);
-  const owedOf: Record<string, number> = Object.fromEntries((payLedger?.people ?? []).map((p) => [p.userId, p.owedInr]));
+  /* how many classes and enquiries each person has that are not settled yet —
+     a COUNT, never rupees: the amount is set when paying (18 Oct 2026) */
+  const toSettleOf: Record<string, number> = Object.fromEntries((payLedger?.people ?? []).map((p) => [p.userId, p.unsettledCount]));
   /** how many hold each label, in the roster's own order — ⚠ EVERY label this
    *  profile hands out, 0 included (4 Oct 2026, the user: "count for each role
    *  should be mentioned even if 0"), plus any label somebody holds that this
@@ -263,10 +259,8 @@ export function StaffDesk({
     setTimeout(() => setToast(null), 2400);
   };
 
-  /* the Pay sheet's owed sessions and what the press will record */
+  /* what the Pay sheet lists as not settled for the person it is open on */
   const owedPerson = payFor ? payLedger?.people.find((p) => p.userId === payFor.userId) ?? null : null;
-  const chosenTotal = (owedPerson?.unpaid ?? []).filter((s) => chosen.has(s.sessionId)).reduce((sum, s) => sum + s.rateInr, 0);
-  const payAmount = chosenTotal > 0 ? chosenTotal : Number(pay.amount) || 0;
 
   const run = async (op: () => Promise<{ error: string | null }>, doneMsg: string | null) => {
     if (busy) return false;
@@ -370,7 +364,7 @@ export function StaffDesk({
             tint={DOS_TOOLS.team.c}
             items={[
               { label: team.length === 1 ? "Member" : "Total members", value: team.length, testId: "team-total" },
-              ...(isOwner && payLedger ? [{ label: "Owed to team", value: rupees(payLedger.owedTotal), testId: "team-owed-total" }] : []),
+              ...(isOwner && payLedger ? [{ label: "To settle", value: payLedger.unsettledCount, testId: "team-to-settle" }] : []),
             ]}
           />
           {roleRows.map((row, i) => (
@@ -383,11 +377,13 @@ export function StaffDesk({
       {col === "other" && otherTeams ? (
         <DeskBody style={{ paddingBottom: 4 }}>
           {paidToYou ? <PaidToYou data={paidToYou} /> : null}
+          <RentToPay payerBusinessId={businessId} venues={rentVenues} />
           <OtherTeams data={otherTeams.data} stayOn={otherTeams.stayOn} />
         </DeskBody>
       ) : (
       <>
       <DeskBody style={{ paddingBottom: 4 }}>
+      <RentReceived payments={rentReceived} />
       {/* ⚠ THE LOWER SECTION (3 Oct 2026, C116) — the roster and what it says */}
       {/* ── THE ROSTER, GROUPED BY LABEL (20 Sep 2026) ──────────────────────
           The user held up the prototype's own Team screen: *"fix team view like
@@ -551,7 +547,7 @@ export function StaffDesk({
                         { label: paid.length === 1 ? "Payment" : "Payments", value: paid.length },
                         /* what is still owed for sessions taught (18 Oct 2026 — moved
                            here from Earnings); only when there is something */
-                        ...((owedOf[m.userId] ?? 0) > 0 ? [{ label: "Owed", value: rupees(owedOf[m.userId] ?? 0), testId: "team-card-owed" }] : []),
+                        ...((toSettleOf[m.userId] ?? 0) > 0 ? [{ label: "To settle", value: toSettleOf[m.userId] ?? 0, testId: "team-card-to-settle" }] : []),
                         ...(classCounts
                           ? [{ label: (classCounts[m.userId] ?? 0) === 1 ? "Class" : "Classes", value: classCounts[m.userId] ?? 0, testId: "team-card-classes" }]
                           : []),
@@ -561,11 +557,7 @@ export function StaffDesk({
                         and Payments tiles above already say it */}
                     {/* the seat's rate (11 Oct 2026, `set_member_pay`) — drawn only when
                         there is one, because "₹0 / session" reads as a claim */}
-                    {m.payPerSessionInr > 0 ? (
-                      <div data-testid="team-card-rate" style={{ fontSize: 11.5, fontWeight: 800, color: SUB, marginTop: 8 }}>
-                        {rupees(m.payPerSessionInr)} / session
-                      </div>
-                    ) : null}
+{/* ⚠ NO RATE ON THE CARD (18 Oct 2026): pay is set when paying, nowhere else */}
                   </ToolBody>
                   {manageable ? (
                     <ToolActions>
@@ -577,15 +569,12 @@ export function StaffDesk({
                              "What you owe should be managed alongside the pay button on
                              the team members with details") — the unpaid sessions arrive
                              ticked */
-                          const owed = payLedger?.people.find((p) => p.userId === m.userId);
-                          setChosen(new Set((owed?.unpaid ?? []).filter((s) => s.rateInr > 0).map((s) => s.sessionId)));
-                          setPay({ amount: "", method: "upi", status: "done", note: "" });
                           setError(null);
                           setPayFor(m);
                         }}
                         style={toolBtn("primary", TEAM_TINT)}
                       >
-                        {(owedOf[m.userId] ?? 0) > 0 ? `Pay · ${rupees(owedOf[m.userId] ?? 0)} owed` : "Pay"}
+                        {(toSettleOf[m.userId] ?? 0) > 0 ? `Pay · ${toSettleOf[m.userId]} to settle` : "Pay"}
                       </button>
                     </ToolActions>
                   ) : null}
@@ -778,6 +767,7 @@ export function StaffDesk({
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="e.g. Vikram Bhatt"
                   aria-label="Their name"
+                  maxLength={NAME_MAX}
                   style={inputStyle}
                 />
                 <div style={{ fontSize: 12, color: SUB, margin: "12px 0 4px" }}>Email they sign in with</div>
@@ -920,157 +910,40 @@ export function StaffDesk({
         </div>
       )}
 
-      {/* ── RECORD A PAYMENT — with the method, which is the user's own ask
-          ("payment for team members should also give option for payment
-          methods"). The four are the ones the ledger already knows. Opened by
-          Pay on the card, on its own (3 Oct 2026). ── */}
+      {/* ── PAY THEM (18 Oct 2026): the amount is set HERE, line by line, with a
+          total — the one place a team member's pay is ever priced. ── */}
       {payFor && (
-        <div onClick={() => setPayFor(null)} style={sheetWrap}>
-          <div role="dialog" aria-modal="true" aria-label={`Pay ${payFor.name}`} onClick={(e) => e.stopPropagation()} style={sheet}>
-            <SheetHandle />
-            <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 12 }}>
-              <ToolFace name={payFor.name} photoPath={payFor.avatarPath} tint={MEMBER_LABEL[payFor.role].colour} size={44} />
-              <div style={{ minWidth: 0 }}>
-                <b style={FORM_TITLE}>Pay {payFor.name}</b>
-              </div>
-            </div>
-            <div style={{ fontSize: 11.5, color: SUB, margin: "0 0 14px", lineHeight: 1.5 }}>
-              DanceOS records what you have paid — it does not move the money.
-            </div>
-
-            {owedPerson && owedPerson.unpaid.length > 0 ? (
-              <div data-testid="pay-owed" style={{ marginBottom: 12 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", margin: "0 0 6px" }}>
-                  <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1, color: SUB }}>WHAT YOU OWE THEM</span>
-                  <b style={{ fontSize: 13, color: INK }}>{rupees(owedPerson.owedInr)}</b>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 5, maxHeight: 220, overflowY: "auto" }}>
-                  {owedPerson.unpaid.map((s) => {
-                    const on = chosen.has(s.sessionId);
-                    const zero = s.rateInr <= 0;
-                    return (
-                      <button
-                        key={s.sessionId}
-                        type="button"
-                        role="checkbox"
-                        aria-checked={on}
-                        disabled={zero}
-                        aria-label={`${s.classTitle} · ${sessionDayLabel(s.startsAt)} · ${rupees(s.rateInr)}`}
-                        onClick={() => {
-                          const next = new Set(chosen);
-                          if (on) next.delete(s.sessionId); else next.add(s.sessionId);
-                          setChosen(next);
-                        }}
-                        style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", borderRadius: 12, background: on ? `${TEAM_TINT}14` : CARD, border: `1.5px solid ${on ? TEAM_TINT : EL}`, cursor: zero ? "default" : "pointer", opacity: zero ? 0.55 : 1, fontFamily: "inherit", textAlign: "left", color: INK }}
-                      >
-                        <span aria-hidden style={{ width: 16, height: 16, borderRadius: 5, flexShrink: 0, border: `2px solid ${on ? TEAM_TINT : EL}`, background: on ? TEAM_TINT : "transparent", color: "#fff", fontSize: 11, lineHeight: "12px", textAlign: "center", fontWeight: 900 }}>{on ? "✓" : ""}</span>
-                        <span style={{ flex: 1, minWidth: 0 }}>
-                          <span style={{ display: "block", fontSize: 12, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.classTitle}</span>
-                          <span style={{ display: "block", fontSize: 10.5, color: SUB }}>{sessionDayLabel(s.startsAt)}</span>
-                        </span>
-                        <b style={{ fontSize: 12 }}>{zero ? "No rate" : rupees(s.rateInr)}</b>
-                      </button>
-                    );
-                  })}
-                </div>
-                <div style={{ fontSize: 10.5, color: "var(--muted)", marginTop: 6 }}>
-                  {chosenTotal > 0 ? `Paying ${chosen.size} session${chosen.size === 1 ? "" : "s"} · ${rupees(chosenTotal)}` : "Untick every session to pay an amount of your own instead."}
-                </div>
-              </div>
-            ) : null}
-
-            {chosenTotal > 0 ? null : (
-              <>
-                <div style={{ fontSize: 12, color: SUB, margin: "0 0 4px" }}>Amount</div>
-                <input
-                  value={pay.amount}
-                  onChange={(e) => setPay({ ...pay, amount: e.target.value.replace(/[^0-9]/g, "") })}
-                  placeholder="e.g. 9000"
-                  inputMode="numeric"
-                  aria-label="Amount in rupees"
-                  style={inputStyle}
-                />
-              </>
-            )}
-
-            <div style={{ fontSize: 12, color: SUB, margin: "12px 0 4px" }}>How you paid</div>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {PAY_METHODS.map(([k, word]) => {
-                const on = pay.method === k;
-                return (
-                  <button key={k} type="button" aria-pressed={on} aria-label={word} onClick={() => setPay({ ...pay, method: k })} style={{ fontSize: 11.5, fontWeight: 800, padding: "7px 12px", borderRadius: 999, cursor: "pointer", background: on ? "var(--text)" : CARD, color: on ? "var(--solid)" : SUB, border: `1.5px solid ${on ? "var(--text)" : EL}`, fontFamily: "inherit" }}>
-                    {word}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div style={{ fontSize: 12, color: SUB, margin: "12px 0 4px" }}>Where it stands</div>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {PAY_STATES.map(([k, word]) => {
-                const on = pay.status === k;
-                return (
-                  <button key={k} type="button" aria-pressed={on} aria-label={word} onClick={() => setPay({ ...pay, status: k })} style={{ fontSize: 11.5, fontWeight: 800, padding: "7px 12px", borderRadius: 999, cursor: "pointer", background: on ? "var(--text)" : CARD, color: on ? "var(--solid)" : SUB, border: `1.5px solid ${on ? "var(--text)" : EL}`, fontFamily: "inherit" }}>
-                    {word}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div style={{ fontSize: 12, color: SUB, margin: "12px 0 4px" }}>Note (optional)</div>
-            <input
-              value={pay.note}
-              onChange={(e) => setPay({ ...pay, note: e.target.value })}
-              placeholder="e.g. September"
-              aria-label="Note"
-              maxLength={200}
-              style={inputStyle}
-            />
-
-            {error ? <div role="alert" style={{ fontSize: 11.5, color: "#F87171", fontWeight: 700, marginTop: 10 }}>{error}</div> : null}
-
-            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-              <button type="button" onClick={() => setPayFor(null)} style={{ flex: 1, textAlign: "center", padding: "12px", borderRadius: 999, background: CARD, border: `1.5px solid ${EL}`, fontWeight: 800, fontSize: 12.5, cursor: "pointer", color: INK, fontFamily: "inherit" }}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={busy || payAmount < 1}
-                aria-label="Record this payment"
-                onClick={async () => {
-                  const who = payFor;
-                  const sessions = [...chosen];
-                  const done = await run(
-                    () =>
-                      sessions.length > 0 && chosenTotal > 0
-                        ? recordPayoutAction({
-                            businessId,
-                            userId: who.userId,
-                            sessionIds: sessions,
-                            method: pay.method,
-                            status: pay.status,
-                            providerRef: null,
-                            note: pay.note.trim() || null,
-                          })
-                        : payTeamMemberAction({
-                            businessId,
-                            userId: who.userId,
-                            amountInr: Number(pay.amount),
-                            method: pay.method,
-                            status: pay.status,
-                            note: pay.note.trim() || null,
-                          }),
-                    `${rupees(payAmount)} recorded for ${who.name}`
-                  );
-                  if (done) setPayFor(null);
-                }}
-                style={{ flex: 1.4, textAlign: "center", padding: "12px", borderRadius: 999, background: payAmount >= 1 ? "var(--text)" : EL, color: payAmount >= 1 ? "var(--solid)" : "var(--muted)", fontWeight: 900, fontSize: 12.5, cursor: payAmount >= 1 ? "pointer" : "default", border: "none", fontFamily: "inherit" }}
-              >
-                {busy ? "Recording…" : payAmount >= 1 ? `Record ${rupees(payAmount)}` : "Record payment"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <SettleSheet
+          title={`Pay ${payFor.name}`}
+          face={{ name: payFor.name, photoPath: payFor.avatarPath }}
+          tint={TEAM_TINT}
+          itemsHead="NOT SETTLED YET"
+          emptyWords="Nothing they taught or worked on is waiting to be settled."
+          items={[
+            ...(owedPerson?.unpaid ?? []).map((s) => ({ id: s.sessionId, kind: "session" as const, title: s.classTitle, sub: sessionDayLabel(s.startsAt) })),
+            ...(owedPerson?.unpaidEnquiries ?? []).map((e) => ({ id: e.enquiryId, kind: "enquiry" as const, title: e.label, sub: e.role ? `As ${e.role}` : "On the team" })),
+          ]}
+          onClose={() => setPayFor(null)}
+          onSettle={async (lines, meta) => {
+            const who = payFor;
+            const out = await recordSessionPaymentAction({ businessId, userId: who.userId, lines, ...meta });
+            if (!out.error) {
+              fire(`${rupees(lines.reduce((n, l) => n + l.rateInr, 0))} recorded for ${who.name}`);
+              setPayFor(null);
+            }
+            return out;
+          }}
+          onAmountOnly={async (amountInr, meta) => {
+            const who = payFor;
+            const note = [meta.note, meta.providerRef ? `Ref ${meta.providerRef}` : null].filter(Boolean).join(" · ") || null;
+            const out = await payTeamMemberAction({ businessId, userId: who.userId, amountInr, method: meta.method, status: meta.status, paidOn: meta.paidOn, note });
+            if (!out.error) {
+              fire(`${rupees(amountInr)} recorded for ${who.name}`);
+              setPayFor(null);
+            }
+            return out;
+          }}
+        />
       )}
 
       {/* ⚠ THE SHARED TOAST (27 Sep 2026) — this was a byte-identical copy of

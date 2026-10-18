@@ -1,13 +1,11 @@
 import { redirect } from "next/navigation";
 import { EarningsDesk } from "@/features/payouts/components/EarningsDesk";
 import { EarningsScreen } from "@/features/payouts/components/EarningsScreen";
-import { money } from "@/features/payouts/components/earnings-kit";
 import { asRange } from "@/features/payouts/earningsRange";
 import { asPeriod } from "@/lib/format/period";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findBusinessEarnings } from "@/repositories/earnings";
 import { findBusinessIncome } from "@/repositories/income";
-import { findBusinessPayLedger } from "@/repositories/payouts";
 import { findMyMemberships, runsTheBusiness } from "@/repositories/businesses";
 
 /* the clock lives outside the component — this repo's lint refuses an impure
@@ -56,34 +54,22 @@ export default async function BusinessEarningsPage({
 
   const now = stampNowIso();
   const range = asRange(sp.from, sp.to);
-  const [report, ledger, income] = await Promise.all([
+  const [report, income] = await Promise.all([
     findBusinessEarnings(supabase, [businessId], period, now, range),
-    findBusinessPayLedger(supabase, businessId, now).catch(() => null),
     findBusinessIncome(supabase, businessId, now),
   ]);
 
-  /* ⚠ WHAT YOU OWE YOUR PEOPLE IS THE TEAM DESK'S NOW (18 Oct 2026, the user:
-     "what you owe should be handled from teams not here") — one line here,
-     pointing there. An artist page's owner also has what STUDIOS pay them, which
-     is the Team section's too (`/team`). The desk below keeps the month
+  /* ⚠ NO "OWED" LINE (18 Oct 2026, the user: "remove both of them from
+     earnings"): what this business has PAID its people and its studios is in
+     EXPENSES, the rent it was paid in REVENUE; what is not settled is the Team
+     section's, where the amount is set. The desk below keeps the month
      statements and their CSV. */
-  const team = [
-    {
-      label: "Owed to your team",
-      amountInr: ledger?.owedTotal ?? 0,
-      href: `/business/${businessId}/staff`,
-      note: ledger ? `Not paid yet · ${money(ledger.paidTotal)} settled · pay from Team` : "Not paid yet · pay from Team",
-      side: "expenses" as const,
-    },
-    ...(business.type === "artist_page" ? [{ label: "What studios pay you", href: "/team#paid-to-you", note: "In Team › Other Teams", side: "revenue" as const }] : []),
-  ];
   return (
     <EarningsScreen
       report={report}
       title="Earnings"
       sub={`${business.name} · ${business.type === "artist_page" ? "Artist" : "Studio"}`}
       basePath={`/business/${businessId}/earnings`}
-      team={team}
     >
       <EarningsDesk businessName={business.name} income={income} />
     </EarningsScreen>

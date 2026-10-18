@@ -107,16 +107,16 @@ Assert-City "Pune"
 
 $pass = $true
 $stamp = Get-Date -Format "HHmmss"
-$org = New-EmailUser "memproof-org-$stamp@example.com" "MemProof Owner $stamp" "user"
-$rival = New-EmailUser "memproof-rival-$stamp@example.com" "MemProof Rival $stamp" "user"
-$learner = New-EmailUser "memproof-learner-$stamp@example.com" "MemProof Learner $stamp" "user"
-$other = New-EmailUser "memproof-other-$stamp@example.com" "MemProof Other $stamp" "user"
-$onTeam = New-EmailUser "memproof-team-$stamp@example.com" "MemProof Team $stamp" "user"
+$org = New-EmailUser "memproof-org-$stamp@example.com" "Mem Own $stamp" "user"
+$rival = New-EmailUser "memproof-rival-$stamp@example.com" "Mem Rivl $stamp" "user"
+$learner = New-EmailUser "memproof-learner-$stamp@example.com" "Mem Lrn $stamp" "user"
+$other = New-EmailUser "memproof-other-$stamp@example.com" "Mem Othr $stamp" "user"
+$onTeam = New-EmailUser "memproof-team-$stamp@example.com" "Mem Team $stamp" "user"
 
-$studio = New-Studio $org.token "MemProof Studio $stamp" "Kothrud" "Pune"
+$studio = New-Studio $org.token "Mem Std $stamp" "Kothrud" "Pune"
 $studioId = [string]$studio.id
 Subscribe-Studio $studioId
-$rivalBiz = New-Studio $rival.token "MemProof Rival Studio $stamp" "Baner" "Pune"
+$rivalBiz = New-Studio $rival.token "MemR Std $stamp" "Baner" "Pune"
 $rivalId = [string]$rivalBiz.id
 Subscribe-Studio $rivalId
 # somebody on the seller's own team - the one signed-in person who may NOT buy
@@ -130,7 +130,7 @@ try {
   $nonsense = Fails { Rpc (Api $org.token) "save_membership" @{ p_membership_id = $null; p_business_id = $studioId
     p_name = "Bad Pack"; p_unit = "weeks"; p_units = 4; p_price_inr = 0; p_total_count = 5; p_status = "live" } }
   $free = Rpc (Api $org.token) "save_membership" @{ p_membership_id = $null; p_business_id = $studioId
-    p_name = "MemProof Four $stamp"; p_unit = "classes"; p_units = 4; p_price_inr = 0; p_total_count = 2; p_status = "live" }
+    p_name = "Mem Four $stamp"; p_unit = "classes"; p_units = 4; p_price_inr = 0; p_total_count = 2; p_status = "live" }
   $freeId = [string]$free.id
   Check 1 "A stranger cannot sell from this studio ($notMine); a unit that is not classes-or-hours is refused ($nonsense); the owner's four fields are stored ($($free.unit) x $($free.units), Rs $($free.price_inr), $($free.total_count) of them)" (
     ($notMine -ne "") -and ($nonsense -ne "") -and ($free.unit -eq "classes") -and ([int]$free.total_count -eq 2) -and ($free.status -eq "live"))
@@ -155,11 +155,11 @@ try {
 
   # -- 4. THE CAP IS THE CAP ---------------------------------------------------
   $p2 = Rpc (Api $other.token) "buy_membership" @{ p_membership_id = $freeId }
-  $third = New-EmailUser "memproof-third-$stamp@example.com" "MemProof Third $stamp" "user"
+  $third = New-EmailUser "memproof-third-$stamp@example.com" "Mem 3rd $stamp" "user"
   $whyFull = Rpc (Api $third.token) "why_no_membership" @{ p_membership_id = $freeId }
   $tooMany = Fails { Rpc (Api $third.token) "buy_membership" @{ p_membership_id = $freeId } }
   $shrink = Fails { Rpc (Api $org.token) "save_membership" @{ p_membership_id = $freeId; p_business_id = $studioId
-    p_name = "MemProof Four $stamp"; p_unit = "classes"; p_units = 4; p_price_inr = 0; p_total_count = 1; p_status = "live" } }
+    p_name = "Mem Four $stamp"; p_unit = "classes"; p_units = 4; p_price_inr = 0; p_total_count = 1; p_status = "live" } }
   Check 4 "Two of two are taken, the third is told so ('$whyFull') and refused; the count cannot be cut below what is sold ($shrink)" (
     ("$whyFull" -match "have been taken") -and ($tooMany -ne "") -and ($shrink -match "cannot go below"))
 
@@ -167,7 +167,7 @@ try {
   # !! Rule 9. The money rides the class rail, so this is the one thing between
   # somebody pressing Buy and dancing for nothing: the pass exists, and it is inert.
   $paid = Rpc (Api $org.token) "save_membership" @{ p_membership_id = $null; p_business_id = $studioId
-    p_name = "MemProof Paid $stamp"; p_unit = "classes"; p_units = 2; p_price_inr = 1500; p_total_count = 5; p_status = "live" }
+    p_name = "Mem Paid $stamp"; p_unit = "classes"; p_units = 2; p_price_inr = 1500; p_total_count = 5; p_status = "live" }
   $pp = Rpc (Api $learner.token) "buy_membership" @{ p_membership_id = [string]$paid.id }
   Check 5 "A priced membership hands back a pass that has NOT been paid for ($($pp.status)), at the price it was sold at (Rs $($pp.price_inr))" (
     ($pp.status -eq "pending_payment") -and ([int]$pp.price_inr -eq 1500))
@@ -209,7 +209,7 @@ try {
   # An HOURS pass against a three-hour session: the arithmetic is the point, not
   # the count - one class is one unit, but one class can be three hours.
   $hours = Rpc (Api $org.token) "save_membership" @{ p_membership_id = $null; p_business_id = $studioId
-    p_name = "MemProof Hours $stamp"; p_unit = "hours"; p_units = 2; p_price_inr = 0; p_total_count = 5; p_status = "live" }
+    p_name = "Mem Hrs $stamp"; p_unit = "hours"; p_units = 2; p_price_inr = 0; p_total_count = 5; p_status = "live" }
   $hp = Rpc (Api $other.token) "buy_membership" @{ p_membership_id = [string]$hours.id }
   $long = New-Class (Api $org.token) $studioId "MemProof Long $stamp" 3 72 3 $learner.id
   $need = Rpc-Rows (Api $other.token) "passes_for_session" @{ p_session_id = $long.sessionId }

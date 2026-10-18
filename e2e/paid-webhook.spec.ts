@@ -117,7 +117,8 @@ test("cashfree webhook: bad signature rejected, capture books the seat, replay i
   const learner = await signInTestNumber("+918888888888");
 
   const business = await rpc<{ id: string }>(userHeaders(owner.token), "create_business_with_owner", {
-    p_name: `Webhook Proof Studio ${stamp}`,
+    /* ≤ 15 characters since 19 Oct 2026 (NAME_MAX) */
+    p_name: `WH S ${stamp}`,
     p_type: "studio",
     p_area: "Kothrud",
     p_city: "Pune",
@@ -355,19 +356,21 @@ test("cashfree subscription webhook, in the shapes Cashfree really sends: the au
    *  spec AND nine proof scripts at their first line, with a bare 400.
    *
    *  So the test cleans up after its own past selves before it starts. It is
-   *  narrow on purpose — only studios named "Mandate Proof Studio …", only ones
-   *  this very test could have made, and a hard DELETE exactly as the `finally`
-   *  does. Nothing else on the account is touched. */
+   *  narrow on purpose — only studios named "WH M …" (and the "Mandate Proof
+   *  Studio …" this test named them before names were capped at 15 characters on
+   *  19 Oct 2026), only ones this very test could have made, and a hard DELETE
+   *  exactly as the `finally` does. Nothing else on the account is touched. */
   const mine = (await rows<{ id: string }>(
     serviceHeaders,
-    `businesses?name=like.Mandate%20Proof%20Studio%20*&deleted_at=is.null&select=id`
+    `businesses?or=(name.like.Mandate%20Proof%20Studio%20*,name.like.WH%20M%20*)&deleted_at=is.null&select=id`
   )) ?? [];
   for (const old of mine) {
     await fetch(`${supabaseUrl}/rest/v1/businesses?id=eq.${old.id}`, { method: "DELETE", headers: serviceHeaders });
   }
 
   const business = await rpc<{ id: string; visibility: string }>(userHeaders(owner.token), "create_business_with_owner", {
-    p_name: `Mandate Proof Studio ${stamp}`,
+    /* ≤ 15 characters since 19 Oct 2026 (NAME_MAX) — the sweep above matches it */
+    p_name: `WH M ${stamp}`,
     p_type: "studio",
     p_area: "Kothrud",
     p_city: "Pune",

@@ -184,14 +184,14 @@ const enterEdit = async (page) => {
     });
     const shot = shotOf(owner);
     ownerId = await signUp(owner, `hero-owner-${stamp}@example.com`);
-    /* 26 Sep 2026: a PERSON. "EEE Dance Company" is this person's own name and
+    /* 26 Sep 2026: a PERSON. "EEE Hero Co" is this person's own name and
        they open the studio themselves.
-       ⚠ AN ORG BUSINESS WAS MADE HERE UNTIL 29 Sep 2026 — "EEE Dance Company
+       ⚠ AN ORG BUSINESS WAS MADE HERE UNTIL 29 Sep 2026 — "EEE Hero Co
        Events", with a GST number and a granted ₹5,000 mandate through the
        service role so it read PUBLIC (org_is_public) — and its own home and its
        public page were driven at the foot of this script. It is gone, and so is
        everything it was for. */
-    await onboard(owner, "EEE Dance Company", "New Delhi");
+    await onboard(owner, "EEE Hero Co", "New Delhi");
     await owner.goto(`${BASE}/business`);
     /* ⚠ BY ITS ACCESSIBLE NAME, NOT ITS TEXT (20 Sep 2026, the user: "fix add
        studio button also similarly"). It was a dashed row whose whole content
@@ -199,7 +199,7 @@ const enterEdit = async (page) => {
        whose ＋ is an aria-hidden SVG — so the text node is "Add studio" and the
        NAME is what every other add button in the app is found by. */
     await owner.getByRole("button", { name: "Add studio" }).first().click();
-    await owner.locator('input[name="name"]').fill("EEE Dance Studio");
+    await owner.locator('input[name="name"]').fill("EEE Hero Studio");
     await owner.locator('input[name="area"]').fill("Kothrud");
     await pickCity(owner, "Pune");
     /* the sheet asks for a number and an email now (26 Sep 2026) */
@@ -210,7 +210,7 @@ const enterEdit = async (page) => {
     await owner.getByRole("button", { name: "Add a dance style", exact: true }).click();
     await owner.getByRole("button", { name: "Hip-Hop", exact: true }).click();
     await owner.getByRole("button", { name: "Create studio" }).click();
-    await owner.getByText("EEE Dance Studio").first().waitFor();
+    await owner.getByText("EEE Hero Studio").first().waitFor();
     const rows = await rest(`business_members?user_id=eq.${ownerId}&member_role=eq.owner&deleted_at=is.null&select=business_id,businesses(type)`);
     studioId = (rows.find((r) => r.businesses && r.businesses.type === "studio") || {}).business_id;
     if (!studioId) throw new Error("the studio was not created");
@@ -259,7 +259,7 @@ const enterEdit = async (page) => {
     const strip = owner.getByTestId("studio-subscription").first();
     await strip.waitFor({ timeout: 15000 }).catch(() => {});
     check(await strip.isVisible(), "subscription: the studio's own card is on its own Subscription tile");
-    check(await strip.getByText("EEE Dance Studio", { exact: true }).isVisible(), "subscription: and it NAMES the studio — one person can run several, so the heading is which one");
+    check(await strip.getByText("EEE Hero Studio", { exact: true }).isVisible(), "subscription: and it NAMES the studio — one person can run several, so the heading is which one");
     /* this studio's plan is a GRANT (₹0, set up above) and a grant does not
        renew — so the strip says so and offers no Stop renewing, which is the
        honest answer. The paid-mandate path that DOES offer it needs a real
@@ -278,7 +278,7 @@ const enterEdit = async (page) => {
     await owner.goto(`${BASE}/business/${studioId}`);
     const hero = owner.getByTestId("studio-hero");
     await hero.waitFor();
-    check(await owner.getByRole("heading", { name: "EEE Dance Studio", exact: true }).isVisible(), "studio home: the name is the heading");
+    check(await owner.getByRole("heading", { name: "EEE Hero Studio", exact: true }).isVisible(), "studio home: the name is the heading");
     /* ⚠ THE WORD CARRIES THE NUMBER (20 Sep 2026, the user: "Id should be placed
        like for eg. Artist-000123 together there should be no gap"). They are ONE
        span now, not two flex siblings, so the exact text is "Studio-000123" —
@@ -408,7 +408,7 @@ const enterEdit = async (page) => {
        well as the new control being there: a check that only looks for what was
        added lets the thing it replaced live on. */
     check((await owner.getByRole("link", { name: "Open the studio's public page", exact: true }).count()) === 0, "studio home: the disc is no longer a link to the public page — the eye is that door (20 Sep 2026)");
-    check((await owner.getByRole("button", { name: "EEE Dance Studio — profile picture" }).count()) === 0, "studio home: and with no picture yet the disc is not a button either — there is nothing to open");
+    check((await owner.getByRole("button", { name: "EEE Hero Studio — profile picture" }).count()) === 0, "studio home: and with no picture yet the disc is not a button either — there is nothing to open");
     /* Discover joined the entity's bar on 19 Sep 2026: allowed, while booking is
        not. ⚠ ENQUIRIES IS THE FOURTH SINCE 27 Sep 2026 — the user asked for the
        enquiry desk off Settings and out of the Inbox ("enquiries should be
@@ -530,7 +530,7 @@ const enterEdit = async (page) => {
     const photoPath = await rest(`businesses?id=eq.${studioId}&select=profile_photo_path`);
     check(String(photoPath[0] && photoPath[0].profile_photo_path).startsWith(`tenants/${studioId}/`), "businesses.profile_photo_path is set, in the studio's own folder");
     /* and now that there IS one, the disc is a button that opens it */
-    check((await owner.getByRole("button", { name: "EEE Dance Studio — profile picture" }).count()) === 1, "studio picture: the disc is now a button that opens the picture full size");
+    check((await owner.getByRole("button", { name: "EEE Hero Studio — profile picture" }).count()) === 1, "studio picture: the disc is now a button that opens the picture full size");
 
     /* ── THE POSTERS ARE A DRAFT (16 Sep 2026, carried through every move since) ──
        The user pressed ✕ on four pictures, pressed CANCEL, and lost all four.
@@ -646,7 +646,7 @@ const enterEdit = async (page) => {
        ⚠ The organization's own home at `/business/{orgId}` was driven at the end
        of this script until 29 Sep 2026, when organizations went. */
     await goHome(owner);
-    await owner.getByRole("heading", { name: "EEE Dance Company", exact: true }).waitFor();
+    await owner.getByRole("heading", { name: "EEE Hero Co", exact: true }).waitFor();
     check((await discImgs(owner)) === 1, "owner home: the profile photo is on the disc");
     check((await railImgs(owner)) === 0, "owner home: an empty header — nothing added yet (a user holds one)");
     /* ⚠ THE QR AND THE SHARE ARE TWO CHIPS NOW (21 Sep 2026, the user: "Seprate
@@ -655,7 +655,7 @@ const enterEdit = async (page) => {
        chip beside it is what shares; this asserts BOTH, and asserts the old
        combined name is gone, so nothing is left answering to two jobs. */
     check((await owner.getByLabel("QR code").count()) === 1, "owner home: a QR — every person has a page of its own to share");
-    check((await owner.getByLabel("Share EEE Dance Company").count()) === 1, "owner home: the Share chip beside it, which sends the link itself (21 Sep 2026)");
+    check((await owner.getByLabel("Share EEE Hero Co").count()) === 1, "owner home: the Share chip beside it, which sends the link itself (21 Sep 2026)");
     check((await owner.getByLabel("Share this profile — QR code").count()) === 0, "owner home: nothing answers to the old combined name");
     /* THE ORDER THE USER GAVE: Follow bell · Stats · QR · Share. There is no bell
        on your own home, so on this page it is Stats · QR · Share — measured by
@@ -663,7 +663,7 @@ const enterEdit = async (page) => {
        re-order that only changed the markup would pass a DOM check and still
        draw them in the old order. */
     const chipX = async (label) => (await owner.getByLabel(label).first().boundingBox())?.x ?? -1;
-    const [xStats, xQr, xShare] = [await chipX("Stats"), await chipX("QR code"), await chipX("Share EEE Dance Company")];
+    const [xStats, xQr, xShare] = [await chipX("Stats"), await chipX("QR code"), await chipX("Share EEE Hero Co")];
     check(xStats > 0 && xStats < xQr && xQr < xShare, `owner home: the chips read Stats · QR · Share, left to right (${xStats} < ${xQr} < ${xShare})`);
     /* ⚠ THE QR IS A REAL CODE NOW, AND THE SHEET IS ONLY THE CODE (21 Sep 2026,
        the user: "qr code button should just open qr not link on all profiles
@@ -711,7 +711,7 @@ const enterEdit = async (page) => {
     await owner.waitForURL(/\/follows\/person\/[0-9a-f-]+\?tab=following/, { timeout: 15000 }).catch(() => {});
     check(/\/follows\/person\//.test(owner.url()), "owner home: and the Following figure opens the follow page (12 Oct 2026)");
     await goHome(owner);
-    await owner.getByRole("heading", { name: "EEE Dance Company", exact: true }).waitFor();
+    await owner.getByRole("heading", { name: "EEE Hero Co", exact: true }).waitFor();
     check((await owner.getByLabel("Change your photo").count()) === 0, "owner home: no ＋ on the disc — the picture is changed behind the pencil beside it");
     /* the chrome, re-cut 19 Sep 2026: THREE in the bar, the DISC is the door to the public page (the eye left Home
        later the same day — the user: "clicking on the profile photo on home tab takes to profile so can remove

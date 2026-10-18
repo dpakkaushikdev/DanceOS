@@ -103,11 +103,11 @@ function Move-Session($sessionId, $hoursAgo, $lenH) {
 $pass = $true
 $stamp = Get-Date -Format "HHmmss"
 $city = "Chennai"   # one of the eight the registry allows (19 Sep 2026), and one the demo world does not use, so the boards are ours
-$owner = New-EmailUser "st-owner-$stamp@example.com" "Stat Owner $stamp" "user" $city
-$teacher = New-EmailUser "st-teach-$stamp@example.com" "Stat Teacher $stamp" "user" $city
-$dancer = New-EmailUser "st-dancer-$stamp@example.com" "Stat Dancer $stamp" "user" $city
-$other = New-EmailUser "st-other-$stamp@example.com" "Stat Other $stamp" "user" $city
-$ta = New-Studio $owner.token "Stat Proof Studio $stamp" "T Nagar" $city
+$owner = New-EmailUser "st-owner-$stamp@example.com" "Stt Own $stamp" "user" $city
+$teacher = New-EmailUser "st-teach-$stamp@example.com" "Stt Tchr $stamp" "user" $city
+$dancer = New-EmailUser "st-dancer-$stamp@example.com" "Stt Dncr $stamp" "user" $city
+$other = New-EmailUser "st-other-$stamp@example.com" "Stt Othr $stamp" "user" $city
+$ta = New-Studio $owner.token "Stat Std $stamp" "T Nagar" $city
 Subscribe-Studio ([string]$ta.id)
 
 try {
@@ -213,7 +213,7 @@ try {
     ([int]$ours.conducted -eq 3) -and ([decimal]$ours.hours -eq 4) -and ([int]$ours.extra -eq 1))
 
   # 11. A CREW BOARD RANKS WHAT A CREW DID, not wins nobody records
-  $crew = Rpc (Api $dancer.token) "create_crew" @{ p_name = "Stat Crew $stamp"; p_city = $city; p_style = "Hip-Hop"; p_member_ids = @($other.id) }
+  $crew = Rpc (Api $dancer.token) "create_crew" @{ p_name = "Stt Crew $stamp"; p_city = $city; p_style = "Hip-Hop"; p_member_ids = @($other.id) }
   $ask = (Get-Rows (Api $dancer.token) "crew_members?crew_id=eq.$($crew.id)&status=eq.asked&select=id")[0]
   Rpc (Api $other.token) "respond_to_crew_ask" @{ p_member_id = $ask.id; p_accept = $true } | Out-Null
   $crews = Rows (Api $owner.token) "dance_chart" @{ p_segment = "crew"; p_city = $city; p_style = $null; p_limit = 20 }

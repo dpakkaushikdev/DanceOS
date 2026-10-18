@@ -79,7 +79,7 @@ $rival = New-EmailUser "payproof-rival-$stamp@example.com" "Rival $stamp" "user"
 
 $ta = New-Studio $owner.token "Pay Proof Studio $stamp" "Kothrud" "Pune"
 Subscribe-Studio ([string]$ta.id)
-$tb = New-Studio $rival.token "Rival Studio $stamp" "Andheri" "Mumbai"
+$tb = New-Studio $rival.token "Rivl Std $stamp" "Andheri" "Mumbai"
 Subscribe-Studio ([string]$tb.id)
 Add-Member $ta.id $artist.id "trainer" $owner.id
 Add-Member $ta.id $trainer.id "trainer" $owner.id

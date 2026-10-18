@@ -1,5 +1,6 @@
 "use client";
 
+import { NAME_MAX } from "@/lib/constants/names";
 import { useState } from "react";
 import { FORM_LABEL, FORM_INPUT, FormBar, FormNote, FormPage, FormToast, formPrimary } from "@/components/ui/FormPage";
 import { DOS_AMENITIES } from "@/lib/constants/amenities";
@@ -94,7 +95,7 @@ export function RoomForm({
     <FormPage title={title} sheet onClose={onClose} onBack={onClose}>
       <>
         <div style={FORM_LABEL}>ROOM NAME</div>
-        <input value={name} onChange={(e) => setName(e.target.value.slice(0, 80))} placeholder="e.g. Studio A" aria-label="Room name" style={FORM_INPUT} />
+        <input value={name} onChange={(e) => setName(e.target.value.slice(0, NAME_MAX))} placeholder="e.g. Studio A" aria-label="Room name" style={FORM_INPUT} />
 
         <div style={FORM_LABEL}>HOW MANY IT HOLDS</div>
         <input

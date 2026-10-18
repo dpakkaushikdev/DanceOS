@@ -89,9 +89,9 @@ $rival = New-EmailUser "staffproof-rival-$stamp@example.com" "Rival $stamp" "use
 # checks 16-17: a staff assistant whose seat is pulled out from under them
 $ghost = New-EmailUser "staffproof-ghost-$stamp@example.com" "Priya $stamp" "user"
 
-$ta = New-Studio $owner.token "Staff Proof Studio $stamp" "Kothrud" "Pune"
+$ta = New-Studio $owner.token "Stf Std $stamp" "Kothrud" "Pune"
 Subscribe-Studio ([string]$ta.id)
-$tb = New-Studio $rival.token "Rival Studio $stamp" "Andheri" "Mumbai"
+$tb = New-Studio $rival.token "Rivl Std $stamp" "Andheri" "Mumbai"
 Subscribe-Studio ([string]$tb.id)
 
 try {
@@ -128,7 +128,7 @@ try {
   $mine = Rpc (Api $joiner.token) "my_pending_invites" @{}
   $mineRows = ,@($mine | Where-Object { $null -ne $_ })
   Check 6 "The invitee finds their own invite ($($mineRows.Count) waiting, from '$($mineRows[0].business_name)')" (
-    ($mineRows.Count -eq 1) -and ($mineRows[0].business_name -eq "Staff Proof Studio $stamp"))
+    ($mineRows.Count -eq 1) -and ($mineRows[0].business_name -eq "Stf Std $stamp"))
 
   # 7. holding the link is NOT consent: the wrong person cannot accept it
   $wrongPersonBlocked = Expect-Fail { Rpc (Api $rival.token) "accept_business_invite" @{ p_code = $inv.code } }

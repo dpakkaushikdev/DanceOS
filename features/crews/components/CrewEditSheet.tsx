@@ -1,5 +1,6 @@
 "use client";
 
+import { NAME_MAX } from "@/lib/constants/names";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { DosStylePicker } from "@/components/ui/DosStyleKit";
@@ -63,7 +64,7 @@ export function CrewEditSheet({ crew, onClose }: { crew: Crew; onClose: () => vo
       <Sheet label="Edit crew" onClose={onClose} maxHeight="88vh">
         <b style={FORM_TITLE}>Edit crew</b>
         <div style={fieldLabel}>Name</div>
-        <input aria-label="Name" value={name} maxLength={64} onChange={(e) => setName(e.target.value)} style={fieldInput} />
+        <input aria-label="Name" value={name} maxLength={NAME_MAX} onChange={(e) => setName(e.target.value)} style={fieldInput} />
         {/* ⚠ NO PICTURES HERE ANY MORE (21 Sep 2026, the user: "make sure all
             profile types have similar ways to edit the profile, the segments
             like social media, dance styles, pictures and posters"). "Update

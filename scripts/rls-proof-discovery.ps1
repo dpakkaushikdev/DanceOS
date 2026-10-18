@@ -31,7 +31,7 @@ function Api($token) { return @{ apikey = $anon; Authorization = "Bearer $token"
 # default, and every proof studio sits on Pune's exact centroid at distance 0 — so
 # once more than 50 listed studios share that point, which one of them makes the
 # first 50 is arbitrary. This proof went red on the day the leftovers of earlier runs
-# crossed that line (70+ listed "Near Studio", "Class Studio", "Mandate Proof Studio"
+# crossed that line (70+ listed "Near Std", "Class Studio", "Mandate Proof Studio"
 # rows in Pune), for a reason that was not its subject. The cap itself is a real
 # limit on Discover (backlog: no cursor on the radius search); this asks for the
 # maximum the RPC allows, and the script now deletes its own studio at the end.
@@ -46,7 +46,7 @@ $pass = $true
 $stamp = Get-Date -Format "HHmmss"
 
 # A creates a Pune studio — the RPC must have stamped centroid coordinates on it
-$ta = New-Studio $a.access_token "Near Studio $stamp" "Kothrud" "Pune"
+$ta = New-Studio $a.access_token "Near Std $stamp" "Kothrud" "Pune"
 Subscribe-Studio ([string]$ta.id)
 $hasCoords = ($null -ne $ta.lat) -and ($null -ne $ta.lng)
 "1. New Pune studio gets coordinates: lat=$($ta.lat) lng=$($ta.lng) $(if ($hasCoords) {'-- OK'} else {'-- !!! FAILED !!!'})"
@@ -98,7 +98,7 @@ $farOk = -not ((& $idsOf $delhi) -contains $tid)
 if (-not $farOk) { $pass = $false }
 
 # Clean up: this script used to leave one LISTED Pune studio behind on every run
-# (found 17 Sep 2026 — a dozen "Near Studio HHMMSS" rows on production Discover).
+# (found 17 Sep 2026 — a dozen "Near Std HHMMSS" rows on production Discover).
 # Soft-deleted through the service role, the way scripts/cleanup-proof-leftovers.js
 # does it: the row and its membership get deleted_at; nothing is erased.
 $gone = (Get-Date).ToUniversalTime().ToString("o")

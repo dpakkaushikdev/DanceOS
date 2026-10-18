@@ -75,14 +75,15 @@ const pressed = async (loc) => (await loc.getAttribute("aria-pressed").catch(() 
 
 (async () => {
   const stamp = Date.now().toString(36);
+  const tag = stamp.slice(-6);
   const made = { users: [], businesses: [], enquiries: [], crews: [] };
   const browser = await chromium.launch();
   try {
-    const owner = await makeAccount(stamp, "owner", `Kappa Owner ${stamp}`);
+    const owner = await makeAccount(stamp, "owner", `K Owner ${tag}`);
     made.users.push(owner.id);
-    const sender = await makeAccount(stamp, "sender", `Zed Quill ${stamp}`);
+    const sender = await makeAccount(stamp, "sender", `Zed Qul ${tag}`);
     made.users.push(sender.id);
-    const studio = await call("POST", "/rest/v1/rpc/create_business_with_owner", owner.h, { p_type: "studio", p_name: `Kappa Hall ${stamp}`, p_area: "Kothrud", p_city: "Pune", p_styles: ["Hip-Hop"] });
+    const studio = await call("POST", "/rest/v1/rpc/create_business_with_owner", owner.h, { p_type: "studio", p_name: `Kap Hall ${tag}`, p_area: "Kothrud", p_city: "Pune", p_styles: ["Hip-Hop"] });
     made.businesses.push(studio.id);
     /* ⚠ LISTED, because an enquiry can only ever go to a listed studio — born
        unlisted, the sender may not read its name and every card says "A
@@ -110,18 +111,18 @@ const pressed = async (loc) => (await loc.getAttribute("aria-pressed").catch(() 
     /* ⚠ and a SECOND invite the sender DECLINES, from a second studio — the
        owner's Sent side must keep it, under Invites › Completed (2 Oct 2026: a
        sent invite was a pending-only read, so an answered one vanished) */
-    const studio2 = await call("POST", "/rest/v1/rpc/create_business_with_owner", owner.h, { p_type: "studio", p_name: `Lambda Hall ${stamp}`, p_area: "Baner", p_city: "Pune", p_styles: ["Hip-Hop"] });
+    const studio2 = await call("POST", "/rest/v1/rpc/create_business_with_owner", owner.h, { p_type: "studio", p_name: `Lam Hall ${tag}`, p_area: "Baner", p_city: "Pune", p_styles: ["Hip-Hop"] });
     made.businesses.push(studio2.id);
     const inv2 = await call("POST", "/rest/v1/rpc/invite_person_to_business", owner.h, { p_business_id: studio2.id, p_user_id: sender.id, p_role: "staff" });
     await call("POST", "/rest/v1/rpc/decline_business_invite", sender.h, { p_code: inv2.code });
     /* ⚠ and a crew ask the leader WITHDRAWS — a soft delete, so it waits on
        nobody: no pointer counts it and no hub card offers it */
-    const crew = await call("POST", "/rest/v1/rpc/create_crew", owner.h, { p_name: `Mu Crew ${stamp}`, p_city: "Pune", p_style: "Hip-Hop", p_member_ids: [sender.id] });
+    const crew = await call("POST", "/rest/v1/rpc/create_crew", owner.h, { p_name: `Mu Crew ${tag}`, p_city: "Pune", p_style: "Hip-Hop", p_member_ids: [sender.id] });
     made.crews.push(crew.id);
     const [ask] = await call("GET", `/rest/v1/crew_members?crew_id=eq.${crew.id}&user_id=eq.${sender.id}&select=id`, svc);
     await call("POST", "/rest/v1/rpc/withdraw_crew_ask", owner.h, { p_member_id: ask.id });
     /* …and a crew ask that STILL WAITS — the one the Crews hub answers (11 Oct 2026) */
-    const crew2 = await call("POST", "/rest/v1/rpc/create_crew", owner.h, { p_name: `Nu Crew ${stamp}`, p_city: "Pune", p_style: "Hip-Hop", p_member_ids: [sender.id] });
+    const crew2 = await call("POST", "/rest/v1/rpc/create_crew", owner.h, { p_name: `Nu Crew ${tag}`, p_city: "Pune", p_style: "Hip-Hop", p_member_ids: [sender.id] });
     made.crews.push(crew2.id);
 
     /* ── THE SENDER'S OWN INBOX ── */
@@ -166,18 +167,18 @@ const pressed = async (loc) => (await loc.getAttribute("aria-pressed").catch(() 
     check(/\/team|show=other/.test(sp.url()), `the old Studios › Team address lands on Other Teams (${sp.url()})`);
     await sp.goto(`${BASE}/team`, { waitUntil: "networkidle" });
     check((await sp.getByTestId("team-invites").count()) === 1, "Other Teams carries the studio invitation block");
-    const inv = sp.getByTestId("team-invite").filter({ hasText: `Kappa Hall ${stamp}` });
+    const inv = sp.getByTestId("team-invite").filter({ hasText: `Kap Hall ${tag}` });
     const invText = await inv.first().innerText().catch(() => "");
     check(/Faculty/i.test(invText), `invite card: the seat reads "Faculty" (${invText.replace(/\s+/g, " ").slice(0, 120)})`);
     check(!/trainer/i.test(invText), "invite card: the column's word \"trainer\" is not printed");
-    check((await sp.getByTestId("team-invite").filter({ hasText: `Lambda Hall ${stamp}` }).count()) === 0, "the DECLINED invite is not offered again");
+    check((await sp.getByTestId("team-invite").filter({ hasText: `Lam Hall ${tag}` }).count()) === 0, "the DECLINED invite is not offered again");
     check((await sp.getByTestId("other-teams-settings").count()) === 1, "the team and crew switches are behind Other Teams' gear");
     await inv.getByTestId("team-invite-join").click();
-    await sp.getByTestId("team-invite").filter({ hasText: `Kappa Hall ${stamp}` }).waitFor({ state: "detached", timeout: 15000 }).catch(() => {});
-    check((await sp.getByTestId("team-invite").filter({ hasText: `Kappa Hall ${stamp}` }).count()) === 0, "Join: the invitation leaves the hub");
-    await sp.getByRole("link", { name: `Kappa Hall ${stamp} — open the profile` }).first().waitFor({ timeout: 15000 }).catch(() => {});
+    await sp.getByTestId("team-invite").filter({ hasText: `Kap Hall ${tag}` }).waitFor({ state: "detached", timeout: 15000 }).catch(() => {});
+    check((await sp.getByTestId("team-invite").filter({ hasText: `Kap Hall ${tag}` }).count()) === 0, "Join: the invitation leaves the hub");
+    await sp.getByRole("link", { name: `Kap Hall ${tag} — open the profile` }).first().waitFor({ timeout: 15000 }).catch(() => {});
     check(/\/team|show=other/.test(sp.url()), `…the address stays on Other Teams (${sp.url()})`);
-    check((await sp.getByTestId("studio-teams").getByRole("link", { name: `Kappa Hall ${stamp} — open the profile` }).count()) >= 1, "…and the studio is under Studio teams you are on");
+    check((await sp.getByTestId("studio-teams").getByRole("link", { name: `Kap Hall ${tag} — open the profile` }).count()) >= 1, "…and the studio is under Studio teams you are on");
 
     /* ── THE CREW ASK IS ANSWERED ON OTHER TEAMS TOO — and a no asks first ── */
     await sp.goto(`${BASE}/crews?show=in`, { waitUntil: "networkidle" });
@@ -186,19 +187,19 @@ const pressed = async (loc) => (await loc.getAttribute("aria-pressed").catch(() 
     await sp.goto(`${BASE}/crews`, { waitUntil: "networkidle" });
     check((await sp.getByTestId("crew-invite").count()) === 0 && (await sp.getByTestId("crews-other-teams-pointer").count()) === 0, "the Crews hub carries no asks and no pointer — only the crews you lead");
     await sp.goto(`${BASE}/team`, { waitUntil: "networkidle" });
-    const cInv = sp.getByTestId("crew-invite").filter({ hasText: `Nu Crew ${stamp}` });
+    const cInv = sp.getByTestId("crew-invite").filter({ hasText: `Nu Crew ${tag}` });
     check((await cInv.count()) === 1, "Other Teams carries the crew ask's card");
-    check((await sp.getByTestId("crew-invite").filter({ hasText: `Mu Crew ${stamp}` }).count()) === 0, "the WITHDRAWN ask is not offered");
+    check((await sp.getByTestId("crew-invite").filter({ hasText: `Mu Crew ${tag}` }).count()) === 0, "the WITHDRAWN ask is not offered");
     check(/invited by/i.test(await cInv.first().innerText().catch(() => "")), "the card says who asked");
     await cInv.getByTestId("crew-invite-decline").click();
-    const q = sp.getByRole("alertdialog", { name: `Decline Nu Crew ${stamp}?` });
+    const q = sp.getByRole("alertdialog", { name: `Decline Nu Crew ${tag}?` });
     check(await q.isVisible().catch(() => false), "Decline asks first");
     await q.getByRole("button", { name: "Keep it", exact: true }).click();
     check((await cInv.count()) === 1, "Keep it keeps the ask");
     await cInv.getByTestId("crew-invite-decline").click();
     await q.getByRole("button", { name: "Decline", exact: true }).click();
     await cInv.first().waitFor({ state: "detached", timeout: 15000 }).catch(() => {});
-    check((await sp.getByTestId("crew-invite").filter({ hasText: `Nu Crew ${stamp}` }).count()) === 0, "Decline: the ask leaves the hub");
+    check((await sp.getByTestId("crew-invite").filter({ hasText: `Nu Crew ${tag}` }).count()) === 0, "Decline: the ask leaves the hub");
     const [ans] = await call("GET", `/rest/v1/crew_members?crew_id=eq.${crew2.id}&user_id=eq.${sender.id}&select=status`, svc);
     check(ans && ans.status === "rejected", `…and the database says rejected (${ans ? ans.status : "no row"})`);
 
@@ -208,7 +209,7 @@ const pressed = async (loc) => (await loc.getAttribute("aria-pressed").catch(() 
 
     await sp.goto(`${BASE}/inbox?tab=ongoing&side=sent`, { waitUntil: "networkidle" });
     check(await pressed(sp.getByRole("button", { name: "Sent enquiries", exact: true })), "?side=sent opens on the Sent chip");
-    const sentCard = sp.getByRole("link", { name: `Choreographer enquiry to Kappa Hall ${stamp}` });
+    const sentCard = sp.getByRole("link", { name: `Choreographer enquiry to Kap Hall ${tag}` });
     check((await sentCard.count()) === 1, "sender: the OPEN enquiry is under Ongoing › Sent, and only it (the declined one is under Past)");
     const sentText = await sentCard.first().innerText().catch(() => "");
     check(/\bKH\b/.test(sentText) && !/\bZQ\b/.test(sentText), `enquiry card: the studio's face, not your own (${/\bKH\b/.test(sentText) ? "KH" : "-"} / ${/\bZQ\b/.test(sentText) ? "ZQ shown" : "no ZQ"})`);
@@ -216,20 +217,20 @@ const pressed = async (loc) => (await loc.getAttribute("aria-pressed").catch(() 
 
     await sp.getByRole("button", { name: "Past enquiries", exact: true }).click();
     check(/tab=past/.test(sp.url()), "the column is the address (replaced)");
-    check((await sp.getByRole("link", { name: `Choreographer enquiry to Kappa Hall ${stamp}` }).count()) === 1, "Enquiries › Past: the DECLINED enquiry is here");
+    check((await sp.getByRole("link", { name: `Choreographer enquiry to Kap Hall ${tag}` }).count()) === 1, "Enquiries › Past: the DECLINED enquiry is here");
 
     /* ── THE STUDIO'S INBOX ── */
     const op = await (await browser.newContext({ viewport: { width: 430, height: 932 } })).newPage();
     await signIn(op, owner);
     await op.goto(`${BASE}/enquiries?as=${studio.id}`, { waitUntil: "networkidle" });
     check(new RegExp(`/business/${studio.id}/inbox\\?show=enquiries$`).test(op.url()), `the old ?as= address lands on the studio's Inbox (${op.url().replace(BASE, "")})`);
-    const recvCard = op.getByRole("link", { name: `Choreographer enquiry from Zed Quill ${stamp}` });
+    const recvCard = op.getByRole("link", { name: `Choreographer enquiry from Zed Qul ${tag}` });
     check((await recvCard.count()) === 1, "studio inbox: the open enquiry is on its Enquiries desk");
     const recvBox = recvCard.first();
     const recvText = await recvBox.innerText().catch(() => "");
     check(/\bZQ\b/.test(recvText) && !/\bKH\b/.test(recvText), "studio's card: the sender's face, not the studio's own");
     check(await pressed(op.getByRole("button", { name: "To do enquiries", exact: true })), "studio inbox: a NEW enquiry waits on the studio, so it opens on To do");
-    check((await op.getByTestId("enquiries-move").getByRole("link", { name: `Choreographer enquiry from Zed Quill ${stamp}` }).count()) === 1, "…filed under To do › Your move");
+    check((await op.getByTestId("enquiries-move").getByRole("link", { name: `Choreographer enquiry from Zed Qul ${tag}` }).count()) === 1, "…filed under To do › Your move");
     check((await recvBox.getByRole("button").count()) === 0 && /Accept or decline/.test(await recvBox.getByTestId("enquiry-move").innerText().catch(() => "")), "the card carries no buttons — its pill says Accept or decline");
     check((await recvCard.getAttribute("href").catch(() => null)) === `/business/${studio.id}/inbox/enquiries/${open.id}`, "the card opens under the studio's own address");
     check((await op.getByRole("button", { name: /^Enquiry settings/ }).count()) === 1, "studio inbox: the studio's Enquiry settings stay with the desk");
@@ -239,7 +240,7 @@ const pressed = async (loc) => (await loc.getAttribute("aria-pressed").catch(() 
     await op.screenshot({ path: path.join(__dirname, "shots", "inbox-studio-todo.png"), fullPage: true });
     await op.getByRole("button", { name: "Past enquiries", exact: true }).click();
     await op.screenshot({ path: path.join(__dirname, "shots", "inbox-studio-past.png"), fullPage: true });
-    check((await op.getByRole("link", { name: `Choreographer enquiry from Zed Quill ${stamp}` }).count()) === 1, "studio › Enquiries › Past: the DECLINED enquiry is here");
+    check((await op.getByRole("link", { name: `Choreographer enquiry from Zed Qul ${tag}` }).count()) === 1, "studio › Enquiries › Past: the DECLINED enquiry is here");
 
     /* ── THE OWNER'S OWN INBOX: no invitations it sent (11 Oct 2026) — those are
        on each studio's Team desk and each crew's Team desk, with Withdraw ── */
@@ -248,7 +249,7 @@ const pressed = async (loc) => (await loc.getAttribute("aria-pressed").catch(() 
     check((await op.getByTestId("request-row").count()) === 0, "owner inbox: no request rows at all");
     /* the invite the sender joined is a seat on the studio's Team desk now */
     await op.goto(`${BASE}/business/${studio.id}/staff`, { waitUntil: "networkidle" });
-    check((await op.getByText(`Zed Quill ${stamp}`).count()) >= 1, "the studio's Team desk lists the person who joined from the Studios hub");
+    check((await op.getByText(`Zed Qul ${tag}`).count()) >= 1, "the studio's Team desk lists the person who joined from the Studios hub");
 
     /* the personal Inbox of the same owner does NOT carry the studio's enquiries */
     await op.goto(`${BASE}/inbox?show=enquiries`, { waitUntil: "networkidle" });

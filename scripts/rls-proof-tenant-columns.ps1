@@ -46,11 +46,11 @@ $stamp = Get-Date -Format "HHmmss"
 # organization login is retired, and any account opens a studio)
 $email = "tc-owner-$stamp@example.com"
 $u = Invoke-RestMethod -Method Post -Uri "$base/auth/v1/admin/users" -Headers $svcH -Body (@{ email = $email; password = "Proof-passw0rd!"; email_confirm = $true } | ConvertTo-Json)
-Invoke-RestMethod -Method Post -Uri "$base/rest/v1/profiles" -Headers $svcH -Body (@{ id = $u.id; full_name = "Col Owner $stamp"; role = "user"; city = "Pune"; created_by = $u.id; updated_by = $u.id } | ConvertTo-Json) | Out-Null
+Invoke-RestMethod -Method Post -Uri "$base/rest/v1/profiles" -Headers $svcH -Body (@{ id = $u.id; full_name = "Col Own $stamp"; role = "user"; city = "Pune"; created_by = $u.id; updated_by = $u.id } | ConvertTo-Json) | Out-Null
 $owner = Invoke-RestMethod -Method Post -Uri "$base/auth/v1/token?grant_type=password" -Headers @{ apikey = $anon; "Content-Type" = "application/json" } -Body (@{ email = $email; password = "Proof-passw0rd!" } | ConvertTo-Json)
 $H = Api $owner.access_token
 
-$t = New-Studio $owner.access_token "Col Studio $stamp" "Kothrud" "Pune"
+$t = New-Studio $owner.access_token "Col Std $stamp" "Kothrud" "Pune"
 "0. Owner created '$($t.name)' (type=$($t.type)) - it is theirs, and they are its only owner"
 
 # A PATCH that changes nothing about who may see the row, only what it IS.
@@ -93,13 +93,15 @@ function Try-Patch($label, $body, $column) {
 
 # 1. VALIDATION. The name: update_business_profile caps it at 80 characters and
 #    businesses_name_check caps it at 140, so a direct PATCH is refused too.
+#    19 Oct 2026: every name is 15 characters at most, so the check writes 16 -
+#    one over the line, which is the sharpest form of the same claim.
 #    ⚠ This check used to write a 5,000-character About, because About was the
 #    longest free-text column a business had and carried its own CHECK. The
 #    column was dropped on 20 Sep 2026, so the same claim - the DATABASE holds a
 #    rule that a direct PATCH would otherwise walk past - is made on the name.
-$long = "x" * 5000
+$long = "x" * 16
 $r = Try-Patch "name" (@{ name = $long } | ConvertTo-Json) "name"
-"1. Owner writes a 5,000-character name (the CHECK caps it at 140): $(if ($r.ok) {"$($r.how) -- BLOCKED"} else {"WROTE 5,000 chars -- !!! VALIDATION BYPASSED !!!"})"
+"1. Owner writes a 16-character name (the CHECK caps it at 15): $(if ($r.ok) {"$($r.how) -- BLOCKED"} else {"WROTE 16 chars -- !!! VALIDATION BYPASSED !!!"})"
 if (-not $r.ok) { $pass = $false }
 
 # 2. VALIDATION. The RPC demands a phone that looks like a phone.

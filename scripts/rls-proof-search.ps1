@@ -71,9 +71,9 @@ try {
   $ownerA = New-EmailUser "srch-a-$stamp@example.com" "Owner A $stamp" "user"
   $ownerB = New-EmailUser "srch-b-$stamp@example.com" "Owner B $stamp" "user"
   $dancer = New-EmailUser "srch-d-$stamp@example.com" "$tag Dancer" "user"
-  $ta = New-Studio $ownerA.token "$tag Studio Kothrud" "Kothrud" "Pune"
+  $ta = New-Studio $ownerA.token "$tag Qorvax" "Kothrud" "Pune"
   Subscribe-Studio ([string]$ta.id)
-  $tb = New-Studio $ownerB.token "$tag Private Hall" "Andheri" "Mumbai"
+  $tb = New-Studio $ownerB.token "$tag Priv" "Andheri" "Mumbai"
   Subscribe-Studio ([string]$tb.id)
   Invoke-RestMethod -Method Patch -Uri "$base/rest/v1/businesses?id=eq.$($tb.id)" -Headers $svcH -Body (@{ visibility = "unlisted" } | ConvertTo-Json) | Out-Null
 
@@ -97,20 +97,20 @@ try {
   $kinds = @($anonHits | ForEach-Object { $_.kind } | Sort-Object)
   Check 1 "Stranger searching '$tag' finds: $(Names $anonHits)" (
     ($anonHits.Count -eq 2) -and (($kinds -join ",") -eq "crew,studio") -and
-    -not ($anonHits | Where-Object { $_.name -like "*Private*" }))
+    -not ($anonHits | Where-Object { $_.name -like "*Priv*" }))
 
   # 2. THE UNLISTED STUDIO IS ITS OWNER'S TO FIND - SECURITY INVOKER means RLS decides
   $bHits = Search (Api $ownerB.token) $tag
   $aHits = Search (Api $ownerA.token) $tag
-  Check 2 "Owner B also finds the private studio ($(($bHits | Where-Object { $_.name -like '*Private*' }).Count)); A does not find B's private studio ($(($aHits | Where-Object { $_.name -like '*Private*' }).Count))" (
-    ((@($bHits | Where-Object { $_.name -like "*Private*" })).Count -eq 1) -and ((@($aHits | Where-Object { $_.name -like "*Private*" })).Count -eq 0))
+  Check 2 "Owner B also finds the private studio ($(($bHits | Where-Object { $_.name -like '*Priv*' }).Count)); A does not find B's private studio ($(($aHits | Where-Object { $_.name -like '*Priv*' }).Count))" (
+    ((@($bHits | Where-Object { $_.name -like "*Priv*" })).Count -eq 1) -and ((@($aHits | Where-Object { $_.name -like "*Priv*" })).Count -eq 0))
 
-  # 3. A WORD THAT STARTS WITH THE TERM MATCHES (the studio carries "Kothrud" as its
+  # 3. A WORD THAT STARTS WITH THE TERM MATCHES (the studio carries "Qorvax" as its
   #    second word); a substring inside a word does not (the prototype's `m`, 4546).
-  $word = Search $anonH "kothrud"
-  $mid = Search $anonH "othrud"
+  $word = Search $anonH "qorvax"
+  $mid = Search $anonH "orvax"
   $wordKinds = @($word | ForEach-Object { $_.kind } | Sort-Object) -join ","
-  Check 3 "'kothrud' (second word) finds $($word.Count) ($(Names $word)); 'othrud' (mid-word) finds $($mid.Count)" (
+  Check 3 "'qorvax' (second word) finds $($word.Count) ($(Names $word)); 'orvax' (mid-word) finds $($mid.Count)" (
     ($word.Count -eq 1) -and ($wordKinds -eq "studio") -and ($mid.Count -eq 0))
 
   # 5. PEOPLE ARE RETURNED TO A SIGNED-IN CALLER, AND NEVER TO A STRANGER.
@@ -127,9 +127,9 @@ try {
     ($personHit.Count -eq 1) -and ($personHit[0].href -like "/person/*") -and ($personHit[0].sub -like "User*") -and ($anonPersonHit.Count -eq 0))
 
   # 6. THE CAP PER KIND, AND THE HREF EACH ROW OPENS
-  $t2 = New-Studio $ownerA.token "$tag Studio Two" "Baner" "Pune"
+  $t2 = New-Studio $ownerA.token "$tag Two" "Baner" "Pune"
   Subscribe-Studio ([string]$t2.id)
-  $t3 = New-Studio $ownerA.token "$tag Studio Three" "Aundh" "Pune"
+  $t3 = New-Studio $ownerA.token "$tag Three" "Aundh" "Pune"
   Subscribe-Studio ([string]$t3.id)
   $capped = @((Search $anonH $tag 2) | Where-Object { $_.kind -eq "studio" })
   $all = @((Search $anonH $tag 10) | Where-Object { $_.kind -eq "studio" })

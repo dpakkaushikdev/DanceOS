@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { nameField } from "@/lib/constants/names";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { activateArtistPlan } from "@/repositories/plans";
 import { updateBusinessProfile } from "@/repositories/businesses";
@@ -43,7 +44,7 @@ const businessProfileSchema = z.object({
   businessId: z.string().uuid(),
   /* the NAME (18 Sep 2026, the user: "give option to rename") — optional, so
      every older caller that never sends one leaves it exactly as it was */
-  name: z.string().trim().min(1, "a business needs a name").max(80, "a name is at most 80 characters").optional(),
+  name: nameField("a business needs a name").optional(),
   foundedYear: z.number().int().min(1950).max(2100).nullable(),
   phone: z
     .string()

@@ -83,14 +83,15 @@ const SDK_STUB = `window.Cashfree = function () {
 (async () => {
   if (env.CASHFREE_ENV !== "sandbox") throw new Error(`refusing: CASHFREE_ENV is ${env.CASHFREE_ENV}, not sandbox`);
   const stamp = Date.now().toString(36);
+  const tag = stamp.slice(-6);
   const made = { users: [], businesses: [] };
   const browser = await chromium.launch();
   try {
-    const owner = await makeAccount(stamp, "owner", `Omega Owner ${stamp}`);
+    const owner = await makeAccount(stamp, "owner", `Om Owner ${tag}`);
     made.users.push(owner.id);
-    const sender = await makeAccount(stamp, "sender", `Sigma Sender ${stamp}`);
+    const sender = await makeAccount(stamp, "sender", `Sg Send ${tag}`);
     made.users.push(sender.id);
-    const studio = await call("POST", "/rest/v1/rpc/create_business_with_owner", owner.h, { p_type: "studio", p_name: `Omega Hall ${stamp}`, p_area: "Kothrud", p_city: "Pune", p_styles: ["Hip-Hop"] });
+    const studio = await call("POST", "/rest/v1/rpc/create_business_with_owner", owner.h, { p_type: "studio", p_name: `Om Hall ${tag}`, p_area: "Kothrud", p_city: "Pune", p_styles: ["Hip-Hop"] });
     made.businesses.push(studio.id);
     /* listed: an enquiry only ever reaches a listed studio (shoot-inbox's own set-up) */
     await call("POST", "/rest/v1/subscriptions", svc, {

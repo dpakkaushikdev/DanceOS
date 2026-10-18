@@ -1,5 +1,6 @@
 "use client";
 
+import { NAME_MAX } from "@/lib/constants/names";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Pick } from "@/components/ui/PickSheet";
@@ -209,7 +210,7 @@ export function BusinessEditSheet({
           wrapper was what gave these fields their accessible name, and the e2e
           suite finds three of them by it. */}
       <div style={fieldLabel}>Name</div>
-      <input aria-label="Name" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} placeholder={isStudio ? "The studio's name" : "Your page's name"} style={fieldInput} />
+      <input aria-label="Name" value={name} maxLength={NAME_MAX} onChange={(e) => setName(e.target.value)} placeholder={isStudio ? "The studio's name" : "Your page's name"} style={fieldInput} />
       {/* ⚠ NO ABOUT FIELD, AND NO COLUMN BEHIND IT (20 Sep 2026: "Remove bio from
           all profiles", then "about and bio for profiles need to go away"). For
           one day the column stayed and was read but never written; it is dropped

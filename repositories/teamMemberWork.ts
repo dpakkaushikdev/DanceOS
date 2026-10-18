@@ -480,12 +480,12 @@ export async function findTeamMemberWork(
         out.booked += booked;
         out.seats += n(cls.capacity);
         for (const u of att) if (u) people.add(u);
-        if (!settled.has(s.id) && n(c.pay_per_session_inr) > 0) {
-          out.owedInr += n(c.pay_per_session_inr);
+        /* ⚠ NOT SETTLED, NOT "OWED ₹X" (18 Oct 2026): pay is set when paying, so a
+           session no payment covers is listed with no amount — rateInr stays 0 */
+        if (!settled.has(s.id)) {
           out.owedSessions += 1;
-          row.owedInr += n(c.pay_per_session_inr);
           row.owedSessions += 1;
-          out.owedEntries.push({ sessionId: s.id, classTitle: row.title, startsAt: s.starts_at, rateInr: n(c.pay_per_session_inr) });
+          out.owedEntries.push({ sessionId: s.id, classTitle: row.title, startsAt: s.starts_at, rateInr: 0 });
         }
         const k = monthKey(s.starts_at);
         byMonth.set(k, (byMonth.get(k) ?? 0) + 1);

@@ -136,11 +136,11 @@ $rival = New-EmailUser "income-rival-$stamp@example.com" "Rival $stamp" "user"
 # 11 Oct 2026: check 12b - a manager reads the money a plain trainer may not
 $manager = New-EmailUser "income-manager-$stamp@example.com" "Manager $stamp" "user"
 $learners = @()
-foreach ($i in 0..6) { $learners += New-EmailUser "income-l$i-$stamp@example.com" "Learner $i $stamp" "user" }
+foreach ($i in 0..6) { $learners += New-EmailUser "income-l$i-$stamp@example.com" "Lrnr $i $stamp" "user" }
 
-$ta = New-Studio $owner.token "Income Proof Studio $stamp" "Kothrud" "Pune"
+$ta = New-Studio $owner.token "Inc Std $stamp" "Kothrud" "Pune"
 Subscribe-Studio ([string]$ta.id)
-$tb = New-Studio $rival.token "Rival Studio $stamp" "Andheri" "Mumbai"
+$tb = New-Studio $rival.token "Rivl Std $stamp" "Andheri" "Mumbai"
 Subscribe-Studio ([string]$tb.id)
 Add-Member $ta.id $trainer.id "trainer" $owner.id
 Add-Member $ta.id $manager.id "manager" $owner.id

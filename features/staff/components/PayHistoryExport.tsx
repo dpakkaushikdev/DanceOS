@@ -58,7 +58,7 @@ export function PayHistoryExport({
     const lines: string[] = [head.join(",")];
     for (const p of payouts) {
       const base = [p.paidOn, p.amountInr, p.status, PAYOUT_METHOD_LABEL[p.method] ?? p.method, p.providerRef ?? "", p.note ?? ""];
-      if (p.sessions.length === 0) {
+      if (p.sessions.length === 0 && p.enquiries.length === 0) {
         /* ⚠ recorded as an amount, not against sessions (R35) — one row, and the
            three session columns left empty rather than invented */
         lines.push([...base, "", "", ""].map(q).join(","));
@@ -66,6 +66,10 @@ export function PayHistoryExport({
       }
       for (const s of p.sessions) {
         lines.push([...base, s.classTitle, s.startsAt, s.rateInr].map(q).join(","));
+      }
+      /* an enquiry has no session time — its label in the class column (19 Oct 2026) */
+      for (const e of p.enquiries) {
+        lines.push([...base, `Enquiry · ${e.label}`, "", e.rateInr].map(q).join(","));
       }
     }
     const blob = new Blob([lines.join("\n")], { type: "text/csv" });

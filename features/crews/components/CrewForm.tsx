@@ -1,5 +1,6 @@
 "use client";
 
+import { NAME_MAX } from "@/lib/constants/names";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createCrewAction } from "@/features/crews/server-actions/crews";
@@ -107,7 +108,7 @@ export function CrewForm({ defaultCity, sheet = false }: { defaultCity: string |
     <FormPage title="Create crew" sheet={sheet} onClose={() => router.back()} onBack={() => router.back()}>
       <>
           <div style={FORM_LABEL}>CREW NAME</div>
-          <input value={name} aria-label="Crew name" onChange={(e) => setName(e.target.value.slice(0, 64))} placeholder="e.g. EEE Crew" style={FORM_INPUT} />
+          <input value={name} aria-label="Crew name" onChange={(e) => setName(e.target.value.slice(0, NAME_MAX))} placeholder="e.g. EEE Crew" style={FORM_INPUT} />
 
           <div style={FORM_LABEL}>CITY</div>
           <CityPicker value={city || null} label="" onChange={(next) => setCity(next ?? "")} />

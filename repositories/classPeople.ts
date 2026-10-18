@@ -338,22 +338,6 @@ export async function askClassPerson(
   }
 }
 
-/** What a session pays is the OWNER's call alone — separate from the jobs an
- *  owner or trainer hands out, which is why this is not part of setClassPersonPowers. */
-export async function setClassPersonPay(
-  supabase: SupabaseClient,
-  classPersonId: string,
-  payPerSessionInr: number
-): Promise<void> {
-  const { error } = await supabase.rpc("set_class_person_pay", {
-    p_class_person_id: classPersonId,
-    p_pay_per_session_inr: payPerSessionInr,
-  });
-  if (error) {
-    throw new Error(error.message);
-  }
-}
-
 /** the sentence for an ask whose class has already started — it is closed */
 export const ASK_CLOSED_SENTENCE = "This class has already started — the request is closed.";
 

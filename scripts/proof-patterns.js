@@ -58,6 +58,13 @@ const JUNK_TENANT_NAME = new RegExp(
       "Panel (Studio|Org|Bystander)", "Cls (Studio|Asker)", "Founder Studio", "Disc Studio",
       "(Omega|Kappa|Lambda) Hall", "Reg Studio", "Seat Studio", "Tiles( Own)? Studio", "Earn Studio",
       "Zq\\d*",
+      /* the e2e names since NAME_MAX (19 Oct 2026, every name ≤ 15 characters) */
+      "E2E S", "Mod St", "Panel [SOB]", "WH [SM]",
+      /* the PowerShell proofs' studios since NAME_MAX: "<abbrev> Std <HHmmss>" */
+      "(Cls|Att|Fin|Enrl|Earn|Rivl|Enq|Priv|Crew|Med|Lead|Ntf|Fol|Pay|Near|Mem|MemR|PPL|PPP|Prof|P2|Rfnd|Room|Othr|Slug|Stf|Set|Stat|SV|Inc|Col|BizA|BizB) Std2?",
+      "Fin Page", "Art Biz",
+      /* the browser shoots' studios since NAME_MAX */
+      "(Seat|Shot|T|Fnd|Land|Ver|Disc|Reg) Std", "(Cls|T|Kap|Om|Mu|Lam|Job) Hall", "EEE (Hero|App) Studio",
     ].join("|") +
     ")\\b",
   "i"
@@ -65,14 +72,19 @@ const JUNK_TENANT_NAME = new RegExp(
 
 /* ⚠ NAMES A SCRIPT USES THAT ARE ALSO A REAL DEMO-WORLD BUSINESS. shoot-hero and
    shoot-app create "EEE Dance Studio" - and so does demo-data.js. Only a JUNK-EMAIL
-   owner (never a demo account, never a kept phone) makes one of these a leftover. */
-const JUNK_OWNER_ONLY_NAME = /^EEE Dance (Studio|Company)\b/i;
+   owner (never a demo account, never a kept phone) makes one of these a leftover.
+   19 Oct 2026 (NAME_MAX, every name ≤ 15 characters): the demo world's is "EEE
+   Studio" under "EEE Dance Co" now, so the short forms are matched too. */
+const JUNK_OWNER_ONLY_NAME = /^EEE (Dance (Studio|Company|Co)|Studio)\b/i;
 
 const JUNK_CREW_NAME = new RegExp(
   "^(" +
     [
       "E2E Crew", "Proof Crew", "Crew Proof", "Shot Crew", "Shot Leave Crew", "Tiles Crew", "Media Crew",
       "PP Crew", "Prof Crew", "P2 Crew", "Stat Crew", "Disc Crew", "Founder Crew", "Mu Crew", "Prac Crew",
+      "E2E C", /* the e2e crew since NAME_MAX (19 Oct 2026) */
+      "Prf Crew", "Med Crew", "Stt Crew", "PrP Crew", /* the proofs' crews since NAME_MAX */
+      "Fnd Crew", "Leave Cr", "Disc Cr", "P Crew", "Nu Crew", /* the shoots' crews since NAME_MAX */
       "Zq\\d*",
     ].join("|") +
     ")\\b",

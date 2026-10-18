@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { nameField } from "@/lib/constants/names";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findPhones, setMyLearnStyles, updateMyProfile } from "@/repositories/profiles";
 
@@ -11,7 +12,7 @@ import { findPhones, setMyLearnStyles, updateMyProfile } from "@/repositories/pr
  *  the shape; the RPC re-checks it and scopes the write to the caller. */
 
 const schema = z.object({
-  fullName: z.string().trim().min(1).max(120),
+  fullName: nameField("Add your name"),
   city: z.string().trim().min(1, "Add your city").max(120),
   age: z.number().int().min(13).max(99).nullable(),
   /* THE DATE OF BIRTH (19 Sep 2026): an ISO date; undefined leaves it as it is.

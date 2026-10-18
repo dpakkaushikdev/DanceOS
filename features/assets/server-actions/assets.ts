@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { nameField } from "@/lib/constants/names";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ASSET_CATEGORIES, removeAsset, saveAsset } from "@/repositories/assets";
 
@@ -30,7 +31,7 @@ async function me() {
 const saveSchema = z.object({
   assetId: z.string().uuid().nullable().optional(),
   businessId: z.string().uuid(),
-  name: z.string().trim().min(1, "Name the asset").max(80),
+  name: nameField("Name the asset"),
   category: z.enum(ASSET_CATEGORIES),
   /* ⚠ 0 is a real answer, not a missing one: it means an asset the business
      already had, which the screen prints as "₹0 (legacy)" */

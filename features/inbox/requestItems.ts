@@ -110,7 +110,8 @@ export function buildRequests(s: RequestSources): { requestsIn: RequestItem[]; r
       when: c.startsAt ? sessionDayLabel(c.startsAt) : null,
       href: `/c/${c.classShareSlug}`,
       at: c.createdAt,
-      note: c.payPerSessionInr > 0 ? `₹${c.payPerSessionInr.toLocaleString("en-IN")} a session` : null,
+      /* no rate on an ask (18 Oct 2026): pay is set when the studio pays */
+      note: null,
       classPersonId: c.id,
       status: statusOf(c.status, c.withdrawn),
       danceClass: askToTileClass(c),

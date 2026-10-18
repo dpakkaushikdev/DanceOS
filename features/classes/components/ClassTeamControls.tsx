@@ -5,7 +5,6 @@ import { useState, useTransition } from "react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
   askClassPersonAction,
-  setClassPersonPayAction,
   setClassPersonPowersAction,
   stepDownFromClassAction,
   withdrawClassAskAction,
@@ -197,53 +196,6 @@ export function StepDownButton({ classPersonId, kind, published, title }: { clas
         />
       ) : null}
     </>
-  );
-}
-
-/** WHAT A SESSION PAYS THEM ON THIS CLASS (11 Oct 2026, D2) — the OWNER's
- *  number, on the person's own row; a team member's seat rate filled it in when
- *  they were asked. Saved on blur or Enter; the database refuses anybody else. */
-export function RateControl({ classPersonId, rate, name }: { classPersonId: string; rate: number; name: string }) {
-  const router = useRouter();
-  const [text, setText] = useState(String(rate));
-  const [err, setErr] = useState<string | null>(null);
-  const [pending, start] = useTransition();
-  const save = () => {
-    const n = text.trim() === "" ? 0 : Number(text);
-    if (!Number.isInteger(n) || n < 0) {
-      setErr("Whole rupees, 0 or more");
-      return;
-    }
-    if (n === rate) return;
-    start(async () => {
-      setErr(null);
-      const res = await setClassPersonPayAction({ classPersonId, payPerSessionInr: n });
-      if (res.error) setErr(res.error);
-      else router.refresh();
-    });
-  };
-  return (
-    <label data-testid="class-person-rate" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 10.5, fontWeight: 800, color: "var(--sub)" }}>
-      ₹
-      <input
-        type="text"
-        inputMode="numeric"
-        value={text}
-        aria-label={`What a session pays ${name}`}
-        disabled={pending}
-        onChange={(e) => setText(e.target.value.replace(/[^0-9]/g, "").slice(0, 7))}
-        onBlur={save}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            save();
-          }
-        }}
-        style={{ width: 64, padding: "5px 8px", borderRadius: 999, border: "1.5px solid var(--el)", background: "var(--card)", color: "var(--text)", fontSize: 11, fontWeight: 800, fontFamily: "inherit" }}
-      />
-      / session
-      {err ? <span role="alert" style={{ color: "#F87171" }}>{err}</span> : null}
-    </label>
   );
 }
 

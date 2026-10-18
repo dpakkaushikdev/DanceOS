@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { nameField } from "@/lib/constants/names";
 import { isAmenity } from "@/lib/constants/amenities";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createRoom, softDeleteRoom, updateRoom } from "@/repositories/rooms";
@@ -25,7 +26,7 @@ const amenitiesSchema = z
 
 const createSchema = z.object({
   businessId: z.string().uuid(),
-  name: z.string().trim().min(1, "Give the room a name").max(80),
+  name: nameField("Give the room a name"),
   capacity: z.coerce.number().int().min(1, "A room holds at least one").max(500, "That is too many"),
   /* asked for in the add form since 4 Oct 2026 — absent means none */
   amenities: amenitiesSchema.optional(),
@@ -34,7 +35,7 @@ const createSchema = z.object({
 const updateSchema = z.object({
   businessId: z.string().uuid(),
   roomId: z.string().uuid(),
-  name: z.string().trim().min(1, "Give the room a name").max(80),
+  name: nameField("Give the room a name"),
   capacity: z.coerce.number().int().min(1, "A room holds at least one").max(500, "That is too many"),
   amenities: amenitiesSchema,
 });

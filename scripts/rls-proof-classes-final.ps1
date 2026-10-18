@@ -121,19 +121,19 @@ $orderId = $null
 
 try {
   # -- the world ----------------------------------------------------------------
-  $owner    = New-EmailUser "finalproof-owner-$stamp@example.com" "FinalProof Owner $stamp"
-  $teacher  = New-EmailUser "finalproof-teacher-$stamp@example.com" "FinalProof Teacher $stamp"
-  $teacher2 = New-EmailUser "finalproof-teacher2-$stamp@example.com" "FinalProof Teacher Two $stamp"
-  $learner  = New-EmailUser "finalproof-learner-$stamp@example.com" "FinalProof Learner $stamp"
-  $learner2 = New-EmailUser "finalproof-learner2-$stamp@example.com" "FinalProof Learner Two $stamp"
-  $stranger = New-EmailUser "finalproof-stranger-$stamp@example.com" "FinalProof Stranger $stamp"
+  $owner    = New-EmailUser "finalproof-owner-$stamp@example.com" "Fin Own $stamp"
+  $teacher  = New-EmailUser "finalproof-teacher-$stamp@example.com" "Fin Tch $stamp"
+  $teacher2 = New-EmailUser "finalproof-teacher2-$stamp@example.com" "Fin Tch2 $stamp"
+  $learner  = New-EmailUser "finalproof-learner-$stamp@example.com" "Fin Lrn $stamp"
+  $learner2 = New-EmailUser "finalproof-learner2-$stamp@example.com" "Fin Lrn2 $stamp"
+  $stranger = New-EmailUser "finalproof-stranger-$stamp@example.com" "Fin Strg $stamp"
 
-  $s1 = New-Studio $owner.token "FinalProof Studio $stamp" "Kothrud" "Pune"
+  $s1 = New-Studio $owner.token "Fin Std $stamp" "Kothrud" "Pune"
   $s1Id = [string]$s1.id
   Subscribe-Studio $s1Id
   # a second studio, so the overlapping class and the door class never meet the
   # first studio's room-clash guard (a room is held by time, not by person)
-  $s2 = New-Studio $owner.token "FinalProof Studio Two $stamp" "Baner" "Pune"
+  $s2 = New-Studio $owner.token "Fin Std2 $stamp" "Baner" "Pune"
   $s2Id = [string]$s2.id
   Subscribe-Studio $s2Id
 
@@ -163,7 +163,7 @@ try {
 
   # -- 2. A PASS IS NOT SPENT ON A FREE CLASS (B8) ------------------------------
   $mem = Rpc (Api $owner.token) "save_membership" @{ p_membership_id = $null; p_business_id = $s1Id
-    p_name = "FinalProof Hours $stamp"; p_unit = "hours"; p_units = 10; p_price_inr = 0; p_total_count = 5; p_status = "live" }
+    p_name = "Fin Hrs $stamp"; p_unit = "hours"; p_units = 10; p_price_inr = 0; p_total_count = 5; p_status = "live" }
   $p = Rpc (Api $learner2.token) "buy_membership" @{ p_membership_id = [string]$mem.id }
   $offered = Rpc-Rows (Api $learner2.token) "passes_for_session" @{ p_session_id = $A.sessionId }
   $freeSpend = Fails { Rpc (Api $learner2.token) "book_with_membership" @{ p_session_id = $A.sessionId; p_pass_id = [string]$p.id } }
@@ -212,13 +212,13 @@ try {
     current_period_start = (Get-Date).ToString("yyyy-MM-dd"); current_period_end = (Get-Date).AddMonths(1).ToString("yyyy-MM-dd"); granted = $true
     note = "Granted by a proof script - nothing charged"; created_by = $teacher.id; updated_by = $teacher.id } | ConvertTo-Json)
   $artistSubId = Get-ProofId $sub
-  $page = New-Artist-Page $teacher.token "FinalProof Page $stamp" "Kothrud" "Pune"
+  $page = New-Artist-Page $teacher.token "Fin Page $stamp" "Kothrud" "Pune"
   $pageId = [string]$page.id
   $room = Invoke-RestMethod -Method Post -Uri "$base/rest/v1/rooms" -Headers $svcH -Body (@{
-    business_id = $s1Id; name = "FinalProof Hall $stamp"; capacity = 20; created_by = $owner.id; updated_by = $owner.id } | ConvertTo-Json)
+    business_id = $s1Id; name = "Fin Hall $stamp"; capacity = 20; created_by = $owner.id; updated_by = $owner.id } | ConvertTo-Json)
   $roomId = Get-ProofId $room
   # 25 minutes ahead: inside the register's window (it opens 30 minutes before)
-  $V = New-Draft $teacher.token $pageId "FinalProof Venue $stamp" 25 60 0 @{ p_room = "FinalProof Hall $stamp"; p_room_id = $roomId; p_venue_business_id = $s1Id }
+  $V = New-Draft $teacher.token $pageId "FinalProof Venue $stamp" 25 60 0 @{ p_room = "Fin Hall $stamp"; p_room_id = $roomId; p_venue_business_id = $s1Id }
   Rpc (Api $owner.token) "respond_to_venue_request" @{ p_class_id = $V.id; p_accept = $true } | Out-Null
   Publish $teacher.token $V.id
   $bv = Rpc (Api $learner.token) "book_class_session" @{ p_session_id = $V.sessionId }
@@ -259,7 +259,7 @@ try {
   $tPre = Booking-Notes $teacher.id
   $oPre = Booking-Notes $owner.id
   $door = Fails { Rpc (Api $owner.token) "book_at_the_door" @{ p_session_id = $D.sessionId; p_user_id = $stranger.id; p_name = $null } }
-  $walk = Fails { Rpc (Api $owner.token) "book_at_the_door" @{ p_session_id = $D.sessionId; p_user_id = $null; p_name = "FinalProof Walk In" } }
+  $walk = Fails { Rpc (Api $owner.token) "book_at_the_door" @{ p_session_id = $D.sessionId; p_user_id = $null; p_name = "Fin Walk In" } }
   $doorSeats = Get-Rows $svcH "class_bookings?session_id=eq.$($D.sessionId)&status=eq.enrolled&deleted_at=is.null&select=id"
   $tPost = Booking-Notes $teacher.id
   $oPost = Booking-Notes $owner.id

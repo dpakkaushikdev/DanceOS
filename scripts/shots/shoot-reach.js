@@ -113,7 +113,7 @@ const check = (name, pass, detail = "") => {
     check("and says an impression is one row per SHELF", /one row per SHELF/i.test(shown));
 
     const list = await open("/admin/reach?tab=shown&q=EEE");
-    check("a term returns businesses", /EEE Dance Studio/.test(list), "EEE Dance Studio");
+    check("a term returns businesses", /EEE Studio/.test(list), "EEE Studio");
 
     /* ARTISTS (6 Oct 2026, decision 7) — a person with a live plan is offered
        under ARTISTS, and opening one reads `impressions_for_person` */
@@ -130,11 +130,11 @@ const check = (name, pass, detail = "") => {
 
     /* the read that only a real admin can make.
        ⚠ RE-CUT 6 Oct 2026: it opened a HARD-CODED id, and the demo world was
-       re-seeded on 3 Oct — EEE Dance Studio is a different row now, so the page
+       re-seeded on 3 Oct — EEE Studio is a different row now, so the page
        fell back to the list and the check read "none" on a working desk. It
        follows the link the list itself draws. */
     await open("/admin/reach?tab=shown&q=EEE");
-    const eeeHref = await page.getByRole("link", { name: /EEE Dance Studio/ }).first().getAttribute("href").catch(() => null);
+    const eeeHref = await page.getByRole("link", { name: /EEE Studio/ }).first().getAttribute("href").catch(() => null);
     const one = eeeHref ? await open(eeeHref) : "";
     const shelves = /(\d+) shelves in 30 days/.exec(one);
     check("the business's impressions are read back", shelves !== null && Number(shelves[1]) > 0, shelves ? `${shelves[1]} shelves` : "none");

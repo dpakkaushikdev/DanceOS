@@ -1,5 +1,6 @@
 "use client";
 
+import { NAME_MAX } from "@/lib/constants/names";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type CSSProperties } from "react";
 import {
@@ -179,7 +180,7 @@ export function AssetForm({ businessId, asset }: { businessId: string; businessN
         </div>
 
         <div style={FORM_LABEL}>ASSET NAME</div>
-        <input value={name} onChange={(e) => setName(e.target.value.slice(0, 80))} placeholder="e.g. PA system" aria-label="Asset name" style={FORM_INPUT} />
+        <input value={name} onChange={(e) => setName(e.target.value.slice(0, NAME_MAX))} placeholder="e.g. PA system" aria-label="Asset name" style={FORM_INPUT} />
 
         <div style={FORM_LABEL}>TYPE OF ASSET</div>
         {/* ⚠ THE APP'S OWN SHEET, NOT THE PHONE'S (27 Sep 2026) — this form opens

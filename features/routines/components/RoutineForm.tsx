@@ -1,5 +1,6 @@
 "use client";
 
+import { NAME_MAX } from "@/lib/constants/names";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { DosStylePicker } from "@/components/ui/DosStyleKit";
@@ -127,7 +128,7 @@ export function RoutineForm({ userId, sheet = false }: { userId: string; sheet?:
     <FormPage title="Add Routine" sheet={sheet} onClose={() => router.back()} onBack={() => router.back()}>
       <>
           <div style={FORM_LABEL}>ROUTINE NAME</div>
-          <input aria-label="Routine name" value={f.title} onChange={(e) => setF((x) => ({ ...x, title: e.target.value.slice(0, 120) }))} placeholder="e.g. Saturday set" style={FORM_INPUT} />
+          <input aria-label="Routine name" value={f.title} onChange={(e) => setF((x) => ({ ...x, title: e.target.value.slice(0, NAME_MAX) }))} placeholder="e.g. Saturday set" style={FORM_INPUT} />
 
           <div style={FORM_LABEL}>DANCE STYLE</div>
           <DosStylePicker value={f.style} onChange={(s) => setF((x) => ({ ...x, style: s }))} />

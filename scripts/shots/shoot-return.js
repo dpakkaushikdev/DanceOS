@@ -45,6 +45,7 @@ const check = (ok, what) => {
 
 (async () => {
   const stamp = Date.now().toString(36);
+  const tag = stamp.slice(-6);
   const email = `shot.return.${stamp}@example.com`;
   let userId = null;
   const browser = await chromium.launch();
@@ -62,7 +63,7 @@ const check = (ok, what) => {
     const made = await call("POST", "/auth/v1/admin/users", { email, password: PASSWORD, email_confirm: true });
     if (!made.ok) throw new Error(`create user: ${made.status}`);
     userId = made.body.id;
-    const prof = await call("POST", "/rest/v1/profiles", { id: userId, full_name: `Shot Returner ${stamp}`, role: "user", city: "Gurugram", styles: ["Hip-Hop"], created_by: userId, updated_by: userId });
+    const prof = await call("POST", "/rest/v1/profiles", { id: userId, full_name: `Returner ${tag}`, role: "user", city: "Gurugram", styles: ["Hip-Hop"], created_by: userId, updated_by: userId });
     if (!prof.ok) throw new Error(`profile: ${prof.status} ${JSON.stringify(prof.body)}`);
     const tok = await call("POST", "/auth/v1/token?grant_type=password", { email, password: PASSWORD }, { apikey: ANON, "Content-Type": "application/json", "User-Agent": UA });
     const U = { apikey: ANON, Authorization: `Bearer ${tok.body.access_token}`, "Content-Type": "application/json", "User-Agent": UA };

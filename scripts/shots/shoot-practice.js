@@ -43,6 +43,7 @@ const BASE = process.env.DANCEOS_BASE_URL || "http://localhost:3000";
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==", "base64");
 const FILE = { name: "face.png", mimeType: "image/png", buffer: PNG };
 const stamp = Date.now().toString(36);
+const tag = stamp.slice(-6);
 
 let pass = 0;
 let fail = 0;
@@ -120,9 +121,9 @@ const tomorrowIst = () => {
   }
   const ids = [];
   let crewId = "";
-  const leaderName = `Prac Leader ${stamp}`;
-  const memberName = `Prac Member ${stamp}`;
-  const crewName = `Prac Crew ${stamp}`;
+  const leaderName = `P Leader ${tag}`;
+  const memberName = `P Member ${tag}`;
+  const crewName = `P Crew ${tag}`;
 
   try {
     ids.push(await signUp(leader, `prac.lead.${stamp}@example.com`));

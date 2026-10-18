@@ -53,7 +53,7 @@ async function makeAccount(stamp, who) {
   const password = `Tiles!${stamp}aA1`;
   const made = await rest("POST", "/auth/v1/admin/users", { email, password, email_confirm: true });
   await rest("POST", "/rest/v1/profiles", {
-    id: made.id, full_name: `Tiles ${who} ${stamp}`, role: "user", city: "Pune", styles: ["Hip-Hop"],
+    id: made.id, full_name: `T ${who} ${stamp.slice(-6)}`, role: "user", city: "Pune", styles: ["Hip-Hop"],
     created_by: made.id, updated_by: made.id,
   });
   return { id: made.id, email, password };
@@ -151,7 +151,7 @@ async function arrangeGrid(page, who, url) {
  *  the segment says SKIP in that case rather than reporting a red that means
  *  "not applied yet". */
 async function personOpensAStudio(page, who, acc, stamp) {
-  const name = `Tiles Own Studio ${stamp}`;
+  const name = `T Std ${stamp.slice(-6)}`;
   await page.goto(`${BASE}/business`, { waitUntil: "networkidle" });
   const gate = await page.getByRole("status").filter({ hasText: "Add studio" }).innerText().catch(() => "");
   if (/Only an organization/.test(gate)) { console.log(`  SKIP ${who} · the live gate still refuses a person — apply 20260926090000 first`); return null; }
@@ -431,7 +431,7 @@ async function personOpensAStudio(page, who, acc, stamp) {
     // ── 4. a STUDIO's own home, owned by that person
     //       runs no studios since 26 Sep 2026 - the person does)
     const [studio] = await rest("POST", "/rest/v1/businesses", {
-      type: "studio", name: `Tiles Studio ${stamp}`, area: "Kothrud", city: "Pune",
+      type: "studio", name: `T Hall ${stamp.slice(-6)}`, area: "Kothrud", city: "Pune",
       lat: 18.5204, lng: 73.8567, visibility: "unlisted", styles: ["Hip-Hop"],
       created_by: owner.id, updated_by: owner.id,
     });

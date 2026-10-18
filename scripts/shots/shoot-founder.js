@@ -99,20 +99,21 @@ const openMemberSheet = async (page, memberName) => {
 
 (async () => {
   const stamp = Date.now().toString(36);
+  const tag = stamp.slice(-6);
   const made = { users: [], businesses: [], crews: [] };
   const browser = await chromium.launch();
   const errs = [];
 
   try {
     /* ── THE WORLD: a founder, and somebody they hand things to ─────────────── */
-    const founder = await account(`shot.founder.${stamp}@example.com`, `Found Er ${stamp}`, "Pune");
-    const second = await account(`shot.second.${stamp}@example.com`, `Sec Ond ${stamp}`, "Pune");
+    const founder = await account(`shot.founder.${stamp}@example.com`, `Found Er ${tag}`, "Pune");
+    const second = await account(`shot.second.${stamp}@example.com`, `Sec Ond ${tag}`, "Pune");
     made.users.push(founder.id, second.id);
 
     /* ══ A STUDIO WITH TWO OWNERS ═════════════════════════════════════════════ */
     const studio = await rpc(founder.h, "create_business_with_owner", {
       p_type: "studio",
-      p_name: `Founder Studio ${stamp}`,
+      p_name: `Fnd Std ${tag}`,
       p_area: "Kothrud",
       p_city: "Pune",
       p_styles: ["Hip-Hop"],
@@ -184,11 +185,11 @@ const openMemberSheet = async (page, memberName) => {
     await sPage.getByRole("button", { name: "Switch profile" }).click();
     await sPage.waitForTimeout(300);
     const sRows = await sPage.evaluate(() => [...document.querySelectorAll('[role="dialog"] a, [role="menu"] a, a[href^="/business/"]')].map((a) => a.textContent.replace(/\s+/g, " ").trim()).filter(Boolean));
-    check(!sRows.some((r) => r.includes("Founder Studio")), `…and the removed owner's switcher no longer offers the studio — [${sRows.join(" / ") || "own row only"}]`);
+    check(!sRows.some((r) => r.includes("Fnd Std")), `…and the removed owner's switcher no longer offers the studio — [${sRows.join(" / ") || "own row only"}]`);
 
     /* ══ A CREW HANDED OVER, AND TAKEN BACK ═══════════════════════════════════ */
     const crew = await rpc(founder.h, "create_crew", {
-      p_name: `Founder Crew ${stamp}`,
+      p_name: `Fnd Crew ${tag}`,
       p_city: "Pune",
       p_style: "Hip-Hop",
       p_member_ids: [second.id],
@@ -208,16 +209,16 @@ const openMemberSheet = async (page, memberName) => {
        ⚠ Team › Other Teams since 18 Oct 2026 — the Crews hub lost its Member column */
     await fPage.goto(`${BASE}/team`, { waitUntil: "networkidle" });
     const inText = (await fPage.locator("body").innerText()).replace(/\s+/g, " ");
-    check(inText.includes(`Founder Crew ${stamp}`), "⚠ the handed-over crew is under the founder's Other Teams — they are a member of it now");
+    check(inText.includes(`Fnd Crew ${tag}`), "⚠ the handed-over crew is under the founder's Other Teams — they are a member of it now");
     check(inText.includes("You started this crew and handed it over"), "…and the row says so, rather than offering a button with no reason beside it");
 
-    const takeBack = fPage.getByRole("button", { name: `Take Founder Crew ${stamp} back` });
+    const takeBack = fPage.getByRole("button", { name: `Take Fnd Crew ${tag} back` });
     check((await takeBack.count()) === 1, `…with one Take it back — ${await takeBack.count()}`);
 
     /* ── 6. AND NOBODY ELSE HAS IT ─────────────────────────────────────────── */
     await sPage.goto(`${BASE}/crews`, { waitUntil: "networkidle" });
     const sLed = (await sPage.locator("body").innerText()).replace(/\s+/g, " ");
-    check(sLed.includes(`Founder Crew ${stamp}`), "the person it was handed to has it under Yours — they lead it");
+    check(sLed.includes(`Fnd Crew ${tag}`), "the person it was handed to has it under Yours — they lead it");
     check((await sPage.getByRole("button", { name: /^Take .* back$/ }).count()) === 0, "⚠⚠ …and is offered NO Take it back, on either column — the door is the FOUNDER's, not the leader's");
 
     /* ── 7. THE DOOR ITSELF ────────────────────────────────────────────────── */
@@ -225,7 +226,7 @@ const openMemberSheet = async (page, memberName) => {
     await fPage.waitForTimeout(1500);
     await fPage.goto(`${BASE}/crews`, { waitUntil: "networkidle" });
     const back = (await fPage.locator("body").innerText()).replace(/\s+/g, " ");
-    check(back.includes(`Founder Crew ${stamp}`), "one press and the crew is back under the founder's Yours column");
+    check(back.includes(`Fnd Crew ${tag}`), "one press and the crew is back under the founder's Yours column");
 
     const reclaimed = (await rows(founder.h, `crews?id=eq.${crew.id}&select=leader_id`))[0];
     check(reclaimed.leader_id === founder.id, "…read back out of the database: the founder leads it again");

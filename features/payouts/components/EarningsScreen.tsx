@@ -48,10 +48,10 @@ import { EARNING_TINT, sumLines, type EarningsReport, type MoneyItem, type Money
  *  • REPORTS — the trend, where the money came from, where it went, the top
  *    earners and how people paid.
  *
- *  ⚠ What a studio owes its people and what studios pay a person are NOT here
- *  any more — they are the Team section's (the user: "what you owe should be
- *  handled from teams not here … what studios pay you should also be handled
- *  from team section"). A page passes `team` to print one line pointing there. */
+ *  ⚠ What is NOT yet settled with a team or a studio is not here at all (18 Oct
+ *  2026) — it is the Team section's, where the amount is set. Paid team pay and
+ *  rent are ordinary lines. And this screen is DATA: a row is a door only inside
+ *  the Details sheet. */
 
 const card: CSSProperties = { background: "var(--card)", border: "1.5px solid var(--el)", borderRadius: 16, padding: "13px 14px", marginBottom: 10 };
 const eyebrow: CSSProperties = { fontSize: 9.5, fontWeight: 900, letterSpacing: 0.9, color: "var(--muted)" };
@@ -71,8 +71,6 @@ const chipBtn: CSSProperties = {
   gap: 5,
 };
 
-/** a team figure the page points at — what you owe your people, what studios owe you */
-export type TeamLine = { label: string; amountInr?: number; href: string; note?: string; side: "revenue" | "expenses" };
 
 /** "2 Oct" in IST */
 const dayWords = (iso: string): string => new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
@@ -98,7 +96,6 @@ export function EarningsScreen({
   sub,
   basePath,
   noExpenses = false,
-  team = [],
   children,
 }: {
   report: EarningsReport;
@@ -109,8 +106,6 @@ export function EarningsScreen({
   basePath: string;
   /** a person employs nobody, so "what is left" IS what came in */
   noExpenses?: boolean;
-  /** one line each, pointing at the Team section that holds it */
-  team?: TeamLine[];
   children?: ReactNode;
 }) {
   const router = useRouter();
@@ -259,10 +254,10 @@ export function EarningsScreen({
           />
         </div>
 
-        {/* ⚠ THE TEAM'S MONEY IS NOT DRAWN HERE ANY MORE (18 Oct 2026, the user:
-            "owed to your team should be in expenses and what studio pays you should
-            be in revenue. not below what is left") — each line sits inside its
-            own section below, as a door to Team */}
+        {/* ⚠ NO "OWED" OR "STUDIO NEEDS TO PAY" LINES (18 Oct 2026, the user:
+            "remove both of them from earnings"): a team payment and rent are in
+            the lines below once they are PAID; what is not settled yet is the Team
+            section's, where the amount is set */}
       </DeskMiddle>
 
       <DeskBody>
@@ -275,7 +270,6 @@ export function EarningsScreen({
           open={openRev}
           onToggle={() => setOpenRev((o) => !o)}
           onDive={() => setDive("revenue")}
-          team={team.filter((t) => t.side === "revenue")}
         />
         {noExpenses ? null : (
           <Section
@@ -287,7 +281,6 @@ export function EarningsScreen({
             open={openExp}
             onToggle={() => setOpenExp((o) => !o)}
             onDive={() => setDive("expenses")}
-            team={team.filter((t) => t.side === "expenses")}
           />
         )}
 
@@ -410,7 +403,6 @@ function Section({
   open,
   onToggle,
   onDive,
-  team = [],
 }: {
   title: string;
   lines: MoneyLine[];
@@ -420,8 +412,6 @@ function Section({
   open: boolean;
   onToggle: () => void;
   onDive: () => void;
-  /** the Team section's money that belongs on this side — a door, not added to the total */
-  team?: TeamLine[];
 }) {
   const max = Math.max(1, ...lines.map((l) => l.amountInr));
   const word = title.charAt(0) + title.slice(1).toLowerCase();
@@ -450,25 +440,6 @@ function Section({
       </div>
       {open ? lines.map((l) => <BreakupLine key={l.key} line={l} max={max} tone={tone} />) : null}
       {open && lines.length === 0 ? <div style={{ fontSize: 11.5, color: SUB, marginTop: 6 }}>{empty}</div> : null}
-      {open
-        ? team.map((t) => (
-            <Link
-              key={t.label}
-              href={t.href}
-              data-testid="earn-team"
-              style={{ display: "flex", alignItems: "center", gap: 10, color: INK, textDecoration: "none", marginTop: 8, padding: "9px 11px", borderRadius: 12, border: "1.5px dashed var(--el)" }}
-            >
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: 12.5, fontWeight: 900 }}>{t.label}</span>
-                {t.note ? <span style={{ display: "block", fontSize: 10.5, color: SUB, fontWeight: 700, marginTop: 1 }}>{t.note}</span> : null}
-              </span>
-              {t.amountInr !== undefined ? <b style={{ fontSize: 13 }}>{money(t.amountInr)}</b> : null}
-              <span aria-hidden="true" style={{ color: SUB }}>
-                ›
-              </span>
-            </Link>
-          ))
-        : null}
     </div>
   );
 }
@@ -504,19 +475,19 @@ function BreakupLine({ line: l, max, tone }: { line: MoneyLine; max: number; ton
       {l.note ? <div style={{ fontSize: 9.5, color: "var(--muted)", marginTop: 4 }}>{l.note}</div> : null}
       {open ? (
         <div data-testid="earn-items" style={{ marginTop: 7, paddingLeft: 9, borderLeft: `2px solid ${tint}` }}>
-          {items.length === 0 ? <div style={{ fontSize: 11, color: SUB, padding: "3px 0" }}>Nothing in this period.</div> : items.map((it, i) => <ItemRow key={`${it.at}-${i}`} item={it} />)}
-          {l.href ? (
-            <Link href={l.href} style={{ display: "inline-block", marginTop: 5, fontSize: 11, fontWeight: 800, color: SUB, textDecoration: "none" }}>
-              Open the desk ›
-            </Link>
-          ) : null}
+          {/* ⚠ DATA ONLY HERE (18 Oct 2026, the user: "earnings should just show
+              data and not redirect to other pages from outside only when going
+              deep in a specific earnings or expenses tab") — the rows are doors in
+              the Details sheet and nowhere else on this screen */}
+          {items.length === 0 ? <div style={{ fontSize: 11, color: SUB, padding: "3px 0" }}>Nothing in this period.</div> : items.map((it, i) => <ItemRow key={`${it.at}-${i}`} item={it} linked={false} />)}
         </div>
       ) : null}
     </div>
   );
 }
 
-function ItemRow({ item: it, testId }: { item: MoneyItem; testId?: string }) {
+function ItemRow({ item: raw, testId, linked = true }: { item: MoneyItem; testId?: string; linked?: boolean }) {
+  const it = linked ? raw : { ...raw, href: undefined };
   const body = (
     <>
       <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.label}</span>

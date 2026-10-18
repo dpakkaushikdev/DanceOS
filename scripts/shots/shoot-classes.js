@@ -160,19 +160,20 @@ const BOOK_ON_PAGE = /^Book Now$/;
 
 (async () => {
   const stamp = Date.now().toString(36);
+  const tag = stamp.slice(-6);
   const made = { users: [], businesses: [] };
   const browser = await chromium.launch();
   const errs = [];
 
   try {
     /* ── THE WORLD ─────────────────────────────────────────────────────────── */
-    const owner = await account(`shot.cls.owner.${stamp}@example.com`, `Cls Owner ${stamp}`, "Pune");
-    const manager = await account(`shot.cls.mgr.${stamp}@example.com`, `Cls Mgr ${stamp}`, "Pune");
-    const learner = await account(`shot.cls.lrn.${stamp}@example.com`, `Cls Lrn ${stamp}`, "Pune");
-    const artist = await account(`shot.cls.art.${stamp}@example.com`, `Cls Art ${stamp}`, "Pune");
+    const owner = await account(`shot.cls.owner.${stamp}@example.com`, `Cls Own ${tag}`, "Pune");
+    const manager = await account(`shot.cls.mgr.${stamp}@example.com`, `Cls Mgr ${tag}`, "Pune");
+    const learner = await account(`shot.cls.lrn.${stamp}@example.com`, `Cls Lrn ${tag}`, "Pune");
+    const artist = await account(`shot.cls.art.${stamp}@example.com`, `Cls Art ${tag}`, "Pune");
     made.users.push(owner.id, manager.id, learner.id, artist.id);
 
-    const studio = await rpc(owner.h, "create_business_with_owner", { p_type: "studio", p_name: `Cls Studio ${stamp}`, p_area: "Kothrud", p_city: "Pune", p_styles: ["Hip-Hop"] });
+    const studio = await rpc(owner.h, "create_business_with_owner", { p_type: "studio", p_name: `Cls Hall ${tag}`, p_area: "Kothrud", p_city: "Pune", p_styles: ["Hip-Hop"] });
     made.businesses.push(studio.id);
     /* ⚠ AND IT HAS TO BE LISTED, or none of the learner-side checks mean
        anything: a studio is born UNLISTED, so `findClassBySlug` and the shelf
@@ -291,7 +292,7 @@ const BOOK_ON_PAGE = /^Book Now$/;
       granted: true, note: "Granted by a shoot script — nothing charged",
       created_by: artist.id, updated_by: artist.id,
     }, "grant the artist plan");
-    const other = await rpc(artist.h, "create_business_with_owner", { p_type: "artist_page", p_name: `Cls Asker ${stamp}`, p_area: "Kothrud", p_city: "Pune", p_styles: ["Hip-Hop"] });
+    const other = await rpc(artist.h, "create_business_with_owner", { p_type: "artist_page", p_name: `Cls Ask ${tag}`, p_area: "Kothrud", p_city: "Pune", p_styles: ["Hip-Hop"] });
     made.businesses.push(other.id);
     const venueClassId = await rpc(artist.h, "create_class_with_session", {
       p_business_id: other.id, p_title: "Hip-Hop · All levels", p_style: "Hip-Hop", p_level: "all",
@@ -309,7 +310,7 @@ const BOOK_ON_PAGE = /^Book Now$/;
       check((await oPage.getByTestId("classes-tab-todo").getAttribute("aria-selected")) === "true", "⚠⚠ the screen opens on To do while something waits on the studio");
       const askedOf = oPage.getByTestId("todo-answer");
       check((await askedOf.getByTestId("card-accept").count()) === 1, "an artist's room request is the first thing under Asked of you, Accept on its card");
-      check(new RegExp(`Cls Asker ${stamp} wants a room`, "i").test(await askedOf.innerText()), "…naming who wants a room, on the app's own class card");
+      check(new RegExp(`Cls Ask ${tag} wants a room`, "i").test(await askedOf.innerText()), "…naming who wants a room, on the app's own class card");
       /* ⚠ the old address lands on the tab it meant (Rule 14) */
       await oPage.goto(`${BASE}/business/${studio.id}/classes?show=requests`, { waitUntil: "networkidle" });
       check((await oPage.getByTestId("classes-tab-todo").getAttribute("aria-selected")) === "true", "…and an old ?show=requests link opens To do");
@@ -640,7 +641,7 @@ const BOOK_ON_PAGE = /^Book Now$/;
 
     /* the LEARNER reads their own side of the same row */
     await lPage.goto(`${BASE}/refunds`, { waitUntil: "networkidle" });
-    check(/PROCESSING/.test(await text(lPage)) && /Cls Studio/.test(await text(lPage)), "the learner's own Refunds ledger carries the ₹300 as PROCESSING, against the studio that owes it");
+    check(/PROCESSING/.test(await text(lPage)) && /Cls Hall/.test(await text(lPage)), "the learner's own Refunds ledger carries the ₹300 as PROCESSING, against the studio that owes it");
 
     /* ══ 12 · WHAT A PASS WAS SPENT ON, BOTH ENDS (30 Sep 2026) ═══════════════
        `pass_uses` shipped on 19 Sep with no caller: the seller's page said WHICH
@@ -655,13 +656,13 @@ const BOOK_ON_PAGE = /^Book Now$/;
     await rpc(owner.h, "ask_class_person", { p_class_id: passCls, p_user_id: owner.id, p_kind: "artist" });
     await patch(owner.h, `classes?id=eq.${passCls}`, { status: "published" }, "publish the pass class");
     const passSes = (await rows(owner.h, `class_sessions?class_id=eq.${passCls}&select=id`))[0].id;
-    const mem = await rpc(owner.h, "save_membership", { p_membership_id: null, p_business_id: studio.id, p_name: `Shoot Pass ${stamp}`, p_unit: "classes", p_units: 2, p_price_inr: 0, p_total_count: 5, p_status: "live" });
+    const mem = await rpc(owner.h, "save_membership", { p_membership_id: null, p_business_id: studio.id, p_name: `Cls Pass ${tag}`, p_unit: "classes", p_units: 2, p_price_inr: 0, p_total_count: 5, p_status: "live" });
     /* ⚠ A FRESH BUYER, not the learner: until 11 Oct 2026 accepting a class in
        segment 7 seated the learner `visiting_faculty` (R19) and the database
        refuses a member of the seller's team a membership. The yes seats nobody
        now, but the learner is also the teacher of `second`, so a clean buyer
        keeps this segment about passes alone. */
-    const buyer = await account(`shot.cls.buy.${stamp}@example.com`, `Cls Buyer ${stamp}`, "Pune");
+    const buyer = await account(`shot.cls.buy.${stamp}@example.com`, `Cls Buy ${tag}`, "Pune");
     made.users.push(buyer.id);
     const passRow = await rpc(buyer.h, "buy_membership", { p_membership_id: mem.id });
     await rpc(buyer.h, "book_with_membership", { p_session_id: passSes, p_pass_id: passRow.id });
@@ -670,7 +671,7 @@ const BOOK_ON_PAGE = /^Book Now$/;
     const bPage = await signIn(bCtx, buyer.email);
     bPage.on("pageerror", (e) => errs.push(`${bPage.url()} ${e}`));
     await bPage.goto(`${BASE}/memberships`, { waitUntil: "networkidle" });
-    const myPass = bPage.getByTestId("my-pass").filter({ hasText: `Shoot Pass ${stamp}` });
+    const myPass = bPage.getByTestId("my-pass").filter({ hasText: `Cls Pass ${tag}` });
     check((await myPass.getByTestId("spent-on").count()) === 1, "the holder's own pass card carries SPENT ON under its bar");
     check(/Bharatanatyam/.test(await myPass.innerText()), "…naming the class the unit went on");
     check((await myPass.getByTestId("pass-progress").getAttribute("aria-label")) === "1 of 2 used", "…and the bar agrees with the list — one number (Step 25)");

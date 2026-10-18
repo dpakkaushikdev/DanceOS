@@ -70,13 +70,13 @@ $stamp = Get-Date -Format "HHmmss"
 $owner = New-EmailUser "refproof-owner-$stamp@example.com" "Owner $stamp" "user"
 $settler = New-EmailUser "refproof-settler-$stamp@example.com" "Settler $stamp" "user"
 $trainer = New-EmailUser "refproof-trainer-$stamp@example.com" "Trainer $stamp" "user"
-$l1 = New-EmailUser "refproof-l1-$stamp@example.com" "Learner One $stamp" "user"
-$l2 = New-EmailUser "refproof-l2-$stamp@example.com" "Learner Two $stamp" "user"
+$l1 = New-EmailUser "refproof-l1-$stamp@example.com" "Lrn One $stamp" "user"
+$l2 = New-EmailUser "refproof-l2-$stamp@example.com" "Lrn Two $stamp" "user"
 $rival = New-EmailUser "refproof-rival-$stamp@example.com" "Rival $stamp" "user"
 
-$ta = New-Studio $owner.token "Refund Proof Studio $stamp" "Kothrud" "Pune"
+$ta = New-Studio $owner.token "Rfnd Std $stamp" "Kothrud" "Pune"
 Subscribe-Studio ([string]$ta.id)
-$tb = New-Studio $rival.token "Rival Studio $stamp" "Andheri" "Mumbai"
+$tb = New-Studio $rival.token "Rivl Std $stamp" "Andheri" "Mumbai"
 Subscribe-Studio ([string]$tb.id)
 Add-Member $ta.id $settler.id "staff" $owner.id
 Add-Member $ta.id $trainer.id "trainer" $owner.id

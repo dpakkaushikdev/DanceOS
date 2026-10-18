@@ -7,6 +7,7 @@ import { sentTeamAnsweredRow } from "@/features/inbox/inviteRows";
 import { findBusinessPayLedger, findMyEarnings } from "@/repositories/payouts";
 import { findMyMemberships, findBusinessTeam, runsTheBusiness } from "@/repositories/businesses";
 import { findTeamClassCounts } from "@/repositories/teamMemberWork";
+import { findRentReceived, findRentVenues } from "@/repositories/rent";
 import { loadOtherTeams } from "@/features/staff/server/loadOtherTeams";
 import { otherTeamsWaiting } from "@/features/staff/otherTeams";
 
@@ -79,10 +80,14 @@ export default async function BusinessStaffPage({
   const owned = ownArtistPage
     ? (await findMyMemberships(supabase).catch(() => [])).filter((m) => m.memberRole === "owner").map((m) => m.business.id)
     : [];
-  const [classCounts, artistData, paidToYou] = await Promise.all([
+  const [classCounts, artistData, paidToYou, rentVenues, rentReceived] = await Promise.all([
     findTeamClassCounts(supabase, businessId, team.map((m) => m.userId)).catch(() => null),
     ownArtistPage ? loadOtherTeams(supabase, user.id) : Promise.resolve(null),
     ownArtistPage ? findMyEarnings(supabase, user.id, stampNowIso(), owned).catch(() => null) : Promise.resolve(null),
+    /* RENT (18 Oct 2026): an artist pays the studios that hold its classes from
+       Other Teams; a studio reads the rent it was paid on its own Team desk */
+    ownArtistPage ? findRentVenues(supabase, businessId).catch(() => []) : Promise.resolve([]),
+    business.type === "studio" && myRole === "owner" ? findRentReceived(supabase, businessId).catch(() => []) : Promise.resolve([]),
   ]);
   /* `?show=artists` is the column's name before 18 Oct 2026 — Rule 14 */
   const wantsOther = asked === "other" || asked === "artists";
@@ -98,6 +103,8 @@ export default async function BusinessStaffPage({
       payments={ledger?.payouts ?? []}
       payLedger={myRole === "owner" ? ledger : null}
       paidToYou={paidToYou}
+      rentVenues={rentVenues}
+      rentReceived={rentReceived}
       classCounts={classCounts ? Object.fromEntries(classCounts) : null}
       // asking and removing are the owner's alone (§10.9); everyone else reads
       isOwner={myRole === "owner"}

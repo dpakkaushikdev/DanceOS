@@ -73,7 +73,7 @@ async function signUp(page, email) {
     await shot("onboarding");
     /* onboarded as a PERSON (26 Sep 2026): the organization login is retired,
        and any account opens a studio — the "Organization" tap is gone */
-    await page.locator('input[name="name"]').fill("EEE Dance Company");
+    await page.locator('input[name="name"]').fill("EEE App Co");
     /* the one city dropdown (19 Sep 2026): through "Search another city…" */
     await page.getByLabel("Choose a city").first().click();
     await page.getByRole("option", { name: "New Delhi", exact: true }).click();
@@ -109,7 +109,7 @@ async function signUp(page, email) {
     /* the shared DeskAddButton's accessible name — its ＋ is an aria-hidden SVG
        now, so the old text locator finds nothing (20 Sep 2026) */
     await page.getByRole("button", { name: "Add studio" }).first().click();
-    await page.locator('input[name="name"]').fill("EEE Dance Studio");
+    await page.locator('input[name="name"]').fill("EEE App Studio");
     await page.locator('input[name="area"]').fill("Kothrud");
     /* the city picker replaced the select (11 Sep 2026) — a Google city search,
        with the typed name as the fallback a test can rely on */
@@ -124,7 +124,7 @@ async function signUp(page, email) {
     await page.getByRole("button", { name: "Hip-Hop", exact: true }).click();
     await shot("new-studio-sheet");
     await page.getByRole("button", { name: "Create studio" }).click();
-    await page.getByText("EEE Dance Studio").first().waitFor();
+    await page.getByText("EEE App Studio").first().waitFor();
     /* NOT PUBLIC, with the database's own sentence and its Subscribe button */
     await shot("business-hub-studio-unsubscribed");
 
@@ -157,7 +157,7 @@ async function signUp(page, email) {
     });
     await page.goto(`${BASE}/business`);
     await shot("business-hub");
-    await page.getByText("EEE Dance Studio").first().click();
+    await page.getByText("EEE App Studio").first().click();
     /* the row opens the studio's own home (14 Sep 2026) — the photo header, today, its tools */
     await page.waitForURL(/\/business\/[0-9a-f-]+$/);
     tenantId = page.url().match(/\/business\/([0-9a-f-]+)$/)?.[1] ?? null;

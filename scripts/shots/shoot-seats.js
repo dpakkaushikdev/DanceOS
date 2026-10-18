@@ -124,19 +124,20 @@ const DESKS = [...RUN_DESKS, ...OWNER_DESKS];
 
 (async () => {
   const stamp = Date.now().toString(36);
+  const tag = stamp.slice(-6);
   const made = { users: [], businesses: [] };
   const browser = await chromium.launch();
   const errs = [];
 
   try {
     /* ── THE WORLD ──────────────────────────────────────────────────────────── */
-    const owner = await account(`shot.seat.owner.${stamp}@example.com`, `Seat Owner ${stamp}`, "Pune");
-    const faculty = await account(`shot.seat.faculty.${stamp}@example.com`, `Seat Faculty ${stamp}`, "Pune");
+    const owner = await account(`shot.seat.owner.${stamp}@example.com`, `Seat Own ${tag}`, "Pune");
+    const faculty = await account(`shot.seat.faculty.${stamp}@example.com`, `Seat Fac ${tag}`, "Pune");
     made.users.push(owner.id, faculty.id);
 
     const studio = await rpc(owner.h, "create_business_with_owner", {
       p_type: "studio",
-      p_name: `Seat Studio ${stamp}`,
+      p_name: `Seat Std ${tag}`,
       p_area: "Kothrud",
       p_city: "Pune",
       p_styles: ["Hip-Hop"],
@@ -174,7 +175,7 @@ const DESKS = [...RUN_DESKS, ...OWNER_DESKS];
 
     /* ── 1. THE SWITCHER DOES NOT OFFER THE STUDIO ─────────────────────────── */
     const fRows = await switcherRows(fPage);
-    check(!fRows.some((r) => r.includes("Seat Studio")), `the faculty seat's switcher does NOT offer the studio — [${fRows.join(" / ") || "own row only"}]`);
+    check(!fRows.some((r) => r.includes("Seat Std")), `the faculty seat's switcher does NOT offer the studio — [${fRows.join(" / ") || "own row only"}]`);
 
     /* ── 2. AND NEITHER DOES TYPING THE ADDRESS ────────────────────────────── */
     let bounced = 0;
@@ -200,8 +201,8 @@ const DESKS = [...RUN_DESKS, ...OWNER_DESKS];
        the old address redirects there */
     await fPage.goto(`${BASE}/business?show=team`, { waitUntil: "networkidle" });
     const hub = (await fPage.getByTestId("studio-teams").innerText().catch(() => "")).replace(/\s+/g, " ");
-    check(hub.includes("Seat Studio"), "Other Teams still lists the studio under Studio teams you are on");
-    const taughtHref = await fPage.getByRole("link", { name: new RegExp(`Seat Studio ${stamp} — open the profile`) }).getAttribute("href");
+    check(hub.includes("Seat Std"), "Other Teams still lists the studio under Studio teams you are on");
+    const taughtHref = await fPage.getByRole("link", { name: new RegExp(`Seat Std ${tag} — open the profile`) }).getAttribute("href");
     check(taughtHref === `/studio/${studio.id}`, `…and its door is the studio's PUBLIC page, not its manage home — ${taughtHref}`);
 
     await fPage.goto(`${BASE}/my-classes`, { waitUntil: "networkidle" });
@@ -213,7 +214,7 @@ const DESKS = [...RUN_DESKS, ...OWNER_DESKS];
     oPage.on("pageerror", (e) => errs.push(`PAGEERROR ${e.message}`));
 
     const oRows = await switcherRows(oPage);
-    check(oRows.some((r) => r.includes("Seat Studio")), `the OWNER's switcher still offers the studio — [${oRows.join(" / ")}]`);
+    check(oRows.some((r) => r.includes("Seat Std")), `the OWNER's switcher still offers the studio — [${oRows.join(" / ")}]`);
 
     const opened = [];
     for (const d of DESKS) {
@@ -247,7 +248,7 @@ const DESKS = [...RUN_DESKS, ...OWNER_DESKS];
     check(true, "…and the database accepts it (the CHECK refused this word an hour ago)");
 
     const mRows = await switcherRows(fPage);
-    check(mRows.some((r) => r.includes("Seat Studio")), `⚠⚠ the manager's switcher NOW offers the studio — [${mRows.join(" / ")}]`);
+    check(mRows.some((r) => r.includes("Seat Std")), `⚠⚠ the manager's switcher NOW offers the studio — [${mRows.join(" / ")}]`);
 
     const shut = [];
     for (const d of RUN_DESKS) {

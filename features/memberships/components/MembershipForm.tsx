@@ -1,5 +1,6 @@
 "use client";
 
+import { NAME_MAX } from "@/lib/constants/names";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
@@ -115,7 +116,7 @@ export function MembershipForm({
     <FormPage title="Add Membership" sheet={sheet} onClose={() => router.back()} onBack={() => router.back()}>
       <>
           <div style={FORM_LABEL}>NAME</div>
-          <input aria-label="Membership name" value={f.name} onChange={(e) => setF((x) => ({ ...x, name: e.target.value.slice(0, 80) }))} placeholder="e.g. 10 hours" style={FORM_INPUT} />
+          <input aria-label="Membership name" value={f.name} onChange={(e) => setF((x) => ({ ...x, name: e.target.value.slice(0, NAME_MAX) }))} placeholder="e.g. 10 hours" style={FORM_INPUT} />
 
           <div style={FORM_LABEL}>HOURS</div>
           <input aria-label="How many hours" inputMode="decimal" value={f.units} onChange={(e) => setF((x) => ({ ...x, units: e.target.value }))} placeholder="How many hours" style={FORM_INPUT} />

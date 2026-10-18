@@ -91,11 +91,11 @@ $uploaded = @()
 try {
   # the world is built INSIDE the try, so a set-up failure still reaches the cleanup
   $me = New-EmailUser "media-me-$stamp@example.com" "Media Me $stamp" "user"
-  $other = New-EmailUser "media-other-$stamp@example.com" "Media Other $stamp" "user"
-  $owner = New-EmailUser "media-owner-$stamp@example.com" "Media Owner $stamp" "user"
-  $ta = New-Studio $owner.token "Media Studio $stamp" "Kothrud" "Pune"
+  $other = New-EmailUser "media-other-$stamp@example.com" "Med Othr $stamp" "user"
+  $owner = New-EmailUser "media-owner-$stamp@example.com" "Med Own $stamp" "user"
+  $ta = New-Studio $owner.token "Med Std $stamp" "Kothrud" "Pune"
   Subscribe-Studio ([string]$ta.id)
-  $crew = Rpc (Api $me.token) "create_crew" @{ p_name = "Media Crew $stamp"; p_city = "Pune"; p_style = "Hip-Hop"; p_member_ids = @() }
+  $crew = Rpc (Api $me.token) "create_crew" @{ p_name = "Med Crew $stamp"; p_city = "Pune"; p_style = "Hip-Hop"; p_member_ids = @() }
   Register-ProofCrew $crew
 
   # 1. YOUR OWN FOLDER, AND ONLY YOURS

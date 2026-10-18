@@ -53,8 +53,9 @@ const check = (ok, what) => {
 
 (async () => {
   const stamp = Date.now().toString(36);
+  const tag = stamp.slice(-6);
   const email = `shot.leave.${stamp}@example.com`;
-  const name = `Shot Leaver ${stamp}`;
+  const name = `Leaver ${tag}`;
   const reason = `Moving cities ${stamp}`;
   let userId = null;
   let crewId = null;
@@ -65,7 +66,7 @@ const check = (ok, what) => {
     userId = made.body.id;
     const prof = await call("POST", "/rest/v1/profiles", { id: userId, full_name: name, role: "user", city: "Pune", styles: ["Hip-Hop"], created_by: userId, updated_by: userId });
     if (!prof.ok) throw new Error(`profile: ${prof.status} ${JSON.stringify(prof.body)}`);
-    const crew = await call("POST", "/rest/v1/crews", { name: `Shot Leave Crew ${stamp}`, city: "Pune", style: "Hip-Hop", leader_id: userId, created_by: userId, updated_by: userId });
+    const crew = await call("POST", "/rest/v1/crews", { name: `Leave Cr ${tag}`, city: "Pune", style: "Hip-Hop", leader_id: userId, created_by: userId, updated_by: userId });
     if (!crew.ok) throw new Error(`crew: ${crew.status} ${JSON.stringify(crew.body)}`);
     crewId = crew.body[0].id;
 
@@ -92,7 +93,7 @@ const check = (ok, what) => {
     await dlg.getByLabel(/Why are you leaving/).fill(reason);
     await dlg.getByRole("button", { name: "Delete my account" }).click();
     await page.getByText(/hand the crew to a member before deleting your account/).waitFor({ timeout: 15000 }).catch(() => {});
-    check(await page.getByText(/You lead Shot Leave Crew .* hand the crew to a member/).count() > 0, "a crew leader is refused in the database's own words, inside the dialog");
+    check(await page.getByText(/You lead Leave Cr .* hand the crew to a member/).count() > 0, "a crew leader is refused in the database's own words, inside the dialog");
     const still = await call("GET", `/rest/v1/profiles?id=eq.${userId}&select=deleted_at`);
     check(Array.isArray(still.body) && still.body[0] && still.body[0].deleted_at === null, "…and the profile is untouched");
     const noThread = await call("GET", `/rest/v1/support_threads?account_id=eq.${userId}&select=id`);

@@ -33,7 +33,7 @@ $pass = $true
 $stamp = Get-Date -Format "HHmmss"
 
 # A owns a fresh studio; a draft class goes on it via the atomic RPC
-$ta = New-Studio $a.access_token "Class Studio $stamp" "Kothrud" "Pune"
+$ta = New-Studio $a.access_token "Cls Std $stamp" "Kothrud" "Pune"
 Subscribe-Studio ([string]$ta.id)
 # a date AHEAD, computed: the hard-coded 2026-09-01 this carried went into the
 # past on 1 Sep 2026, and a class cannot start in the past (the form since

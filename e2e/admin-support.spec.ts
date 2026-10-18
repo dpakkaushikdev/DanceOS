@@ -176,9 +176,12 @@ test.describe("the admin panel: support, trust, accountability", () => {
   let adminId: string | null = null;
   let strangerId: string | null = null;
   const stamp = Date.now().toString(36).slice(-6);
-  const orgName = `Panel Org ${stamp}`;
+  /* ⚠ every name ≤ 15 characters since 19 Oct 2026 (NAME_MAX): the box's
+     maxLength truncates a longer fill and the server refuses one */
+  const orgName = `Panel O ${stamp}`;
   /* 11 Sep 2026: the thing under review is a STUDIO */
-  const studioName = `Panel Studio ${stamp}`;
+  const studioName = `Panel S ${stamp}`;
+  const bystanderName = `Panel B ${stamp}`;
 
   test.beforeAll(async ({ browser }) => {
     test.skip(!supabaseUrl || !serviceKey, "Supabase keys missing (.env.local)");
@@ -199,7 +202,7 @@ test.describe("the admin panel: support, trust, accountability", () => {
 
   test("a stranger cannot see that the panel exists", async () => {
     strangerId = await signUp(stranger, `panel-stranger-${stamp}@example.com`);
-    await onboardOrg(stranger, `Panel Bystander ${stamp}`, "Pune");
+    await onboardOrg(stranger, bystanderName, "Pune");
     // a signed-in account that is not an admin gets the same answer as a bad
     // address: not found. That the panel is there is not theirs to learn.
     for (const path of ["/admin", "/admin/support", "/admin/accounts", "/admin/audit", "/admin/verifications"]) {

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { nameField } from "@/lib/constants/names";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { addClassRoutine, deleteRoutine, removeClassRoutine, saveRoutine } from "@/repositories/routines";
 
@@ -18,7 +19,7 @@ const link = z.string().trim().max(500).nullable();
 
 const saveSchema = z.object({
   routineId: z.string().uuid().nullable().optional(),
-  title: z.string().trim().min(1, "Name the routine").max(80),
+  title: nameField("Name the routine"),
   style: z.string().trim().min(1, "Pick a dance style").max(40),
   level: z.enum(LEVELS),
   songTitle: z.string().trim().max(120).nullable(),

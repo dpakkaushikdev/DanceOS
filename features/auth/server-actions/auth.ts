@@ -4,6 +4,7 @@ import { OPEN_COOKIE, OPEN_COOKIE_OPTIONS } from "@/lib/supabase/middleware";
 import { cookies, headers } from "next/headers";
 import { RedirectType, redirect } from "next/navigation";
 import { z } from "zod";
+import { nameField } from "@/lib/constants/names";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ONBOARDING_COOKIE } from "@/lib/auth/onboarding";
@@ -22,7 +23,7 @@ export interface AuthActionState {
 }
 
 const completeProfileSchema = z.object({
-  fullName: z.string().trim().min(1, "Tell us your name").max(120),
+  fullName: nameField("Tell us your name"),
   /* ⚠ `user` ONLY SINCE 26 Sep 2026: the organization login is retired — an
      organization is a business a person opens from Home. The database keeps the
      word so soft-deleted rows stay valid history; nobody may sign up as one. */

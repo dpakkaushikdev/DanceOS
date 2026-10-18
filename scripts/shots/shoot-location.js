@@ -43,6 +43,7 @@ const rest = async (method, url, body) => {
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const stamp = Date.now().toString(36);
+  const tag = stamp.slice(-6);
   const email = `shot.loc.${stamp}@example.com`;
   const problems = [];
   const check = (ok, what) => {
@@ -59,14 +60,14 @@ const rest = async (method, url, body) => {
 
   /* 26 Sep 2026: a PERSON owns the studio - the organization login is retired */
   await rest("POST", "/rest/v1/profiles", {
-    id: link.id, full_name: `Shot Owner ${stamp}`, role: "user", city: "Pune", styles: ["Hip-Hop"],
+    id: link.id, full_name: `Shot Own ${tag}`, role: "user", city: "Pune", styles: ["Hip-Hop"],
     created_by: link.id, updated_by: link.id,
   });
 
   /* the studio, made by the service role the way the proofs do — on Pune's
      centroid, which is exactly the guess the picker exists to replace */
   const [tenant] = await rest("POST", "/rest/v1/businesses", {
-    type: "studio", name: `Shot Studio ${stamp}`, area: "Kothrud", city: "Pune",
+    type: "studio", name: `Shot Std ${tag}`, area: "Kothrud", city: "Pune",
     lat: 18.5204, lng: 73.8567, visibility: "unlisted", created_by: link.id, updated_by: link.id,
   });
   await rest("POST", "/rest/v1/business_members", {

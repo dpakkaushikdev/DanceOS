@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { nameField } from "@/lib/constants/names";
 import { isCashfreeConfigured, refundCashfreePayment } from "@/lib/cashfree/api";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { bookWithMembership, buyMembership, deleteMembership, returnMembershipPass, saveMembership } from "@/repositories/memberships";
@@ -32,7 +33,7 @@ async function me() {
 const saveSchema = z.object({
   membershipId: z.string().uuid().nullable().optional(),
   businessId: z.string().uuid(),
-  name: z.string().trim().min(1, "Name the membership").max(80),
+  name: nameField("Name the membership"),
   /* ⚠ HOURS ONLY (3 Oct 2026, the user: "membership only according to hours not
      classes"). The app no longer makes a class-based membership; passes already
      sold in classes keep their own snapshot and keep working. ⚠ The DATABASE

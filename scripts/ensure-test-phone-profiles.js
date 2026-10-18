@@ -34,8 +34,8 @@ if (!BASE || !SERVICE) throw new Error("NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SE
 const H = { apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, "Content-Type": "application/json", "User-Agent": "danceos-proof-setup/1.0", Prefer: "return=representation" };
 
 const WANTED = [
-  { phone: "919999999999", full_name: "Proof Owner (test number)", role: "user", city: "Pune", styles: ["Hip-Hop"], socials: [{ platform: "Instagram", url: "https://instagram.com/danceos-proof-owner" }] },
-  { phone: "918888888888", full_name: "Proof Learner (test number)", role: "user", city: "Pune", styles: ["Hip-Hop"], socials: [] },
+  { phone: "919999999999", full_name: "Proof Owner", role: "user", city: "Pune", styles: ["Hip-Hop"], socials: [{ platform: "Instagram", url: "https://instagram.com/danceos-proof-owner" }] },
+  { phone: "918888888888", full_name: "Proof Learner", role: "user", city: "Pune", styles: ["Hip-Hop"], socials: [] },
 ];
 
 async function call(method, url, body) {

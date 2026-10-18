@@ -49,6 +49,7 @@ const check = (ok, what) => {
 
 (async () => {
   const stamp = Date.now().toString(36);
+  const tag = stamp.slice(-6);
   const made = { users: [], businesses: [] };
   const browser = await chromium.launch();
   const errs = [];
@@ -58,8 +59,8 @@ const check = (ok, what) => {
     made.users.push(created.id);
     const token = await call("POST", `${SUPABASE}/auth/v1/token?grant_type=password`, { apikey: ANON, "Content-Type": "application/json" }, { email, password: PASSWORD }, "token");
     const h = asUser(token.access_token);
-    await call("POST", "/rest/v1/profiles", { ...h, Prefer: "return=minimal" }, { id: created.id, full_name: `Land Ing ${stamp}`, role: "user", city: "Pune", styles: ["Hip-Hop"] }, "profile");
-    const studio = await call("POST", "/rest/v1/rpc/create_business_with_owner", h, { p_type: "studio", p_name: `Landing Studio ${stamp}`, p_area: "Kothrud", p_city: "Pune", p_styles: ["Hip-Hop"] }, "studio");
+    await call("POST", "/rest/v1/profiles", { ...h, Prefer: "return=minimal" }, { id: created.id, full_name: `Land Ing ${tag}`, role: "user", city: "Pune", styles: ["Hip-Hop"] }, "profile");
+    const studio = await call("POST", "/rest/v1/rpc/create_business_with_owner", h, { p_type: "studio", p_name: `Land Std ${tag}`, p_area: "Kothrud", p_city: "Pune", p_styles: ["Hip-Hop"] }, "studio");
     made.businesses.push(studio.id);
 
     const ctx = await browser.newContext({ viewport: { width: 430, height: 932 } });

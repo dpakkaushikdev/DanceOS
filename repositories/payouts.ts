@@ -1,10 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { dosClassLabel } from "@/lib/constants/styles";
+import { enquiryTypeOf } from "@/types/enquiry";
 import type {
   MyEarnings,
+  PayableEnquiry,
   PayableSession,
+  PayLine,
   PayoutMethod,
-  PayoutRecord,
   PayoutStatus,
   PersonPayHistory,
   PersonPayLedger,
@@ -13,37 +15,38 @@ import type {
   BusinessPayLedger,
 } from "@/types/payout";
 
-/** Step 13 money reads. Nothing here computes an amount that gets written —
- *  record_payout counts the total server-side from the rates on record. These
- *  queries only say what is owed and what has been settled.
+/** TEAM PAY. ⚠ PAY IS SET WHEN PAYING (18 Oct 2026, the user: "no other way to
+ *  set price from somewhere else it should happen only from the team section when
+ *  going to pay that particular person or studio"). So nothing here reads a rate:
+ *  these queries say WHICH classes and enquiries are not yet settled, and what has
+ *  been paid; the amount for each is typed in the pay sheet and written by
+ *  `record_session_payment`.
  *
- *  Reads are plain RLS-shaped queries: `payouts` and `payout_lines` admit the
- *  studio's OWNER and the person paid, and nobody else — a trainer has no
- *  business reading what another trainer earns. */
+ *  Reads are plain RLS-shaped queries: `payouts`, `payout_lines` and
+ *  `payout_enquiry_lines` admit the studio's OWNER and the person paid, and nobody
+ *  else. */
 
-/** Sessions are only "taught" once they have ended, and a classPerson stops accruing
- *  the moment it is closed: somebody taken off the team is still owed for the
- *  sessions they actually took, but not for the ones that ran afterwards. */
+/** Sessions are only "taken" once they have ended, and a classPerson stops
+ *  accruing the moment it is closed: somebody taken off the team is still to be
+ *  settled for the sessions they actually took, not for the ones run afterwards. */
 const accrualCutoff = (classPersonDeletedAt: string | null, nowIso: string): string =>
   classPersonDeletedAt && classPersonDeletedAt < nowIso ? classPersonDeletedAt : nowIso;
 
 const MAX_CLAIMS = 500;
 const MAX_SESSIONS = 2000;
 const MAX_LINES = 4000;
-/** ⚠ WAS 60, AND 60 IS A PAGE SIZE PRETENDING TO BE A GUARD (21 Sep 2026).
- *  `paidTotal` and `inTransitTotal` are SUMMED off this read, so a studio that
- *  had recorded a 61st payment got a "Settled" figure that was quietly short —
- *  and unlike the income side's 4,000 there was no `complete` flag to say so.
- *  The card states ONE total, so a partial sum is a wrong number rather than a
- *  short list (the 28 Aug rule). It is a real guard now, and it is reported. */
+/** ⚠ a runaway guard, not a page size — the totals are SUMMED off this read */
 const MAX_PAYOUTS = 4000;
+
+const single = <T,>(x: T | T[] | null | undefined): T | null => (Array.isArray(x) ? (x[0] ?? null) : (x ?? null));
+const enquiryLabel = (typeKey: string | null | undefined, who: string | null | undefined) =>
+  `${enquiryTypeOf(typeKey ?? "")?.label ?? "Enquiry"}${who ? ` — ${who}` : ""}`;
 
 interface ClassPersonRow {
   id: string;
   class_id: string;
   user_id: string;
   kind: "artist" | "assistant";
-  pay_per_session_inr: number;
   created_at: string;
   deleted_at: string | null;
   profiles: { full_name: string } | null;
@@ -55,13 +58,6 @@ interface SessionRow {
   class_id: string;
   starts_at: string;
   ends_at: string;
-}
-
-interface LineRow {
-  payout_id: string;
-  session_id: string;
-  user_id: string;
-  rate_inr: number;
 }
 
 interface PayoutRow {
@@ -76,22 +72,102 @@ interface PayoutRow {
   profiles: { full_name: string } | null;
 }
 
-const CLAIM_SELECT =
-  "id, class_id, user_id, kind, pay_per_session_inr, created_at, deleted_at, profiles (full_name), classes (style, level)";
-const PAYOUT_SELECT =
-  "id, user_id, amount_inr, status, method, provider_ref, paid_on, note, profiles (full_name)";
+const CLAIM_SELECT = "id, class_id, user_id, kind, created_at, deleted_at, profiles (full_name), classes (style, level)";
+const PAYOUT_SELECT = "id, user_id, amount_inr, status, method, provider_ref, paid_on, note, profiles (full_name)";
 
-/** What this studio owes its people, and what it has settled.
+type Lines = {
+  sessions: Map<string, PayoutWithSessions["sessions"]>;
+  enquiries: Map<string, PayoutWithSessions["enquiries"]>;
+  /** `${session_id}:${user_id}` and `${enquiry_id}:${user_id}` already settled */
+  settled: Set<string>;
+  complete: boolean;
+};
+
+/** Every live pay line behind a set of payouts, with what it was for — the
+ *  settled HISTORY (18 Oct 2026, the user: "should also show history of payments
+ *  what is already settled"). Filtered by business or by person, never by RLS
+ *  alone (RLS is a ceiling, not a scope). */
+async function readLines(supabase: SupabaseClient, by: { businessId?: string; userId?: string }): Promise<Lines> {
+  let a = supabase
+    .from("payout_lines")
+    .select("payout_id, session_id, user_id, rate_inr, class_sessions (starts_at, classes (style, level))")
+    .is("deleted_at", null);
+  let b = supabase
+    .from("payout_enquiry_lines")
+    .select("payout_id, enquiry_id, user_id, rate_inr, enquiries (type_key, profiles (full_name))")
+    .is("deleted_at", null);
+  if (by.businessId) {
+    a = a.eq("business_id", by.businessId);
+    b = b.eq("business_id", by.businessId);
+  }
+  if (by.userId) {
+    a = a.eq("user_id", by.userId);
+    b = b.eq("user_id", by.userId);
+  }
+  const [sRes, eRes] = await Promise.all([a.limit(MAX_LINES), b.limit(MAX_LINES)]);
+  if (sRes.error) throw new Error(`payouts.lines(sessions) failed: ${sRes.error.message}`);
+  if (eRes.error) throw new Error(`payouts.lines(enquiries) failed: ${eRes.error.message}`);
+
+  type SRow = { payout_id: string; session_id: string; user_id: string; rate_inr: number; class_sessions: unknown };
+  type ERow = { payout_id: string; enquiry_id: string; user_id: string; rate_inr: number; enquiries: unknown };
+  const sessions = new Map<string, PayoutWithSessions["sessions"]>();
+  const enquiries = new Map<string, PayoutWithSessions["enquiries"]>();
+  const settled = new Set<string>();
+  for (const l of (sRes.data ?? []) as SRow[]) {
+    const cs = single(l.class_sessions as { starts_at: string; classes: unknown } | null);
+    const cl = single(cs?.classes as { style: string; level: string } | null);
+    const list = sessions.get(l.payout_id) ?? [];
+    list.push({ sessionId: l.session_id, classTitle: cl ? dosClassLabel(cl.style, cl.level) : "Class", startsAt: cs?.starts_at ?? "", rateInr: l.rate_inr });
+    sessions.set(l.payout_id, list);
+    settled.add(`${l.session_id}:${l.user_id}`);
+  }
+  for (const l of (eRes.data ?? []) as ERow[]) {
+    const e = single(l.enquiries as { type_key: string; profiles: unknown } | null);
+    const who = single(e?.profiles as { full_name: string | null } | null)?.full_name;
+    const list = enquiries.get(l.payout_id) ?? [];
+    list.push({ enquiryId: l.enquiry_id, label: e ? enquiryLabel(e.type_key, who) : "An enquiry", rateInr: l.rate_inr });
+    enquiries.set(l.payout_id, list);
+    settled.add(`${l.enquiry_id}:${l.user_id}`);
+  }
+  for (const list of sessions.values()) list.sort((x, y) => y.startsAt.localeCompare(x.startsAt));
+  return {
+    sessions,
+    enquiries,
+    settled,
+    complete: (sRes.data?.length ?? 0) < MAX_LINES && (eRes.data?.length ?? 0) < MAX_LINES,
+  };
+}
+
+const withLines = (p: PayoutRow, lines: Lines): PayoutWithSessions => {
+  const sessions = lines.sessions.get(p.id) ?? [];
+  const enquiries = lines.enquiries.get(p.id) ?? [];
+  return {
+    id: p.id,
+    userId: p.user_id,
+    personName: p.profiles?.full_name ?? "Someone",
+    amountInr: p.amount_inr,
+    status: p.status,
+    method: p.method,
+    providerRef: p.provider_ref,
+    paidOn: p.paid_on,
+    note: p.note,
+    sessionCount: sessions.length + enquiries.length,
+    sessions,
+    enquiries,
+  };
+};
+
+/** What this studio has not yet settled with its people, and what it has paid.
  *
- *  Confirmed classPeople are read WITHOUT the deleted_at filter on purpose: Step 12b's
- *  removal closes a person's classPeople, and the work they did before that is still
- *  owed. `accrualCutoff` is what keeps that honest. */
+ *  Confirmed classPeople are read WITHOUT the deleted_at filter on purpose: a
+ *  removal closes a person's classPeople, and the work they did before that is
+ *  still to be settled. `accrualCutoff` is what keeps that honest. */
 export async function findBusinessPayLedger(
   supabase: SupabaseClient,
   businessId: string,
   nowIso: string
 ): Promise<BusinessPayLedger> {
-  const [classPeopleRes, sessionsRes, linesRes, payoutsRes] = await Promise.all([
+  const [classPeopleRes, sessionsRes, teamRes, payoutsRes, lines] = await Promise.all([
     supabase
       .from("class_people")
       .select(CLAIM_SELECT)
@@ -107,12 +183,16 @@ export async function findBusinessPayLedger(
       .is("deleted_at", null)
       .order("starts_at", { ascending: false })
       .limit(MAX_SESSIONS),
+    /* ⚠ the enquiry TEAM, never participants (18 Oct 2026) */
     supabase
-      .from("payout_lines")
-      .select("payout_id, session_id, user_id, rate_inr")
-      .eq("business_id", businessId)
+      .from("enquiry_people")
+      .select("enquiry_id, user_id, role, created_at, profiles (full_name), enquiries!inner (business_id, type_key, created_at, deleted_at, profiles (full_name))")
+      .eq("kind", "team")
+      .eq("status", "confirmed")
       .is("deleted_at", null)
-      .limit(MAX_LINES),
+      .eq("enquiries.business_id", businessId)
+      .is("enquiries.deleted_at", null)
+      .limit(MAX_CLAIMS),
     supabase
       .from("payouts")
       .select(PAYOUT_SELECT)
@@ -120,12 +200,13 @@ export async function findBusinessPayLedger(
       .is("deleted_at", null)
       .order("paid_on", { ascending: false })
       .limit(MAX_PAYOUTS),
+    readLines(supabase, { businessId }),
   ]);
 
   for (const [what, res] of [
     ["classPeople", classPeopleRes],
     ["sessions", sessionsRes],
-    ["lines", linesRes],
+    ["team", teamRes],
     ["payouts", payoutsRes],
   ] as const) {
     if (res.error) {
@@ -135,10 +216,8 @@ export async function findBusinessPayLedger(
 
   const classPeople = (classPeopleRes.data ?? []) as unknown as ClassPersonRow[];
   const sessions = (sessionsRes.data ?? []) as unknown as SessionRow[];
-  const lines = (linesRes.data ?? []) as unknown as LineRow[];
   const payoutRows = (payoutsRes.data ?? []) as unknown as PayoutRow[];
 
-  const settled = new Set(lines.map((l) => `${l.session_id}:${l.user_id}`));
   const sessionsByClass = new Map<string, SessionRow[]>();
   for (const s of sessions) {
     const list = sessionsByClass.get(s.class_id);
@@ -147,116 +226,88 @@ export async function findBusinessPayLedger(
   }
 
   const byPerson = new Map<string, PersonPayLedger>();
+  const personOf = (userId: string, name: string | null | undefined, kind: PersonPayLedger["kind"], offTeam: boolean) => {
+    let p = byPerson.get(userId);
+    if (!p) {
+      p = { userId, personName: name ?? "Someone", kind, unpaid: [], unpaidEnquiries: [], unsettledCount: 0, paidInr: 0, paidSessions: 0, offTeam };
+      byPerson.set(userId, p);
+    } else {
+      p.offTeam = p.offTeam && offTeam;
+    }
+    return p;
+  };
+
+  const seen = new Set<string>();
   for (const classPerson of classPeople) {
+    const person = personOf(classPerson.user_id, classPerson.profiles?.full_name, classPerson.kind, classPerson.deleted_at !== null);
     const cutoff = accrualCutoff(classPerson.deleted_at, nowIso);
-    const unpaid: PayableSession[] = [];
     for (const s of sessionsByClass.get(classPerson.class_id) ?? []) {
       if (s.ends_at >= cutoff) continue;
-      if (settled.has(`${s.id}:${classPerson.user_id}`)) continue;
-      unpaid.push({
+      const key = `${s.id}:${classPerson.user_id}`;
+      if (lines.settled.has(key) || seen.has(key)) continue;
+      seen.add(key);
+      person.unpaid.push({
         sessionId: s.id,
         classId: classPerson.class_id,
         classTitle: classPerson.classes ? dosClassLabel(classPerson.classes.style, classPerson.classes.level) : "Class",
         classStyle: classPerson.classes?.style ?? "",
         startsAt: s.starts_at,
-        rateInr: classPerson.pay_per_session_inr,
-      });
-    }
-
-    const existing = byPerson.get(classPerson.user_id);
-    if (existing) {
-      existing.unpaid.push(...unpaid);
-      existing.owedInr += unpaid.reduce((a, u) => a + u.rateInr, 0);
-      // a live classPerson anywhere means they are still on the team
-      existing.offTeam = existing.offTeam && classPerson.deleted_at !== null;
-    } else {
-      byPerson.set(classPerson.user_id, {
-        userId: classPerson.user_id,
-        personName: classPerson.profiles?.full_name ?? "Someone",
-        kind: classPerson.kind,
-        unpaid,
-        owedInr: unpaid.reduce((a, u) => a + u.rateInr, 0),
-        paidInr: 0,
-        paidSessions: 0,
-        offTeam: classPerson.deleted_at !== null,
       });
     }
   }
 
-  for (const line of lines) {
-    const person = byPerson.get(line.user_id);
-    if (!person) continue;
-    person.paidInr += line.rate_inr;
-    person.paidSessions += 1;
+  type TeamRow = { enquiry_id: string; user_id: string; role: string | null; created_at: string; profiles: unknown; enquiries: unknown };
+  for (const t of (teamRes.data ?? []) as TeamRow[]) {
+    const key = `${t.enquiry_id}:${t.user_id}`;
+    if (lines.settled.has(key)) continue;
+    const e = single(t.enquiries as { type_key: string; created_at: string; profiles: unknown } | null);
+    const who = single(e?.profiles as { full_name: string | null } | null)?.full_name;
+    const person = personOf(t.user_id, single(t.profiles as { full_name: string } | null)?.full_name, "team", false);
+    const item: PayableEnquiry = { enquiryId: t.enquiry_id, label: enquiryLabel(e?.type_key, who), role: t.role, at: e?.created_at ?? t.created_at };
+    person.unpaidEnquiries.push(item);
   }
 
-  const linesByPayout = new Map<string, number>();
-  for (const line of lines) {
-    linesByPayout.set(line.payout_id, (linesByPayout.get(line.payout_id) ?? 0) + 1);
+  const payouts = payoutRows.map((p) => withLines(p, lines));
+  for (const p of payouts) {
+    const person = byPerson.get(p.userId);
+    if (!person || p.status !== "done") continue;
+    person.paidInr += p.amountInr;
+    person.paidSessions += p.sessionCount;
   }
-
-  const payouts: PayoutRecord[] = payoutRows.map((p) => ({
-    id: p.id,
-    userId: p.user_id,
-    personName: p.profiles?.full_name ?? "Someone",
-    amountInr: p.amount_inr,
-    status: p.status,
-    method: p.method,
-    providerRef: p.provider_ref,
-    paidOn: p.paid_on,
-    note: p.note,
-    sessionCount: linesByPayout.get(p.id) ?? 0,
-  }));
+  for (const p of byPerson.values()) {
+    p.unpaid.sort((a, b) => b.startsAt.localeCompare(a.startsAt));
+    p.unpaidEnquiries.sort((a, b) => b.at.localeCompare(a.at));
+    p.unsettledCount = p.unpaid.length + p.unpaidEnquiries.length;
+  }
 
   const people = [...byPerson.values()].sort(
-    (a, b) => b.owedInr - a.owedInr || a.personName.localeCompare(b.personName)
+    (a, b) => b.unsettledCount - a.unsettledCount || a.personName.localeCompare(b.personName)
   );
 
   return {
     people,
-    owedTotal: people.reduce((a, p) => a + p.owedInr, 0),
+    unsettledCount: people.reduce((a, p) => a + p.unsettledCount, 0),
     paidTotal: payouts.filter((p) => p.status === "done").reduce((a, p) => a + p.amountInr, 0),
-    inTransitTotal: payouts
-      .filter((p) => p.status !== "done")
-      .reduce((a, p) => a + p.amountInr, 0),
+    inTransitTotal: payouts.filter((p) => p.status !== "done").reduce((a, p) => a + p.amountInr, 0),
     payouts,
-    /* ⚠ REPORTED, LIKE THE INCOME SIDE'S (21 Sep 2026). Four reads here are
-       capped and none of them said so, while `findBusinessIncome` has surfaced
-       `complete` since 28 Aug — so a studio big enough to fill a guard read a
-       short total on this half and a warned one on the other. */
     complete:
       (classPeopleRes.data?.length ?? 0) < MAX_CLAIMS &&
       (sessionsRes.data?.length ?? 0) < MAX_SESSIONS &&
-      (linesRes.data?.length ?? 0) < MAX_LINES &&
-      (payoutsRes.data?.length ?? 0) < MAX_PAYOUTS,
+      (teamRes.data?.length ?? 0) < MAX_CLAIMS &&
+      (payoutsRes.data?.length ?? 0) < MAX_PAYOUTS &&
+      lines.complete,
   };
 }
 
-/** ⚠⚠ EVERY PAYMENT THIS BUSINESS HAS MADE TO ONE PERSON (29 Sep 2026, the
- *  user: "Team payment history to be a button called History which should show
- *  all transactions with that particular person on a different page").
- *
- *  The member sheet drew the last SIX inline and had no way to reach the rest —
- *  so a studio that had paid somebody monthly for a year could see half of it
- *  and the total said something the list did not show. This is the whole of it,
- *  with the SESSIONS each payment covered, which is the one thing the desk's
- *  `PayoutRecord` only counts.
- *
- *  ⚠ NARROW ON PURPOSE. `findBusinessPayLedger` reads the studio's whole ledger
- *  (four queries, up to 4,000 rows each) to answer "who is owed what"; this
- *  answers one person and reads only what that needs. A page about one person
- *  must not cost the desk's read.
- *
- *  ⚠ RLS IS THE CEILING AND `user_id` IS SAID OUT LOUD. `payouts` admits the
- *  business's owner AND the payee, so leaning on the policy to mean "this
- *  person" would hand an owner every payout on the business — the fifth time
- *  this file's own rule has had to be written down. */
+/** EVERY PAYMENT THIS BUSINESS HAS MADE TO ONE PERSON, with what each covered
+ *  (29 Sep 2026; enquiries since 18 Oct 2026). `user_id` is said out loud —
+ *  `payouts` admits the owner AND the payee. */
 export async function findPersonPayHistory(
   supabase: SupabaseClient,
   businessId: string,
   userId: string
 ): Promise<PersonPayHistory> {
-  const [payoutsRes, linesRes] = await Promise.all([
+  const [payoutsRes, lines] = await Promise.all([
     supabase
       .from("payouts")
       .select(PAYOUT_SELECT)
@@ -265,75 +316,22 @@ export async function findPersonPayHistory(
       .is("deleted_at", null)
       .order("paid_on", { ascending: false })
       .limit(MAX_PAYOUTS),
-    supabase
-      .from("payout_lines")
-      .select("payout_id, session_id, rate_inr, class_sessions (starts_at, classes (style, level))")
-      .eq("business_id", businessId)
-      .eq("user_id", userId)
-      .is("deleted_at", null)
-      .limit(MAX_LINES),
+    readLines(supabase, { businessId, userId }),
   ]);
-  for (const [what, res] of [
-    ["payouts", payoutsRes],
-    ["lines", linesRes],
-  ] as const) {
-    if (res.error) {
-      throw new Error(`payouts.findPersonHistory(${what}) failed: ${res.error.message}`);
-    }
+  if (payoutsRes.error) {
+    throw new Error(`payouts.findPersonHistory(payouts) failed: ${payoutsRes.error.message}`);
   }
-
   const rows = (payoutsRes.data ?? []) as unknown as PayoutRow[];
-  const lines = (linesRes.data ?? []) as unknown as Array<{
-    payout_id: string;
-    session_id: string;
-    rate_inr: number;
-    class_sessions: { starts_at: string; classes: { style: string; level: string } | null } | null;
-  }>;
-
-  const byPayout = new Map<string, PayoutWithSessions["sessions"]>();
-  for (const l of lines) {
-    const list = byPayout.get(l.payout_id) ?? [];
-    list.push({
-      sessionId: l.session_id,
-      classTitle: l.class_sessions?.classes
-        ? dosClassLabel(l.class_sessions.classes.style, l.class_sessions.classes.level)
-        : "Class",
-      startsAt: l.class_sessions?.starts_at ?? "",
-      rateInr: l.rate_inr,
-    });
-    byPayout.set(l.payout_id, list);
-  }
-  for (const list of byPayout.values()) list.sort((a, b) => b.startsAt.localeCompare(a.startsAt));
-
-  const payouts: PayoutWithSessions[] = rows.map((p) => {
-    const sessions = byPayout.get(p.id) ?? [];
-    return {
-      id: p.id,
-      userId: p.user_id,
-      personName: p.profiles?.full_name ?? "Someone",
-      amountInr: p.amount_inr,
-      status: p.status,
-      method: p.method,
-      providerRef: p.provider_ref,
-      paidOn: p.paid_on,
-      note: p.note,
-      sessionCount: sessions.length,
-      sessions,
-    };
-  });
-
+  const payouts = rows.map((p) => withLines(p, lines));
   return {
     userId,
     personName: rows[0]?.profiles?.full_name ?? "",
     payouts,
-    /* ⚠ SETTLED AND NOT-YET ARE TWO FIGURES, never one "paid" total: a payout
-       recorded `in_transit` is money the studio says it has SENT, and printing
-       it beside money that landed is the classPerson `otherPaidInr` was split out to
-       stop making (20 Sep 2026). */
+    /* ⚠ SETTLED AND NOT-YET ARE TWO FIGURES, never one "paid" total */
     paidInr: payouts.filter((p) => p.status === "done").reduce((a, p) => a + p.amountInr, 0),
     pendingInr: payouts.filter((p) => p.status !== "done").reduce((a, p) => a + p.amountInr, 0),
-    sessionsPaid: lines.length,
-    complete: rows.length < MAX_PAYOUTS && lines.length < MAX_LINES,
+    sessionsPaid: payouts.reduce((a, p) => a + p.sessionCount, 0),
+    complete: rows.length < MAX_PAYOUTS && lines.complete,
   };
 }
 
@@ -347,19 +345,17 @@ interface MyPayoutRow extends PayoutRow {
   businesses: { name: string } | null;
 }
 
-/** The teaching side of the earnings screen: what each studio owes me and what
- *  they have paid. Every row is my own — RLS admits me to my classPeople and to
- *  payouts where I am the payee. */
+/** What each business has paid ME and what is not yet settled there — the
+ *  payee's side, under Other Teams. ⚠ No rupee figure for what is owed: the
+ *  amount is set by the studio when it pays (18 Oct 2026). */
 export async function findMyEarnings(
   supabase: SupabaseClient,
   userId: string,
   nowIso: string,
-  /** ⚠ the businesses this person OWNS (2 Oct 2026): their own studio or artist
-   *  page "paying" them is that business's own money, which its own Earnings
-   *  desk shows — on the person's screen it was the same data twice */
+  /** the businesses this person OWNS — their own money is their own desk's */
   excludeBusinessIds: readonly string[] = []
 ): Promise<MyEarnings> {
-  const [classPeopleRes, payoutsRes, linesRes] = await Promise.all([
+  const [classPeopleRes, payoutsRes, lines, jobsRes] = await Promise.all([
     supabase
       .from("class_people")
       .select(`${CLAIM_SELECT}, business_id, businesses (name)`)
@@ -374,18 +370,15 @@ export async function findMyEarnings(
       .is("deleted_at", null)
       .order("paid_on", { ascending: false })
       .limit(MAX_PAYOUTS),
-    supabase
-      .from("payout_lines")
-      .select("payout_id, session_id, user_id, rate_inr")
-      .eq("user_id", userId)
-      .is("deleted_at", null)
-      .limit(MAX_LINES),
+    readLines(supabase, { userId }),
+    /* the enquiries I am on the team of — a definer read, because a team member
+       does not read the enquiry row itself */
+    supabase.rpc("my_enquiry_jobs"),
   ]);
 
   for (const [what, res] of [
     ["classPeople", classPeopleRes],
     ["payouts", payoutsRes],
-    ["lines", linesRes],
   ] as const) {
     if (res.error) {
       throw new Error(`payouts.findMyEarnings(${what}) failed: ${res.error.message}`);
@@ -395,7 +388,6 @@ export async function findMyEarnings(
   const skip = new Set(excludeBusinessIds);
   const classPeople = ((classPeopleRes.data ?? []) as unknown as MyClassPersonRow[]).filter((c) => !skip.has(c.business_id));
   const payoutRows = ((payoutsRes.data ?? []) as unknown as MyPayoutRow[]).filter((p) => !skip.has(p.business_id));
-  const lines = (linesRes.data ?? []) as unknown as LineRow[];
 
   const classIds = [...new Set(classPeople.map((c) => c.class_id))];
   let sessions: SessionRow[] = [];
@@ -413,7 +405,6 @@ export async function findMyEarnings(
     }
     sessions = (data ?? []) as unknown as SessionRow[];
   }
-
   const sessionsByClass = new Map<string, SessionRow[]>();
   for (const s of sessions) {
     const list = sessionsByClass.get(s.class_id);
@@ -421,106 +412,67 @@ export async function findMyEarnings(
     else sessionsByClass.set(s.class_id, [s]);
   }
 
-  const byBusiness = new Map<string, StudioEarning & { rates: Set<number> }>();
+  const byBusiness = new Map<string, StudioEarning>();
+  const rowOf = (businessId: string, name: string | null | undefined) => {
+    let r = byBusiness.get(businessId);
+    if (!r) {
+      r = { businessId, businessName: name ?? "A studio", sessions: 0, unsettled: 0, paidInr: 0, otherPaidInr: 0 };
+      byBusiness.set(businessId, r);
+    }
+    return r;
+  };
+
+  const seen = new Set<string>();
   for (const classPerson of classPeople) {
     const cutoff = accrualCutoff(classPerson.deleted_at, nowIso);
-    const taught = (sessionsByClass.get(classPerson.class_id) ?? []).filter((s) => s.ends_at < cutoff);
-    const row = byBusiness.get(classPerson.business_id) ?? {
-      businessId: classPerson.business_id,
-      businessName: classPerson.businesses?.name ?? "A studio",
-      sessions: 0,
-      ratePerSessionInr: null,
-      earnedInr: 0,
-      paidInr: 0,
-      dueInr: 0,
-      otherPaidInr: 0,
-      rates: new Set<number>(),
-    };
-    row.sessions += taught.length;
-    row.earnedInr += taught.length * classPerson.pay_per_session_inr;
-    if (taught.length > 0) row.rates.add(classPerson.pay_per_session_inr);
-    byBusiness.set(classPerson.business_id, row);
+    const row = rowOf(classPerson.business_id, classPerson.businesses?.name);
+    for (const s of sessionsByClass.get(classPerson.class_id) ?? []) {
+      if (s.ends_at >= cutoff || seen.has(s.id)) continue;
+      seen.add(s.id);
+      row.sessions += 1;
+      if (!lines.settled.has(`${s.id}:${userId}`)) row.unsettled += 1;
+    }
   }
 
-  const linesByPayout = new Map<string, number>();
-  for (const line of lines) {
-    linesByPayout.set(line.payout_id, (linesByPayout.get(line.payout_id) ?? 0) + 1);
+  /* an unsettled enquiry is filed under its host by NAME — the definer read gives
+     the host's name and not its id, which is all a payee is allowed to know */
+  type Job = { enquiry_id: string; kind: string; status: string; host_name: string | null };
+  const jobs = jobsRes.error ? [] : ((jobsRes.data ?? []) as Job[]);
+  for (const j of jobs) {
+    if (j.kind !== "team" || j.status !== "confirmed") continue;
+    if (lines.settled.has(`${j.enquiry_id}:${userId}`)) continue;
+    const name = j.host_name ?? "A studio";
+    const match = [...byBusiness.values()].find((b) => b.businessName === name);
+    const row = match ?? rowOf(`name:${name}`, name);
+    row.unsettled += 1;
   }
 
-  /* ⚠ WHAT WAS SETTLED, SPLIT BY WHAT IT WAS FOR (20 Sep 2026, the user:
-     "Earnings make sure to check all revenue sources … according to there
-     revenue sources"; Rule 9 — this is money owed).
-     `record_payout` bills for SESSIONS and writes a line per session;
-     `record_team_payment` (19 Sep, R35) writes an amount the owner states with
-     NO lines, because a studio could not otherwise pay its front desk at all.
-     Both are `payouts` rows, and this read summed them together — so a salary
-     cancelled teaching money the studio still owed, and a person who only ever
-     worked the desk had their payment dropped from the totals entirely because
-     `byBusiness` is keyed on CLAIMS and they hold none. A payout with lines nets
-     against sessions; one without is its own figure and nets against nothing. */
-  const paidByBusiness = new Map<string, number>();
-  const otherByBusiness = new Map<string, { amount: number; name: string }>();
-  for (const p of payoutRows) {
+  const payouts = payoutRows.map((p) => ({ ...withLines(p, lines), businessId: p.business_id, businessName: p.businesses?.name ?? "A studio" }));
+  for (const p of payouts) {
     if (p.status !== "done") continue;
-    if ((linesByPayout.get(p.id) ?? 0) > 0) {
-      paidByBusiness.set(p.business_id, (paidByBusiness.get(p.business_id) ?? 0) + p.amount_inr);
-    } else {
-      const at = otherByBusiness.get(p.business_id) ?? { amount: 0, name: p.businesses?.name ?? "A studio" };
-      at.amount += p.amount_inr;
-      otherByBusiness.set(p.business_id, at);
-    }
-  }
-  /* a studio that has only ever paid you off the register still gets a row —
-     otherwise the money is in WHO HAS PAID YOU and in none of the totals */
-  for (const [businessId, at] of otherByBusiness) {
-    if (!byBusiness.has(businessId)) {
-      byBusiness.set(businessId, { businessId, businessName: at.name, sessions: 0, ratePerSessionInr: null, earnedInr: 0, paidInr: 0, dueInr: 0, otherPaidInr: 0, rates: new Set<number>() });
-    }
+    const row = rowOf(p.businessId, p.businessName);
+    if (p.sessionCount > 0) row.paidInr += p.amountInr;
+    else row.otherPaidInr += p.amountInr;
   }
 
-  const studios: StudioEarning[] = [...byBusiness.values()]
-    .map(({ rates, ...row }) => {
-      const paid = paidByBusiness.get(row.businessId) ?? 0;
-      return {
-        ...row,
-        // one rate is the common case, so the row can print it like the
-        // prototype does ("14 sessions · ₹900"); mixed rates print nothing
-        ratePerSessionInr: rates.size === 1 ? [...rates][0] : null,
-        paidInr: paid,
-        dueInr: Math.max(0, row.earnedInr - paid),
-        otherPaidInr: otherByBusiness.get(row.businessId)?.amount ?? 0,
-      };
-    })
-    .sort((a, b) => b.earnedInr - a.earnedInr || a.businessName.localeCompare(b.businessName));
-
+  const studios = [...byBusiness.values()].sort(
+    (a, b) => b.unsettled - a.unsettled || b.paidInr + b.otherPaidInr - (a.paidInr + a.otherPaidInr) || a.businessName.localeCompare(b.businessName)
+  );
   return {
     studios,
-    earnedTotal: studios.reduce((a, s) => a + s.earnedInr, 0),
-    /* the Settled tile is every rupee that reached you — sessions and the rest */
     paidTotal: studios.reduce((a, s) => a + s.paidInr + s.otherPaidInr, 0),
-    dueTotal: studios.reduce((a, s) => a + s.dueInr, 0),
-    payouts: payoutRows.map((p) => ({
-      id: p.id,
-      userId: p.user_id,
-      personName: p.profiles?.full_name ?? "Someone",
-      businessName: p.businesses?.name ?? "A studio",
-      amountInr: p.amount_inr,
-      status: p.status,
-      method: p.method,
-      providerRef: p.provider_ref,
-      paidOn: p.paid_on,
-      note: p.note,
-      sessionCount: linesByPayout.get(p.id) ?? 0,
-    })),
+    unsettledTotal: studios.reduce((a, s) => a + s.unsettled, 0),
+    payouts,
   };
 }
 
-export async function recordPayout(
+/** PAY ONE PERSON, at the amount typed now per class or enquiry (18 Oct 2026). */
+export async function recordSessionPayment(
   supabase: SupabaseClient,
   input: {
     businessId: string;
     userId: string;
-    sessionIds: string[];
+    lines: PayLine[];
     method: PayoutMethod;
     status: PayoutStatus;
     providerRef?: string | null;
@@ -528,10 +480,12 @@ export async function recordPayout(
     note?: string | null;
   }
 ): Promise<void> {
-  const { error } = await supabase.rpc("record_payout", {
+  const { error } = await supabase.rpc("record_session_payment", {
     p_business_id: input.businessId,
     p_user_id: input.userId,
-    p_session_ids: input.sessionIds,
+    p_lines: input.lines.map((l) =>
+      "sessionId" in l ? { session_id: l.sessionId, rate_inr: l.rateInr } : { enquiry_id: l.enquiryId, rate_inr: l.rateInr }
+    ),
     p_method: input.method,
     p_status: input.status,
     p_provider_ref: input.providerRef ?? null,
@@ -543,12 +497,8 @@ export async function recordPayout(
   }
 }
 
-/** PAYING SOMEBODY ON THE TEAM (19 Sep 2026, the user: "should be able to pay
- *  them, track payment history and should be part of expenses in the earnings").
- *  `recordPayout` bills for SESSIONS TAUGHT and refuses anything else, so a
- *  studio could not pay its front-desk staff at all. This is a payout with an
- *  amount the owner states and no session lines — the same ledger, so the
- *  Earnings desk counts it as money out the moment it is written. */
+/** A payment that is NOT for a class or an enquiry (19 Sep 2026, R35 — kept at
+ *  the user's word, 18 Oct 2026): an amount the owner states, with no lines. */
 export async function recordTeamPayment(
   supabase: SupabaseClient,
   input: {
@@ -575,11 +525,6 @@ export async function recordTeamPayment(
   }
 }
 
-/* ⚠ NO SEPARATE PER-MEMBER READ (19 Sep 2026). "Track payment history" is
-   `findBusinessPayLedger`'s `payouts`, which the Team desk already has to hand and
-   which carries `userId` on every row — one query for the whole desk rather than
-   one per person opened. The history is that list, filtered. */
-
 export async function setPayoutStatus(
   supabase: SupabaseClient,
   payoutId: string,
@@ -602,3 +547,5 @@ export async function voidPayout(supabase: SupabaseClient, payoutId: string): Pr
     throw new Error(error.message);
   }
 }
+
+export type { PayableSession };

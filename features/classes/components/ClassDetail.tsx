@@ -1,5 +1,6 @@
 "use client";
 
+import { DoorSearch } from "@/features/attendance/components/DoorSearch";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -39,7 +40,7 @@ import type { PublicClassListing } from "@/types/class";
 import type { ClassBookingStatus } from "@/types/classBooking";
 import type { ClassMoney, PaidReceipt } from "@/types/payment";
 import type { RefundRequest } from "@/types/refund";
-import { AddAssistant, AskNewTeacher, AssistantControls, RateControl, StepDownButton } from "./ClassTeamControls";
+import { AddAssistant, AskNewTeacher, AssistantControls, StepDownButton } from "./ClassTeamControls";
 import { ClosedDraftButtons, DraftButtons } from "./ClassCardActions";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ProfileShare } from "@/features/profiles/components/ProfileShare";
@@ -914,9 +915,7 @@ export function ClassDetail({
               <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 8, minWidth: 0 }}>
                 {/* the powers are the OWNER's alone (11 Oct 2026) */}
                 {isOwner && !done && artist ? <AssistantControls classPerson={artist} isOwner={isOwner} col={col} remove={false} /> : null}
-                {/* WHAT A SESSION PAYS THEM HERE (D2) — the owner's number; not on
-                    a class the owner teaches themself */}
-                {isOwner && !done && artist && artist.id !== myClassPerson?.id ? <RateControl classPersonId={artist.id} rate={artist.payPerSessionInr} name={artist.personName} /> : null}
+                {/* ⚠ NO RATE HERE (18 Oct 2026): pay is set on the Team desk when paying */}
                 {/* a published class is fixed (11 Oct 2026) — only a draft changes
                     its artist, and a MANAGER may name one too */}
                 {runs && !done && isDraft && c.businessType === "studio" ? (
@@ -1530,12 +1529,6 @@ export function ClassDetail({
                   {controls ? (
                     <div style={{ padding: "9px 12px 10px", borderTop: "1.5px solid var(--el)" }}>
                       <AssistantControls classPerson={cl} isOwner={isOwner} col={col} remove={mayRemove} bar />
-                      {/* what a session pays them here (D2) — the owner's */}
-                      {isOwner ? (
-                        <div style={{ marginTop: 7 }}>
-                          <RateControl classPersonId={cl.id} rate={cl.payPerSessionInr} name={cl.personName} />
-                        </div>
-                      ) : null}
                     </div>
                   ) : null}
                 </div>
@@ -1689,41 +1682,31 @@ export function ClassDetail({
                 against, so it says so rather than opening a camera. */}
             {sessionPhase !== "ended" && (
               <div data-testid="door" style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-              <input
-                type="text"
+              {/* ⚠ A SEARCH, LIKE DISCOVER'S (18 Oct 2026): users and artists by
+                  name, a face per row; picking one books and checks them in, as a
+                  scan does. The walk-in by name is the dropdown's last row. */}
+              <DoorSearch
                 value={doorName}
-                onChange={(e) => setDoorName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    void doorWalkIn();
-                  }
+                onChange={setDoorName}
+                busy={doorBusy}
+                onRegister={(userId) => {
+                  const row = register.rows.find((r) => r.userId === userId);
+                  return !row ? null : row.checkedIn || scannedIn.current.has(userId) ? "in" : "booked";
                 }}
-                maxLength={80}
-                placeholder="Or type a name"
-                aria-label="Name of somebody at the door"
-                data-testid="door-name"
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  padding: "12px 14px",
-                  borderRadius: 999,
-                  border: "1.5px solid var(--el)",
-                  background: "var(--card)",
-                  color: "var(--text)",
-                  fontSize: 12.5,
-                  fontFamily: "inherit",
-                  textTransform: "none",
+                onPick={async (p) => {
+                  if (doorBusy) return;
+                  setDoorBusy(true);
+                  const out = await scanCheckIn(p.id, p.fullName);
+                  setDoorBusy(false);
+                  if (out.message) fire(out.message);
+                  if (out.ok) setDoorName("");
                 }}
+                onWalkIn={() => void doorWalkIn()}
               />
               <button
                 type="button"
                 disabled={doorBusy}
                 onClick={() => {
-                  if (doorName.trim()) {
-                    void doorWalkIn();
-                    return;
-                  }
                   /* ⚠ NO "nothing to scan against" GUARD ANY MORE (29 Sep 2026).
                      It refused to open the sheet while `register.rows` was
                      empty, which was true while the only thing a scan could do
@@ -1738,7 +1721,7 @@ export function ClassDetail({
                   scannedIn.current.clear();
                   setScanOpen(true);
                 }}
-                aria-label={doorName.trim() ? `Check ${doorName.trim()} in at the door` : "Scan a code to check somebody in"}
+                aria-label="Scan a code to check somebody in"
                 data-testid="scan-check-in"
                 style={{
                   display: "flex",
@@ -1749,8 +1732,8 @@ export function ClassDetail({
                   padding: "12px 16px",
                   borderRadius: 999,
                   border: "1.5px solid var(--el)",
-                  background: doorName.trim() ? "var(--text)" : "var(--card)",
-                  color: doorName.trim() ? "var(--solid)" : "var(--text)",
+                  background: "var(--card)",
+                  color: "var(--text)",
                   fontWeight: 900,
                   fontSize: 12.5,
                   fontFamily: "inherit",
@@ -1762,7 +1745,7 @@ export function ClassDetail({
                   <path d="M3.5 8.5v-3a2 2 0 0 1 2-2h3M15.5 3.5h3a2 2 0 0 1 2 2v3M20.5 15.5v3a2 2 0 0 1-2 2h-3M8.5 20.5h-3a2 2 0 0 1-2-2v-3" />
                   <path d="M7 12h10" />
                 </svg>
-                {doorName.trim() ? "Check in" : "Scan to check in"}
+                Scan
               </button>
               </div>
             )}

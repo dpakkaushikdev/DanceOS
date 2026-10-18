@@ -92,9 +92,9 @@ function Grant-ArtistPlan($userId) {
 
 $pass = $true
 $stamp = Get-Date -Format "HHmmss"
-$dancer = New-EmailUser "set-a-$stamp@example.com" "Plan Proof $stamp" "user"
-$owner = New-EmailUser "set-b-$stamp@example.com" "Owner Proof $stamp" "user"
-$stranger = New-EmailUser "set-c-$stamp@example.com" "Stranger Proof $stamp" "user"
+$dancer = New-EmailUser "set-a-$stamp@example.com" "Plan Prf $stamp" "user"
+$owner = New-EmailUser "set-b-$stamp@example.com" "Own Prf $stamp" "user"
+$stranger = New-EmailUser "set-c-$stamp@example.com" "Strg Prf $stamp" "user"
 $tenantId = $null
 $TSEL = "select=id,founded_year,phone,socials,enquiry_types,accepts_upi,accepts_cards,accepts_cash,accepts_bank,verified_at"
 
@@ -142,7 +142,7 @@ try {
     $p3.Count -eq 1 -and $p3[0].active -eq $true -and $sub3.Count -eq 1 -and $sub3[0].cancel_at_period_end -eq $true -and $sub3[0].status -eq "canceled" -and $prof[0].role -eq "user")
 
   # -- the business's own words ------------------------------------
-  $t = New-Studio $owner.token "Settings Proof Studio $stamp" "Kothrud" "Pune"
+  $t = New-Studio $owner.token "Set Std $stamp" "Kothrud" "Pune"
   Subscribe-Studio ([string]$t.id)
   $tenantId = [string]$t.id
   if (-not $tenantId) { $tenantId = [string]$t }

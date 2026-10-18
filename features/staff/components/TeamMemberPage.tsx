@@ -243,13 +243,14 @@ function EarningsPanel({
           owedEntries: owedIn,
           revenueGrossInr: revIn.filter((e) => e.kind === "payment").reduce((a, e) => a + e.amountInr, 0),
           revenueRefundedInr: revIn.filter((e) => e.kind === "refund").reduce((a, e) => a + e.amountInr, 0),
-          owedInr: owedIn.reduce((a, e) => a + e.rateInr, 0),
+          owedInr: 0,
           owedSessions: owedIn.length,
         };
   const last = history.payouts[0]?.paidOn ?? null;
   const revenue = work.revenueGrossInr - work.revenueRefundedInr;
   const paid = history.paidInr + history.pendingInr;
-  const total = revenue - paid - work.owedInr;
+  /* no "owed" term (18 Oct 2026): pay is set when paying, so nothing is owed in rupees until it is */
+  const total = revenue - paid;
   const minus = (v: number) => (v > 0 ? `− ${rupees(v)}` : rupees(0));
   const totalWords = total < 0 ? `− ${rupees(-total)}` : rupees(total);
   const totalTint = total > 0 ? GREEN : total < 0 ? "#F87171" : undefined;
@@ -285,7 +286,7 @@ function EarningsPanel({
           items={[
             { label: "Revenue", value: rupees(revenue), testId: "team-revenue" },
             { label: "Paid them", value: rupees(paid), testId: "team-paid" },
-            { label: "Still owed", value: rupees(work.owedInr), tint: work.owedInr > 0 ? "#F59E0B" : undefined, testId: "team-owed" },
+            { label: "To settle", value: work.owedEntries.length, tint: work.owedEntries.length > 0 ? "#F59E0B" : undefined, testId: "team-to-settle" },
           ]}
         />
         <ToolFacts
@@ -380,20 +381,21 @@ function EarningsPanel({
         </Fold>
 
         <div style={rule} />
-        <Fold title="STILL OWED TO THEM" figure={minus(work.owedInr)} count={work.owedEntries.length} noun={["session", "sessions"]} testId="team-fold-owed">
+        {/* NOT SETTLED YET — sessions no payment covers, with no amount: what
+            they are worth is decided when the studio pays (Pay on the Team desk) */}
+        <Fold title="NOT SETTLED YET" count={work.owedEntries.length} noun={["session", "sessions"]} testId="team-fold-to-settle">
           {work.owedEntries.length === 0 ? (
-            <div style={{ fontSize: 11.5, color: SUB }}>All paid up.</div>
+            <div style={{ fontSize: 11.5, color: SUB }}>Every session is settled.</div>
           ) : (
-            work.owedEntries.map((e) => <Line key={e.sessionId} label={e.classTitle} sub={sessionWords(e.startsAt)} value={rupees(e.rateInr)} testId="team-owed-entry" />)
+            work.owedEntries.map((e) => <Line key={e.sessionId} label={e.classTitle} sub={sessionWords(e.startsAt)} value="—" testId="team-to-settle-entry" />)
           )}
         </Fold>
 
         <div style={{ ...rule, borderTopWidth: 2 }} />
         {/* the total folds onto its own arithmetic */}
-        <Fold title="TOTAL EARNINGS" sub="Revenue − paid − owed" figure={totalWords} figureTint={totalTint} figureTestId="team-total-figure" testId="team-total-line">
+        <Fold title="TOTAL EARNINGS" sub="Revenue − paid" figure={totalWords} figureTint={totalTint} figureTestId="team-total-figure" testId="team-total-line">
           <Line label="Revenue" value={rupees(revenue)} />
           <Line label="Paid to them" value={minus(paid)} />
-          <Line label="Still owed" value={minus(work.owedInr)} />
           <Line label="Total earnings" value={totalWords} strong tint={totalTint} />
         </Fold>
       </div>

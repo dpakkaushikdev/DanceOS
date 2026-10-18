@@ -87,12 +87,12 @@ $stamp = Get-Date -Format "HHmmss"
 $made = @()
 
 try {
-  $a = New-Person "sv-a-$stamp@example.com" "Studio Verif A $stamp"; $made += $a.id
-  $b = New-Person "sv-b-$stamp@example.com" "Studio Verif B $stamp"; $made += $b.id
+  $a = New-Person "sv-a-$stamp@example.com" "SVer A $stamp"; $made += $a.id
+  $b = New-Person "sv-b-$stamp@example.com" "SVer B $stamp"; $made += $b.id
 
   # ── 1. a person nobody has verified opens a studio ──
   $gate = Rpc (Api $a.token) "why_no_studio" @{}
-  $ta = New-Studio $a.token "SV Studio $stamp" "Kothrud" "Pune"
+  $ta = New-Studio $a.token "SV Std $stamp" "Kothrud" "Pune"
   Check 1 "A person nobody has verified opens a studio (gate: '$gate'; studio: $($ta.id))" ((NoSentence $gate) -and $ta.id)
 
   # !! CHECKS 2-5b WENT WITH ORGANIZATIONS AND EVENTS (29 Sep 2026, the user:

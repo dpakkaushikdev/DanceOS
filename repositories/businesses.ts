@@ -172,7 +172,7 @@ export async function ensureArtistPage(
   const have = memberships.find((m) => m.memberRole === "owner" && m.business.type === "artist_page");
   if (have) return have.business.id;
   try {
-    const page = await createBusinessWithOwner(supabase, { name: profile.fullName, type: "artist_page", area: null, city: profile.city });
+    const page = await createBusinessWithOwner(supabase, { name: profile.fullName.trim().slice(0, 15).trim(), type: "artist_page", area: null, city: profile.city });
     return page.id;
   } catch {
     return null;
@@ -528,20 +528,6 @@ export async function findBusinessTeam(
   });
 }
 
-/** WHAT A SESSION PAYS SOMEBODY ON THE TEAM (11 Oct 2026, `set_member_pay`) —
- *  the owner's alone, 0–2,00,000, refused in the database's own words. An ask
- *  made afterwards with no rate of its own takes this. Returns the rate saved. */
-export async function setMemberPay(supabase: SupabaseClient, businessId: string, userId: string, rate: number): Promise<number> {
-  const { data, error } = await supabase.rpc("set_member_pay", {
-    p_business_id: businessId,
-    p_user_id: userId,
-    p_rate: rate,
-  });
-  if (error) {
-    throw new Error(error.message);
-  }
-  return Number(data ?? rate);
-}
 
 /** THE OWNER GRANTS THE TWO STANDING POWERS (20 Sep 2026). Owner-only inside the
  *  RPC, refused for an owner (who already holds both), and the seat is still the

@@ -78,7 +78,7 @@ const {
    match sweeps one too, but only when its owner is a junk account, one of those
    kept phones or a demo account, so a real business can never be caught by it.
    (JUNK_TENANT_NAME, KEEP_PHONES and isDemo come from scripts/proof-patterns.js.)
-   ⚠ "EEE Dance Studio" is ALSO the demo world's real studio, so that name
+   ⚠ "EEE Dance Studio" (since 19 Oct 2026 "EEE Studio") is ALSO the demo world's real studio, so that name
    (JUNK_OWNER_ONLY_NAME) counts only under a junk-EMAIL owner — never under a
    demo account or a kept test phone.
    The two Supabase TEST PHONE numbers are how paid-webhook.spec.ts and the older

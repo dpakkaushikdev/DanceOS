@@ -97,16 +97,16 @@ $stamp = Get-Date -Format "HHmmss"
 $ownerA = New-EmailUser "enq-ownera-$stamp@example.com" "Owner A $stamp" "user"
 $staffA = New-EmailUser "enq-staffa-$stamp@example.com" "Staff A $stamp" "user"
 $ownerB = New-EmailUser "enq-ownerb-$stamp@example.com" "Artist B $stamp" "user"
-$l1 = New-EmailUser "enq-l1-$stamp@example.com" "Sender One $stamp" "user"
-$l2 = New-EmailUser "enq-l2-$stamp@example.com" "Bystander $stamp" "user"
+$l1 = New-EmailUser "enq-l1-$stamp@example.com" "Sndr One $stamp" "user"
+$l2 = New-EmailUser "enq-l2-$stamp@example.com" "Bystndr $stamp" "user"
 
-$ta = New-Studio $ownerA.token "Enquiry Proof Studio $stamp" "Kothrud" "Pune"
+$ta = New-Studio $ownerA.token "Enq Std $stamp" "Kothrud" "Pune"
 Subscribe-Studio ([string]$ta.id)
 # 8 Sep 2026: an artist page is a Pro USER's - the plan comes first. 10 Sep 2026: the plan is PAID
 # (Rs 700 a month), so the free RPC refuses it; the service role grants one as an admin would
 Grant-ArtistPlan $ownerB.id
-$tb = New-Artist-Page $ownerB.token "Artist Business $stamp" "Baner" "Pune"
-$tc = New-Studio $ownerA.token "Private Studio $stamp" "Andheri" "Mumbai"
+$tb = New-Artist-Page $ownerB.token "Art Biz $stamp" "Baner" "Pune"
+$tc = New-Studio $ownerA.token "Priv Std $stamp" "Andheri" "Mumbai"
 Subscribe-Studio ([string]$tc.id)
 Invoke-RestMethod -Method Patch -Uri "$base/rest/v1/businesses?id=eq.$($tc.id)" -Headers $svcH -Body (@{ visibility = "unlisted" } | ConvertTo-Json) | Out-Null
 Add-Member $ta.id $staffA.id "staff" $ownerA.id

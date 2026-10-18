@@ -84,12 +84,12 @@ $pass = $true
 $stamp = Get-Date -Format "HHmmss"
 $city = "Hyderabad"   # one of the eight the registry allows (19 Sep 2026), and one the demo world does not use
 $owner = New-EmailUser "pp-owner-$stamp@example.com" "PP Owner $stamp" "user" $city
-$teacher = New-EmailUser "pp-teacher-$stamp@example.com" "PP Teacher $stamp" "user" $city
+$teacher = New-EmailUser "pp-teacher-$stamp@example.com" "PP Tchr $stamp" "user" $city
 $fan = New-EmailUser "pp-fan-$stamp@example.com" "PP Fan $stamp" "user" $city
 $other = New-EmailUser "pp-other-$stamp@example.com" "PP Other $stamp" "user" $city
-$ta = New-Studio $owner.token "PP Listed Studio $stamp" "Banjara Hills" $city
+$ta = New-Studio $owner.token "PPL Std $stamp" "Banjara Hills" $city
 Subscribe-Studio ([string]$ta.id)
-$tb = New-Studio $owner.token "PP Private Studio $stamp" "Jubilee Hills" $city
+$tb = New-Studio $owner.token "PPP Std $stamp" "Jubilee Hills" $city
 Subscribe-Studio ([string]$tb.id)
 Invoke-RestMethod -Method Patch -Uri "$base/rest/v1/businesses?id=eq.$($tb.id)" -Headers $svcH -Body (@{ visibility = "unlisted" } | ConvertTo-Json) | Out-Null
 $soon = (Get-Date).AddDays(9)
@@ -150,7 +150,7 @@ try {
   $teaches = Rows (Api $fan.token) "person_teaches_at" @{ p_user_id = $teacher.id }
   $names = (@($teaches | ForEach-Object { $_.business_name }) -join ", ")
   Check 3 "Teaches at: $names ($($teaches.Count) row) - the draft's studio counts once, the unlisted one never" (
-    ($teaches.Count -eq 1) -and ($teaches[0].business_name -eq "PP Listed Studio $stamp") -and ($teaches[0].classes -eq 1))
+    ($teaches.Count -eq 1) -and ($teaches[0].business_name -eq "PPL Std $stamp") -and ($teaches[0].classes -eq 1))
 
   # 4. THE RECORD MATCHES STEP 25's BOARD - the same arithmetic, so the page shows nothing new
   $mine = (Rows (Api $teacher.token) "my_dance_stats" @{})[0]
@@ -237,9 +237,9 @@ try {
     ([int]$bizFollow.followers -eq 1) -and ($bizN -eq 1))
 
   # 12. AND SEARCH CAN OFFER PEOPLE NOW - to a signed-in caller, never to a stranger
-  $found = Rows (Api $fan.token) "search_dance_os" @{ p_q = "PP Teacher"; p_limit = 3 }
+  $found = Rows (Api $fan.token) "search_dance_os" @{ p_q = "PP Tchr"; p_limit = 3 }
   $person = @($found | Where-Object { $_.kind -eq "person" })[0]
-  $anonFound = Rows $anonH "search_dance_os" @{ p_q = "PP Teacher"; p_limit = 3 }
+  $anonFound = Rows $anonH "search_dance_os" @{ p_q = "PP Tchr"; p_limit = 3 }
   $anonPeople = @($anonFound | Where-Object { $_.kind -eq "person" }).Count
   Check 12 "Signed in, the search finds the person ($($person.name) -> $($person.href), sub '$($person.sub)'); a stranger finds $anonPeople people" (
     ($null -ne $person) -and ($person.href -eq "/person/$($teacher.id)") -and ($person.sub -like "User*") -and ($anonPeople -eq 0))

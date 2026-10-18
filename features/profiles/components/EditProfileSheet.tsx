@@ -1,5 +1,6 @@
 "use client";
 
+import { NAME_MAX } from "@/lib/constants/names";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Portal } from "@/components/ui/Portal";
@@ -139,7 +140,7 @@ export function EditProfileSheet({
     <Sheet label="Edit profile" onClose={onClose} maxHeight="88vh">
       <b style={FORM_TITLE}>Edit profile</b>
       <div style={fieldLabel}>Name</div>
-      <input aria-label="Name" value={d.fullName} onChange={(e) => setD((x) => ({ ...x, fullName: e.target.value }))} style={fieldInput} />
+      <input aria-label="Name" maxLength={NAME_MAX} value={d.fullName} onChange={(e) => setD((x) => ({ ...x, fullName: e.target.value }))} style={fieldInput} />
       {/* ⚠ NO MOBILE, NO CALL SWITCH, NO EMAIL (26 Sep 2026) — they are the ⊕
           beside the buttons on Home; and NO PICTURES (19 Sep 2026) — both
           sections live behind the disc on Home. This sheet is who you are and

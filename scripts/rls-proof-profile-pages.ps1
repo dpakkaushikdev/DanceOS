@@ -90,12 +90,12 @@ function Grant-ArtistPlan($userId) {
 $pass = $true
 $stamp = Get-Date -Format "HHmmss"
 $org = New-EmailUser "prof-org-$stamp@example.com" "Prof Org $stamp" "user"
-$lead = New-EmailUser "prof-lead-$stamp@example.com" "Prof Lead $stamp" "user"
-$member = New-EmailUser "prof-member-$stamp@example.com" "Prof Member $stamp" "user"
+$lead = New-EmailUser "prof-lead-$stamp@example.com" "PrP Lead $stamp" "user"
+$member = New-EmailUser "prof-member-$stamp@example.com" "PrP Mbr $stamp" "user"
 $fan = New-EmailUser "prof-fan-$stamp@example.com" "Prof Fan $stamp" "user"
-$artist = New-EmailUser "prof-artist-$stamp@example.com" "Prof Artist $stamp" "user"
+$artist = New-EmailUser "prof-artist-$stamp@example.com" "PrP Art $stamp" "user"
 Grant-ArtistPlan $artist.id
-$studio = New-Studio $org.token "Prof Studio $stamp" "Kothrud" "Pune"
+$studio = New-Studio $org.token "Prof Std $stamp" "Kothrud" "Pune"
 Subscribe-Studio ([string]$studio.id)
 # !! THE TWO ORG BUSINESSES, AND THE SECOND ACCOUNT THAT OWNED ONE, WENT WITH
 # ORGANIZATIONS (29 Sep 2026) - see the note above check 6. `$org` is an ordinary
@@ -103,7 +103,7 @@ Subscribe-Studio ([string]$studio.id)
 
 try {
   # -- A CREW CAN BE FOLLOWED ---------------------------------------------------
-  $crew = Rpc (Api $lead.token) "create_crew" @{ p_name = "Prof Crew $stamp"; p_city = "Pune"; p_style = "Hip-Hop"; p_member_ids = @($member.id) }
+  $crew = Rpc (Api $lead.token) "create_crew" @{ p_name = "PrP Crew $stamp"; p_city = "Pune"; p_style = "Hip-Hop"; p_member_ids = @($member.id) }
   $ask = @(Get-Rows (Api $lead.token) "crew_members?crew_id=eq.$($crew.id)&user_id=eq.$($member.id)&select=id")[0]
   Rpc (Api $member.token) "respond_to_crew_ask" @{ p_member_id = $ask.id; p_accept = $true } | Out-Null
 

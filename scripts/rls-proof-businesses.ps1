@@ -49,9 +49,9 @@ function New-Owner($email, $name) {
 $b = New-Owner "st-ownerb-$stamp@example.com" "Owner B $stamp"
 
 # each owner creates a studio via the RPC (tenant + owner membership, atomic)
-$ta = New-Studio $a.access_token "Studio A $stamp" "Kothrud" "Pune"
+$ta = New-Studio $a.access_token "BizA Std $stamp" "Kothrud" "Pune"
 Subscribe-Studio ([string]$ta.id)
-$tb = New-Studio $b.access_token "Studio B $stamp" "Saket" "New Delhi"
+$tb = New-Studio $b.access_token "BizB Std $stamp" "Saket" "New Delhi"
 # A's studio is subscribed and listed (Subscribe-Studio above); B's is neither, so it stays the
 # private row this proof's isolation claims are about
 "1. A created '$($ta.name)' (subscribed, public); B created '$($tb.name)' (unsubscribed, private)"

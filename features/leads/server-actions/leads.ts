@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { nameField } from "@/lib/constants/names";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createLead, softDeleteLead, updateLead } from "@/repositories/leads";
 
@@ -31,7 +32,7 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 const createSchema = z.object({
   businessId: z.string().uuid(),
-  name: z.string().trim().min(1, "Who is it?").max(120),
+  name: nameField("Who is it?"),
   mobile: z.string().trim().max(20).optional().nullable(),
   interest: z.string().trim().max(160).optional().nullable(),
   source: z.enum(["walk_in", "enquiry", "referral", "social"]),

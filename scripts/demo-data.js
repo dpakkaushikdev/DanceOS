@@ -163,9 +163,9 @@ async function seed() {
      opened ONE org business named after themselves; the names below are the
      companies those organizations were called, and they read perfectly well as
      the people who run the studios. */
-  const rhythm = await makeUser("rhythm", "Rhythm Collective", "user", "Gurugram");
-  const eeeCo = await makeUser("eee", "EEE Dance Company", "user", "Pune");
-  const bounceCo = await makeUser("bounce", "Bounce Dance Academy", "user", "New Delhi");
+  const rhythm = await makeUser("rhythm", "Rhythm Co", "user", "Gurugram");
+  const eeeCo = await makeUser("eee", "EEE Dance Co", "user", "Pune");
+  const bounceCo = await makeUser("bounce", "Bounce Academy", "user", "New Delhi");
   const namma = await makeUser("namma", "Namma Dance Co.", "user", "Bengaluru");
   /* artists — a person with a live Artist plan (granted below) */
   const meera = await makeUser("meera", "Meera Grewal", "user", "Gurugram");
@@ -219,7 +219,7 @@ async function seed() {
   /* ── the people: a city, styles, About, links; the Call switch ON for Meera and OFF for Aditya (push 2) ── */
   const personFacts = [
     [meera, ["Contemporary", "Kathak"], 29, "Contemporary and Kathak. Teaching for nine years.", "+91 98100 22334", true, "meera@grewal.example"],
-    [aditya, ["Hip-Hop", "Popping"], 26, "Hip-Hop and popping. Leads Gurugram Rockers.", "+91 98100 33445", false, "aditya@pillai.example"],
+    [aditya, ["Hip-Hop", "Popping"], 26, "Hip-Hop and popping. Leads GGN Rockers.", "+91 98100 33445", false, "aditya@pillai.example"],
     [rhea, ["Hip-Hop"], 27, "Cypher first. Leads EEE Crew.", null, null, "rhea@kapoor.example"],
     [karan, ["Breaking"], 24, "B-boy. Bengaluru.", "+91 98400 55667", true, null],
     [kabir, ["Hip-Hop", "Bollywood"], 24, "Learning, mostly evenings.", null, null, null],
@@ -251,11 +251,11 @@ async function seed() {
     log(`${t.name} (studio · ${o.city} · ${area}) — listed, placed, subscribed`);
     return t;
   };
-  const s29 = await mkStudio(rhythm, "Rhythm Studio Sector 29", "Sector 29", 0.01, 0.012);
-  const dlf = await mkStudio(rhythm, "Rhythm Studio DLF Phase 3", "DLF Phase 3", 0.03, -0.02);
-  const eee = await mkStudio(eeeCo, "EEE Dance Studio", "Kothrud", -0.01, -0.03);
-  const bounce = await mkStudio(bounceCo, "Bounce Dance Academy", "Hauz Khas", -0.06, -0.01);
-  const nammaStudio = await mkStudio(namma, "Namma Studio Indiranagar", "Indiranagar", 0.007, 0.06);
+  const s29 = await mkStudio(rhythm, "Rhythm Sec 29", "Sector 29", 0.01, 0.012);
+  const dlf = await mkStudio(rhythm, "Rhythm DLF 3", "DLF Phase 3", 0.03, -0.02);
+  const eee = await mkStudio(eeeCo, "EEE Studio", "Kothrud", -0.01, -0.03);
+  const bounce = await mkStudio(bounceCo, "Bounce Academy", "Hauz Khas", -0.06, -0.01);
+  const nammaStudio = await mkStudio(namma, "Namma Studio", "Indiranagar", 0.007, 0.06);
 
   /* an artist's page is the business behind their classes, team and money (R22) */
   const mkPage = async (a, name, area) => {
@@ -263,10 +263,10 @@ async function seed() {
     log(`${t.name} (artist page · ${a.city})`);
     return t;
   };
-  const meeraPage = await mkPage(meera, "Meera Grewal Dance Co.", "Sector 56");
-  const adityaPage = await mkPage(aditya, "Aditya Pillai Movement", "Sector 14");
-  const rheaPage = await mkPage(rhea, "Rhea Kapoor Studio", "Kothrud");
-  const karanPage = await mkPage(karan, "Karan Shetty Breaking", "Koramangala");
+  const meeraPage = await mkPage(meera, "Meera Grewal Co", "Sector 56");
+  const adityaPage = await mkPage(aditya, "Aditya Movement", "Sector 14");
+  const rheaPage = await mkPage(rhea, "Rhea Kapoor", "Kothrud");
+  const karanPage = await mkPage(karan, "Karan Breaking", "Koramangala");
 
   /* ── rooms ── */
   const room = (o, t, name, capacity, amenities) => insert(o.h, "rooms", { business_id: t.id, name, capacity, amenities });
@@ -295,7 +295,7 @@ async function seed() {
   await invite(namma, nammaStudio, karan, "trainer");
   log("Sector 29: Aditya (faculty), Sneha (staff), Kabir invited and waiting · EEE: Rhea (faculty) · Bounce: Rohit (staff) · Namma: Karan (faculty)");
   /* ⚠ AN ORGANIZATION'S NAMED TEAM was seeded here until 29 Sep 2026 — Meera as
-     Owner of Rhythm Collective, Kabir on its Team, Zaid still asked, Rhea as
+     Owner of Rhythm Co, Kabir on its Team, Zaid still asked, Rhea as
      Owner of EEE — through `ask_organization_member` / `respond_to_organization_ask`.
      It is gone with organizations. A STUDIO's team above is the real thing and
      is untouched: it is a seat with powers, where those were labels on a page. */
@@ -516,12 +516,12 @@ async function seed() {
     }
     return c;
   };
-  const rockers = await mkCrew(aditya, "Gurugram Rockers", "Hip-Hop", [zaid, kabir, aki], [zaid, kabir]);
+  const rockers = await mkCrew(aditya, "GGN Rockers", "Hip-Hop", [zaid, kabir, aki], [zaid, kabir]);
   await rpc(aditya.h, "update_crew", { p_crew_id: rockers.id, p_name: rockers.name, p_city: "Gurugram", p_style: "Hip-Hop", p_contact_email: "rockers@crew.example", p_phone: "+91 98100 77001", p_phone_public: true });
   const eeeCrew = await mkCrew(rhea, "EEE Crew", "Hip-Hop", [priya, zaid], [priya]);
   await rpc(rhea.h, "update_crew", { p_crew_id: eeeCrew.id, p_name: eeeCrew.name, p_city: "Pune", p_style: "Hip-Hop", p_contact_email: "eeecrew@crew.example", p_phone: "+91 98200 77002", p_phone_public: false });
   const breakers = await mkCrew(karan, "Namma Breakers", "Breaking", [nikhil], [nikhil]);
-  log("Gurugram Rockers (Aditya; Zaid and Kabir in, Aki asked; Call on) · EEE Crew (Rhea; Priya in, Zaid asked; Call off) · Namma Breakers (Karan; Nikhil in)");
+  log("GGN Rockers (Aditya; Zaid and Kabir in, Aki asked; Call on) · EEE Crew (Rhea; Priya in, Zaid asked; Call off) · Namma Breakers (Karan; Nikhil in)");
 
   /* ────────────────────────────────────────────────────────────────────────
      FOLLOWS — a studio, a person, a crew
@@ -667,11 +667,11 @@ async function seed() {
       p_video_url: r.video, p_status: r.status ?? "live",
     });
   const onClass = (u, classId, routineId) => rpc(u.h, "add_class_routine", { p_class_id: classId, p_routine_id: routineId });
-  const breath = await mkRoutine(meera, { title: "Breath & Release", style: "Contemporary", level: "intermediate", song: "Ilahi (instrumental)", songUrl: "https://youtu.be/ilahi-instrumental", video: "https://youtu.be/breath-release" });
-  const kathakTarana = await mkRoutine(meera, { title: "Tarana in Bhairavi", style: "Kathak", level: "beginner", song: "Raag Bhairavi tarana", songUrl: "https://open.spotify.com/track/bhairavi", video: "https://youtu.be/tarana-bhairavi" });
-  const wip = await mkRoutine(meera, { title: "Winter Piece (WIP)", style: "Contemporary", level: "professional", song: "Nocturne", songUrl: "https://open.spotify.com/track/nocturne", video: "https://youtu.be/nocturne-wip", status: "draft" });
-  const cypher = await mkRoutine(aditya, { title: "Cypher Basics 101", style: "Hip-Hop", level: "beginner", song: "The World Is Yours", songUrl: "https://open.spotify.com/track/world-is-yours", video: "https://youtu.be/cypher-basics" });
-  const kala = await mkRoutine(aditya, { title: "Kala Chashma Remix", style: "Bollywood", song: "Kala Chashma", songUrl: "https://open.spotify.com/track/kala-chashma", video: "https://youtu.be/kala-chashma-routine" });
+  const breath = await mkRoutine(meera, { title: "Breath+Release", style: "Contemporary", level: "intermediate", song: "Ilahi (instrumental)", songUrl: "https://youtu.be/ilahi-instrumental", video: "https://youtu.be/breath-release" });
+  const kathakTarana = await mkRoutine(meera, { title: "Tarana Bhairavi", style: "Kathak", level: "beginner", song: "Raag Bhairavi tarana", songUrl: "https://open.spotify.com/track/bhairavi", video: "https://youtu.be/tarana-bhairavi" });
+  const wip = await mkRoutine(meera, { title: "Winter Piece", style: "Contemporary", level: "professional", song: "Nocturne", songUrl: "https://open.spotify.com/track/nocturne", video: "https://youtu.be/nocturne-wip", status: "draft" });
+  const cypher = await mkRoutine(aditya, { title: "Cypher Basics", style: "Hip-Hop", level: "beginner", song: "The World Is Yours", songUrl: "https://open.spotify.com/track/world-is-yours", video: "https://youtu.be/cypher-basics" });
+  const kala = await mkRoutine(aditya, { title: "Kala Chashma", style: "Bollywood", song: "Kala Chashma", songUrl: "https://open.spotify.com/track/kala-chashma", video: "https://youtu.be/kala-chashma-routine" });
   /* ⚠ a routine goes on a class of its OWN style (4 Oct 2026, 20261004180000) —
      the Popping class had the Hip-Hop routine on it until then */
   const waves = await mkRoutine(aditya, { title: "Waves & Tuts", style: "Popping", level: "intermediate", song: "Pop Lock and Drop It", songUrl: "https://open.spotify.com/track/pop-lock", video: "https://youtu.be/waves-tuts" });
@@ -692,7 +692,7 @@ async function seed() {
   await onClass(karan, nammaBreaking.id, firePower.id);
   await onClass(rhea, pastEee.id, eeeSet.id);
   await onClass(rhea, rheaOwn.id, eeeSet.id);
-  log("Meera: Breath & Release (3 classes, two of them past), Tarana in Bhairavi, Winter Piece (draft) · Aditya: Cypher Basics 101 (3), Waves & Tuts (1, past), Kala Chashma Remix (2) · Karan: Power Moves 1 (2) · Rhea: Monsoon Set (2)");
+  log("Meera: Breath+Release (3 classes, two of them past), Tarana Bhairavi, Winter Piece (draft) · Aditya: Cypher Basics (3), Waves & Tuts (1, past), Kala Chashma (2) · Karan: Power Moves 1 (2) · Rhea: Monsoon Set (2)");
   log("their usage is counted from the registers above — sessions held and the dancers who checked in");
 
   /* ────────────────────────────────────────────────────────────────────────
@@ -748,7 +748,7 @@ async function seed() {
   console.log("\nPlatform");
   await rpc(rhythm.h, "open_support_thread", { p_subject: "Studio verification", p_body: "We moved Sector 29 to a bigger floor — do we need to send photos again?" });
   await rpc(rohit.h, "report_content", { p_subject_kind: "business", p_subject_id: eee.id, p_reason: "other", p_note: "Demo report — nothing is wrong with this studio." });
-  log("Rhythm Collective opened a support thread · Rohit filed a demo report on EEE Dance Studio");
+  log("Rhythm Co opened a support thread · Rohit filed a demo report on EEE Studio");
 
   console.log("\n─────────────────────────────────────────────");
   console.log("Demo world ready. Sign in with any of these:");

@@ -123,16 +123,17 @@ const passRow = async (id) => (await call("GET", `/rest/v1/membership_passes?id=
 (async () => {
   if (env.CASHFREE_ENV !== "sandbox") throw new Error(`refusing: CASHFREE_ENV is ${env.CASHFREE_ENV}, not sandbox`);
   const stamp = Date.now().toString(36);
+  const tag = stamp.slice(-6);
   const made = { users: [], businesses: [] };
   const errors = [];
   const browser = await chromium.launch();
   try {
-    const owner = await makeAccount(stamp, "owner", `Mu Owner ${stamp}`);
+    const owner = await makeAccount(stamp, "owner", `Mu Owner ${tag}`);
     made.users.push(owner.id);
-    const buyer = await makeAccount(stamp, "buyer", `Mu Buyer ${stamp}`);
+    const buyer = await makeAccount(stamp, "buyer", `Mu Buyer ${tag}`);
     made.users.push(buyer.id);
 
-    const studio = await call("POST", "/rest/v1/rpc/create_business_with_owner", owner.h, { p_type: "studio", p_name: `Mu Hall ${stamp}`, p_area: "Kothrud", p_city: "Pune", p_styles: ["Hip-Hop"] });
+    const studio = await call("POST", "/rest/v1/rpc/create_business_with_owner", owner.h, { p_type: "studio", p_name: `Mu Hall ${tag}`, p_area: "Kothrud", p_city: "Pune", p_styles: ["Hip-Hop"] });
     made.businesses.push(studio.id);
     await call("POST", "/rest/v1/subscriptions", svc, {
       kind: "studio", user_id: owner.id, business_id: studio.id, plan_key: "studio_monthly",
@@ -148,8 +149,8 @@ const passRow = async (id) => (await call("GET", `/rest/v1/membership_passes?id=
       p_membership_id: null, p_business_id: studio.id, p_name: name, p_unit: "hours", p_units: 3,
       p_price_inr: 500, p_total_count: 5, p_status: "live", p_validity_days: 30,
     });
-    const spendM = await sell(`Mu Spend ${stamp}`);
-    const returnM = await sell(`Mu Return ${stamp}`);
+    const spendM = await sell(`Mu Spend ${tag}`);
+    const returnM = await sell(`Mu Ret ${tag}`);
     const oneHour = await makeClass(owner, studio.id, 3, 1);
     const threeHour = await makeClass(owner, studio.id, 4, 3);
     check(oneHour.status === "published" && oneHour.allows_studio_memberships === true,

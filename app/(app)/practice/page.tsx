@@ -5,7 +5,7 @@ import { PracticeHome, type PracticeChip, type PracticeTab } from "@/features/cr
 import { DOS_UI, INK, LILAC } from "@/lib/design/tokens";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findMyCrewPractices } from "@/repositories/crewPractices";
-import { findMyEnquiryPractices } from "@/repositories/enquiryTeam";
+import { findMyPersonalEnquiryPractices } from "@/repositories/enquiryTeam";
 
 export const metadata: Metadata = { title: "Practice — DanceOS" };
 
@@ -48,7 +48,7 @@ export default async function PracticePage({
   const now = stampNow();
   const [crew, job] = await Promise.all([
     findMyCrewPractices(supabase),
-    findMyEnquiryPractices(supabase, { from: new Date(now - 90 * DAY).toISOString(), to: new Date(now + 180 * DAY).toISOString() }).catch(() => []),
+    findMyPersonalEnquiryPractices(supabase, { from: new Date(now - 90 * DAY).toISOString(), to: new Date(now + 180 * DAY).toISOString() }).catch(() => []),
   ]);
   const tab: PracticeTab = rawTab === "past" ? "past" : "upcoming";
   const chip: PracticeChip =

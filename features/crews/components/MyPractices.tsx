@@ -58,6 +58,7 @@ export function PracticeHome({
   basePath = "/practice",
   showChips = true,
 }: {
+  /* a job practice opens at `${basePath}/job/{id}` — a studio's under the studio */
   /** the page's own heading — a server node */
   top: ReactNode;
   crew: CrewPractice[];
@@ -84,7 +85,7 @@ export function PracticeHome({
 
   const items: Item[] = [
     ...crew.map((p) => ({ key: `c-${p.id}`, kind: "crew" as const, startsAt: p.startsAt, ...placeOf(p.startsAt, p.endsAt, p.status === "cancelled"), node: <PracticeCard practice={p} now={now} /> })),
-    ...job.map((p) => ({ key: `j-${p.id}`, kind: "job" as const, startsAt: p.startsAt, ...placeOf(p.startsAt, p.endsAt, p.status === "cancelled"), node: <EnquiryPracticeCard practice={p} now={now} /> })),
+    ...job.map((p) => ({ key: `j-${p.id}`, kind: "job" as const, startsAt: p.startsAt, ...placeOf(p.startsAt, p.endsAt, p.status === "cancelled"), node: <EnquiryPracticeCard practice={p} now={now} hrefBase={`${basePath}/job`} /> })),
   ];
 
   const write = (t: PracticeTab, c: PracticeChip) => {

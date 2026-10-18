@@ -258,13 +258,17 @@ export function EnquiryPracticesPanel({
   typeKey,
   myPart,
   linked,
+  practiceHrefBase = "/practice/job",
 }: {
   enquiryId: string;
   job: EnquiryJob;
   canWork: boolean;
   closed: boolean;
   /** what the reader is to the job — the card's chip */
-  myPart: "runs" | "team" | "participant";
+  myPart: "runs" | "team" | "participant" | "sender";
+  /** where a practice's page lives — a studio's own enquiry links under the
+   *  studio, so opening a practice never switches profile (18 Oct 2026) */
+  practiceHrefBase?: string;
   /** the card opens the practice's own page — only for somebody that page admits
    *  (the business's side and the job's confirmed people); the sender reads it here */
   linked: boolean;
@@ -307,6 +311,7 @@ export function EnquiryPracticesPanel({
         <EnquiryPracticeCard
           now={now}
           linked={linked}
+          hrefBase={practiceHrefBase}
           practice={{
             id: p.id,
             enquiryId,
@@ -456,22 +461,33 @@ export function EnquiryFilesPanel({
   const [kind, setKind] = useState<EnquiryFileKind>("music");
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
+  /* A FORM SHEET (18 Oct 2026, the user: "files add link should be like a
+     form") — the practice form's anatomy: "+ Add link" opens it, the bar's
+     button names what is missing, Cancel closes it */
+  const [open, setOpen] = useState(false);
   if (!available) return <Off />;
 
+  const okUrl = /^https?:\/\/\S+\.\S+/i.test(url.trim());
   const add = async () => {
     const ok = await run(() => addEnquiryFileAction({ enquiryId, kind, label: name.trim(), url: url.trim() }));
     if (ok) {
       setName("");
       setUrl("");
+      setOpen(false);
     }
   };
 
   return (
     <div data-testid="enquiry-files">
       {!closed ? (
-        <Surface tint={tint}>
-          <Eyebrow tint={tint}>ADD A LINK</Eyebrow>
-          <div role="group" aria-label="What kind of link" style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+        <button type="button" data-testid="enquiry-file-add" onClick={() => setOpen(true)} style={{ ...pill, width: "100%", padding: 12, marginBottom: 10 }}>
+          + Add link
+        </button>
+      ) : null}
+      {open ? (
+        <EnquiryFormSheet title="Add link" onClose={() => setOpen(false)}>
+          <span style={{ ...FORM_LABEL, display: "block" }}>KIND</span>
+          <div role="group" aria-label="What kind of link" style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
             {ENQ_FILE_KINDS.map(([k, word]) => (
               <button
                 key={k}
@@ -487,19 +503,24 @@ export function EnquiryFilesPanel({
               </button>
             ))}
           </div>
-          <label style={label} htmlFor="ef-name">
+          <label style={{ ...FORM_LABEL, display: "block" }} htmlFor="ef-name">
             NAME
           </label>
-          <input id="ef-name" value={name} maxLength={80} onChange={(ev) => setName(ev.target.value)} placeholder="Final mix" style={{ ...field, marginBottom: 8 }} />
-          <label style={label} htmlFor="ef-url">
+          <input id="ef-name" value={name} maxLength={80} onChange={(ev) => setName(ev.target.value)} placeholder="Final mix" style={FORM_INPUT} />
+          <label style={{ ...FORM_LABEL, display: "block" }} htmlFor="ef-url">
             LINK
           </label>
-          <input id="ef-url" type="url" inputMode="url" value={url} maxLength={600} onChange={(ev) => setUrl(ev.target.value)} placeholder="https://…" style={{ ...field, marginBottom: 10 }} />
-          <button type="button" disabled={busy || !name.trim() || !url.trim()} onClick={() => void add()} style={{ ...pill, width: "100%", padding: 11 }}>
-            Add link
-          </button>
+          <input id="ef-url" type="url" inputMode="url" value={url} maxLength={600} onChange={(ev) => setUrl(ev.target.value)} placeholder="https://…" style={FORM_INPUT} />
           <Err text={error} />
-        </Surface>
+          <FormBar>
+            <button type="button" onClick={() => setOpen(false)} style={formSecondary}>
+              Cancel
+            </button>
+            <button type="button" disabled={busy || !name.trim() || !okUrl} onClick={() => void add()} style={formPrimary(Boolean(name.trim()) && okUrl)}>
+              {!name.trim() ? "Name the link" : !okUrl ? "Paste a web link" : busy ? "Adding…" : "Add link"}
+            </button>
+          </FormBar>
+        </EnquiryFormSheet>
       ) : null}
       <Surface>
         <Eyebrow>{`LINKS · ${files.length}`}</Eyebrow>

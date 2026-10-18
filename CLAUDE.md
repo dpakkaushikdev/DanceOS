@@ -2,6 +2,17 @@
 
 ## LAST SESSION (17–18 Oct 2026) — replaced on every push (Rule 13)
 
+> ### "NOTIFICATIONS" AGAIN, A REFRESH STAYS HOME, THE SENDER ON THE REGISTER, AN ENQUIRY DOOR ON A JOB PRACTICE, A LINK IS A FORM, A DANCER FOR STYLES, AND NO PROFILE CROSSING (18 Oct 2026, latest) — ⚠ Rule 9 (one migration, WRITTEN, DRY-RUN **11/11**, HELD — NEXT TO DO #0c2) · the app half PUSHED (safe before the apply)
+> The user's ten points, plus *"continue from previous chat, finish previous points as well"*.
+> * **Notifications**: the heading is **Notifications** again; History is an icon-only toggle (filled while on), a "History" pill where "{n} new" was; the drawer's ✕ is gone. e2e headings re-cut.
+> * **Discover**: Followed-by-you names 9px; the Styles tile is a drawn dancer, not notes.
+> * **A refresh of `/` stays on Home** — the proxy's open-on-Discover redirect skips a request carrying `Cache-Control: max-age=0|no-cache` (what a reload sends).
+> * **Job practice** (`JobPracticeRoute`, shared by `/practice/job/{id}` and the new `/business/{id}/practice/job/{id}`): the register is the team, then the participants, then **the person who sent the enquiry**; the sender reads it locked; an **Enquiry** button with an icon sits top right of the first section for the runner and the sender. A crew practice has no "This crew / Practice desk" doors.
+> * **No profile crossing**: a person's Practice tool and calendar no longer list a STUDIO's jobs (`findMyPersonalEnquiryPractices`); a studio's practice cards, the enquiry page's practice links and the practice page's enquiry door all stay under `/business/{id}/…`. ⚠ A studio-scoped address re-checks the seat and that the enquiry is that studio's.
+> * **Files**: "+ Add link" opens a form sheet (kind · name · link, the bar names what is missing, a non-web link refused before it is sent).
+> * **Previous chat's leftovers**: the TWA manifest, `strings.xml`, `build.gradle` and the web-push subject point at `danceos-sigma.vercel.app` — ⚠ the APK is NOT rebuilt (the signing key is not on this machine); the sender's practice cards are links.
+> * **Verified:** typecheck 0 · lint 0 · build green · on `:3100` `shoot-enquiry-job` **21/21** (one check re-cut to the studio address) · `shoot-practice` **49/49** · `shoot-inbox` **71/71** · `shoot-discover` **43/43** · `admin-support` + `admin-moderation` **14/14** · the migration's dry run **11/11** rolled back. ⚠ The whole e2e suite was not run.
+
 > ### NOTIFICATIONS IN A LEFT DRAWER, CLEANER ENQUIRY PAGES AND CARDS, A BETTER PRACTICE PAGE, CIRCULAR CORNERS, ICON TILES ON DISCOVER, A STUDIO RECORD LIKE A PERSON'S, NO CREW RANKINGS (18 Oct 2026, latest) — no migration, UI only
 > The user's seven points ("finish not done from previous chat … push to live directly as all are mostly ui ux changes"), then *"crew rankings to be removed for now. and studio records should be better and similar to a persons record page"* and *"dance style rankings to be similar in design"*.
 > * **Enquiry detail**: WHAT THEY ASKED FOR is a smaller tidier block; Earnings and Quote re-cut; no "quoted this much" under the name. **Enquiry cards**: no buttons, no "waiting on you" sub-line, a new `EnquiryDeskCard` look.
@@ -11153,6 +11164,8 @@ summary; the report has the evidence.
   List / Unlist; no 18+ gate; the dead management token.
 
 ## NEXT TO DO — replaced on every push (Rule 13)
+
+0c2. **ONE MIGRATION HELD — `20261027090000_the_sender_is_on_the_register`** (dry run 11/11, `scripts/dry-run-checks/20261027090000.js`). The whole of it: `my_enquiry_practices` gives the enquiry's SENDER a row (`my_part 'sender'`) and counts them in `people`; `check_in_enquiry_practice` admits the sender as a person the runner may check in. Same signatures, same grants, anon 40, no table/policy/grant moves. Until applied, a sender's job practice page is not found and the register has no sender row. On the user's word: `db-push.ps1 -DryRun` (exactly this file), apply, `notify pgrst, 'reload schema'`. Then rebuild the TWA APK where the signing key lives (the manifest now names `danceos-sigma.vercel.app`), and the real-phone test.
 
 0c1. **WHAT IS LEFT (12 Oct 2026) IS THE USER'S OPS LIST, LEFT AT THEIR WORD**: Cashfree KYC + Easy Split + the PG webhook sub-tab, a billed Maps key, a verified Resend domain (it blocks pilot invites — sign-in email reaches only the account owner), the Supabase email templates, counsel on the legal pages, one real phone push test. ⚠ A fresh open of a profile-less account lands on onboarding through Discover's own redirect; the `dos_open` cookie is per browser, so two tabs share it.
 

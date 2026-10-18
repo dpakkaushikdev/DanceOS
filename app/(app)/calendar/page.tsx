@@ -5,7 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findMyCalendar } from "@/repositories/calendar";
 import { calendarFeedPath } from "@/lib/calendar/feedToken";
 import { findMyCrewPractices, practiceToCalendar } from "@/repositories/crewPractices";
-import { enquiryPracticeToCalendar, findMyEnquiryPractices } from "@/repositories/enquiryTeam";
+import { enquiryPracticeToCalendar, findMyPersonalEnquiryPractices } from "@/repositories/enquiryTeam";
 
 /* the clock lives outside the component (react-hooks/purity) */
 const stampNowIso = (): string => new Date().toISOString();
@@ -52,7 +52,7 @@ export default async function CalendarPage() {
     /* ⚠ AND THE ENQUIRY JOBS' PRACTICES (18 Oct 2026, `20261025090000`) — a job
        this person runs, is on the team of, or is a confirmed participant in;
        scoped to `auth.uid()` inside, and an empty list on any failure */
-    findMyEnquiryPractices(supabase, { from: fromIso, to: toIso }).catch(() => []),
+    findMyPersonalEnquiryPractices(supabase, { from: fromIso, to: toIso }).catch(() => []),
   ]);
 
   return (

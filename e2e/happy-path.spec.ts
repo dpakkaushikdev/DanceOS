@@ -263,7 +263,10 @@ async function enterEditMode(page: Page) {
  *  ⊕ beside the buttons — where a number, an email, a WhatsApp and Enquiry are
  *  made and unmade, now that none of them is in the Edit sheet */
 async function openContacts(page: Page, at = "/") {
-  await page.goto(at);
+  // a document load of `/` opens Discover since 18 Oct 2026, so Home is reached
+  // through the bar (goHome) — the same way every other Home segment gets there
+  if (at === "/") await goHome(page);
+  else await page.goto(at);
   await enterEditMode(page);
   await page.getByRole("button", { name: "Edit contact buttons" }).click();
   const sheet = page.getByRole("dialog", { name: "Contact buttons" });
@@ -1906,12 +1909,12 @@ test.describe.serial("DanceOS, end to end", () => {
     // the bell opens the drawer from the LEFT, in place (18 Oct 2026)
     await owner.getByRole("button", { name: /^Notifications/ }).click();
     const notifDrawer = owner.getByTestId("notif-drawer");
-    await expect(notifDrawer.getByRole("heading", { level: 1, name: "Updates" })).toBeVisible({ timeout: 15_000 });
+    await expect(notifDrawer.getByRole("heading", { level: 1, name: "Notifications" })).toBeVisible({ timeout: 15_000 });
     await notifDrawer.getByRole("button", { name: "Close notifications" }).click();
     await expect(notifDrawer).toHaveCount(0);
     // the address still opens the same screen as a page (Rule 14)
     await owner.goto("/notifications");
-    await expect(owner.getByRole("heading", { level: 1, name: "Updates" })).toBeVisible();
+    await expect(owner.getByRole("heading", { level: 1, name: "Notifications" })).toBeVisible();
     // every area's chip is always drawn, a 0 included
     for (const g of ["all", "class", "team", "crew", "enquiry", "money", "danceos"]) {
       await expect(owner.getByTestId(`notif-chip-${g}`)).toBeVisible();
@@ -1945,7 +1948,7 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(owner.getByText(booked).first()).toBeVisible({ timeout: 15_000 });
     // the trainer: the learner's seat tells the confirmed TEACHER too (20261017090000)
     await trainer.goto("/notifications");
-    await expect(trainer.getByRole("heading", { level: 1, name: "Updates" })).toBeVisible();
+    await expect(trainer.getByRole("heading", { level: 1, name: "Notifications" })).toBeVisible();
     await pickChip(trainer, "class");
     await findRow(trainer, booked);
     // the crew ask the trainer answered is in the Crews area

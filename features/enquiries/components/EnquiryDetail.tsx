@@ -715,8 +715,11 @@ export function EnquiryDetail({
             hostName={e.businessName}
             hostPhotoPath={e.toPhotoPath}
             typeKey={e.typeKey}
-            myPart={mine ? (canWork ? "runs" : "team") : "participant"}
-            linked={mine}
+            myPart={mine ? (canWork ? "runs" : "team") : "sender"}
+            linked
+            /* a studio's own side opens its practices under the studio, so the
+               switcher stays on it (18 Oct 2026) */
+            practiceHrefBase={mine && canWork && e.businessType === "studio" && e.businessId && e.fromUserId !== meId ? `/business/${e.businessId}/practice/job` : "/practice/job"}
           />
         ) : null}
         {tab === "files" ? <EnquiryFilesPanel enquiryId={e.id} available={files.available} files={files.files} meId={meId} canWork={mine && canWork} closed={closed} tint={tint} /> : null}

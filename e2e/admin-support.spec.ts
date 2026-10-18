@@ -371,7 +371,7 @@ test.describe("the admin panel: support, trust, accountability", () => {
     // the account is told, in the words the admin used
     await org.goto("/notifications");
     // an unread notice is in New, its body drawn on the row (11 Oct 2026: no stacks)
-    await expect(org.getByRole("heading", { level: 1, name: "Updates" })).toBeVisible();
+    await expect(org.getByRole("heading", { level: 1, name: "Notifications" })).toBeVisible();
     await expect(org.getByText("Your account is suspended")).toBeVisible();
     await expect(org.getByText(/Reported for using another studio's photos/)).toBeVisible();
 

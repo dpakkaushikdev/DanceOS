@@ -334,10 +334,14 @@ export function DiscoverTileIcon({ k, size = 14 }: { k: string; size?: number })
   }
   if (k === "styles") {
     return (
-      <svg {...box} style={{ ...box.style, transformOrigin: "40% 90%", animation: "dosTileIconWiggle 1.2s ease-in-out infinite" }}>
-        <path d="M9 18V5l11-2v13" {...stroke} />
-        <circle cx="6.5" cy="18" r="3" fill="#F472B6" stroke="#fff" strokeWidth="1.8" />
-        <circle cx="17.5" cy="16" r="3" fill="#22D3EE" stroke="#fff" strokeWidth="1.8" />
+      /* a dancer mid-move in a swirling skirt — "styles" is ways of dancing, not
+         music (18 Oct 2026, the user: "should not be a music symbol") */
+      <svg {...box} style={{ ...box.style, transformOrigin: "50% 95%", animation: "dosTileIconWiggle 1.2s ease-in-out infinite" }}>
+        <path d="M12 9.5 L6.5 19.5 Q12 22 17.5 19.5 Z" fill="#F472B6" stroke="#fff" strokeWidth="1.6" strokeLinejoin="round" />
+        <path d="M12 7.5v4" {...stroke} strokeWidth={2.2} />
+        <path d="M12 9 L5.5 5.5 M12 9 L18.5 4" {...stroke} strokeWidth={2.2} />
+        <path d="M10 20.5 L8.5 23 M14 20.5 L16.5 22.5" {...stroke} strokeWidth={2} />
+        <circle cx="12" cy="4.6" r="2.6" fill="#FDE047" stroke="#fff" strokeWidth="1.6" />
       </svg>
     );
   }

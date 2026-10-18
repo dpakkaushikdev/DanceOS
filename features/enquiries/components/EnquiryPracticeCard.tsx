@@ -19,7 +19,11 @@ export function EnquiryPracticeCard({
   actions = null,
   foot = null,
   linked = true,
+  hrefBase = "/practice/job",
 }: {
+  /** where the practice's own page lives — a studio's is under the studio
+   *  (`/business/{id}/practice/job`), so opening one never switches profile */
+  hrefBase?: string;
   practice: MyEnquiryPractice;
   now: number;
   actions?: ReactNode;
@@ -33,7 +37,7 @@ export function EnquiryPracticeCard({
     <PracticeTile
       kind="job"
       testId="enquiry-practice-card"
-      href={linked ? `/practice/job/${p.id}` : undefined}
+      href={linked ? `${hrefBase}/${p.id}` : undefined}
       hrefLabel={linked ? `Open the practice — ${p.hostName}, ${practiceWhenShort(p.startsAt)}` : undefined}
       name={p.hostName}
       photoPath={p.hostPhotoPath}

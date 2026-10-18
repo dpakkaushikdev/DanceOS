@@ -66,8 +66,9 @@ export function FollowedShelf({ rows }: { rows: FollowedTile[] }) {
             <div style={{ width: 74, height: 74, borderRadius: "50%", background: `linear-gradient(135deg,${x.grad[0]},${x.grad[1]})`, display: "flex", alignItems: "center", justifyContent: "center", boxSizing: "border-box", position: "relative", overflow: "hidden", boxShadow: `0 0 0 2px var(--card), 0 0 0 3.5px ${TINT[x.kind]}` }}>
               {x.style ? <StyleArt style={x.style} frame="page" /> : x.photo ? <Image src={x.photo} alt="" fill sizes="74px" style={{ objectFit: "cover" }} /> : <span style={{ color: "#fff", fontSize: 21, fontWeight: 900, fontFamily: DOS_DISPLAY, lineHeight: 1 }}>{initialsOf(x.name)}</span>}
             </div>
-            {/* the NAME alone, centred under the picture */}
-            <span title={x.name} style={{ display: "block", width: "100%", marginTop: 7, fontSize: 10.5, fontWeight: 800, lineHeight: 1.25, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{x.name}</span>
+            {/* the NAME alone, centred under the picture — 9px since 18 Oct 2026
+                (the user: "name below pic should be smaller") */}
+            <span title={x.name} style={{ display: "block", width: "100%", marginTop: 6, fontSize: 9, fontWeight: 700, color: "var(--sub)", lineHeight: 1.25, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{x.name}</span>
           </Link>
         ))}
       </div>

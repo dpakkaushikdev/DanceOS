@@ -441,7 +441,8 @@ export interface MyEnquiryPractice {
   hostName: string;
   hostPhotoPath: string | null;
   typeKey: string | null;
-  myPart: "runs" | "team" | "participant";
+  /** "sender" since `20261027090000` — the person who sent the enquiry */
+  myPart: "runs" | "team" | "participant" | "sender";
   people: number;
   checkedIn: number;
 }
@@ -481,6 +482,7 @@ export const ENQ_PART_WORD: Record<MyEnquiryPractice["myPart"], { chip: string; 
   runs: { chip: "YOU RUN IT", sub: "You run this job", tint: "#15803D" },
   team: { chip: "TEAM", sub: "You are on the team", tint: "#4338CA" },
   participant: { chip: "PARTICIPANT", sub: "You are a participant", tint: "#B45309" },
+  sender: { chip: "YOUR ENQUIRY", sub: "You sent this enquiry", tint: "#0E7490" },
 };
 
 export const enquiryTypeLabel = (k: string | null): string | null => (k ? ENQ_TYPES.find((t) => t.k === k)?.label ?? null : null);

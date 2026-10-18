@@ -224,7 +224,7 @@ const toMyPractice = (r: MyPracticeRow): MyEnquiryPractice => ({
   hostName: r.host_name ?? "A business",
   hostPhotoPath: r.host_photo_path,
   typeKey: r.type_key,
-  myPart: r.my_part === "runs" ? "runs" : r.my_part === "team" ? "team" : "participant",
+  myPart: r.my_part === "runs" ? "runs" : r.my_part === "team" ? "team" : r.my_part === "sender" ? "sender" : "participant",
   people: Number(r.people ?? 0),
   checkedIn: Number(r.checked_in ?? 0),
 });
@@ -243,6 +243,10 @@ export interface EnquiryPracticeDetail {
   /** the job's confirmed people and who is checked in — the runner's register */
   people: EnquiryPerson[];
   checkedIn: string[];
+  /** the person who SENT the enquiry — on the register beside the team and the
+   *  participants (18 Oct 2026). Null when the reader may not see the enquiry
+   *  row (a team member or a participant reads only the practice). */
+  sender: { userId: string; name: string; photoPath: string | null } | null;
 }
 
 /** ONE enquiry practice, for its own page. The row is read under RLS (members and
@@ -257,13 +261,46 @@ export async function findEnquiryPracticeDetail(supabase: SupabaseClient, practi
   const to = new Date(new Date(r.ends_at).getTime() + 60_000).toISOString();
   const mine = (await findMyEnquiryPractices(supabase, { from, to })).find((p) => p.id === practiceId);
   if (!mine) return null;
-  const job = await findEnquiryJob(supabase, r.enquiry_id).catch(() => null);
+  const [job, senderRes] = await Promise.all([
+    findEnquiryJob(supabase, r.enquiry_id).catch(() => null),
+    supabase.from("enquiries").select("from_user_id").eq("id", r.enquiry_id).maybeSingle(),
+  ]);
   const practice = job?.practices.find((p) => p.id === practiceId);
+  const senderId = (senderRes.data as { from_user_id: string | null } | null)?.from_user_id ?? null;
+  let sender: EnquiryPracticeDetail["sender"] = null;
+  if (senderId) {
+    const { data: prof } = await supabase.from("profiles").select("full_name, profile_photo_path").eq("id", senderId).maybeSingle();
+    const pr = prof as { full_name: string | null; profile_photo_path: string | null } | null;
+    sender = { userId: senderId, name: pr?.full_name ?? "The sender", photoPath: pr?.profile_photo_path ?? null };
+  }
   return {
     practice: mine,
-    people: (job?.people ?? []).filter((p) => p.status === "confirmed"),
+    people: (job?.people ?? []).filter((p) => p.status === "confirmed" && p.userId !== senderId),
     checkedIn: practice?.checkedIn ?? [],
+    sender,
   };
+}
+
+/** ⚠ A PERSON'S OWN JOB PRACTICES, AND NOT A STUDIO'S (18 Oct 2026, the user:
+ *  "studio and person enquiry and practice are getting crossed should not be
+ *  happening"). `my_enquiry_practices` answers every job the caller RUNS — which
+ *  for a studio owner includes the studio's jobs, and those are the studio's,
+ *  on the studio's own Practice tool. So a "runs" row stays on a person's tools
+ *  only when the enquiry was put to their own artist page (or a crew); a team,
+ *  participant or sender row is always theirs. A failed narrowing read keeps
+ *  only the rows that are certainly theirs. */
+export async function findMyPersonalEnquiryPractices(supabase: SupabaseClient, opts: { from: string; to: string }): Promise<MyEnquiryPractice[]> {
+  const mine = await findMyEnquiryPractices(supabase, opts);
+  const runIds = [...new Set(mine.filter((p) => p.myPart === "runs").map((p) => p.enquiryId))];
+  if (runIds.length === 0) return mine;
+  const { data, error } = await supabase.from("enquiries").select("id, business_id").in("id", runIds);
+  if (error || !data) return mine.filter((p) => p.myPart !== "runs");
+  const rows = data as { id: string; business_id: string | null }[];
+  const bizIds = [...new Set(rows.map((r) => r.business_id).filter((x): x is string => Boolean(x)))];
+  const { data: biz } = bizIds.length ? await supabase.from("businesses").select("id, type").in("id", bizIds) : { data: [] };
+  const studios = new Set(((biz ?? []) as { id: string; type: string }[]).filter((b) => b.type === "studio").map((b) => b.id));
+  const studioEnquiries = new Set(rows.filter((r) => r.business_id && studios.has(r.business_id)).map((r) => r.id));
+  return mine.filter((p) => p.myPart !== "runs" || !studioEnquiries.has(p.enquiryId));
 }
 
 /** ⚠ AN ENQUIRY JOB'S PRACTICE ON A PERSON'S CALENDAR (18 Oct 2026) — the crew

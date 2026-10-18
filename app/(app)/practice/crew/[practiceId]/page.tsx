@@ -50,10 +50,9 @@ export default async function CrewPracticePage({ params }: { params: Promise<{ p
   }));
   const nowIso = stampNowIso();
   const now = new Date(nowIso).getTime();
-  const doors: PracticeDoor[] = [
-    { href: `/crew/${p.crewId}`, word: "The crew", label: `Open ${p.crewName}`, sub: "Its page and roster" },
-    ...(p.iLead ? [{ href: `/crews/${p.crewId}/manage/practice`, word: "Practice desk", label: `The practice desk of ${p.crewName}`, sub: "Every practice of this crew" }] : []),
-  ];
+  /* no door rows (18 Oct 2026, the user: "practice detail should not show this
+     crew and practice desk option for crew practice") */
+  const doors: PracticeDoor[] = [];
   const mayCallOff = p.iLead && p.status !== "cancelled" && new Date(p.endsAt).getTime() >= now;
 
   return (

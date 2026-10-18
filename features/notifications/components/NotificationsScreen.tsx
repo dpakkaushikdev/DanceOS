@@ -316,7 +316,6 @@ export function NotificationsScreen({
   initialColumn = null,
   initialGroup = null,
   variant = "page",
-  onClose,
   onRefresh,
 }: {
   notifications: AppNotification[];
@@ -328,6 +327,7 @@ export function NotificationsScreen({
   /** "drawer" (18 Oct 2026): the same screen inside the left drawer the bell
       opens — it writes no address and re-reads through `onRefresh` */
   variant?: "page" | "drawer";
+  /** no longer drawn — the drawer has no close button (18 Oct 2026); kept so callers compile */
   onClose?: () => void;
   onRefresh?: () => void;
 }) {
@@ -444,22 +444,29 @@ export function NotificationsScreen({
   const head = (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
       <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8 }}>
-        <h1 style={{ margin: 0, fontFamily: DOS_DISPLAY, fontSize: inDrawer ? 26 : 30, fontWeight: 900, letterSpacing: -0.8, lineHeight: 1.05 }}>{onHistory ? "History" : "Updates"}</h1>
-        {!onHistory && fresh.length > 0 ? (
+        <h1 style={{ margin: 0, fontFamily: DOS_DISPLAY, fontSize: inDrawer ? 26 : 30, fontWeight: 900, letterSpacing: -0.8, lineHeight: 1.05 }}>Notifications</h1>
+        {onHistory ? (
+          <span data-testid="notif-history-pill" style={{ fontSize: 11, fontWeight: 900, padding: "3px 9px", borderRadius: 999, background: "var(--el)", color: "var(--sub)" }}>
+            History
+          </span>
+        ) : fresh.length > 0 ? (
           <span data-testid="notif-counts" style={{ fontSize: 11, fontWeight: 900, padding: "3px 9px", borderRadius: 999, background: "#6D28D9", color: "#fff" }}>
             {fresh.length} new
           </span>
         ) : null}
       </div>
+      {/* 18 Oct 2026, the user: "history should just be an icon, no cross button".
+          One round icon — a clock while New is shown, a back arrow while History
+          is — and no close control: the scrim and system back close the drawer. */}
       <button
         type="button"
         aria-pressed={onHistory}
         data-testid={onHistory ? "notif-tab-new" : "notif-tab-history"}
         aria-label={onHistory ? "Back to new updates" : "History"}
         onClick={() => pickColumn(onHistory ? "new" : "history")}
-        style={{ height: 38, padding: "0 13px", borderRadius: 19, display: "inline-flex", alignItems: "center", gap: 6, border: `1.5px solid ${onHistory ? "var(--text)" : "var(--chip-line)"}`, background: onHistory ? "var(--text)" : "var(--chip-bg)", color: onHistory ? "var(--solid)" : "var(--text)", fontSize: 12, fontWeight: 900, ...pressable }}
+        style={{ ...headBtn, ...(onHistory ? { background: "var(--text)", color: "var(--solid)", borderColor: "var(--text)" } : null) }}
       >
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           {onHistory ? <path d="M15 6l-6 6 6 6" /> : (
             <>
               <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
@@ -468,18 +475,10 @@ export function NotificationsScreen({
             </>
           )}
         </svg>
-        {onHistory ? "New" : "History"}
       </button>
       <button type="button" aria-label="Notification settings" data-testid="notif-settings" onClick={() => setPrefOpen(true)} style={headBtn}>
         <GearIcon />
       </button>
-      {inDrawer && onClose ? (
-        <button type="button" aria-label="Close notifications" data-testid="notif-close" onClick={onClose} style={headBtn}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
-            <path d="M6 6l12 12M18 6L6 18" />
-          </svg>
-        </button>
-      ) : null}
     </div>
   );
 

@@ -148,7 +148,7 @@ async function adminGoto(page: Page, email: string, path: string) {
  *  notice is unread, so it is in New under All the moment the page loads. */
 async function openPeopleStack(page: Page) {
   await page.goto("/notifications");
-  await expect(page.getByRole("heading", { level: 1, name: "Updates" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Notifications" })).toBeVisible();
   await expect(page.getByTestId("notif-tab-history")).toBeVisible();
 }
 

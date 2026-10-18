@@ -138,7 +138,8 @@ const tomorrowIst = () =>
     const [pr] = await call("GET", `/rest/v1/enquiry_practices?enquiry_id=eq.${enq.id}&deleted_at=is.null&select=id`, svc);
     check(Boolean(pr), "the practice is saved");
     const href = await pCard.getByRole("link", { name: /^Open the practice — / }).getAttribute("href");
-    check(href === `/practice/job/${pr.id}`, `the enquiry's practice card opens its own page (${href})`);
+    /* a studio's practice opens under the STUDIO's address, so the switcher stays on it (18 Oct 2026) */
+    check(href === `/business/${studio.id}/practice/job/${pr.id}`, `the enquiry's practice card opens its own page, under the studio (${href})`);
     check((await op.getByRole("button", { name: /^Check .* in$/ }).count()) === 0, "no register inline on the enquiry page any more");
 
     /* ── 4 · IT IS ON THE PARTICIPANT'S /practice AND CALENDAR ── */
@@ -164,6 +165,7 @@ const tomorrowIst = () =>
     for (const [page, who] of [[op, "owner"], [sp, "sender"]]) {
       await page.goto(`${BASE}/inbox/enquiries/${enq.id}?show=files`, { waitUntil: "networkidle" });
       await page.getByTestId("enquiry-files").waitFor({ timeout: 20000 });
+      await page.getByTestId("enquiry-file-add").click();
       await page.getByRole("group", { name: "What kind of link" }).getByRole("button", { name: /Music/ }).click();
       await page.locator("#ef-name").fill(`Mix ${who} ${stamp}`);
       await page.locator("#ef-url").fill(`https://example.com/${who}-${stamp}.mp3`);
@@ -173,11 +175,12 @@ const tomorrowIst = () =>
       const a = row.getByRole("link", { name: new RegExp(`^Open Mix ${who} ${stamp}`) });
       check((await a.getAttribute("target")) === "_blank" && /noopener/.test((await a.getAttribute("rel")) || ""), `${who}: the link is added, and opens in a new tab with noopener`);
     }
+    /* the form refuses a non-web link before it is sent: the bar names it */
+    await sp.getByTestId("enquiry-file-add").click();
     await sp.locator("#ef-name").fill(`Bad ${stamp}`);
     await sp.locator("#ef-url").fill("javascript:alert(1)");
-    await sp.getByRole("button", { name: "Add link", exact: true }).click();
-    await sp.getByText(/not a web link/).waitFor({ timeout: 20000 }).catch(() => {});
-    check((await sp.getByText(/not a web link/).count()) >= 1, "sender: a javascript: link is refused in words");
+    const barBtn = sp.getByRole("button", { name: "Paste a web link", exact: true });
+    check((await barBtn.count()) === 1 && (await barBtn.isDisabled()), "sender: a javascript: link is refused in words — the form's button says Paste a web link");
     const files = await call("GET", `/rest/v1/enquiry_files?enquiry_id=eq.${enq.id}&deleted_at=is.null&select=url`, svc);
     check(files.length === 2 && files.every((f) => /^https:/.test(f.url)), `the database holds the two good links and not the bad one (${files.length})`);
 

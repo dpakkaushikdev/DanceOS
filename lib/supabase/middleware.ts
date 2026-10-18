@@ -63,8 +63,15 @@ export async function updateSession(request: NextRequest) {
      happens on a fresh open or a reload (every in-app hop to Home is a client
      navigation), so every one of them goes to Discover now — except the single
      landing onboarding's finish asks for, which spends its one-shot marker. */
+  /* ⚠ AND A RELOAD STAYS ON HOME (18 Oct 2026, the user: "refreshing on home
+     should only take back to home not discover"). A reload is the one document
+     load a browser marks: it sends `Cache-Control: max-age=0` (pull-to-refresh
+     in the installed app too), where a fresh open — the start URL, a new tab, a
+     typed address — sends none. So a reload of `/` is left alone and only a
+     fresh open goes to Discover. */
   const isDocument = request.headers.get("sec-fetch-dest") === "document" || (!request.headers.get("rsc") && (request.headers.get("accept") ?? "").includes("text/html"));
-  if (userId && request.nextUrl.pathname === "/" && isDocument) {
+  const isReload = /max-age=0|no-cache/i.test(request.headers.get("cache-control") ?? "");
+  if (userId && request.nextUrl.pathname === "/" && isDocument && !isReload) {
     if (request.cookies.get(OPEN_COOKIE)) {
       supabaseResponse.cookies.set(OPEN_COOKIE, "", { ...OPEN_COOKIE_OPTIONS, maxAge: 0 });
     } else {

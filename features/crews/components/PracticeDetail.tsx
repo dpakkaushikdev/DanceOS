@@ -57,8 +57,11 @@ export function PracticeDetail({
   now,
   doors,
   danger = null,
+  corner = null,
   children,
 }: {
+  /** a control on the hero's top right — the enquiry's own door on a job practice */
+  corner?: ReactNode;
   kind: PracticeTileKind;
   name: string;
   photoPath: string | null;
@@ -116,6 +119,7 @@ export function PracticeDetail({
               {live ? "● " : ""}
               {state.word}
             </span>
+            {corner ? <span style={{ marginLeft: "auto" }}>{corner}</span> : null}
           </div>
           <div style={{ fontFamily: DOS_DISPLAY, fontSize: 25, fontWeight: 900, letterSpacing: -0.6, lineHeight: 1.1, marginTop: 12, textDecoration: cancelled ? "line-through" : "none" }}>{dayWords(startsAt)}</div>
           <div data-testid="practice-time" style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 4 }}>

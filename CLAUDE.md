@@ -1,5 +1,16 @@
 # CLAUDE.md — DanceOS
 
+## PROJECT ACCOUNTS (since 17 Oct 2026) — the only current ones
+
+| | Current | Old (history only — never use) |
+|---|---|---|
+| GitHub | https://github.com/dpakkaushikdev/DanceOS (`origin`) | `dpakkaushik/dancestudio` |
+| Supabase | https://supabase.com/dashboard/project/gfpxbmanxkmhmrzfbqqw (`gfpxbmanxkmhmrzfbqqw`, pooler `aws-0-ap-south-1.pooler.supabase.com`, user `postgres.gfpxbmanxkmhmrzfbqqw`) | `wonhocebhckjokfssvja` |
+| Vercel | https://vercel.com/dpakkaushikdev/danceos | project `dancestudio` |
+| Live site | https://danceos-sigma.vercel.app | `dancestudio-orcin.vercel.app` |
+
+Keys for all of these are in `.env.local` (gitignored). Any older record below that names the old account, project ref or host is history: it was true on its date, against the old account.
+
 ## LAST SESSION (17–18 Oct 2026) — replaced on every push (Rule 13)
 
 > ### "NOTIFICATIONS" AGAIN, A REFRESH STAYS HOME, THE SENDER ON THE REGISTER, AN ENQUIRY DOOR ON A JOB PRACTICE, A LINK IS A FORM, A DANCER FOR STYLES, AND NO PROFILE CROSSING (18 Oct 2026, latest) — ⚠ Rule 9 · ✅ `20261027090000_the_sender_is_on_the_register` APPLIED on the user's *"apply and push to live"* (dry run **11/11** rolled back, `db-push -DryRun` exactly the one file, live read-back **4/4**, PostgREST reloaded; proofs `enquiries` · `crews` · `notifications` **3/3**, `shoot-enquiry-job` **21/21** and `shoot-practice` **49/49** on the migrated database) · ✅ PUSHED AND LIVE (`4d9d75e`, `stranger-smoke` **9/9** on the live site)
@@ -13700,7 +13711,7 @@ summary; the report has the evidence.
    SUBSCRIPTIONS endpoint is registered and proven by real deliveries (10 Sep).
    Both live on one page — Developers → Payment Gateway → Webhooks →
    Configuration — as sub-tabs; the URL on both is
-   `https://dancestudio-orcin.vercel.app/api/webhooks/cashfree`, version
+   `https://danceos-sigma.vercel.app/api/webhooks/cashfree` (⚠ registered on the OLD host `dancestudio-orcin.vercel.app` — re-register on the new one), version
    **2023-08-01**, and the event list only appears once `Add Webhook Endpoint`
    is pressed, which is what made them look absent.
    * **Payment Gateway → Webhooks** — PAYMENT_SUCCESS_WEBHOOK,
@@ -13742,7 +13753,7 @@ summary; the report has the evidence.
     and **Reset password** (Magic Link and Change Email too): replace the
     `{{ .ConfirmationURL }}` href with
     `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type={{ .Type }}`
-    and set Site URL to `https://dancestudio-orcin.vercel.app`. This removes the
+    and set Site URL to `https://danceos-sigma.vercel.app`. This removes the
     same-browser limitation entirely. The route already accepts this shape.
     Then **re-test with a real inbox link, not the proof script** (Rule 15).
 
@@ -16567,7 +16578,7 @@ for the database schema. **The UI is not redesigned** — see Rule 2.
   holding attendance now gets the register. Ops still open: Razorpay account +
   keys (paid classes say "payments aren't switched on yet" until then), verify a
   Resend sending domain, invite pilots.
-- **Live:** https://dancestudio-orcin.vercel.app (auto-deploys `main`)
+- **Live:** https://danceos-sigma.vercel.app (auto-deploys `main` from `dpakkaushikdev/DanceOS`; was `dancestudio-orcin.vercel.app` until 17 Oct 2026)
 - **Step 13b part 1 landed 25 Aug 2026: the refund settlement queue** — the hole
   is closed. Step 9's in-window `requested` refunds had no writer but the
   service-role webhook, so a learner's money sat in a queue with no door.
@@ -16681,7 +16692,7 @@ Tailwind v4 scaffold at repo root; feature-first folders; GitHub Actions CI
 `pnpm build` all green.
 
 ### Step 1 — Auth + Identity ✅ (done 18 Aug 2026)
-- Supabase project **danceos** (Mumbai, `wonhocebhckjokfssvja`), linked; keys in `.env.local`
+- Supabase project **danceos** (Mumbai, now `gfpxbmanxkmhmrzfbqqw` since 17 Oct 2026; originally `wonhocebhckjokfssvja`), linked; keys in `.env.local`
 - Migration `20260818070000_create_profiles.sql`: `profiles` (UUID PK ref auth.users,
   full_name, role dancer|trainer|studio, city, audit cols, soft delete) + RLS
   (signed-in read live rows; insert/update own row only) — applied to the live DB
@@ -16848,7 +16859,7 @@ Tailwind v4 scaffold at repo root; feature-first folders; GitHub Actions CI
   (children cascaded), plus 3 leaked test users (2 e2e owners + dbg@example.com).
   Live DB now holds only: the owner's real account (deepakkaushik8919@gmail.com),
   the 2 test-number users and their profiles, 0 tenants. Production build green.
-- ✅ Deployed to Vercel (24 Aug 2026): **https://dancestudio-orcin.vercel.app**
+- ✅ Deployed to Vercel (24 Aug 2026, OLD account — now https://danceos-sigma.vercel.app, project `dpakkaushikdev/danceos`): **https://dancestudio-orcin.vercel.app**
   — project `dancestudio` (git-connected to dpakkaushik/dancestudio, auto-deploys
   main; VERCEL_TOKEN in `.env.local`). Env vars set via API: the two
   NEXT_PUBLIC_SUPABASE_* keys only (service role stays local). Supabase
@@ -19853,7 +19864,7 @@ the technical detail; this log is the at-a-glance history.
 - **Done so far:** 25 / 29 steps (0–15, 18, 21–26) — **every step the prototype
   describes**; 16, 17, 19 and 20 are features it deliberately removed — plus four
   parity slices (person pages, photos, S_managed, the Profile tab). Live at
-  https://dancestudio-orcin.vercel.app once this push deploys. The hosted project
+  https://danceos-sigma.vercel.app (then `dancestudio-orcin.vercel.app`) once this push deploys. The hosted project
   also carries a demo world (`node scripts/demo-data.js seed | status | wipe`).
 - **Remaining:** the parity backlog, in the order the tracker's Next block now
   argues for: person pages, the media slice, S_managed, web push, and the
@@ -19895,7 +19906,7 @@ the technical detail; this log is the at-a-glance history.
   specs green. The multi-studio money model was decided: Easy Split settles
   studios, no platform payouts.
 - **Done so far:** 20 / 29 steps (0–15, 18, 21). Live at
-  https://dancestudio-orcin.vercel.app. Free seats and entries book end to end;
+  https://danceos-sigma.vercel.app (then `dancestudio-orcin.vercel.app`). Free seats and entries book end to end;
   a priced one refuses with Step 9's sentence until the Cashfree account is live (KYC).
 - **Remaining:** Steps 22–26 (crews — scoped without auditions, search,
   notifications, analytics, WhatsApp OTP), then the parity backlog. Ops still
@@ -19928,7 +19939,7 @@ the technical detail; this log is the at-a-glance history.
   migration applied, types/repository/actions, EventCard, the desk and the
   two-step form; build green.
 - **Done so far:** 19 / 29 steps (0–15, 18) plus the Step 21 scaffolding. Live at
-  https://dancestudio-orcin.vercel.app; migrations apply from this machine via
+  https://danceos-sigma.vercel.app (then `dancestudio-orcin.vercel.app`); migrations apply from this machine via
   `npx supabase db push --db-url` over the pooler; `SUPABASE_ACCESS_TOKEN` is a
   management-API fallback.
 - **Remaining:** finish Step 21 (event page, manager, Discover tab, tickets shelf,

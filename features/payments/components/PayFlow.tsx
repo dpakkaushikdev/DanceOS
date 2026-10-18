@@ -13,7 +13,10 @@ import {
   startCheckoutAction,
 } from "@/features/payments/server-actions/payments";
 import { openCashfreeCheckout, preloadCheckout, type CashfreeCheckoutResult } from "@/lib/cashfree/checkout-client";
-import { DOS_DISPLAY, DOS_UI } from "@/lib/design/tokens";
+import { DOS_DISPLAY, DOS_UI, SKY } from "@/lib/design/tokens";
+import { UseMembership } from "@/features/memberships/components/UseMembership";
+import type { PassForSession } from "@/repositories/memberships";
+import { PayOption, PAY_LABEL } from "@/features/payments/components/PayOption";
 
 /** HOW YOU ARE PAYING — the two-step booking flow lifted from prototype S_class
  *  (DanceOSApp.jsx:12456-12573): choose how you're paying, then see exactly what
@@ -69,6 +72,12 @@ export interface PayFlowProps {
   onClose: () => void;
   /** booked/refund outcome — parent fires the toast */
   onDone: (message: string) => void;
+  /** the memberships this class takes from this viewer — offered as ways to pay
+   *  on the same sheet (18 Oct 2026); the spend returns an error sentence or null */
+  passes?: PassForSession[];
+  whenText?: string;
+  refundWindowHours?: number;
+  onSpendPass?: (p: PassForSession) => Promise<string | null>;
 }
 
 const initialEnrollState: EnrollActionState = { error: null, outcome: null };
@@ -85,6 +94,10 @@ export function PayFlow({
   classLabel,
   onClose,
   onDone,
+  passes = [],
+  whenText = "—",
+  refundWindowHours = 12,
+  onSpendPass,
 }: PayFlowProps) {
   // free classes skip the how-are-you-paying step (prototype 12439)
   const [step, setStep] = useState<"how" | "confirm">(isFree ? "confirm" : "how");
@@ -188,61 +201,37 @@ export function PayFlow({
         <div role="dialog" aria-modal="true" aria-label="How are you paying?" onClick={(e) => e.stopPropagation()} style={sheetBody}>
           {grabber}
           {header("How are you paying?")}
-          {/* the one method on the account until passes arrive — Cashfree Checkout */}
-          <div
-            role="button"
-            tabIndex={0}
-            onKeyDown={dosKey}
-            aria-label="Pay by UPI, card or netbanking"
-            onClick={() => setStep("confirm")}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 11,
-              padding: "12px 13px",
-              borderRadius: 16,
-              marginBottom: 8,
-              cursor: "pointer",
-              background: "var(--card)",
-              border: "1.5px solid var(--el)",
-            }}
-          >
-            <span
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: 10,
-                flexShrink: 0,
-                background: "var(--el)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 15,
+          {/* ⚠ EVERY WAY TO PAY IS ONE `PayOption`, ONE SIZE (18 Oct 2026, the
+              user: "pay with membership … should come on the screen which says How
+              are you paying … memberships and upi cards etc are similar in size").
+              The memberships this class takes come first, then the card. */}
+          {passes.length > 0 && onSpendPass ? (
+            <UseMembership
+              passes={passes}
+              classTitle={classLabel}
+              whenText={whenText}
+              refundWindowHours={refundWindowHours}
+              onSpend={async (p) => {
+                const out = await onSpendPass(p);
+                if (!out) onClose();
+                return out;
               }}
-            >
-              💳
-            </span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                UPI · Cards · Netbanking
-                <span
-                  style={{
-                    marginLeft: 6,
-                    fontSize: 8,
-                    fontWeight: 900,
-                    padding: "2px 6px",
-                    borderRadius: 999,
-                    background: "rgba(34,197,94,.16)",
-                    color: "#22C55E",
-                  }}
-                >
-                  DEFAULT
-                </span>
-              </div>
-              <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 1 }}>Secure checkout via Cashfree</div>
-            </div>
-            <span style={{ flexShrink: 0, color: "var(--muted)", fontSize: 16 }}>›</span>
-          </div>
+            />
+          ) : null}
+          <div style={PAY_LABEL}>{passes.length > 0 ? "OR PAY" : "PAY"}</div>
+          <PayOption
+            tint={SKY}
+            icon={
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="5.5" width="18" height="13" rx="2.5" />
+                <path d="M3 10h18M7 15h4" />
+              </svg>
+            }
+            title="UPI · Card · Netbanking"
+            sub={`${priceText} · secure checkout`}
+            ariaLabel="Pay by UPI, card or netbanking"
+            onPick={() => setStep("confirm")}
+          />
           <div
             role="button"
             tabIndex={0}
@@ -281,8 +270,8 @@ export function PayFlow({
         {header(isFree ? "Confirm — no payment" : "Confirm payment")}
         <div style={{ background: "var(--card)", border: "1.5px solid var(--el)", borderRadius: 16, padding: "11px 13px", marginBottom: 12 }}>
           {[
-            ["Session", isFree ? "Free" : priceText],
-            ["Paying with", isFree ? "—" : "UPI · Cards · Netbanking"],
+            ["Class", isFree ? "Free" : priceText],
+            ["Paying by", isFree ? "—" : "UPI · Card · Netbanking"],
           ].map(([k, v]) => (
             <div key={k} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "5px 0", fontSize: 12.5 }}>
               <span style={{ color: "var(--sub)" }}>{k}</span>
@@ -299,7 +288,7 @@ export function PayFlow({
               paddingTop: 8,
             }}
           >
-            <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: 0.8, color: "var(--muted)" }}>TO PAY NOW</span>
+            <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: 0.8, color: "var(--muted)" }}>TOTAL</span>
             <b style={{ fontSize: 19, fontFamily: DOS_MONO }}>{isFree ? "₹0" : priceText}</b>
           </div>
         </div>
@@ -364,7 +353,7 @@ export function PayFlow({
             onClick={() => void confirmPaid(openOrder)}
             style={{ display: "block", margin: "12px auto 0", background: "none", border: "none", color: "var(--sub)", fontSize: 11.5, fontWeight: 800, textDecoration: "underline", cursor: "pointer", fontFamily: "inherit" }}
           >
-            Paid already, or stuck? Check my payment
+            Already paid? Check status
           </button>
         ) : null}
         {error && (

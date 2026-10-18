@@ -176,7 +176,13 @@ const passRow = async (id) => (await call("GET", `/rest/v1/membership_passes?id=
 
     /* ── SPEND IT: a 1-hour class takes ONE hour ── */
     await bp.goto(`${BASE}/c/${oneHour.share_slug}`, { waitUntil: "networkidle" });
-    const use = bp.getByRole("button", { name: `Use ${spendM.name}` });
+    /* ⚠ the passes are options on "How are you paying?" since 18 Oct 2026 — Book Now opens it */
+    await bp.getByRole("button", { name: "Book Now" }).click();
+    const how = bp.getByRole("dialog", { name: "How are you paying?" });
+    await how.waitFor({ timeout: 10000 });
+    const sizes = await how.locator('[data-testid="pass-row"], [aria-label="Pay by UPI, card or netbanking"]').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().height)));
+    check(sizes.length >= 2 && Math.max(...sizes) - Math.min(...sizes) <= 4, `the membership and UPI · Card · Netbanking are one size on the sheet (${sizes.join(", ")}px)`);
+    const use = how.getByRole("button", { name: `Use ${spendM.name}` });
     const offered = await use.count();
     const offerText = offered ? (await bp.getByTestId("pass-strip").innerText()).replace(/\s+/g, " ") : "";
     check(offered === 1 && /3 hours left · this class takes 1 hour/.test(offerText), `the class page offers the pass and says what it will take (${offerText})`);
@@ -215,6 +221,8 @@ const passRow = async (id) => (await call("GET", `/rest/v1/membership_passes?id=
 
     /* ── A 3-HOUR CLASS: the pass is shown, and refused on the row, not after the press ── */
     await bp.goto(`${BASE}/c/${threeHour.share_slug}`, { waitUntil: "networkidle" });
+    await bp.getByRole("button", { name: "Book Now" }).click();
+    await bp.getByRole("dialog", { name: "How are you paying?" }).waitFor({ timeout: 10000 });
     const short = bp.getByRole("button", { name: `${spendM.name} — not enough left for this class` });
     check((await short.count()) === 1 && (await short.isDisabled()), "a 3-hour class shows the pass with 2 hours left as NOT enough, and it cannot be pressed");
     check((await bp.getByRole("button", { name: `Use ${spendM.name}` }).count()) === 0, "…and offers no Use button for it");

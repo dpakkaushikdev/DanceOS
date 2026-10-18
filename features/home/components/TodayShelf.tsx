@@ -1,7 +1,7 @@
-import { DosShelfHead, HOME_TYPE } from "@/features/home/components/home-kit";
+import { ShelfHead } from "@/features/discovery/components/discover-kit";
 import { PassDeck } from "@/features/home/components/PassDeck";
 import { CheckedInReveal } from "@/features/home/components/CheckedInReveal";
-import { CARD, LINE, SUB } from "@/lib/design/tokens";
+import { CARD, LINE } from "@/lib/design/tokens";
 import type { DeckItem } from "@/types/home";
 
 /** ⚠ THE HEAD HAS NO DOORS ANY MORE (18 Sep 2026, the user: "remove all blue
@@ -28,10 +28,8 @@ export function TodayShelf({ deck }: { deck: DeckItem[] }) {
   return (
     <div id="today-schedule" data-dosfold="deck" style={{ margin: "10px calc(-1 * var(--dos-gutter)) 14px", padding: "0 var(--dos-gutter)", scrollMarginTop: "calc(var(--dos-top) + 12px)" }}>
       <CheckedInReveal />
-      <DosShelfHead pad="2px 0 8px">
-        Today’s schedule
-        <span style={{ ...HOME_TYPE.meta, color: SUB, marginLeft: 8 }}>{deck.length} today</span>
-      </DosShelfHead>
+      {/* Discover's shelf head (18 Oct 2026): caps, the total boxed, nothing after it */}
+      <ShelfHead title="Today’s schedule" count={deck.length} unit="today" testId="today-count" margin="2px 0 8px" />
 
       {deck.length === 0 ? (
         /* ⚠ THE HEADING AND NOTHING ELSE (21 Sep 2026, the user: "when todays

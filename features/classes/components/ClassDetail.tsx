@@ -34,7 +34,6 @@ import { ClassRoutines } from "@/features/routines/components/ClassRoutines";
 import type { Routine } from "@/repositories/routines";
 import { bookWithMembershipAction } from "@/features/memberships/server-actions/memberships";
 import type { PassForSession } from "@/repositories/memberships";
-import { UseMembership } from "@/features/memberships/components/UseMembership";
 import type { ClassPerson } from "@/types/classPerson";
 import type { PublicClassListing } from "@/types/class";
 import type { ClassBookingStatus } from "@/types/classBooking";
@@ -2053,16 +2052,10 @@ export function ClassDetail({
                 before using membership for a class") — `UseMembership` shows what
                 is left with this class's share marked, and only its confirm spends.
                 A pass without enough left is shown, never offered. */}
-            {!booked && passes.length > 0 && c.session ? (
-              <UseMembership
-                passes={passes}
-                col={col}
-                classTitle={c.title}
-                whenText={when && time ? `${when.weekday.charAt(0)}${when.weekday.slice(1).toLowerCase()} ${when.day} ${when.month.charAt(0)}${when.month.slice(1).toLowerCase()} · ${time}` : "—"}
-                refundWindowHours={refundWindowHours}
-                onSpend={spendPass}
-              />
-            ) : null}
+            {/* ⚠⚠ AND SINCE LATER ON 18 OCT 2026 THE PASSES ARE OPTIONS ON "HOW ARE
+                YOU PAYING?" (PayFlow), the same size as UPI · Card · Netbanking —
+                the user: "pay with membership on class detail should come on the
+                screen which says How are you paying". Book Now opens it. */}
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ flexShrink: 0 }}>
                 <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 0.8, color: "var(--muted)" }}>
@@ -2258,6 +2251,10 @@ export function ClassDetail({
             setFlowOpen(false);
             fire(msg);
           }}
+          passes={booked ? [] : passes}
+          whenText={when && time ? `${when.weekday.charAt(0)}${when.weekday.slice(1).toLowerCase()} ${when.day} ${when.month.charAt(0)}${when.month.slice(1).toLowerCase()} · ${time}` : "—"}
+          refundWindowHours={refundWindowHours}
+          onSpendPass={spendPass}
         />
       )}
       {posterOpen && (

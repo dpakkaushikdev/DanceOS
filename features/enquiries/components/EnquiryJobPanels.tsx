@@ -15,6 +15,7 @@ import {
   type JobActionResult,
 } from "@/features/enquiries/server-actions/enquiryTeam";
 import { DeleteIconButton } from "@/components/ui/DeleteIconButton";
+import { ColumnCount, columnTab, columnTrack } from "@/components/ui/ColumnTabs";
 import { ToolChip, toolBtn } from "@/components/ui/ToolCard";
 import { EnquiryPracticeCard } from "./EnquiryPracticeCard";
 import {
@@ -141,6 +142,11 @@ export function EnquiryTeamPanel({
   const { busy, error, run } = useRun();
   const [role, setRole] = useState("");
   const [adding, setAdding] = useState<EnquiryPersonKind | null>(null);
+  /* ⚠ TEAM · PARTICIPANTS ARE TWO COLUMNS (18 Oct 2026, the user: "add team and
+     add participant in enquiries as two columns inside team"). One list at a time,
+     its own add button under it; the sender, who may only add participants, opens
+     on Participants. */
+  const [col, setCol] = useState<EnquiryPersonKind>(meId === sender.id && !canWork ? "participant" : "team");
   if (!job.available) return <Off />;
 
   const isSender = meId === sender.id;
@@ -149,7 +155,7 @@ export function EnquiryTeamPanel({
   const people = job.people as EnquiryJobPerson[];
   const on = new Set(people.map((p) => p.userId));
   const freeTeam = team.filter((t) => !on.has(t.userId));
-  const groups: EnquiryPersonKind[] = ["team", "participant"];
+  const groups: EnquiryPersonKind[] = [col];
 
   const add = async (userId: string, kind: EnquiryPersonKind) => {
     const ok = await run(() => addEnquiryPersonAction({ enquiryId, userId, kind, role: role.trim() || null }));
@@ -161,6 +167,29 @@ export function EnquiryTeamPanel({
 
   return (
     <div data-testid="enquiry-team">
+      <div role="tablist" aria-label="Team or participants" style={{ ...columnTrack(), marginBottom: 10 }}>
+        {(["team", "participant"] as EnquiryPersonKind[]).map((k) => {
+          const on = col === k;
+          const n = people.filter((p) => p.kind === k).length;
+          return (
+            <button
+              key={k}
+              type="button"
+              role="tab"
+              aria-selected={on}
+              data-testid={`enquiry-team-col-${k}`}
+              onClick={() => {
+                setCol(k);
+                setAdding(null);
+              }}
+              style={columnTab(on)}
+            >
+              {k === "team" ? "Team" : "Participants"}
+              <ColumnCount n={n} on={on} />
+            </button>
+          );
+        })}
+      </div>
       {groups.map((k) => {
         const rows = people.filter((p) => p.kind === k);
         return (

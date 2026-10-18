@@ -101,9 +101,21 @@ export function FollowerPill({ n }: { n: number }) {
  *  and "Followed by you" draw this one component, so the two can never drift.
  *  ⚠ `testId` sits on the figure's wrapper: `shoot-inbox` reads the number off
  *  it, and `shoot-invert` measures its ink against the panel. */
-export function ShelfHead({ title, count, unit, testId }: { title: string; count: number; unit: string; testId?: string }) {
+/* ⚠ AND THE SAME HEAD ON HOME AND EVERY PROFILE (18 Oct 2026, the user: "home
+   and profile headings like todays schedule, studio etc should be similar to the
+   ones on discover for upcoming classes with totals in box and no text on side and
+   in capitals"). `count` is optional for a heading with nothing to count (At the
+   studio); `margin` lets a section keep its own spacing. */
+export function ShelfHead({ title, count, unit = "", testId, margin }: { title: string; count?: number; unit?: string; testId?: string; margin?: string }) {
+  if (count == null) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0, margin }}>
+        <h2 style={{ margin: 0, fontFamily: DOS_DISPLAY, fontSize: 15.5, fontWeight: 900, letterSpacing: 0.9, lineHeight: 1.15, textTransform: "uppercase", color: INK }}>{title}</h2>
+      </div>
+    );
+  }
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0, flexWrap: "wrap" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0, flexWrap: "wrap", margin }}>
       <h2 style={{ margin: 0, fontFamily: DOS_DISPLAY, fontSize: 15.5, fontWeight: 900, letterSpacing: 0.9, lineHeight: 1.15, textTransform: "uppercase", color: INK }}>{title}</h2>
       <span data-testid={testId} style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0, color: INK }}>
         <span

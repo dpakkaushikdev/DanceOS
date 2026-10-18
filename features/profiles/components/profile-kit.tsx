@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
-import { FigureHead } from "@/components/ui/FigureHead";
+import { ShelfHead } from "@/features/discovery/components/discover-kit";
 import { DOS_DISPLAY, GOLD } from "@/lib/design/tokens";
 import { isPlatform, type Platform } from "@/lib/constants/socials";
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
@@ -351,11 +351,7 @@ export function EntityMark({ name, photo, size = 42 }: { name: string; photo?: s
 export function Group({ title, n, children }: { title: string; n: number; children: ReactNode }) {
   return (
     <div style={{ marginTop: 18 }}>
-      <FigureHead
-        margin="0 0 2px"
-        title={<span style={{ ...TYPE.shelf, color: "var(--text)" }}>{title}</span>}
-        figure={<span style={{ fontSize: 10.5, fontWeight: 800, color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>{n}</span>}
-      />
+      <ShelfHead title={title} count={n} margin="0 0 8px" />
       <div style={{ background: "var(--card)", border: "1.5px solid var(--el)", borderRadius: 16, padding: "2px 11px" }}>{children}</div>
     </div>
   );
@@ -424,11 +420,7 @@ export function PeopleGrid({ children }: { children: ReactNode }) {
 export function PeopleGroup({ title, n, children }: { title: string; n: number; children: ReactNode }) {
   return (
     <div style={{ marginTop: 18 }}>
-      <FigureHead
-        margin="0 0 8px"
-        title={<span style={{ ...TYPE.shelf, color: "var(--text)" }}>{title}</span>}
-        figure={<span style={{ fontSize: 10.5, fontWeight: 800, color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>{n}</span>}
-      />
+      <ShelfHead title={title} count={n} margin="0 0 8px" />
       <PeopleGrid>{children}</PeopleGrid>
     </div>
   );

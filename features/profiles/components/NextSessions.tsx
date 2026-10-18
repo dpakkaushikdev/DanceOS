@@ -4,9 +4,8 @@ import { useState } from "react";
 import { ClassTile } from "@/features/classes/components/ClassTile";
 import { EnrollButton } from "@/features/classBookings/components/EnrollButton";
 import type { ClassBookingStatus } from "@/types/classBooking";
-import { FigureHead } from "@/components/ui/FigureHead";
+import { ShelfHead } from "@/features/discovery/components/discover-kit";
 import { LINE, SKY } from "@/lib/design/tokens";
-import { TYPE } from "./profile-kit";
 import { nextSessionsOf, tileClassOf, type CalendarEntry } from "@/types/calendar";
 
 /** NEXT SESSIONS — the first few classes of a public schedule, on the profile
@@ -73,15 +72,7 @@ export function NextSessions({ entries, booking }: { entries: CalendarEntry[]; b
      bar is where a total belongs (the number-and-list rule) */
   return (
     <div style={{ marginTop: 14 }} data-testid="next-sessions">
-      <FigureHead
-        margin="0 0 8px"
-        title={<span style={{ ...TYPE.shelf, color: "var(--text)" }}>Next sessions</span>}
-        figure={
-          <span style={{ fontSize: 10.5, fontWeight: 800, color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>
-            {shown.length}
-          </span>
-        }
-      />
+      <ShelfHead title="Next sessions" count={shown.length} unit="sessions" margin="0 0 8px" />
       <div
         data-testid="next-sessions-rail"
         role="list"

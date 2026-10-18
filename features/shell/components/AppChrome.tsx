@@ -891,7 +891,11 @@ export function AppChrome({
               <div role="menu" aria-label="Your profiles">
               <div style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: 1.2, color: "var(--muted)", padding: "0 6px 6px" }}>SWITCH PROFILE</div>
               {switcher.map((item) => {
-                const here = isHere(item);
+                /* ⚠ ONE ROW IS ALWAYS THE ONE YOU ARE IN (18 Oct 2026, the user: "should
+                   not have here written and one profile should be highlighted always.
+                   better highlight") — `hereItem`, which falls back to your own account
+                   on a page that belongs to no profile, so Discover highlights you too */
+                const here = item.key === hereItem?.key;
                 const tint = SWITCH_TINT[item.kind];
                 return (
                   <Link
@@ -902,9 +906,22 @@ export function AppChrome({
                     aria-label={`${item.label} — ${item.sub}${here ? " — you are here" : ""}${item.count ? ` — ${item.count} new` : ""}`}
                     {...tapHandlers}
                     onClick={(e) => { if (wasSwipe(e)) return; setOpenFor(null); }}
-                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 8px", borderRadius: 14, textDecoration: "none", color: "var(--text)", background: here ? "var(--el)" : "transparent" }}
+                    data-here={here ? "1" : undefined}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      padding: "8px 8px",
+                      marginBottom: 3,
+                      borderRadius: 16,
+                      textDecoration: "none",
+                      color: "var(--text)",
+                      background: here ? `linear-gradient(90deg, ${tint}2e, ${tint}10)` : "transparent",
+                      border: `1.5px solid ${here ? tint : "transparent"}`,
+                      boxShadow: here ? `0 4px 14px ${tint}33` : "none",
+                    }}
                   >
-                    <span aria-hidden="true" style={{ width: 34, height: 34, borderRadius: "50%", flexShrink: 0, overflow: "hidden", display: "inline-flex", alignItems: "center", justifyContent: "center", background: `linear-gradient(135deg,${tint},${tint}88)`, color: "#fff", fontSize: 12, fontWeight: 900 }}>
+                    <span aria-hidden="true" style={{ width: 34, height: 34, borderRadius: "50%", flexShrink: 0, overflow: "hidden", display: "inline-flex", alignItems: "center", justifyContent: "center", background: `linear-gradient(135deg,${tint},${tint}88)`, color: "#fff", fontSize: 12, fontWeight: 900, boxShadow: here ? `0 0 0 2px var(--solid), 0 0 0 4px ${tint}` : "none" }}>
                       {item.photo ? <Image src={item.photo} alt="" width={34} height={34} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : initialsOf(item.label)}
                     </span>
                     <span style={{ flex: 1, minWidth: 0 }}>
@@ -915,7 +932,13 @@ export function AppChrome({
                     <span data-testid="profile-count" aria-hidden="true" style={countPill(tint, item.count ?? 0, 20)}>
                       {(item.count ?? 0) > 99 ? "99+" : item.count ?? 0}
                     </span>
-                    {here ? <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 900, letterSpacing: 0.6, padding: "3px 7px", borderRadius: 999, background: "var(--text)", color: "var(--solid)" }}>HERE</span> : null}
+                    {here ? (
+                      <span aria-hidden="true" style={{ flexShrink: 0, width: 20, height: 20, borderRadius: 10, display: "grid", placeItems: "center", background: tint, color: "#fff" }}>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="m5 12 5 5 9-10" />
+                        </svg>
+                      </span>
+                    ) : null}
                   </Link>
                 );
               })}

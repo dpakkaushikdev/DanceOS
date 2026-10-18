@@ -105,6 +105,9 @@ const tomorrowIst = () =>
 
     /* ── 1 · THE OWNER ADDS THE PARTICIPANT, WHO READS ASKED ── */
     await op.goto(`${BASE}/inbox/enquiries/${enq.id}?show=team`, { waitUntil: "networkidle" });
+    /* Team · Participants are two columns since 18 Oct 2026 */
+    check((await op.getByTestId("enquiry-team-col-team").count()) === 1, "owner's Team: Team · Participants as two columns");
+    await op.getByTestId("enquiry-team-col-participant").click();
     await op.getByRole("button", { name: "+ Add participant" }).click();
     await op.getByLabel("Role").fill("Dancer");
     await op.getByLabel("Search DanceOS for a dancer").fill(dancer.name);
@@ -160,6 +163,19 @@ const tomorrowIst = () =>
     await op.getByRole("button", { name: `Take ${dancer.name} off the register` }).waitFor({ timeout: 20000 });
     const att = await call("GET", `/rest/v1/enquiry_practice_attendance?practice_id=eq.${pr.id}&user_id=eq.${dancer.id}&deleted_at=is.null&select=id`, svc).catch(() => null);
     check(Array.isArray(att) && att.length === 1, `the check-in is one live attendance row (${att ? att.length : "unread"})`);
+
+    /* ── 5b · THE SENDER IS ON THE REGISTER (20261027090000) ── */
+    await op.goto(`${BASE}/business/${studio.id}/practice/job/${pr.id}`, { waitUntil: "networkidle" });
+    check((await op.getByTestId("practice-detail").count()) === 1, "owner: the practice opens under the studio's own address");
+    check((await op.getByTestId("practice-enquiry-door").getAttribute("href")) === `/business/${studio.id}/inbox/enquiries/${enq.id}?show=practices`, "owner: the Enquiry door top right stays on the studio");
+    await op.getByRole("button", { name: `Check ${sender.name} in` }).click();
+    await op.getByRole("button", { name: `Take ${sender.name} off the register` }).waitFor({ timeout: 20000 });
+    const satt = await call("GET", `/rest/v1/enquiry_practice_attendance?practice_id=eq.${pr.id}&user_id=eq.${sender.id}&deleted_at=is.null&select=id`, svc).catch(() => null);
+    check(Array.isArray(satt) && satt.length === 1, `owner: the sender is on the register and checked in (${satt ? satt.length : "unread"})`);
+    await sp.goto(`${BASE}/practice/job/${pr.id}`, { waitUntil: "networkidle" });
+    check((await sp.getByTestId("practice-detail").getAttribute("data-part")) === "sender", "sender: their own practice page opens, knowing them as the sender");
+    check((await sp.getByTestId("practice-register").count()) === 1 && (await sp.getByTestId("practice-register").getByRole("button").count()) === 0 && (await sp.getByTestId("practice-register-row").filter({ hasText: sender.name }).count()) === 1, "sender: the register is drawn with them on it, and nothing to press");
+    check((await sp.getByTestId("practice-enquiry-door").getAttribute("href")) === `/inbox/enquiries/${enq.id}?show=practices`, "sender: the Enquiry door opens their enquiry");
 
     /* ── 6 · FILES, FROM BOTH ENDS ── */
     for (const [page, who] of [[op, "owner"], [sp, "sender"]]) {

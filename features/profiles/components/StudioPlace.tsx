@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
 import { AmenityIcon, amenityLabel } from "@/components/ui/AmenityIcon";
 import { FigureHead } from "@/components/ui/FigureHead";
+import { ShelfHead } from "@/features/discovery/components/discover-kit";
 import { InvertedPanel } from "@/components/ui/InvertedPanel";
 import { DOS_DISPLAY } from "@/lib/design/tokens";
 import { splitAddress } from "@/lib/format/address";
 import type { Room } from "@/types/room";
-import { TYPE } from "./profile-kit";
 
 /** THE STUDIO ITSELF — WHERE IT IS, WHAT ITS ROOMS HAVE, WHAT IT SELLS (5 Oct 2026).
  *
@@ -42,7 +42,7 @@ export function StudioPlace({
   const micro = { fontSize: 9, fontWeight: 900, letterSpacing: 0.9, color: "var(--muted)" } as const;
   return (
     <InvertedPanel ground="page" testId="studio-place">
-      <FigureHead title={<span style={{ ...TYPE.shelf, color: "var(--text)" }}>At the studio</span>} margin="0 0 10px" />
+      <ShelfHead title="At the studio" margin="0 0 10px" />
 
       {/* ── WHERE — the address in words, street first, then city · state · PIN ── */}
       <div style={micro}>ADDRESS</div>

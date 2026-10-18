@@ -12,7 +12,7 @@ import { inkOn } from "@/components/ui/ToolCard";
 import { SeatBar } from "@/features/classes/components/ClassTile";
 import { unitWord } from "@/features/memberships/components/usage-kit";
 import type { MembershipOnSale } from "@/repositories/memberships";
-import { FigureHead } from "@/components/ui/FigureHead";
+import { ShelfHead } from "@/features/discovery/components/discover-kit";
 
 /** MEMBERSHIPS ON A PUBLIC PAGE (19 Sep 2026, the user: "Users should be able
  *  to buy from Studio and Artist Profile Pages").
@@ -102,11 +102,7 @@ export function MembershipsOnSale({
   return (
     <div style={section ? undefined : { background: "var(--card)", border: "1.5px solid var(--el)", borderRadius: 16, padding: "13px 14px", marginTop: 10 }} data-testid="memberships-on-sale">
       {section ? (
-        <FigureHead
-          title={<span style={{ fontSize: 17, fontWeight: 900, letterSpacing: -0.3, color: "var(--text)" }}>Memberships</span>}
-          figure={<span style={{ fontSize: 10.5, fontWeight: 800, color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>{memberships.length}</span>}
-          margin="0 0 8px"
-        />
+        <ShelfHead title="Memberships" count={memberships.length} unit="memberships" margin="0 0 8px" />
       ) : (
         <div style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: 0.9, color: accent, marginBottom: 6 }}>MEMBERSHIPS</div>
       )}
@@ -255,7 +251,7 @@ export function MembershipsOnSale({
                 /* the validity is said where the money is asked for — it is part of what is bought */
                 /* unlimited (4 Oct 2026): "active till full consumed", said in the same row */
                 ["Valid for", paying.validityDays ? `${paying.validityDays} days from purchase` : "Until the hours are used up"],
-                ["Paying with", paying.priceInr === 0 ? "—" : "UPI · Cards · Netbanking"],
+                ["Paying by", paying.priceInr === 0 ? "—" : "UPI · Card · Netbanking"],
               ].map(([k, v]) => (
                 <div key={k} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "5px 0", fontSize: 12.5 }}>
                   <span style={{ color: SUB }}>{k}</span>

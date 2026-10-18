@@ -590,7 +590,9 @@ async function personOpensAStudio(page, who, acc, stamp) {
     await menu.waitFor({ state: "visible", timeout: 15_000 });
     check(await menu.getByRole("button", { name: "Settings", exact: true }).isVisible(), "drill page · and the gear, inside the drawer");
     const mTxt = await menu.innerText();
-    check(mTxt.includes("HERE") && mTxt.includes(studio.name), "drill page · and it opens on the studio you are in, marked HERE");
+    /* no HERE word since 18 Oct 2026 — the profile you are in is the highlighted (aria-current) row */
+    const cur = menu.locator('[role="menuitem"][aria-current="page"]');
+    check((await cur.count()) === 1 && (await cur.innerText()).includes(studio.name) && !mTxt.includes("HERE"), "drill page · and it opens on the studio you are in, highlighted");
     check(mTxt.includes("Log out"), "drill page · with Log out, reachable from anywhere");
     await p3.keyboard.press("Escape").catch(() => {});
 

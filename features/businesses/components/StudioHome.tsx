@@ -116,7 +116,7 @@ export function StudioHome({
   const sinceText = business.foundedYear
     ? `Since ${business.foundedYear}`
     : editable?.createdAt
-      ? `On DanceOS since ${new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", year: "numeric" }).format(new Date(editable.createdAt))}`
+      ? `Since ${new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", year: "numeric" }).format(new Date(editable.createdAt))}`
       : null;
   const pinHref = editable?.locationSetAt && editable.lat != null && editable.lng != null ? mapsPinHref(editable.lat, editable.lng) : null;
   /* a photo whose URL could not be signed is not a square the rail can draw —

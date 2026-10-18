@@ -6,7 +6,7 @@ import type { CalendarEntry } from "@/types/calendar";
 import type { PublicTeamMember } from "@/types/publicProfile";
 import type { Room } from "@/types/room";
 import { NextSessions, type NextSessionsBooking } from "./NextSessions";
-import { PeopleGroup, PersonChip } from "./profile-kit";
+import { Connections, PeopleGrid, PersonChip } from "./profile-kit";
 import { StudioPlace } from "./StudioPlace";
 
 /** EVERYTHING UNDER A STUDIO'S TOP PANEL — the place (address, rooms, what it
@@ -51,7 +51,13 @@ export function StudioPublicBody({
   const chip = (m: PublicTeamMember, word: string) => (
     <PersonChip key={m.userId} href={`/person/${m.userId}`} name={m.name} role={word} roleColour={accent} photo={photoUrl(m.photoPath)} />
   );
-  const onSale = <MembershipsOnSale memberships={memberships} businessName={businessName} accent={accent} signedIn={signedIn} canBuy={canBuy} />;
+  const people = [
+    ...owners.map((m) => chip(m, m.isOrg ? "Organization" : "Owner")),
+    ...faculty.map((m) => chip(m, "Faculty")),
+    ...visiting.map((m) => chip(m, "Visiting faculty")),
+    ...assistants.map((m) => chip(m, "Assistant")),
+  ];
+  const onSale =<MembershipsOnSale memberships={memberships} businessName={businessName} accent={accent} signedIn={signedIn} canBuy={canBuy} />;
   return (
     <>
       {/* ⚠ THE PLACE AND WHAT IT SELLS ARE TWO SECTIONS (18 Oct 2026, the user:
@@ -62,14 +68,21 @@ export function StudioPublicBody({
           <MembershipsOnSale memberships={memberships} businessName={businessName} accent={accent} signedIn={signedIn} canBuy={canBuy} section />
         </InvertedPanel>
       ) : null}
-      <InvertedPanel ground="page">
-        <NextSessions entries={nextSessions} booking={booking} />
-        {isStudio ? null : onSale}
-        {owners.length ? <PeopleGroup title="Owner" n={owners.length}>{owners.map((m) => chip(m, m.isOrg ? "Organization" : "Owner"))}</PeopleGroup> : null}
-        {faculty.length ? <PeopleGroup title="Faculty" n={faculty.length}>{faculty.map((m) => chip(m, "Faculty"))}</PeopleGroup> : null}
-        {visiting.length ? <PeopleGroup title="Visiting faculty" n={visiting.length}>{visiting.map((m) => chip(m, "Visiting faculty"))}</PeopleGroup> : null}
-        {assistants.length ? <PeopleGroup title="Assistants" n={assistants.length}>{assistants.map((m) => chip(m, "Assistant"))}</PeopleGroup> : null}
-      </InvertedPanel>
+      {nextSessions.length > 0 || (!isStudio && memberships.length > 0) ? (
+        <InvertedPanel ground="page">
+          <NextSessions entries={nextSessions} booking={booking} />
+          {isStudio ? null : onSale}
+        </InvertedPanel>
+      ) : null}
+      {/* ⚠ CONNECTIONS, ONE GRID (18 Oct 2026, the user: "remove sub heading for
+          only crew and studio profiles as it is getting repeated") — the role is
+          on every chip, so a heading per role said it twice. Owners first, then
+          faculty, visiting faculty and assistants, as the groups were ordered. */}
+      {people.length ? (
+        <Connections n={people.length}>
+          <PeopleGrid>{people}</PeopleGrid>
+        </Connections>
+      ) : null}
     </>
   );
 }

@@ -19,6 +19,7 @@ const BASE = process.env.DANCEOS_BASE_URL || "http://localhost:3100";
 /** ⚠ HOME IS REACHED THROUGH THE BAR SINCE 18 Oct 2026 — a document load of "/"
  *  opens the app on Discover, so a check that wants Home presses Home. */
 const goHome = async (page) => {
+  await page.context().clearCookies({ name: "dos_profile" });
   await page.goto(`${BASE}/discover`, { waitUntil: "networkidle" });
   for (let i = 0; i < 10; i++) {
     await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Home", exact: true }).click().catch(() => {});

@@ -10,7 +10,7 @@ import { MEMBER_ROLE_WORD } from "@/types/staff";
    on this page is a `PeopleGroup` of chips, which is the user's own shape from
    the same morning. `Business` went with them: nothing here is a business row any
    more, only associations and chips. */
-import { PeopleGroup, PersonChip } from "./profile-kit";
+import { Connections, PeopleGroup, PersonChip } from "./profile-kit";
 import { NextSessions, type NextSessionsBooking } from "./NextSessions";
 import { InvertedPanel } from "@/components/ui/InvertedPanel";
 import type { CalendarEntry } from "@/types/calendar";
@@ -192,11 +192,15 @@ export function PersonBody({
     nextSessions.length > 0 || memberships.length > 0 || Boolean(beforeGroups) ||
     studios.length > 0 || artistsWith.length > 0 || teamFaculty.length + teamAssistants.length > 0 || crews.length > 0;
   if (!hasAnything) return null;
+  const hasTop = nextSessions.length > 0 || memberships.length > 0 || Boolean(beforeGroups);
+  const connections = studios.length + artistsWith.length + teamFaculty.length + teamAssistants.length + crews.length;
 
   return (
-    /* ⚠ ON THE PAGE'S OWN THEME (5 Oct 2026, the user: "Remove Dual tone from
-       public profile pages") — the same squircle, no palette swap, as Home's and
-       Discover's lower halves have worn since 3 Oct (C115) */
+    <>
+    {/* ⚠ ON THE PAGE'S OWN THEME (5 Oct 2026, the user: "Remove Dual tone from
+        public profile pages") — the same squircle, no palette swap, as Home's and
+        Discover's lower halves have worn since 3 Oct (C115) */}
+    {hasTop ? (
     <InvertedPanel ground="page" style={{ paddingTop: 14 }}>
       {/* ⚠ THE SCHEDULE BAR IS NOT HERE ANY MORE (3 Oct 2026, the user:
           "schedule on public view should be part of top half with contact
@@ -215,6 +219,14 @@ export function PersonBody({
 
       {/* an organization's own studios, under one hood — the tab's alone */}
       {beforeGroups}
+    </InvertedPanel>
+    ) : null}
+
+    {/* ⚠ CONNECTIONS (18 Oct 2026) — the associations are their own box under
+        one heading, with a small sub-heading per kind on a user's and an
+        artist's profile */}
+    {connections > 0 ? (
+    <Connections n={connections}>
 
       {/* ── THE ASSOCIATIONS, IN ONE LANGUAGE (11000-11060) ──
           ⚠ NO `kind === "artist"` GATE ANY MORE. The public page hid "Studios
@@ -318,7 +330,9 @@ export function PersonBody({
           ))}
         </PeopleGroup>
       ) : null}
-    </InvertedPanel>
+    </Connections>
+    ) : null}
+    </>
   );
 }
 

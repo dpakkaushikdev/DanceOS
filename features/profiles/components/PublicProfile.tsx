@@ -165,7 +165,7 @@ export function PublicProfile({
                   <rect x="3.5" y="4.5" width="17" height="16" rx="3" />
                   <path d="M3.5 9.5h17M8.5 4.5v-2M15.5 4.5v-2" />
                 </svg>
-                {business.foundedYear ? `Since ${business.foundedYear}` : `On DanceOS since ${new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", year: "numeric" }).format(new Date(business.createdAt))}`}
+                {business.foundedYear ? `Since ${business.foundedYear}` : `Since ${new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", year: "numeric" }).format(new Date(business.createdAt))}`}
               </span>
               {business.city ? (
                 <>

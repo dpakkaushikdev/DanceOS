@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { cookies } from "next/headers";
 import { AppChrome, type ChromeSettings, type SwitcherItem } from "@/features/shell/components/AppChrome";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { photoUrl } from "@/lib/media/photo";
@@ -138,7 +139,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     : null;
 
   return (
-    <AppChrome unread={adminOnly ? 0 : unread} adminOnly={adminOnly} switcher={badgeSwitcher(switcher, deskNotes)} settings={settings} views={viewsOf(layout)}>
+    <AppChrome unread={adminOnly ? 0 : unread} adminOnly={adminOnly} switcher={badgeSwitcher(switcher, deskNotes)} settings={settings} views={viewsOf(layout)} initialProfile={(await cookies()).get("dos_profile")?.value ?? null}>
       {children}
     </AppChrome>
   );

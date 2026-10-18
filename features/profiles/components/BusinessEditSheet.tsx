@@ -9,7 +9,7 @@ import { setBusinessLocationAction } from "@/features/geo/server-actions/locatio
 import { updateBusinessProfileAction } from "@/features/settings/server-actions/plans";
 /* the style registry left with the styles block on 21 Sep — the value is still
    carried through this sheet's save, it is just not edited here any more */
-import { SUB } from "@/lib/design/tokens";
+import { SUB } from "@/lib/design/tokens";
 import { FORM_TITLE } from "@/components/ui/formTitle";
 import type { PublicBusiness } from "@/types/publicProfile";
 import { Sheet, fieldInput, fieldLabel, sheetBtn } from "./profile-kit";
@@ -65,7 +65,16 @@ export function BusinessEditSheet({
      before the field went away; the user then asked for the column itself, so
      `update_business_profile` no longer takes `p_about` and there is nothing
      left to pass back. */
-  const [founded, setFounded] = useState(business.foundedYear ? String(business.foundedYear) : "");
+  /* ⚠ ALWAYS A YEAR (18 Oct 2026, the user: "should only show since with Year,
+     even in their edit forms") — with no founding year set, the field opens on
+     the year the business joined DanceOS, and there is no "Not shown" row */
+  const [founded, setFounded] = useState(
+    business.foundedYear
+      ? String(business.foundedYear)
+      : business.createdAt
+        ? new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", year: "numeric" }).format(new Date(business.createdAt))
+        : String(new Date().getFullYear()),
+  );
   /* ⚠ NO PHONE, NO EMAIL HERE (26 Sep 2026, the user: "all buttons like email,
      location, phone, message, enquiry on home tab should also be like social
      media and dance style edit style … and those options can be removed from
@@ -213,7 +222,7 @@ export function BusinessEditSheet({
       <Pick
         ariaLabel="Since"
         value={founded}
-        rows={[{ value: "", label: "Not shown" }, ...years.map((y) => ({ value: String(y), label: String(y) }))]}
+        rows={years.map((y) => ({ value: String(y), label: String(y) }))}
         onPick={setFounded}
         style={fieldInput}
         searchPlaceholder="Search years…"

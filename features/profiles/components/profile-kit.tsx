@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
+import { InvertedPanel } from "@/components/ui/InvertedPanel";
 import { ShelfHead } from "@/features/discovery/components/discover-kit";
 import { DOS_DISPLAY, GOLD } from "@/lib/design/tokens";
 import { isPlatform, type Platform } from "@/lib/constants/socials";
@@ -415,12 +416,34 @@ export function PeopleGrid({ children }: { children: ReactNode }) {
   return <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 8 }}>{children}</div>;
 }
 
-/** a `Group` for PEOPLE: the same counted head, and no card around it — the
- *  chips carry their own ground, so a card would be a box inside a box */
+/** ⚠ CONNECTIONS — ONE BOX, ONE HEADING (18 Oct 2026, the user: "On home and
+ *  Profile give heading above the section with studio, owners, crews etc. called
+ *  Connections. fix gap between the box which has studios owners etc"). The
+ *  people a profile is connected to are their own squircle now, under the
+ *  Discover-style head with the total, and the groups inside sit at one tight
+ *  rhythm — the first group used to carry an 18px top margin on top of the
+ *  panel's own padding, which is the gap that was seen. */
+export function Connections({ n, children, testId = "connections" }: { n: number; children: ReactNode; testId?: string }) {
+  return (
+    <InvertedPanel ground="page" testId={testId}>
+      <ShelfHead title="Connections" count={n} margin="0 0 12px" />
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>{children}</div>
+    </InvertedPanel>
+  );
+}
+
+/** a group of PEOPLE inside `Connections`: a small counted sub-heading over the
+ *  chips. ⚠ Drawn on a USER's and an ARTIST's profile only — a studio and a crew
+ *  draw one grid with the role on every chip, because there the sub-heading said
+ *  the role a second time (18 Oct 2026, the user: "remove sub heading for only
+ *  crew and studio profiles as it is getting repeated"). */
 export function PeopleGroup({ title, n, children }: { title: string; n: number; children: ReactNode }) {
   return (
-    <div style={{ marginTop: 18 }}>
-      <ShelfHead title={title} count={n} margin="0 0 8px" />
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "0 0 7px" }}>
+        <h3 style={{ margin: 0, fontSize: 10.5, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase", color: "var(--sub)" }}>{title}</h3>
+        <span style={{ fontSize: 10.5, fontWeight: 900, color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>{n}</span>
+      </div>
       <PeopleGrid>{children}</PeopleGrid>
     </div>
   );

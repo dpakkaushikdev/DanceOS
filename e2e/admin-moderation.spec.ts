@@ -5,6 +5,7 @@ import { test, expect, type BrowserContext, type Locator, type Page } from "@pla
  *  discover first"), so a test that wants Home presses Home, as a person does.
  *  Retried, because a press before hydration is a document load of "/" again. */
 async function goHome(page: Page) {
+  await page.context().clearCookies({ name: "dos_profile" });
   await page.goto("/discover");
   await expect(async () => {
     await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Home", exact: true }).click();

@@ -165,6 +165,36 @@ export interface SwitcherItem {
 
 const SWITCH_TINT: Record<SwitcherItem["kind"], string> = { me: "#5AC8FA", studio: "#3B82F6", crew: "#DC2626" };
 
+/* ⚠⚠ THE PROFILE YOU ARE IN IS STICKY (18 Oct 2026, the user: "when checking own
+   classes from profile page button for studio profile switches back to artist …
+   profile switching should only happen from profile switcher nowhere else").
+   Until today the chip was decided by the PATHNAME alone, so any page that
+   belongs to no profile — a class page, a public schedule, the calendar —
+   fell back to your own account, and opening your studio's class "switched"
+   you. Now the profile is remembered in a cookie: the switcher (a tap or a
+   swipe) sets it, a studio's or a crew's own desk pages set it to that one (you
+   are inside it), and every other page keeps whatever it was. A cookie rather
+   than localStorage so the server renders the same chip the client will. */
+/* ⚠ the layout reads the same name as its own literal — a value exported from
+   this "use client" module would be a client reference on the server */
+const ACTIVE_PROFILE_COOKIE = "dos_profile";
+const activeListeners = new Set<() => void>();
+const subscribeActive = (cb: () => void) => {
+  activeListeners.add(cb);
+  return () => {
+    activeListeners.delete(cb);
+  };
+};
+const readActiveCookie = (): string | null => {
+  const hit = document.cookie.split("; ").find((c) => c.startsWith(`${ACTIVE_PROFILE_COOKIE}=`));
+  return hit ? decodeURIComponent(hit.slice(ACTIVE_PROFILE_COOKIE.length + 1)) : null;
+};
+const writeActiveProfile = (key: string) => {
+  if (readActiveCookie() === key) return;
+  document.cookie = `${ACTIVE_PROFILE_COOKIE}=${encodeURIComponent(key)}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
+  activeListeners.forEach((f) => f());
+};
+
 /* AN ENTITY'S HOME (18 Sep 2026): a studio's own home and a crew's, with their
    inboxes — the pages that wear the entity's Home · Inbox bar instead of the
    main bar. Matched on a uuid so the static /business/stats, /earnings and /team
@@ -287,7 +317,11 @@ export function AppChrome({
   switcher = [],
   settings = null,
   views = {},
+  initialProfile = null,
 }: {
+  /** the sticky profile's key as the request's cookie had it, so the server
+   *  draws the chip the client will (18 Oct 2026) */
+  initialProfile?: string | null;
   /** the card/list choice stored per tool on the account (12 Oct 2026) */
   views?: Partial<Record<ViewTool, ViewMode>>;
   children: ReactNode;
@@ -411,7 +445,14 @@ export function AppChrome({
      pages it is that one; everywhere else — a tab, a desk, a public page you
      have drilled into — it is your own account, which is the profile you are
      acting as. A `me` row always exists, so this is only null for an admin. */
-  const hereItem = switcher.find(isHere) ?? switcher.find((s) => s.kind === "me") ?? switcher[0] ?? null;
+  const pathItem = switcher.find(isHere) ?? null;
+  const stickyKey = useSyncExternalStore(subscribeActive, readActiveCookie, () => initialProfile);
+  const stickyItem = stickyKey ? (switcher.find((s) => s.key === stickyKey) ?? null) : null;
+  const hereItem = pathItem ?? stickyItem ?? switcher.find((s) => s.kind === "me") ?? switcher[0] ?? null;
+  /* being inside a studio's or a crew's own pages is being in that profile */
+  useEffect(() => {
+    if (pathItem) writeActiveProfile(pathItem.key);
+  }, [pathItem]);
   const toolTotal = switcher.reduce((s, i) => s + (i.count ?? 0), 0);
 
   /* ⚠ OPENING A TOOL READS ITS NEWS (18 Oct 2026): the counts are unread
@@ -454,6 +495,7 @@ export function AppChrome({
     const at = Math.max(0, switcher.findIndex((s) => s.key === hereItem.key));
     const next = switcher[(at + (dy < 0 ? 1 : -1) + switcher.length) % switcher.length];
     setOpenFor(null);
+    writeActiveProfile(next.key);
     router.push(next.href);
   };
 
@@ -905,7 +947,7 @@ export function AppChrome({
                     aria-current={here ? "page" : undefined}
                     aria-label={`${item.label} — ${item.sub}${here ? " — you are here" : ""}${item.count ? ` — ${item.count} new` : ""}`}
                     {...tapHandlers}
-                    onClick={(e) => { if (wasSwipe(e)) return; setOpenFor(null); }}
+                    onClick={(e) => { if (wasSwipe(e)) return; writeActiveProfile(item.key); setOpenFor(null); }}
                     data-here={here ? "1" : undefined}
                     style={{
                       display: "flex",
@@ -932,13 +974,7 @@ export function AppChrome({
                     <span data-testid="profile-count" aria-hidden="true" style={countPill(tint, item.count ?? 0, 20)}>
                       {(item.count ?? 0) > 99 ? "99+" : item.count ?? 0}
                     </span>
-                    {here ? (
-                      <span aria-hidden="true" style={{ flexShrink: 0, width: 20, height: 20, borderRadius: 10, display: "grid", placeItems: "center", background: tint, color: "#fff" }}>
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="m5 12 5 5 9-10" />
-                        </svg>
-                      </span>
-                    ) : null}
+                    {/* no tick (18 Oct 2026, the user: "only highlight should be there") */}
                   </Link>
                 );
               })}
@@ -1058,7 +1094,16 @@ export function AppChrome({
             boxShadow: "var(--nav-shadow)",
           }}
         >
-          {bar.map(({ label, href }) => {
+          {bar.map(({ label, href: baseHref }) => {
+            /* ⚠ IN A STUDIO OR A CREW, THE MAIN BAR STAYS IN IT (18 Oct 2026) — Home
+               is that profile's home and Discover says who is reading, so a tab
+               press never quietly switches you back to yourself */
+            const href =
+              !entity && hereItem && hereItem.kind !== "me"
+                ? label === "Home"
+                  ? hereItem.href
+                  : `${baseHref}?as=${hereItem.kind === "crew" ? `crew-${hereItem.key}` : hereItem.key}`
+                : baseHref;
             const on = lit === label;
             const tint = TAB_TINT[label];
             const c = on ? "#FFFFFF" : "var(--tab-rest)";

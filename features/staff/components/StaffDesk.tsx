@@ -4,6 +4,7 @@ import { NAME_MAX } from "@/lib/constants/names";
 import { KIND_WORD, kindOf } from "@/types/profile";
 
 import { useState, useSyncExternalStore } from "react";
+import Link from "next/link";
 import { FigureHead } from "@/components/ui/FigureHead";
 import { QRBlock } from "@/components/ui/QRBlock";
 import { CENTER_CARD, CENTER_SCRIM } from "@/components/ui/centerModal";
@@ -546,10 +547,26 @@ export function StaffDesk({
                     />
                     {isOwner && (toSettleOf[m.userId] ?? 0) > 0 ? (
                       <div data-testid="team-card-waiting" style={{ fontSize: 11, fontWeight: 800, color: "#D97706", marginTop: 6 }}>
-                        Something to settle — open Member Detail
+                        Something to settle
                       </div>
                     ) : null}
                   </ToolBody>
+                  {/* ⚠ PAY IS ON THE CARD AGAIN, AS A DOOR (19 Oct 2026, the user:
+                      "cards on team should have pay button but first should take you
+                      inside detail page"): it opens Member Detail's To settle column
+                      with the pay sheet already up, so no rupee is drawn on the desk. */}
+                  {isOwner && manageable ? (
+                    <ToolActions>
+                      <Link
+                        href={`/business/${businessId}/staff/${m.userId}?show=settle&pay=1`}
+                        aria-label={`Pay ${m.name}`}
+                        data-testid="team-card-pay"
+                        style={{ ...toolBtn("primary", TEAM_TINT), textDecoration: "none", pointerEvents: "auto" }}
+                      >
+                        Pay
+                      </Link>
+                    </ToolActions>
+                  ) : null}
                 </ToolCard>
               );
             })}

@@ -718,14 +718,37 @@ export function AppChrome({
             immediately before the mark. */}
         <span style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0, flex: 1 }}>
           {adminOnly ? null : (
-          <button type="button" data-testid="bell" aria-haspopup="dialog" aria-expanded={notifOpen} {...tapHandlers} onClick={(e) => { if (wasSwipe(e)) return; openNotes(); }} aria-label={unread > 0 ? `Notifications — ${unread} unread` : "Notifications"} style={{ ...chipStyle, cursor: "pointer", fontFamily: "inherit" }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+          /* ⚠ NO DOT ON THE BELL'S CORNER (19 Oct 2026, the user: "notification when
+             appears the red dot on top left on the bell looks bad find a better
+             solution"). With something unread the chip itself becomes a filled pill —
+             the bell and the count side by side, in the notification colour — and the
+             bell rings once (`dosBellRing`, off under reduced motion). Nothing hangs
+             off the chip's edge any more. */
+          <button
+            type="button"
+            data-testid="bell"
+            data-unread={unread > 0 ? "1" : "0"}
+            aria-haspopup="dialog"
+            aria-expanded={notifOpen}
+            {...tapHandlers}
+            onClick={(e) => { if (wasSwipe(e)) return; openNotes(); }}
+            aria-label={unread > 0 ? `Notifications — ${unread} unread` : "Notifications"}
+            style={{
+              ...chipStyle,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              ...(unread > 0
+                ? { width: "auto", minWidth: chipStyle.height, padding: "0 13px 0 11px", gap: 6, borderRadius: 999, background: "linear-gradient(135deg, #EC4899, #DB2777)", border: "1.5px solid transparent", boxShadow: "0 4px 14px rgba(236,72,153,.32)" }
+                : null),
+            }}
+          >
+            <svg key={unread > 0 ? `on-${unread}` : "off"} className={unread > 0 ? "dos-bell-ring" : undefined} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={unread > 0 ? "#fff" : INK} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 8.5a6 6 0 1 0-12 0c0 5-2 6.5-2 6.5h16s-2-1.5-2-6.5" />
               <path d="M10.5 19a2 2 0 0 0 3 0" />
             </svg>
             {unread > 0 ? (
-              <span data-testid="bell-badge" style={{ position: "absolute", top: -2, right: -2, minWidth: 14, height: 14, borderRadius: 7, padding: "0 3.5px", background: "#EC4899", color: "#fff", fontSize: 8.5, fontWeight: 900, lineHeight: "14px", textAlign: "center", fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', border: `2px solid ${theme === "dark" ? "#0A0A0A" : "#FAF8F5"}`, boxSizing: "border-box" }}>
-                {unread > 9 ? "9+" : unread}
+              <span data-testid="bell-badge" style={{ color: "#fff", fontSize: 13.5, fontWeight: 900, lineHeight: 1, fontVariantNumeric: "tabular-nums", letterSpacing: -0.2 }}>
+                {unread > 99 ? "99+" : unread}
               </span>
             ) : null}
           </button>

@@ -746,6 +746,25 @@ html.light .dos-wordmark {
   }
 }
 
+/* the bell rings once when it fills with news (19 Oct 2026) — it swings from its
+   top, not its middle, so it reads as a bell and not a wobble */
+@keyframes dosBellRing {
+  0% { transform: rotate(0); }
+  15% { transform: rotate(16deg); }
+  30% { transform: rotate(-13deg); }
+  45% { transform: rotate(9deg); }
+  60% { transform: rotate(-5deg); }
+  75% { transform: rotate(2deg); }
+  100% { transform: rotate(0); }
+}
+.dos-bell-ring {
+  transform-origin: 50% 12%;
+  animation: dosBellRing 0.9s ease-out 0.15s 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dos-bell-ring { animation: none; }
+}
+
 /* a folded section (Member Detail's Earnings, 4 Oct 2026): no browser marker,
    and the chevron turns when it opens */
 .dos-fold > summary::-webkit-details-marker {
@@ -755,7 +774,7 @@ html.light .dos-wordmark {
   display: inline-block;
   transition: transform 0.15s ease;
 }
-.dos-fold[open] .dos-fold-chev {
+.dos-fold[open] > summary .dos-fold-chev {
   transform: rotate(180deg);
 }
 

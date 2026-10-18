@@ -56,7 +56,9 @@ async function guarded(run: () => Promise<void>): Promise<JobActionResult> {
 const personSchema = z.object({
   enquiryId: z.string().uuid(),
   userId: z.string().uuid(),
-  kind: z.enum(["team", "participant"]),
+  /* only the business's TEAM is added now (19 Oct 2026, the user: "remove adding
+     participants in an enquiry") — a participant is refused before the RPC */
+  kind: z.literal("team", { message: "Participants are no longer added to an enquiry" }),
   role: z.string().trim().max(40).nullable(),
 });
 

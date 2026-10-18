@@ -26,10 +26,14 @@ const STATE_WORD: Record<RentPayment["status"], string> = { done: "Paid", in_tra
 const head: React.CSSProperties = { fontSize: 10.5, fontWeight: 900, letterSpacing: 1, color: SUB, margin: "4px 0 8px", textTransform: "uppercase" };
 const dayWords = (iso: string) => new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" }).format(new Date(`${iso.slice(0, 10)}T00:00:00+05:30`));
 
+/** ⚠ EVERY RENT PAYMENT IS A FOLD (19 Oct 2026, the user: "rent payments should
+ *  be collapsible"): the head is what it was — the amount, the day, the method,
+ *  what it covered, its state — and the classes it covered, the reference, the
+ *  note, the dispute and Void open underneath. */
 function PaymentRow({ p, other, onVoid, dispute }: { p: RentPayment; other: string; onVoid?: () => void; dispute?: { side: "paid" | "payer"; byTarget: Record<string, PaymentDispute> } }) {
   return (
-    <div data-testid="rent-payment" style={{ borderTop: "1.5px solid var(--el)", padding: "8px 0 2px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+    <details data-testid="rent-payment" className="dos-fold" style={{ borderTop: "1.5px solid var(--el)", padding: "8px 0 2px" }}>
+      <summary data-testid="rent-payment-head" aria-label={`${rupees(p.amountInr)} rent on ${dayWords(p.paidOn)} — show what it covered`} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", listStyle: "none" }}>
         <span style={{ flex: 1, minWidth: 0 }}>
           <b style={{ display: "block", fontSize: 14, fontWeight: 900, color: INK, fontVariantNumeric: "tabular-nums" }}>{rupees(p.amountInr)}</b>
           <span style={{ display: "block", fontSize: 10.5, color: SUB, marginTop: 1 }}>
@@ -37,7 +41,9 @@ function PaymentRow({ p, other, onVoid, dispute }: { p: RentPayment; other: stri
           </span>
         </span>
         <ToolChip word={STATE_WORD[p.status].toUpperCase()} fg={p.status === "done" ? "#16A34A" : p.status === "failed" ? "#DC2626" : "#D97706"} bg={p.status === "done" ? "rgba(34,197,94,.16)" : p.status === "failed" ? "rgba(220,38,38,.14)" : "rgba(245,158,11,.16)"} />
-      </div>
+        <span aria-hidden="true" className="dos-fold-chev" style={{ fontSize: 12, color: SUB, flexShrink: 0 }}>▾</span>
+      </summary>
+      <div style={{ height: 6 }} aria-hidden="true" />
       {p.providerRef ? <div style={{ fontSize: 10.5, color: SUB, marginTop: 3 }}>Reference {p.providerRef}</div> : null}
       {p.note ? <div style={{ fontSize: 12, marginTop: 4 }}>{p.note}</div> : null}
       <div style={{ height: 4 }} aria-hidden="true" />
@@ -50,7 +56,7 @@ function PaymentRow({ p, other, onVoid, dispute }: { p: RentPayment; other: stri
           Void — recorded by mistake
         </button>
       ) : null}
-    </div>
+    </details>
   );
 }
 
@@ -114,11 +120,18 @@ export function RentToPay({ payerBusinessId, venues, disputes }: { payerBusiness
               ))
             )}
 
-            <div style={{ ...head, margin: "12px 0 2px" }}>Payments · {v.payments.length}</div>
             {v.payments.length === 0 ? (
-              <div style={{ fontSize: 11.5, color: SUB }}>No rent paid yet.</div>
+              <>
+                <div style={{ ...head, margin: "12px 0 2px" }}>Payments · 0</div>
+                <div style={{ fontSize: 11.5, color: SUB }}>No rent paid yet.</div>
+              </>
             ) : (
-              <div>
+              <details data-testid="rent-payments" className="dos-fold" style={{ marginTop: 12 }}>
+                <summary aria-label={`Rent payments to ${v.venueName} — ${v.payments.length}`} style={{ ...head, margin: "0 0 2px", cursor: "pointer", listStyle: "none", display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ flex: 1 }}>Payments · {v.payments.length}</span>
+                  <span style={{ fontVariantNumeric: "tabular-nums" }}>{rupees(paid)}</span>
+                  <span aria-hidden="true" className="dos-fold-chev">▾</span>
+                </summary>
                 {v.payments.map((p) => (
                   <PaymentRow
                     key={p.id}
@@ -133,7 +146,7 @@ export function RentToPay({ payerBusinessId, venues, disputes }: { payerBusiness
                     }}
                   />
                 ))}
-              </div>
+              </details>
             )}
           </div>
         );

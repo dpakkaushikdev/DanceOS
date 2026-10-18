@@ -104,18 +104,20 @@ const tomorrowIst = () =>
     await signIn(dp, dancer);
     await signIn(sp, sender);
 
-    /* ── 1 · THE OWNER ADDS THE PARTICIPANT, WHO READS ASKED ── */
+    /* ── 1 · THE OWNER PUTS A TEAMMATE ON THE JOB, WHO READS ASKED ──
+       Participants are no longer added to an enquiry (19 Oct 2026, the user:
+       "remove adding participants in an enquiry"), so the dancer is seated on the
+       studio's team first — with the service role, the way the proofs seat people
+       — and then put on the job from the Team list. */
+    await call("POST", "/rest/v1/business_members", svc, { business_id: studio.id, user_id: dancer.id, member_role: "staff", created_by: owner.id, updated_by: owner.id });
     await op.goto(`${BASE}/inbox/enquiries/${enq.id}?show=team`, { waitUntil: "networkidle" });
-    /* Team · Participants are two columns since 18 Oct 2026 */
-    check((await op.getByTestId("enquiry-team-col-team").count()) === 1, "owner's Team: Team · Participants as two columns");
-    await op.getByTestId("enquiry-team-col-participant").click();
-    await op.getByRole("button", { name: "+ Add participant" }).click();
+    check((await op.getByTestId("enquiry-team-col-participant").count()) === 0 && (await op.getByRole("button", { name: "+ Add participant" }).count()) === 0, "owner's Team: no Participants column and no way to add one");
+    await op.getByRole("button", { name: "+ Add team" }).click();
     await op.getByLabel("Role").fill("Dancer");
-    await op.getByLabel("Search DanceOS for a dancer").fill(dancer.name);
-    await op.getByRole("button", { name: `Add ${dancer.name} as a participant` }).click();
+    await op.getByRole("button", { name: `Add ${dancer.name} to the team` }).click();
     const personRow = op.getByTestId("enquiry-person").filter({ hasText: dancer.name });
     await personRow.waitFor({ timeout: 20000 });
-    check((await personRow.getByTestId("enquiry-person-status").getAttribute("data-status")) === "asked", "owner's Team: the participant reads Asked until they answer");
+    check((await personRow.getByTestId("enquiry-person-status").getAttribute("data-status")) === "asked", "owner's Team: the teammate reads Asked until they answer");
 
     /* ── 2 · THE PARTICIPANT ACCEPTS ON /inbox — a job is a group inside To do since 18 Oct 2026 ── */
     await dp.goto(`${BASE}/inbox?show=jobs`, { waitUntil: "networkidle" });
@@ -154,7 +156,7 @@ const tomorrowIst = () =>
     await dp.goto(`${BASE}/calendar`, { waitUntil: "networkidle" });
     check((await dp.locator(`a[href="/practice/job/${pr.id}"]`).count()) >= 1, "participant calendar: the practice is on it, opening its own page");
     await dp.goto(`${BASE}/practice/job/${pr.id}`, { waitUntil: "networkidle" });
-    check((await dp.getByTestId("practice-detail").getAttribute("data-part")) === "participant", "participant: the practice page knows them as a participant");
+    check((await dp.getByTestId("practice-detail").getAttribute("data-part")) === "team", "teammate: the practice page knows them as on the team");
     check((await dp.getByTestId("practice-register").count()) === 0, "participant: no register for somebody who does not run it");
 
     /* ── 5 · THE RUNNER CHECKS THEM IN ── */

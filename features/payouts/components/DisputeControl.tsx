@@ -10,6 +10,7 @@ import { answerDisputeAction, raiseDisputeAction, withdrawDisputeAction } from "
 import { INK, MUTED, SUB } from "@/lib/design/tokens";
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
 import type { DisputeKind, PaymentDispute } from "@/repositories/disputes";
+import type { PayoutMethod } from "@/types/payout";
 
 /** ONE ENTRY'S DISPUTE (19 Oct 2026, the user: "find proper mechanisms for
  *  dispute against these payments as well entry wise", and "should give total
@@ -22,7 +23,8 @@ import type { DisputeKind, PaymentDispute } from "@/repositories/disputes";
  *    reason; while open they may withdraw it;
  *  - **the payer**: an open dispute shows its reason and the difference, with
  *    Accept · Reject and an answer in words.
- *  Either side reads the outcome as a pill. It moves no money. */
+ *  Either side reads the outcome as a pill. Accepting an underpayment can record
+ *  the difference as paid in the same press (19 Oct 2026). */
 
 const RED = "#DC2626";
 const AMBER = "#D97706";
@@ -125,7 +127,7 @@ export function DisputeControl({
         side === "paid" ? (
           <RaiseSheet label={label} paidInr={paidInr} busy={busy} error={error} onClose={() => setOpen(false)} onRaise={(reason, claimedInr) => act(() => raiseDisputeAction({ kind, targetId, reason, claimedInr }))} />
         ) : live ? (
-          <AnswerSheet label={label} d={live} busy={busy} error={error} onClose={() => setOpen(false)} onAnswer={(accept, response) => act(() => answerDisputeAction({ id: live.id, accept, response }))} />
+          <AnswerSheet label={label} d={live} busy={busy} error={error} onClose={() => setOpen(false)} onAnswer={(accept, response, settleMethod) => act(() => answerDisputeAction({ id: live.id, accept, response, settleMethod }))} />
         ) : null
       ) : null}
     </span>
@@ -208,9 +210,23 @@ function RaiseSheet({ label, paidInr, busy, error, onClose, onRaise }: { label: 
   );
 }
 
-function AnswerSheet({ label, d, busy, error, onClose, onAnswer }: { label: string; d: PaymentDispute; busy: boolean; error: string | null; onClose: () => void; onAnswer: (accept: boolean, response: string | null) => void }) {
+const METHODS: Array<[PayoutMethod, string]> = [
+  ["upi", "UPI"],
+  ["bank_transfer", "Bank"],
+  ["cash", "Cash"],
+  ["other", "Other"],
+];
+
+function AnswerSheet({ label, d, busy, error, onClose, onAnswer }: { label: string; d: PaymentDispute; busy: boolean; error: string | null; onClose: () => void; onAnswer: (accept: boolean, response: string | null, settleMethod: PayoutMethod | null) => void }) {
   const [response, setResponse] = useState("");
   const [accept, setAccept] = useState<boolean | null>(null);
+  /* ⚠ ACCEPTING AN UNDERPAYMENT CAN SETTLE IT (19 Oct 2026): the difference is
+     recorded as a payment in the same press — on by default, and switchable off
+     for somebody who will pay it some other way */
+  const short = d.claimedInr !== null && d.claimedInr > d.amountInr ? d.claimedInr - d.amountInr : 0;
+  const [settle, setSettle] = useState(true);
+  const [method, setMethod] = useState<PayoutMethod>("upi");
+  const settling = accept === true && short > 0 && settle;
   return (
     <Shell title={`Answer the dispute on ${label}`} onClose={onClose}>
       <div style={{ fontSize: 12.5, color: INK, margin: "8px 0 0", lineHeight: 1.5 }}>“{d.reason}”</div>
@@ -227,14 +243,39 @@ function AnswerSheet({ label, d, busy, error, onClose, onAnswer }: { label: stri
           </button>
         ))}
       </div>
+      {accept === true && short > 0 ? (
+        <div data-testid="dispute-settle" style={{ marginTop: 12, padding: "11px 12px", borderRadius: 14, border: "1.5px solid var(--el)", background: "var(--card)" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 12.5, fontWeight: 800, color: INK, cursor: "pointer" }}>
+            <input type="checkbox" checked={settle} onChange={(e) => setSettle(e.target.checked)} aria-label={`Record the ${rupees(short)} difference as paid`} />
+            Record the {rupees(short)} difference as paid
+          </label>
+          {settle ? (
+            <div role="radiogroup" aria-label="Paid by" style={{ display: "flex", gap: 6, marginTop: 9, flexWrap: "wrap" }}>
+              {METHODS.map(([m, w]) => (
+                <button key={m} type="button" role="radio" aria-checked={method === m} onClick={() => setMethod(m)} style={{ padding: "6px 12px", borderRadius: 999, fontSize: 11.5, fontWeight: 800, fontFamily: "inherit", cursor: "pointer", background: method === m ? "var(--text)" : "transparent", color: method === m ? "var(--solid)" : SUB, border: `1.5px solid ${method === m ? "var(--text)" : "var(--el)"}` }}>
+                  {w}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div style={{ fontSize: 11, color: SUB, marginTop: 6 }}>Record it later from Pay as an amount.</div>
+          )}
+        </div>
+      ) : null}
       <div style={{ fontSize: 12, color: SUB, margin: "12px 0 4px" }}>Your answer — optional</div>
-      <textarea value={response} onChange={(e) => setResponse(e.target.value.slice(0, 300))} rows={2} aria-label="Your answer" placeholder="e.g. Paying the rest on Friday" style={{ ...input, resize: "vertical" }} />
+      <textarea value={response} onChange={(e) => setResponse(e.target.value.slice(0, 300))} rows={2} aria-label="A note with your answer" placeholder="e.g. Paying the rest on Friday" style={{ ...input, resize: "vertical" }} />
       {error ? (
         <div role="alert" style={{ fontSize: 11.5, color: RED, fontWeight: 700, marginTop: 8 }}>
           {error}
         </div>
       ) : null}
-      {footer(busy, accept === null ? "Accept or reject" : accept ? "Accept dispute" : "Reject dispute", accept === null, onClose, () => onAnswer(Boolean(accept), response.trim() || null))}
+      {footer(
+        busy,
+        accept === null ? "Accept or reject" : accept ? (settling ? `Accept · record ${rupees(short)}` : "Accept dispute") : "Reject dispute",
+        accept === null,
+        onClose,
+        () => onAnswer(Boolean(accept), response.trim() || null, settling ? method : null)
+      )}
     </Shell>
   );
 }

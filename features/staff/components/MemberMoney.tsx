@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { DeleteIconButton } from "@/components/ui/DeleteIconButton";
 import { toolBtn } from "@/components/ui/ToolCard";
 import { voidPayoutAction } from "@/features/payouts/server-actions/payouts";
@@ -34,8 +34,22 @@ export function MemberToSettle({
   tint: string;
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  /* ⚠ THE TEAM CARD'S PAY LANDS HERE (19 Oct 2026, the user: "cards on team should
+     have pay button but first should take you inside detail page"): the card links
+     to this column with `pay=1`, and the sheet opens over the person's own page —
+     so the money is still only ever shown inside Member Detail. */
+  const params = useSearchParams();
+  const [open, setOpen] = useState(() => params.get("pay") === "1");
   const [msg, setMsg] = useState<string | null>(null);
+  /* take `pay=1` back off the address once the sheet closes, so a reload does not
+     re-open it — a plain replaceState, never a router hop (19 Sep: a back() racing
+     the router) */
+  const dropPayParam = () => {
+    const u = new URL(window.location.href);
+    if (!u.searchParams.has("pay")) return;
+    u.searchParams.delete("pay");
+    window.history.replaceState(window.history.state, "", `${u.pathname}${u.search}`);
+  };
   const sessions = ledger?.unpaid ?? [];
   const enquiries = ledger?.unpaidEnquiries ?? [];
   const n = sessions.length + enquiries.length;
@@ -81,9 +95,13 @@ export function MemberToSettle({
           person={person}
           ledger={ledger}
           tint={tint}
-          onClose={() => setOpen(false)}
+          onClose={() => {
+            setOpen(false);
+            setTimeout(dropPayParam, 0);
+          }}
           onDone={(words) => {
             setOpen(false);
+            setTimeout(dropPayParam, 0);
             setMsg(words);
             router.refresh();
           }}

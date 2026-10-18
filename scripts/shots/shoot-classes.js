@@ -427,7 +427,8 @@ const BOOK_ON_PAGE = /^Book Now$/;
     await lPage.getByTestId("classes-tab-todo").click();
     await lPage.waitForTimeout(300);
     const todoText = await lPage.getByTestId("classes-todo").innerText().catch(() => "");
-    check(/waiting on cls studio/i.test(todoText), `(${todoText.replace(/\s+/g, " ").slice(-90)}) ⚠ the class they said yes to waits in To do, on the studio — their yes published nothing`);
+    /* the studio is "Cls Hall {tag}" since the 18 Oct ≤15-character re-cut */
+    check(new RegExp(`waiting on cls hall ${tag}`, "i").test(todoText), `(${todoText.replace(/\s+/g, " ").slice(-90)}) ⚠ the class they said yes to waits in To do, on the studio — their yes published nothing`);
     /* ⚠⚠ and a MANAGER publishes it by hand (11 Oct 2026 — a manager may publish
        now; the owner's press was the only one before) */
     await patch(manager.h, `classes?id=eq.${second}`, { status: "published" }, "the manager publishes the class").catch((e) => check(false, `the manager's publish was refused — ${e.message}`));

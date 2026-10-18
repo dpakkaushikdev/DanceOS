@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { EnqFace } from "@/features/enquiries/components/enquiry-kit";
 import { Eyebrow, Surface } from "@/features/inbox/components/inbox-kit";
-import { PeoplePicker } from "@/features/people/components/PeoplePicker";
 import {
   addEnquiryFileAction,
   addEnquiryPersonAction,
@@ -15,7 +14,6 @@ import {
   type JobActionResult,
 } from "@/features/enquiries/server-actions/enquiryTeam";
 import { DeleteIconButton } from "@/components/ui/DeleteIconButton";
-import { ColumnCount, columnTab, columnTrack } from "@/components/ui/ColumnTabs";
 import { ToolChip, toolBtn } from "@/components/ui/ToolCard";
 import { EnquiryPracticeCard } from "./EnquiryPracticeCard";
 import {
@@ -142,22 +140,22 @@ export function EnquiryTeamPanel({
   const { busy, error, run } = useRun();
   const [role, setRole] = useState("");
   const [adding, setAdding] = useState<EnquiryPersonKind | null>(null);
-  /* ⚠ TEAM · PARTICIPANTS ARE TWO COLUMNS (18 Oct 2026, the user: "add team and
-     add participant in enquiries as two columns inside team"). One list at a time,
-     its own add button under it; the sender, who may only add participants, opens
-     on Participants. */
-  const [col, setCol] = useState<EnquiryPersonKind>(meId === sender.id && !canWork ? "participant" : "team");
+  /* ⚠ NO PARTICIPANTS ARE ADDED ANY MORE (19 Oct 2026, the user: "remove adding
+     participants in an enquiry"). The Team · Participants columns of 18 Oct are
+     gone: the panel is the business's Team, and only the business adds to it.
+     Participants already on a job from before stay listed (read only, removable)
+     so nobody disappears without a word. */
   if (!job.available) return <Off />;
 
   const isSender = meId === sender.id;
-  const mayAdd = (k: EnquiryPersonKind) => canWork || (isSender && k === "participant");
+  const mayAdd = (k: EnquiryPersonKind) => canWork && k === "team";
   const mayRemove = (p: EnquiryJobPerson) => canWork || (isSender && p.kind === "participant" && p.addedBy === meId);
   const people = job.people as EnquiryJobPerson[];
   const on = new Set(people.map((p) => p.userId));
   const freeTeam = team.filter((t) => !on.has(t.userId));
-  const groups: EnquiryPersonKind[] = [col];
+  const groups: EnquiryPersonKind[] = people.some((p) => p.kind === "participant") ? ["team", "participant"] : ["team"];
 
-  const add = async (userId: string, kind: EnquiryPersonKind) => {
+  const add = async (userId: string, kind: "team") => {
     const ok = await run(() => addEnquiryPersonAction({ enquiryId, userId, kind, role: role.trim() || null }));
     if (ok) {
       setRole("");
@@ -167,29 +165,6 @@ export function EnquiryTeamPanel({
 
   return (
     <div data-testid="enquiry-team">
-      <div role="tablist" aria-label="Team or participants" style={{ ...columnTrack(), marginBottom: 10 }}>
-        {(["team", "participant"] as EnquiryPersonKind[]).map((k) => {
-          const on = col === k;
-          const n = people.filter((p) => p.kind === k).length;
-          return (
-            <button
-              key={k}
-              type="button"
-              role="tab"
-              aria-selected={on}
-              data-testid={`enquiry-team-col-${k}`}
-              onClick={() => {
-                setCol(k);
-                setAdding(null);
-              }}
-              style={columnTab(on)}
-            >
-              {k === "team" ? "Team" : "Participants"}
-              <ColumnCount n={n} on={on} />
-            </button>
-          );
-        })}
-      </div>
       {groups.map((k) => {
         const rows = people.filter((p) => p.kind === k);
         return (
@@ -226,7 +201,7 @@ export function EnquiryTeamPanel({
             {mayAdd(k) ? (
               adding === k ? null : (
                 <button type="button" onClick={() => setAdding(k)} style={{ ...ghost, marginTop: 10, width: "100%" }}>
-                  {k === "team" ? "+ Add team" : "+ Add participant"}
+                  + Add team
                 </button>
               )
             ) : null}
@@ -236,8 +211,7 @@ export function EnquiryTeamPanel({
                   ROLE
                 </label>
                 <input id={`role-${k}`} value={role} maxLength={40} onChange={(ev) => setRole(ev.target.value)} placeholder={k === "team" ? "Lead choreographer" : "Dancer"} aria-label="Role" style={{ ...field, marginBottom: 9 }} />
-                {k === "team" ? (
-                  freeTeam.length ? (
+                {freeTeam.length ? (
                     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                       {freeTeam.map((t) => (
                         <button key={t.userId} type="button" disabled={busy} aria-label={`Add ${t.name} to the team`} onClick={() => void add(t.userId, "team")} style={{ display: "flex", alignItems: "center", gap: 9, padding: 8, borderRadius: 12, border: "1.5px solid var(--el)", background: "var(--card)", color: "var(--text)", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
@@ -249,16 +223,7 @@ export function EnquiryTeamPanel({
                     </div>
                   ) : (
                     <div style={{ fontSize: 12, color: "var(--sub)" }}>Everyone on your team is on it.</div>
-                  )
-                ) : (
-                  <PeoplePicker
-                    actionWord="Add ›"
-                    actionColor={tint}
-                    exclude={[...on, sender.id]}
-                    onPick={(p) => void add(p.id, "participant")}
-                    pickLabel={(p) => `Add ${p.fullName} as a participant`}
-                  />
-                )}
+                  )}
                 <button type="button" onClick={() => setAdding(null)} style={{ ...ghost, marginTop: 9, width: "100%", color: "var(--sub)" }}>
                   Done
                 </button>

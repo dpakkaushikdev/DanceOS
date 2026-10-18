@@ -2,7 +2,7 @@
 
 ## LAST SESSION (17–18 Oct 2026) — replaced on every push (Rule 13)
 
-> ### "NOTIFICATIONS" AGAIN, A REFRESH STAYS HOME, THE SENDER ON THE REGISTER, AN ENQUIRY DOOR ON A JOB PRACTICE, A LINK IS A FORM, A DANCER FOR STYLES, AND NO PROFILE CROSSING (18 Oct 2026, latest) — ⚠ Rule 9 (one migration, WRITTEN, DRY-RUN **11/11**, HELD — NEXT TO DO #0c2) · the app half PUSHED (safe before the apply)
+> ### "NOTIFICATIONS" AGAIN, A REFRESH STAYS HOME, THE SENDER ON THE REGISTER, AN ENQUIRY DOOR ON A JOB PRACTICE, A LINK IS A FORM, A DANCER FOR STYLES, AND NO PROFILE CROSSING (18 Oct 2026, latest) — ⚠ Rule 9 · ✅ `20261027090000_the_sender_is_on_the_register` APPLIED on the user's *"apply and push to live"* (dry run **11/11** rolled back, `db-push -DryRun` exactly the one file, live read-back **4/4**, PostgREST reloaded; proofs `enquiries` · `crews` · `notifications` **3/3**, `shoot-enquiry-job` **21/21** and `shoot-practice` **49/49** on the migrated database) · ✅ PUSHED AND LIVE (`4d9d75e`, `stranger-smoke` **9/9** on the live site)
 > The user's ten points, plus *"continue from previous chat, finish previous points as well"*.
 > * **Notifications**: the heading is **Notifications** again; History is an icon-only toggle (filled while on), a "History" pill where "{n} new" was; the drawer's ✕ is gone. e2e headings re-cut.
 > * **Discover**: Followed-by-you names 9px; the Styles tile is a drawn dancer, not notes.
@@ -11165,7 +11165,7 @@ summary; the report has the evidence.
 
 ## NEXT TO DO — replaced on every push (Rule 13)
 
-0c2. **ONE MIGRATION HELD — `20261027090000_the_sender_is_on_the_register`** (dry run 11/11, `scripts/dry-run-checks/20261027090000.js`). The whole of it: `my_enquiry_practices` gives the enquiry's SENDER a row (`my_part 'sender'`) and counts them in `people`; `check_in_enquiry_practice` admits the sender as a person the runner may check in. Same signatures, same grants, anon 40, no table/policy/grant moves. Until applied, a sender's job practice page is not found and the register has no sender row. On the user's word: `db-push.ps1 -DryRun` (exactly this file), apply, `notify pgrst, 'reload schema'`. Then rebuild the TWA APK where the signing key lives (the manifest now names `danceos-sigma.vercel.app`), and the real-phone test.
+0c2. **Nothing is pending in the database** (`20261027090000` applied 18 Oct 2026). Left with the user: rebuild the TWA APK where the signing key lives (the manifest now names `danceos-sigma.vercel.app`), and a real-phone test. Not yet driven end to end: a sender opening their own job practice page and being checked in (proven by the dry run only); the whole e2e suite was not re-run.
 
 0c1. **WHAT IS LEFT (12 Oct 2026) IS THE USER'S OPS LIST, LEFT AT THEIR WORD**: Cashfree KYC + Easy Split + the PG webhook sub-tab, a billed Maps key, a verified Resend domain (it blocks pilot invites — sign-in email reaches only the account owner), the Supabase email templates, counsel on the legal pages, one real phone push test. ⚠ A fresh open of a profile-less account lands on onboarding through Discover's own redirect; the `dos_open` cookie is per browser, so two tabs share it.
 

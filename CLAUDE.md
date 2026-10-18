@@ -2,7 +2,7 @@
 
 ## LAST SESSION (17–18 Oct 2026) — replaced on every push (Rule 13)
 
-> ### A JOB IS ASKED, AN ENQUIRY HAS FILES, ENQUIRY PRACTICES IN THE PRACTICE TOOL AND THE CALENDAR, A TIGHTER GUTTER, AND A STUDIO'S ROOM FILTER ALWAYS THERE (18 Oct 2026, latest) — ⚠ Rule 9 (one new table, RLS) · ✅ `20261025090000_a_job_is_asked_files_and_my_practices` APPLIED by the previous chat (`db-push -DryRun` this chat: nothing pending, local = remote)
+> ### A JOB IS ASKED, AN ENQUIRY HAS FILES, ENQUIRY PRACTICES IN THE PRACTICE TOOL AND THE CALENDAR, A TIGHTER GUTTER, AND A STUDIO'S ROOM FILTER ALWAYS THERE (18 Oct 2026, latest) — ⚠ Rule 9 (one new table, RLS) · ✅ `20261025090000_a_job_is_asked_files_and_my_practices` APPLIED by the previous chat (`db-push -DryRun` this chat: nothing pending, local = remote) · ✅ PUSHED AND LIVE (`0598500`: Vercel READY, alias confirmed on the sha through the API, on the live site `stranger-smoke` **9/9**, the gutter/room probe **26/26** and the signed-in probe **64/64**)
 > The previous chat wrote, dry-ran and applied the migration, had two helpers build the screens, and died on "Prompt is too long" before integrating. It never answered two later asks. This chat waited for the helpers' last writes (the tree was still moving at 07:38), then verified, finished and pushed.
 > * **The migration:** `enquiry_people.status` is asked → confirmed | declined, and `respond_to_enquiry_job` belongs to the person asked. Only CONFIRMED people are told about practices or checked in. `my_enquiry_jobs()` and `my_enquiry_practices(from, to)` are both scoped to `auth.uid()`. `enquiry_files` holds http(s) links only, read by either end, added by either end, and removed by whoever added the link or works the enquiry.
 > * **The screens (helpers):**

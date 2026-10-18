@@ -8,6 +8,7 @@ import { personScheduleBusiness, type PublicPerson } from "@/repositories/public
 import type { CalendarEntry } from "@/types/calendar";
 import { KIND_WORD, heroMetaWords, kindOf, memberNoWords } from "@/types/profile";
 import { EntityBand, Figure } from "./profile-band";
+import { verifiedInstagram } from "@/lib/constants/socials";
 import { ActionRow, CallButton, MailButton, MessageButton, whatsappHrefOf } from "./ContactButtons";
 import type { MembershipOnSale as MembershipOnSaleRow } from "@/repositories/memberships";
 import type { PublicTeamMember } from "@/types/publicProfile";
@@ -250,6 +251,7 @@ export function PublicPersonPage({
             styles={profile.styles}
             styleAria={(s) => `${s} — a style ${profile.fullName} dances`}
             socials={profile.socials.filter((l) => l.platform !== "WhatsApp")}
+            verifiedInstagram={verifiedInstagram(profile.socials, person.instagramUsername)}
           />
         </IdentityHero>
 

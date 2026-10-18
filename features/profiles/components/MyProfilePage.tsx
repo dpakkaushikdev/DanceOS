@@ -24,6 +24,7 @@ import type { HeaderPhoto } from "@/repositories/headerPhotos";
 import type { HeroShot } from "./HeroRail";
 import { HeroId, HeroPersonMeta, IdentityHero } from "./hero-kit";
 import { EntityBand, figureLabel, figureNum } from "./profile-band";
+import { verifiedInstagram } from "@/lib/constants/socials";
 import { ROLE_RING, ScheduleBar } from "./profile-kit";
 
 /** THE PROFILE TAB — prototype S_profiletab's OWN render (10565-11400), lifted
@@ -249,6 +250,7 @@ export function MyProfilePage({
                the published view of yourself; the link is still yours to edit on
                Home, where every platform is shown. */
             socials={socials.filter((l) => l.platform !== "WhatsApp")}
+            verifiedInstagram={verifiedInstagram(socials, person.instagramUsername)}
           >
             {/* THE ONE THING THIS SCREEN SAYS THAT THE PUBLIC ONE CANNOT: where a
                 row is filled in. Drawn only when a row is EMPTY, so a profile

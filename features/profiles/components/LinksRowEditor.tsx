@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { PLATFORMS, handleOf, isPlatform, safeHref } from "@/lib/constants/socials";
-import { CARD, INK, LINE, SKY, SUB } from "@/lib/design/tokens";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
+import { disconnectInstagramAction } from "@/features/profiles/server-actions/instagram";
+import { PLATFORMS, PLATFORM_TINT, handleOf, isPlatform, safeHref, verifiedInstagram } from "@/lib/constants/socials";
+import { CARD, INK, LINE, SUB } from "@/lib/design/tokens";
 import { FORM_TITLE } from "@/components/ui/formTitle";
 import type { SocialLink } from "@/types/profile";
 import { useEditMode } from "./EditMode";
-import { LINKS_ROW, linkChip } from "./profile-band";
+import { LINKS_ROW, LinkChipText, linkChip } from "./profile-band";
 import { PlatformIcon, Sheet, dangerBtn, fieldInput, fieldLabel, sheetBtn } from "./profile-kit";
 import { useRecordLists } from "./RecordLists";
 
@@ -33,31 +35,69 @@ import { useRecordLists } from "./RecordLists";
  *  sends these links back with every save of its own. One list on the home,
  *  read and adopted by all three, is what makes both of those true without a
  *  remount and without a stale copy. */
+/** CONNECT INSTAGRAM (18 Oct 2026) — only a PERSON's own row passes this: the
+ *  connection is a person's (`instagram_connections.user_id`), so a studio's
+ *  and a crew's rows keep the paste-a-link sheet alone. */
+export interface InstagramConnectProps {
+  /** the username Instagram confirmed for this person, or null */
+  connected: string | null;
+  /** the word the return from Instagram carried (`?ig=` / `?ig_error=`) */
+  returned: { username: string } | { error: string } | null;
+}
+
 export function LinksRowEditor({
   canEdit,
   save,
   emptyWords = null,
+  instagram = null,
 }: {
   canEdit: boolean;
   /** the door: resolves to an error sentence, or null when it landed */
   save: (next: SocialLink[]) => Promise<string | null>;
   /** what an empty row says in read mode, if anything */
   emptyWords?: string | null;
+  instagram?: InstagramConnectProps | null;
 }) {
+  const router = useRouter();
   const { lists, adopt } = useRecordLists();
   const socials = lists.socials;
   const [listOpen, setListOpen] = useState(false);
   const [editor, setEditor] = useState<{ platform: string; url: string; isNew: boolean } | null>(null);
   const [custom, setCustom] = useState({ label: "", url: "" });
-  const [toast, setToast] = useState<string | null>(null);
+  /* BACK FROM INSTAGRAM: the word the return carried is the first toast */
+  const returned = instagram?.returned ?? null;
+  const returnedWords = returned ? ("username" in returned ? `✓ Instagram connected — @${returned.username}` : returned.error) : null;
+  const [toast, setToast] = useState<string | null>(returnedWords);
   const [pending, start] = useTransition();
   const { editing } = useEditMode();
   const canChange = canEdit && editing;
+  const ticked = instagram ? verifiedInstagram(socials, instagram.connected) : null;
 
   const fire = (m: string) => {
     setToast(m);
     setTimeout(() => setToast(null), 2600);
   };
+
+  /* ...said once: it goes after a few seconds, and the word comes off the
+     address so a reload does not say it again */
+  useEffect(() => {
+    if (!returnedWords) return;
+    const t = setTimeout(() => setToast(null), 4200);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("ig");
+    url.searchParams.delete("ig_error");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+    return () => clearTimeout(t);
+  }, [returnedWords]);
+
+  const disconnect = () =>
+    start(async () => {
+      const out = await disconnectInstagramAction();
+      if (out.error) return fire(out.error);
+      setEditor(null);
+      router.refresh();
+      fire("Instagram disconnected — the link stays, without the tick");
+    });
 
   const commit = (next: SocialLink[], said: string, after?: () => void) =>
     start(async () => {
@@ -79,7 +119,8 @@ export function LinksRowEditor({
     commit(next, "Order saved");
   };
 
-  if (!socials.length && !canChange && !emptyWords) return null;
+  const offerInstagram = Boolean(instagram && canEdit && !ticked);
+  if (!socials.length && !canChange && !emptyWords && !offerInstagram && !toast) return null;
 
   return (
     <>
@@ -96,7 +137,7 @@ export function LinksRowEditor({
               <span style={{ flexShrink: 0, lineHeight: 0 }}>
                 <PlatformIcon label={l.platform} size={15} />
               </span>
-              <span style={{ fontSize: 12, fontWeight: 800, color: SKY }}>{isPlatform(l.platform) ? handleOf(l.url) : l.platform}</span>
+              <LinkChipText link={l} verifiedInstagram={ticked} />
             </button>
           ) : (
             <a
@@ -110,10 +151,21 @@ export function LinksRowEditor({
               <span style={{ flexShrink: 0, lineHeight: 0 }}>
                 <PlatformIcon label={l.platform} size={15} />
               </span>
-              <span style={{ fontSize: 12, fontWeight: 800, color: SKY }}>{isPlatform(l.platform) ? handleOf(l.url) : l.platform}</span>
+              <LinkChipText link={l} verifiedInstagram={ticked} />
             </a>
           )
         )}
+        {/* ONE TAP FROM HOME (18 Oct 2026, the user: "click insta icon and it
+            should sync"): until Instagram is connected, the person's own row
+            offers it outside the pencil too */}
+        {offerInstagram ? (
+          <a href="/api/auth/instagram/start" aria-label="Connect Instagram" data-testid="instagram-connect-chip" style={{ ...linkChip, textDecoration: "none", border: `1.5px solid ${PLATFORM_TINT.Instagram}` }}>
+            <span style={{ flexShrink: 0, lineHeight: 0 }}>
+              <PlatformIcon label="Instagram" size={15} />
+            </span>
+            <span style={{ fontSize: 12, fontWeight: 800, color: INK }}>Connect Instagram</span>
+          </a>
+        ) : null}
         {canChange ? (
           <button
             type="button"
@@ -193,6 +245,34 @@ export function LinksRowEditor({
             <PlatformIcon label={editor.platform} size={24} />
             <b style={FORM_TITLE}>{editor.isNew ? `Add your ${editor.platform}` : `Edit ${editor.platform}`}</b>
           </div>
+          {/* CONNECT INSTAGRAM (18 Oct 2026): a plain link, so the phone can hand
+              instagram.com to the Instagram app already signed in on it */}
+          {instagram && editor.platform === "Instagram" ? (
+            ticked ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14, padding: "11px 13px", borderRadius: 14, background: CARD, border: `1.5px solid ${LINE}` }}>
+                <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: INK }}>
+                  Connected as <b>@{ticked}</b>
+                </span>
+                <button type="button" disabled={pending} onClick={disconnect} style={{ fontSize: 12, fontWeight: 800, color: "#EF4444", cursor: "pointer", background: "none", border: "none", fontFamily: "inherit" }}>
+                  Disconnect
+                </button>
+              </div>
+            ) : (
+              <>
+                <a
+                  href="/api/auth/instagram/start"
+                  data-testid="instagram-connect"
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, marginTop: 14, padding: "12px 14px", borderRadius: 14, background: PLATFORM_TINT.Instagram, color: "#fff", fontSize: 14, fontWeight: 800, textDecoration: "none" }}
+                >
+                  <PlatformIcon label="Instagram" size={20} />
+                  Connect with Instagram
+                </a>
+                <div style={{ fontSize: 11.5, color: SUB, fontWeight: 600, marginTop: 7, lineHeight: 1.45 }}>
+                  Uses the Instagram account on this phone. Works with Creator and Business accounts. Or paste your link below.
+                </div>
+              </>
+            )
+          ) : null}
           <div style={{ ...fieldLabel, margin: "16px 0 6px" }}>URL</div>
           <input aria-label="URL" value={editor.url} onChange={(e) => setEditor((d) => (d ? { ...d, url: e.target.value } : d))} placeholder="https://…" autoFocus style={fieldInput} />
           <div style={{ display: "flex", gap: 8, marginTop: 18 }}>

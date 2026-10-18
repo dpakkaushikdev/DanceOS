@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { PROFILE_COLUMNS, findArtistIds, findPhones, toProfile } from "@/repositories/profiles";
+import { findInstagramUsernames } from "@/repositories/instagram";
 import type { Profile } from "@/types/profile";
 import type { DanceStats } from "@/types/stats";
 import { EMPTY_STATS } from "@/types/stats";
@@ -70,6 +71,9 @@ export interface PublicPerson {
   /** the listed artist page behind an artist — what an Enquiry on their profile is
    *  sent to (18 Sep 2026: an artist's public face is their profile); null otherwise */
   artistPageId: string | null;
+  /** the username Instagram confirmed for this person (18 Oct 2026), or null —
+   *  the chip wears the tick only while their link still points at it */
+  instagramUsername: string | null;
 }
 
 /** WHOSE SCHEDULE A PERSON'S PAGE OPENS — written once (30 Sep 2026).
@@ -210,7 +214,7 @@ export async function findPublicPerson(supabase: SupabaseClient, userId: string)
     } as Parameters<typeof toProfile>[0]);
   }
 
-  const [statsRes, countsMap, crewsRes, teachesRes, runsRes, artistIds, artistPageRes, assocRes] = await Promise.all([
+  const [statsRes, countsMap, crewsRes, teachesRes, runsRes, artistIds, artistPageRes, assocRes, igUsernames] = await Promise.all([
     supabase.rpc("person_dance_stats", { p_user_id: userId }),
     findPersonFollowerCounts(supabase, [userId]),
     supabase
@@ -236,6 +240,8 @@ export async function findPublicPerson(supabase: SupabaseClient, userId: string)
     supabase.rpc("artist_page_of", { p_user_id: userId }),
     /* where they are SEATED (20 Sep 2026) — listed businesses only, `staff` left out */
     supabase.rpc("person_associations", { p_user_id: userId }),
+    /* a connected Instagram is readable signed out too (`20261027090000`) */
+    findInstagramUsernames(supabase, [userId]),
   ]);
 
   const sRow = (Array.isArray(statsRes.data) ? statsRes.data[0] : statsRes.data) as StatsRow | undefined;
@@ -319,5 +325,5 @@ export async function findPublicPerson(supabase: SupabaseClient, userId: string)
 
   const c = countsMap.get(userId) ?? { followers: 0, following: 0 };
   const artistPageId = artistPageRes.error ? null : ((artistPageRes.data as string | null) ?? null);
-  return { profile, isArtist: artistIds.has(userId), stats, followers: c.followers, following: c.following, crews, teachesAt, associations, runs, artistPageId };
+  return { profile, isArtist: artistIds.has(userId), stats, followers: c.followers, following: c.following, crews, teachesAt, associations, runs, artistPageId, instagramUsername: igUsernames.get(userId) ?? null };
 }

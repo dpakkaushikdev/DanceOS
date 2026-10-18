@@ -115,6 +115,32 @@ export const linkChip: CSSProperties = {
   color: INK,
 };
 
+/** THE CONNECTED MARK (18 Oct 2026) — on an Instagram chip whose handle
+ *  Instagram itself confirmed (`instagram_connections`). Deliberately NOT the
+ *  blue `VerifiedTick`: that one means DanceOS checked the business; this one
+ *  means "this really is their Instagram". */
+export function ConnectedMark() {
+  return (
+    <span aria-label="Connected through Instagram" title="Connected through Instagram" style={{ display: "inline-flex", flexShrink: 0, lineHeight: 0 }}>
+      <svg width={13} height={13} viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="11" fill="#22C55E" />
+        <path fill="#fff" d="m10.2 16.4-4-4 1.6-1.6 2.4 2.4 6-6 1.6 1.6z" />
+      </svg>
+    </span>
+  );
+}
+
+/** the chip's words: the handle for a known platform, else the label — and the
+ *  connected mark beside an Instagram handle Instagram confirmed */
+export function LinkChipText({ link, verifiedInstagram = null }: { link: SocialLink; verifiedInstagram?: string | null }) {
+  return (
+    <>
+      <span style={{ fontSize: 12, fontWeight: 800, color: SKY }}>{isPlatform(link.platform) ? handleOf(link.url) : link.platform}</span>
+      {link.platform === "Instagram" && verifiedInstagram ? <ConnectedMark /> : null}
+    </>
+  );
+}
+
 /** A FIGURE — the number over its word. The caller decides whether it is a
  *  door: a person's opens the Followers sheet, a studio's and a crew's are
  *  plain, because the list a studio's owner reads already has its own control
@@ -139,7 +165,7 @@ export function Figure({ n, label, testId }: { n: number | null; label: string; 
 /** THE READ-ONLY LINKS ROW — a studio's own socials on its home, and the same
  *  chips the Profile tab prints. A crew has no `socials` column at all, so it
  *  passes none and the row is simply not drawn (an empty rail is not a row). */
-export function EntityLinks({ socials }: { socials: SocialLink[] }) {
+export function EntityLinks({ socials, verifiedInstagram = null }: { socials: SocialLink[]; verifiedInstagram?: string | null }) {
   if (!socials.length) return null;
   return (
     <div style={LINKS_ROW}>
@@ -155,7 +181,7 @@ export function EntityLinks({ socials }: { socials: SocialLink[] }) {
           <span style={{ flexShrink: 0, lineHeight: 0 }}>
             <PlatformIcon label={l.platform} size={15} />
           </span>
-          <span style={{ fontSize: 12, fontWeight: 800, color: SKY }}>{isPlatform(l.platform) ? handleOf(l.url) : l.platform}</span>
+          <LinkChipText link={l} verifiedInstagram={verifiedInstagram} />
         </a>
       ))}
     </div>
@@ -191,6 +217,7 @@ export function EntityBand({
   styles = [],
   styleAria = (s) => s,
   socials = [],
+  verifiedInstagram = null,
   children = null,
 }: {
   figures: ReactNode;
@@ -199,6 +226,8 @@ export function EntityBand({
   styles?: string[];
   styleAria?: (s: string) => string;
   socials?: SocialLink[];
+  /** the Instagram username Instagram confirmed, if any (`verifiedInstagram`) */
+  verifiedInstagram?: string | null;
   children?: ReactNode;
 }) {
   return (
@@ -208,7 +237,7 @@ export function EntityBand({
         {chips ? <div style={CHIP_ROW}>{chips}</div> : null}
       </div>
       <EntityStyles styles={styles} aria={styleAria} />
-      <EntityLinks socials={socials} />
+      <EntityLinks socials={socials} verifiedInstagram={verifiedInstagram} />
       {children}
     </>
   );

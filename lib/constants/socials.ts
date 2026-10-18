@@ -75,3 +75,14 @@ export const safeHref = (url: string | null | undefined): string | null => {
   const s = String(url ?? "").trim();
   return /^https?:\/\/[^\s]+$/i.test(s) ? s : null;
 };
+
+/** THE CONNECTED TICK'S RULE (18 Oct 2026), in one place: the username
+ *  Instagram confirmed (`instagram_connections`), but only while the profile's
+ *  Instagram link still points at it — a link edited by hand to somebody else's
+ *  handle loses the tick by itself. Case-insensitive, as Instagram is. */
+export const verifiedInstagram = (socials: ReadonlyArray<{ platform: string; url: string }>, username: string | null | undefined): string | null => {
+  if (!username) return null;
+  const link = socials.find((l) => l.platform === "Instagram");
+  if (!link) return null;
+  return handleOf(link.url).replace(/^@/, "").toLowerCase() === username.toLowerCase() ? username : null;
+};

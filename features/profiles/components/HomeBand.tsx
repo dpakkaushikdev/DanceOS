@@ -7,7 +7,7 @@ import { updateMyProfileAction } from "@/features/profiles/server-actions/profil
 import type { FollowedCrew, PersonFollowRow } from "@/repositories/follows";
 import type { FollowedBusiness } from "@/types/follow";
 import type { Profile, SocialLink } from "@/types/profile";
-import { LinksRowEditor } from "./LinksRowEditor";
+import { LinksRowEditor, type InstagramConnectProps } from "./LinksRowEditor";
 import { CHIP_ROW, FIGURE_GROUP, FIGURE_ROW, figureLabel, figureNum } from "./profile-band";
 import { useRecordLists } from "./RecordLists";
 import { StylesRowEditor } from "./StylesRowEditor";
@@ -42,6 +42,7 @@ export function HomeBand({
   followingPeople,
   followingBusinesses,
   followingCrews,
+  instagram = null,
 }: {
   profile: Profile;
   /** the QR and Stats chips, at the right end of the figures row (20 Sep 2026) —
@@ -52,6 +53,8 @@ export function HomeBand({
   followingPeople: PersonFollowRow[];
   followingBusinesses: FollowedBusiness[];
   followingCrews: FollowedCrew[];
+  /** CONNECT INSTAGRAM (18 Oct 2026): the person's own row only */
+  instagram?: InstagramConnectProps | null;
 }) {
   const router = useRouter();
   const { lists } = useRecordLists();
@@ -107,7 +110,7 @@ export function HomeBand({
       />
 
       {/* ── THE LINKS, RIGHT BELOW THE STYLES (10760, and the user's own order) ── */}
-      <LinksRowEditor canEdit save={(next) => save({ socials: next })} />
+      <LinksRowEditor canEdit save={(next) => save({ socials: next })} instagram={instagram} />
 
     </>
   );

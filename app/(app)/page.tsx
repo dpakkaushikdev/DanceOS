@@ -9,6 +9,8 @@ import { findMyArtistPlan } from "@/repositories/plans";
 import { findMyFollowedCrews, findMyFollowedPeople, findMyFollowing, findMyPersonFollowers, findTeamFollows, withTeamFollows } from "@/repositories/follows";
 import { findPersonHeaderPhotos } from "@/repositories/headerPhotos";
 import { findPublicPerson } from "@/repositories/publicPerson";
+import { findInstagramUsernames } from "@/repositories/instagram";
+import { instagramConfig } from "@/lib/instagram/oauth";
 import { findPublicStudioTeam } from "@/repositories/publicProfile";
 import { PersonBody } from "@/features/profiles/components/PersonBody";
 import { ProfileLink, ProfileShare } from "@/features/profiles/components/ProfileShare";
@@ -55,7 +57,7 @@ import { KIND_WORD, heroMetaWords, kindOf, memberNoWords } from "@/types/profile
  *  eyebrow is the word, said once, and the line that repeated it carries only
  *  what it alone had: the account number. (A studio's own home has always said
  *  STUDIO there, which is the fourth word on the user's list.) */
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ ig?: string; ig_error?: string }> }) {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -147,7 +149,7 @@ export default async function HomePage() {
   const schedBiz = businessesOn.find((t) => t.type === "artist_page") ?? businessesOn[0] ?? null;
   const scheduleHref = schedBiz ? `/${schedBiz.type === "studio" ? "studio" : "artist"}/${schedBiz.id}/schedule` : null;
   const ownArtistPage = memberships.find((m) => m.business.type === "artist_page" && m.memberRole === "owner")?.business.id ?? null;
-  const [header, deck, pageId, followers, followingPeople, followedBusinesses, followedCrews, teams, person, artistTeam] = await Promise.all([
+  const [header, deck, pageId, followers, followingPeople, followedBusinesses, followedCrews, teams, person, artistTeam, igUsernames, word] = await Promise.all([
     findPersonHeaderPhotos(supabase, user.id, headerMax),
     deckP,
     !isArtist ? Promise.resolve(null) : ensureArtistPage(supabase, profile, memberships),
@@ -161,7 +163,20 @@ export default async function HomePage() {
        sessions from home page only") — Today's schedule is Home's own deck;
        the public page keeps its rail */
     ownArtistPage ? findPublicStudioTeam(supabase, ownArtistPage).catch(() => []) : Promise.resolve([]),
+    /* CONNECT INSTAGRAM (18 Oct 2026): who Instagram says this person is, and
+       the word the return from Instagram carried */
+    findInstagramUsernames(supabase, [user.id]),
+    searchParams,
   ]);
+  const igConnected = igUsernames.get(user.id) ?? null;
+  const igReturned =
+    word.ig && /^[A-Za-z0-9._]{1,30}$/.test(word.ig)
+      ? { username: word.ig }
+      : word.ig_error
+        ? { error: word.ig_error.slice(0, 200) }
+        : null;
+  /* no keys, no button — but a tick already earned is still drawn */
+  const instagram = instagramConfig() || igConnected ? { connected: igConnected, returned: igReturned } : null;
   const { businesses: followingBusinesses, crews: followingCrews } = withTeamFollows({ businesses: followedBusinesses, crews: followedCrews }, teams);
 
   /* the metal the KIND wears (DOS_RINGS 1462): gold for an organization, silver
@@ -339,6 +354,7 @@ export default async function HomePage() {
             followingPeople={followingPeople}
             followingBusinesses={followingBusinesses}
             followingCrews={followingCrews}
+            instagram={instagram}
           />
         </IdentityHero>
 

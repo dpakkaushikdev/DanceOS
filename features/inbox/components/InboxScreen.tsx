@@ -148,7 +148,6 @@ export function InboxScreen({
   };
   const owed = countsIn("todo", "all");
   const live = pointers.filter((p) => p.n > 0);
-  const waitingHere = owed + live.reduce((s, p) => s + p.n, 0);
 
   const [tab, setTab] = useState<EnquiriesTab>(initialTab ?? (owed > 0 ? "todo" : "ongoing"));
   const [side, setSide] = useState<EnquiriesSide>(receivedOnly ? "all" : initialSide);
@@ -243,10 +242,16 @@ export function InboxScreen({
             {/* ⚠ "Enquiries", not "Inbox" (18 Oct 2026, the user: "inbox to be renamed as Enquiries") */}
             <BeatText text="Enquiries" />
           </h1>
-          <div data-testid="inbox-sub" style={{ ...TAB_SUB, margin: "5px 0 12px" }}>
-            {deskSub ? `${deskSub} · ` : ""}
-            {waitingHere > 0 ? `${waitingHere} waiting on you` : "All caught up"}
-          </div>
+          {/* ⚠ no "N waiting on you" line under the heading (18 Oct 2026, the
+              user) — the To do column's count says it. A studio's desk keeps
+              whose desk it is. */}
+          {deskSub ? (
+            <div data-testid="inbox-sub" style={{ ...TAB_SUB, margin: "5px 0 12px" }}>
+              {deskSub}
+            </div>
+          ) : (
+            <div style={{ height: 12 }} />
+          )}
           {/* the enquiry settings' gear, top right (12 Oct 2026) */}
           {settings}
         </div>

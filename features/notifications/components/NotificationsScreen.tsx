@@ -3,10 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { ColumnCount, columnTab, columnTrack } from "@/components/ui/ColumnTabs";
 import { DeskBody, DeskTop } from "@/components/ui/DeskSections";
 import { Portal } from "@/components/ui/Portal";
-import { HueHead } from "@/features/businesses/components/biz-kit";
 import { markNotificationsReadAction, setNotificationPrefsAction } from "@/features/notifications/server-actions/notifications";
 import { PushDevice, type PushDeviceState } from "@/features/notifications/components/PushDevice";
 import { DOS_DISPLAY, DOS_UI, INK, LILAC, MUTED, SUB } from "@/lib/design/tokens";
@@ -317,6 +315,9 @@ export function NotificationsScreen({
   nowIso,
   initialColumn = null,
   initialGroup = null,
+  variant = "page",
+  onClose,
+  onRefresh,
 }: {
   notifications: AppNotification[];
   prefs: NotificationPrefs;
@@ -324,8 +325,23 @@ export function NotificationsScreen({
   /** the address's `?show=`; null lets the screen choose */
   initialColumn?: Column | null;
   initialGroup?: string | null;
+  /** "drawer" (18 Oct 2026): the same screen inside the left drawer the bell
+      opens — it writes no address and re-reads through `onRefresh` */
+  variant?: "page" | "drawer";
+  onClose?: () => void;
+  onRefresh?: () => void;
 }) {
-  const router = useRouter();
+  const nextRouter = useRouter();
+  const inDrawer = variant === "drawer";
+  /* in the drawer a "refresh" re-reads the list (and the chrome's bell);
+     a push navigates away, which closes the drawer by itself */
+  const router = {
+    push: (href: string) => nextRouter.push(href),
+    refresh: () => {
+      onRefresh?.();
+      nextRouter.refresh();
+    },
+  };
   /* an area switched off "here" is not drawn at all — the bell already leaves it
      out (`my_unread_notifications`), so the screen and the badge agree */
   const shownHere = (k: NotificationKind) => k === "event" || prefs.kinds[k] !== false;
@@ -350,7 +366,7 @@ export function NotificationsScreen({
   const [error, setError] = useState<string | null>(null);
 
   const write = (c: Column, f: Filter) => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || inDrawer) return;
     const q = new URLSearchParams();
     q.set("show", c);
     if (f !== "all") q.set("group", f);
@@ -418,18 +434,52 @@ export function NotificationsScreen({
   const isOpen = (key: string, byDefault: boolean) => (key in toggled ? toggled[key] : byDefault);
   const flipOpen = (key: string, byDefault: boolean) => setToggled((t) => ({ ...t, [key]: !(key in t ? t[key] : byDefault) }));
 
-  const tabs = (
-    <div role="tablist" aria-label="Notifications" style={{ ...columnTrack(), marginTop: 12 }}>
-      {(["new", "history"] as Column[]).map((c) => {
-        const on = column === c;
-        const n = c === "new" ? fresh.length : history.length;
-        return (
-          <button key={c} type="button" role="tab" aria-selected={on} data-testid={`notif-tab-${c}`} onClick={() => pickColumn(c)} style={columnTab(on)}>
-            {c === "new" ? "New" : "History"}
-            {n > 0 ? <ColumnCount n={n} on={on} attention={c === "new"} /> : null}
-          </button>
-        );
-      })}
+  /* ⚠ THE HEAD (18 Oct 2026, the user: "no sub heading and should have different
+     heading and layout now. history should be a button with settings on top
+     right"). One heading — "Updates", or "History" while that is shown — with the
+     new count as a pill on its line, and on the right ONE History button (it
+     reads "New" while History is shown, and takes you back) beside the gear. The
+     two columns' test ids ride on that one button. */
+  const onHistory = column === "history";
+  const head = (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8 }}>
+        <h1 style={{ margin: 0, fontFamily: DOS_DISPLAY, fontSize: inDrawer ? 26 : 30, fontWeight: 900, letterSpacing: -0.8, lineHeight: 1.05 }}>{onHistory ? "History" : "Updates"}</h1>
+        {!onHistory && fresh.length > 0 ? (
+          <span data-testid="notif-counts" style={{ fontSize: 11, fontWeight: 900, padding: "3px 9px", borderRadius: 999, background: "#6D28D9", color: "#fff" }}>
+            {fresh.length} new
+          </span>
+        ) : null}
+      </div>
+      <button
+        type="button"
+        aria-pressed={onHistory}
+        data-testid={onHistory ? "notif-tab-new" : "notif-tab-history"}
+        aria-label={onHistory ? "Back to new updates" : "History"}
+        onClick={() => pickColumn(onHistory ? "new" : "history")}
+        style={{ height: 38, padding: "0 13px", borderRadius: 19, display: "inline-flex", alignItems: "center", gap: 6, border: `1.5px solid ${onHistory ? "var(--text)" : "var(--chip-line)"}`, background: onHistory ? "var(--text)" : "var(--chip-bg)", color: onHistory ? "var(--solid)" : "var(--text)", fontSize: 12, fontWeight: 900, ...pressable }}
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          {onHistory ? <path d="M15 6l-6 6 6 6" /> : (
+            <>
+              <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+              <path d="M3 3v5h5" />
+              <path d="M12 7v5l3 2" />
+            </>
+          )}
+        </svg>
+        {onHistory ? "New" : "History"}
+      </button>
+      <button type="button" aria-label="Notification settings" data-testid="notif-settings" onClick={() => setPrefOpen(true)} style={headBtn}>
+        <GearIcon />
+      </button>
+      {inDrawer && onClose ? (
+        <button type="button" aria-label="Close notifications" data-testid="notif-close" onClick={onClose} style={headBtn}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+      ) : null}
     </div>
   );
 
@@ -600,37 +650,46 @@ export function NotificationsScreen({
     );
   }
 
+  const offLine =
+    hiddenBySettings > 0 ? (
+      <button type="button" onClick={() => setPrefOpen(true)} style={{ marginTop: 8, border: "none", background: "transparent", padding: 0, color: MUTED, fontSize: 10.5, fontWeight: 700, ...pressable }}>
+        {hiddenBySettings} off in settings ›
+      </button>
+    ) : null;
+  const errorLine = error ? (
+    <div role="alert" style={{ fontSize: 11.5, color: "#F87171", marginBottom: 10 }}>
+      {error}
+    </div>
+  ) : null;
+
   return (
-    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "2px var(--dos-gutter) 40px", boxSizing: "border-box", overflowX: "hidden" }}>
-      <DeskTop style={{ paddingBottom: 12 }}>
-        <HueHead
-          title="Notifications"
-          color="#6D28D9"
-          bottom="4px"
-          subTestId="notif-counts"
-          sub={`${fresh.length} new`}
-          right={
-            <button type="button" aria-label="Notification settings" data-testid="notif-settings" onClick={() => setPrefOpen(true)} style={headBtn}>
-              <GearIcon />
-            </button>
-          }
-        />
-        {tabs}
-        {chips}
-        {hiddenBySettings > 0 ? (
-          <button type="button" onClick={() => setPrefOpen(true)} style={{ marginTop: 8, border: "none", background: "transparent", padding: 0, color: MUTED, fontSize: 10.5, fontWeight: 700, ...pressable }}>
-            {hiddenBySettings} off in settings ›
-          </button>
-        ) : null}
-      </DeskTop>
-      <DeskBody style={{ paddingTop: 4 }}>
-        {error ? (
-          <div role="alert" style={{ fontSize: 11.5, color: "#F87171", marginBottom: 10 }}>
-            {error}
+    <div
+      data-testid={inDrawer ? "notif-drawer-body" : undefined}
+      style={inDrawer ? { color: INK, fontFamily: DOS_UI } : { background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "2px var(--dos-gutter) 40px", boxSizing: "border-box", overflowX: "hidden" }}
+    >
+      {inDrawer ? (
+        <>
+          <div style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--solid)", paddingBottom: 10, marginBottom: 6, borderBottom: "1.5px solid var(--el)" }}>
+            {head}
+            {chips}
+            {offLine}
           </div>
-        ) : null}
-        {body}
-      </DeskBody>
+          {errorLine}
+          {body}
+        </>
+      ) : (
+        <>
+          <DeskTop style={{ paddingBottom: 12 }}>
+            {head}
+            {chips}
+            {offLine}
+          </DeskTop>
+          <DeskBody style={{ paddingTop: 4 }}>
+            {errorLine}
+            {body}
+          </DeskBody>
+        </>
+      )}
 
       {prefOpen ? (
         <SettingsSheet
@@ -646,9 +705,11 @@ export function NotificationsScreen({
       ) : null}
 
       {toast ? (
-        <div role="status" style={{ position: "fixed", bottom: 96, left: "50%", transform: "translateX(-50%)", background: "var(--el)", border: "1.5px solid #5AC8FA", color: INK, padding: "11px 18px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 950, fontFamily: DOS_DISPLAY, whiteSpace: "nowrap", pointerEvents: "none" }}>
-          {toast}
-        </div>
+        <Portal>
+          <div role="status" style={{ position: "fixed", bottom: 96, left: "50%", transform: "translateX(-50%)", background: "var(--el)", border: "1.5px solid #5AC8FA", color: INK, padding: "11px 18px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 950, fontFamily: DOS_DISPLAY, whiteSpace: "nowrap", pointerEvents: "none" }}>
+            {toast}
+          </div>
+        </Portal>
       ) : null}
     </div>
   );

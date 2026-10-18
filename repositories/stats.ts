@@ -126,6 +126,82 @@ export async function findPersonHistory(supabase: SupabaseClient, userId: string
   return ((data ?? []) as HistRow[]).map(histRowOf);
 }
 
+/** ⚠ A STUDIO'S HELD SESSIONS (18 Oct 2026, the user: "studio records should be
+ *  better and similar to a persons record page"). The sessions of its own
+ *  PUBLISHED classes that have ENDED — rows a stranger already reads (a listed
+ *  studio's published classes and their sessions are public since Step 3), so
+ *  nothing is widened. Every row is `conducted`: a studio's side of the floor is
+ *  the class it HELD. The teacher's name comes off the confirmed artist row,
+ *  which Step 11 also makes public on a published class. No attendance is read —
+ *  who came is not a stranger's to count. */
+export async function findStudioHistory(
+  supabase: SupabaseClient,
+  businessId: string,
+  business: { name: string; city: string | null },
+  nowIso: string,
+  limit = 300
+): Promise<HistoryRow[]> {
+  const { data, error } = await supabase
+    .from("class_sessions")
+    .select("id, starts_at, ends_at, class_id, classes!inner (id, title, style, room, share_slug, status, deleted_at)")
+    .eq("business_id", businessId)
+    .is("deleted_at", null)
+    .is("classes.deleted_at", null)
+    .in("classes.status", ["published", "completed"])
+    .lt("ends_at", nowIso)
+    .order("starts_at", { ascending: false })
+    .limit(limit);
+  if (error) return [];
+  return studioRowsOf(supabase, data as unknown as StudioSessionRow[], businessId, business);
+}
+
+interface StudioSessionRow {
+  id: string;
+  starts_at: string;
+  ends_at: string;
+  class_id: string;
+  classes: { id: string; title: string; style: string; room: string | null; share_slug: string | null; status: string; deleted_at: string | null } | null;
+}
+
+async function studioRowsOf(
+  supabase: SupabaseClient,
+  rows: StudioSessionRow[],
+  businessId: string,
+  business: { name: string; city: string | null }
+): Promise<HistoryRow[]> {
+  const live = rows.filter((r) => r.classes && !r.classes.deleted_at && (r.classes.status === "published" || r.classes.status === "completed"));
+  const classIds = [...new Set(live.map((r) => r.class_id))];
+  const artists = new Map<string, string>();
+  if (classIds.length) {
+    const { data } = await supabase
+      .from("class_people")
+      .select("class_id, profiles (full_name)")
+      .in("class_id", classIds)
+      .eq("kind", "artist")
+      .eq("status", "confirmed")
+      .is("deleted_at", null);
+    for (const a of (data ?? []) as unknown as Array<{ class_id: string; profiles: { full_name: string | null } | null }>) {
+      if (a.profiles?.full_name) artists.set(a.class_id, a.profiles.full_name);
+    }
+  }
+  return live.map((r) => ({
+    sessionId: r.id,
+    side: "conducted" as Side,
+    classId: r.class_id,
+    shareSlug: r.classes!.share_slug,
+    title: r.classes!.title,
+    style: r.classes!.style,
+    room: r.classes!.room,
+    city: business.city,
+    businessId,
+    businessName: business.name,
+    artistName: artists.get(r.class_id) ?? null,
+    startsAt: r.starts_at,
+    endsAt: r.ends_at,
+    minutes: Math.max(0, Math.round((Date.parse(r.ends_at) - Date.parse(r.starts_at)) / 60000)),
+  }));
+}
+
 function histRowOf(r: HistRow): HistoryRow {
   return {
     sessionId: r.session_id,

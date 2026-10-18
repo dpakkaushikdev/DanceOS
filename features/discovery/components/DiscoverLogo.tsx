@@ -305,8 +305,8 @@ export function DiscoverScene({ k }: { k: string }) {
 /** the little icon that rides beside the tile's title, each with its own loop:
  *  a calendar whose tick draws, a studio whose door glows, a star that spins, a
  *  note that bounces. Decorative — the tile's own `aria-label` names it. */
-export function DiscoverTileIcon({ k }: { k: string }) {
-  const box = { width: 14, height: 14, viewBox: "0 0 24 24", "aria-hidden": true, style: { flexShrink: 0, overflow: "visible" as const, filter: "drop-shadow(0 1px 1.5px rgba(0,0,0,.55))" } };
+export function DiscoverTileIcon({ k, size = 14 }: { k: string; size?: number }) {
+  const box = { width: size, height: size, viewBox: "0 0 24 24", "aria-hidden": true, style: { flexShrink: 0, overflow: "visible" as const, filter: "drop-shadow(0 1px 1.5px rgba(0,0,0,.55))" } };
   const stroke = { fill: "none", stroke: "#fff", strokeWidth: 2.4, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
   if (k === "classes") {
     return (

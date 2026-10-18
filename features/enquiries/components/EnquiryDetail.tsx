@@ -392,25 +392,30 @@ export function EnquiryDetail({
   /* ── the payments summary (18 Oct 2026) — every figure from `enquiryMoney`,
      the quote being priced standing in for the project before one is accepted ── */
   const priced = base ?? live;
-  const quotedInr = base ? m.totalInr : live ? live.costInr : 0;
   const advInr = priced ? priced.advanceInr : 0;
   const acceptedAdds = adds.filter((a) => a.status === "accepted");
-  const addsNet = acceptedAdds.reduce((s, a) => s + a.costInr, 0);
   const backInr = e.endings.filter((x) => x.status === "accepted").reduce((s, x) => s + x.refundInr, 0);
-  const moneyFigures: Array<[string, string, string, string]> = [
-    ["Quoted", priced ? money(quotedInr) : "—", base ? "accepted" : live ? quoteWord(live, nowIso).toLowerCase() : "no quote yet", "#3B82F6"],
-    ["Received", money(m.paidInr), m.paidInr > 0 ? "recorded" : "nothing yet", "#22C55E"],
-    ["Due", base ? money(m.outstandingInr) : "—", base ? (m.outstandingInr > 0 ? "still to come" : "settled") : "once accepted", "#F59E0B"],
-    ["Advance", priced ? (advInr > 0 ? money(advInr) : "None") : "—", !priced || advInr === 0 ? "up front" : base?.advancePaidAt ? "paid" : base ? "due" : `${priced.advancePct}% up front`, "#8B5CF6"],
-  ];
-  const breakup: Array<[string, string]> = [
-    ["Quote", priced ? money(priced.costInr) : "—"],
-    ["Advance", priced ? money(advInr) : "—"],
-    ["Balance", priced ? money(Math.max(priced.costInr - advInr, 0)) : "—"],
-    ["Additions", acceptedAdds.length ? `${addsNet > 0 ? "+" : ""}${signed(addsNet)}` : "—"],
-    ["Waiting", m.additionsWaiting ? `${m.additionsWaiting}` : "—"],
-    ["Refunds", backInr > 0 ? money(backInr) : "—"],
-  ];
+  /* ⚠ ONE MONEY CARD (18 Oct 2026, the user: "better designed earnings") — the
+     figure the job is worth, a bar of how much of it has come in, and every
+     line it is made of, with nothing drawn as "—" */
+  const worthInr = base ? m.totalInr : live ? live.costInr : 0;
+  const paidPct = worthInr > 0 ? Math.min(100, Math.round((m.paidInr / worthInr) * 100)) : 0;
+  const standing: { w: string; c: string } = !priced
+    ? { w: "No quote yet", c: "var(--muted)" }
+    : !base
+      ? { w: live ? quoteWord(live, nowIso) : "Quoted", c: live ? quoteColour(live, nowIso) : "#F59E0B" }
+      : m.outstandingInr > 0
+        ? { w: `${money(m.outstandingInr)} due`, c: "#F59E0B" }
+        : { w: "✓ Paid in full", c: "#22C55E" };
+  const moneyLines: Array<{ k: string; v: string; note?: string; c?: string }> = [];
+  if (priced) {
+    moneyLines.push({ k: base ? "Quote" : "Quoted", v: money(priced.costInr) });
+    if (advInr > 0) moneyLines.push({ k: "Advance", v: money(advInr), note: base?.advancePaidAt ? "paid" : base ? "due" : `${priced.advancePct}% up front`, c: base?.advancePaidAt ? "#22C55E" : base ? "#F59E0B" : undefined });
+    moneyLines.push({ k: "On completion", v: money(Math.max(priced.costInr - advInr, 0)) });
+  }
+  acceptedAdds.forEach((a) => moneyLines.push({ k: `Addition #${a.n}`, v: a.costInr < 0 ? signed(a.costInr) : `+${money(a.costInr)}` }));
+  if (m.additionsWaiting) moneyLines.push({ k: "Additions waiting", v: String(m.additionsWaiting), c: "#F59E0B" });
+  if (backInr > 0) moneyLines.push({ k: "Refunded", v: money(backInr), c: "#F87171" });
 
   /* ── the "say why" box, drawn where it was asked for ── */
   const askBox = (key: string) =>
@@ -475,28 +480,35 @@ export function EnquiryDetail({
   const mayQuote = mine && acts && ["new", "accepted", "quoted"].includes(e.status);
   const quoteCard = shown ? (
     <Surface tint={quoteColour(shown, nowIso)}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+      {/* ⚠ RE-CUT (18 Oct 2026, the user: "better designed … quotes section") —
+          the price large, how it splits as one bar, the lines under it */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span style={smallLabel}>{quotes.length > 1 ? `QUOTE #${shown.n}` : "THE QUOTE"}</span>
-        <span data-testid="live-quote-state" style={{ marginLeft: "auto", fontSize: 10, fontWeight: 900, color: quoteColour(shown, nowIso) }}>
+        {shown.validUntil && shown.status === "sent" ? (
+          <span style={{ fontSize: 10, fontWeight: 800, color: quoteExpired(shown, nowIso) ? "#F87171" : "var(--muted)" }}>· valid until {dateWords(shown.validUntil)}</span>
+        ) : null}
+        <span
+          data-testid="live-quote-state"
+          style={{ marginLeft: "auto", fontSize: 10, fontWeight: 900, padding: "4px 9px", borderRadius: 999, color: quoteColour(shown, nowIso), background: "var(--solid)", border: `1.5px solid ${quoteColour(shown, nowIso)}55` }}
+        >
           {quoteWord(shown, nowIso)}
         </span>
       </div>
-      <div style={{ fontSize: 30, fontWeight: 900, letterSpacing: -0.8, marginTop: 4 }}>{money(shown.costInr)}</div>
-      <QuoteLines items={shown.items} costInr={shown.costInr} />
-      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-        {(
-          [
-            ["Advance", shown.advanceInr ? `${money(shown.advanceInr)} · ${shown.advancePct}%` : "none"],
-            ["On completion", money(shown.costInr - shown.advanceInr)],
-            ...(shown.validUntil && shown.status === "sent" ? ([["Valid until", dateWords(shown.validUntil)]] as Array<[string, string]>) : []),
-          ] as Array<[string, string]>
-        ).map(([k, v]) => (
-          <div key={k} style={{ flex: 1, background: "var(--solid)", borderRadius: 11, padding: "8px 10px", minWidth: 0 }}>
-            <div style={{ ...smallLabel, letterSpacing: 0.6 }}>{k.toUpperCase()}</div>
-            <div style={{ fontSize: 12, fontWeight: 900, marginTop: 2, color: k === "Valid until" && quoteExpired(shown, nowIso) ? "#F87171" : undefined }}>{v}</div>
-          </div>
-        ))}
+      <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: -1, fontFamily: DOS_MONO, marginTop: 6 }}>{money(shown.costInr)}</div>
+      {/* the split: up front, then on completion — one bar, two labels */}
+      <div style={{ display: "flex", height: 8, borderRadius: 999, overflow: "hidden", background: "var(--el)", marginTop: 9 }}>
+        {shown.advanceInr > 0 ? <div style={{ width: `${Math.max(4, Math.min(100, shown.advancePct))}%`, background: "#8B5CF6" }} /> : null}
+        <div style={{ flex: 1, background: "#3B82F655" }} />
       </div>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 6, fontSize: 11, fontWeight: 800 }}>
+        <span style={{ color: shown.advanceInr ? "#8B5CF6" : "var(--muted)" }}>{shown.advanceInr ? `${money(shown.advanceInr)} up front · ${shown.advancePct}%` : "No advance"}</span>
+        <span style={{ color: "var(--sub)" }}>{money(shown.costInr - shown.advanceInr)} on completion</span>
+      </div>
+      {shown.items.length ? (
+        <div style={{ marginTop: 10, background: "var(--solid)", borderRadius: 12, padding: "2px 11px 6px" }}>
+          <QuoteLines items={shown.items} costInr={shown.costInr} />
+        </div>
+      ) : null}
       {shown.note ? <div style={{ ...hint, marginTop: 8 }}>{shown.note}</div> : null}
 
       {shown.status === "sent" && !closed ? (
@@ -549,7 +561,6 @@ export function EnquiryDetail({
         tint={tint}
         label={mine ? type?.label ?? e.typeKey : `${type?.label ?? e.typeKey} · you asked`}
         title={otherName}
-        sub={`${agoWords(e.createdAt, nowIso)} · ${m.totalInr ? `project ${money(m.totalInr)}` : live ? `quoted ${money(live.costInr)}` : "no quote yet"}`}
         right={
           mayEnd ? (
             /* ⚠ CALL IT OFF ON THE TOP RIGHT (18 Oct 2026). The accessible name is
@@ -615,30 +626,29 @@ export function EnquiryDetail({
         </Surface>
 
         {/* ── WHAT THEY ASKED FOR — first, above where it stands (18 Oct 2026) ── */}
+        {/* ⚠ RE-CUT SMALLER (18 Oct 2026, the user: "what they asked for section
+            revamp and smaller and better design") — the answers as small tiles,
+            two to a row, a long one across both; the message one quiet line */}
         <Surface tint={tint}>
-          <Eyebrow
-            tint={tint}
-            right={
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10.5, fontWeight: 900, color: tint }}>
-                <EnqIcon k={e.typeKey} size={13} color={tint} sw={2} />
-                {type?.label ?? e.typeKey}
-              </span>
-            }
-          >
-            {mine ? "WHAT THEY ASKED FOR" : "WHAT YOU ASKED FOR"}
-          </Eyebrow>
-          <dl data-testid="enquiry-asked" style={{ margin: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 9 }}>
+            <span aria-hidden="true" style={{ width: 24, height: 24, borderRadius: 8, background: tint, display: "grid", placeItems: "center", flexShrink: 0 }}>
+              <EnqIcon k={e.typeKey} size={13} color="#fff" sw={2.2} />
+            </span>
+            <span style={{ ...smallLabel, color: "var(--text)" }}>{mine ? "WHAT THEY ASKED FOR" : "WHAT YOU ASKED FOR"}</span>
+            <span style={{ marginLeft: "auto", fontSize: 10, fontWeight: 900, color: tint, whiteSpace: "nowrap" }}>{type?.label ?? e.typeKey}</span>
+          </div>
+          <dl data-testid="enquiry-asked" style={{ margin: 0, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
             {rows.map(([k, v], i) => (
-              <div key={`${k}·${i}`} style={{ display: "grid", gridTemplateColumns: "96px 1fr", gap: 10, padding: "7px 0", borderBottom: i < rows.length - 1 ? "1.5px solid var(--el)" : "none", fontSize: 12 }}>
-                <dt style={{ ...smallLabel, fontSize: 9.5, paddingTop: 2 }}>{k.toUpperCase()}</dt>
-                <dd style={{ margin: 0, fontWeight: 800, overflowWrap: "anywhere" }}>{v}</dd>
+              <div key={`${k}·${i}`} style={{ background: "var(--solid)", borderRadius: 11, padding: "7px 10px", minWidth: 0, gridColumn: v.length > 22 ? "1 / -1" : undefined }}>
+                <dt style={{ ...smallLabel, fontSize: 8.5, letterSpacing: 0.6 }}>{k.toUpperCase()}</dt>
+                <dd style={{ margin: "2px 0 0", fontSize: 12.5, fontWeight: 800, lineHeight: 1.3, overflowWrap: "anywhere" }}>{v}</dd>
               </div>
             ))}
           </dl>
           {e.message ? (
-            <blockquote data-testid="enquiry-message" style={{ margin: "10px 0 0", padding: "9px 12px", borderLeft: `3px solid ${tint}`, background: "var(--solid)", borderRadius: "0 10px 10px 0", fontSize: 12.5, lineHeight: 1.55, fontStyle: "italic", overflowWrap: "anywhere" }}>
+            <p data-testid="enquiry-message" style={{ margin: "8px 0 0", fontSize: 12, lineHeight: 1.5, color: "var(--sub)", fontStyle: "italic", overflowWrap: "anywhere" }}>
               “{e.message}”
-            </blockquote>
+            </p>
           ) : null}
         </Surface>
 
@@ -946,56 +956,59 @@ export function EnquiryDetail({
             {payCol === "earnings" ? (
               <>
                 <Surface tint="#22C55E">
-                  <div data-testid="enquiry-money" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
-                    {moneyFigures.map(([k, v, sub, colour]) => (
-                      <div key={k} data-testid={`money-${k.toLowerCase()}`} style={{ background: "var(--solid)", borderRadius: 12, padding: "10px 11px", border: "1.5px solid var(--el)", borderTop: `3px solid ${colour}` }}>
-                        <div style={{ fontSize: 17, fontWeight: 900, fontFamily: DOS_MONO, letterSpacing: -0.3 }}>{v}</div>
-                        <div style={smallLabel}>{k.toUpperCase()}</div>
-                        <div style={{ fontSize: 10, color: "var(--sub)", marginTop: 2, fontWeight: 700 }}>{sub}</div>
+                  <div data-testid="enquiry-money">
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={smallLabel}>{base ? "THE PROJECT" : priced ? "QUOTED" : "EARNINGS"}</div>
+                        {base ? (
+                          <div data-testid="project-total" style={{ fontSize: 30, fontWeight: 900, letterSpacing: -1, fontFamily: DOS_MONO, marginTop: 2 }}>
+                            {money(m.totalInr)}
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: 30, fontWeight: 900, letterSpacing: -1, fontFamily: DOS_MONO, marginTop: 2, color: priced ? "var(--text)" : "var(--muted)" }}>{priced ? money(worthInr) : "—"}</div>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                  <div style={{ ...smallLabel, marginTop: 12, marginBottom: 6 }}>BREAKUP</div>
-                  <div data-testid="enquiry-breakup" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
-                    {breakup.map(([k, v]) => (
-                      <div key={k} data-testid={`breakup-${k.toLowerCase().replace(/[^a-z]+/g, "-")}`} style={{ background: "var(--card)", borderRadius: 10, padding: "8px 9px", border: "1.5px solid var(--el)", minWidth: 0 }}>
-                        <div style={{ fontSize: 12.5, fontWeight: 900, fontFamily: DOS_MONO, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v}</div>
-                        <div style={{ ...smallLabel, fontSize: 8.5, marginTop: 1 }}>{k.toUpperCase()}</div>
-                      </div>
-                    ))}
-                  </div>
-                </Surface>
-
-                {/* ── THE PROJECT ── what it costs, what is paid, what is due */}
-                {base && (projectOn || closed) ? (
-                  <Surface tint="#22C55E">
-                    <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                      <span style={smallLabel}>THE PROJECT</span>
-                      <span style={{ marginLeft: "auto", fontSize: 10, fontWeight: 900, color: m.outstandingInr ? "#F59E0B" : "#22C55E" }}>{m.outstandingInr ? `${money(m.outstandingInr)} to pay` : "✓ Paid in full"}</span>
+                      <span data-testid="money-standing" style={{ flexShrink: 0, marginTop: 4, fontSize: 10.5, fontWeight: 900, padding: "5px 10px", borderRadius: 999, color: standing.c, background: "var(--solid)", border: "1.5px solid var(--el)" }}>
+                        {standing.w}
+                      </span>
                     </div>
-                    <div data-testid="project-total" style={{ fontSize: 30, fontWeight: 900, letterSpacing: -0.8, marginTop: 4 }}>
-                      {money(m.totalInr)}
-                    </div>
-                    <div style={{ marginTop: 9 }}>
-                      {(
-                        [
-                          ["Quote", money(base.costInr)],
-                          ...adds.filter((a) => a.status === "accepted").map((a) => [`Addition #${a.n}`, signed(a.costInr)] as [string, string]),
-                          ["Paid", money(m.paidInr)],
-                        ] as Array<[string, string]>
-                      ).map(([k, v]) => (
-                        <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 12, borderBottom: "1px solid var(--el)" }}>
-                          <span style={{ color: "var(--sub)" }}>{k}</span>
-                          <b>{v}</b>
+                    {priced ? (
+                      <>
+                        <div aria-label={`${paidPct}% received`} style={{ height: 9, borderRadius: 999, background: "var(--el)", overflow: "hidden", marginTop: 10 }}>
+                          <div style={{ width: `${paidPct}%`, height: "100%", borderRadius: 999, background: "linear-gradient(90deg, #22C55E, #16A34A)" }} />
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 11, fontWeight: 800 }}>
+                          <span data-testid="money-received" style={{ color: "#22C55E" }}>
+                            {money(m.paidInr)} received
+                          </span>
+                          <span data-testid="money-due" style={{ color: base && m.outstandingInr ? "#F59E0B" : "var(--muted)" }}>
+                            {base ? (m.outstandingInr ? `${money(m.outstandingInr)} to come` : "nothing to come") : "due once accepted"}
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ ...hint, marginTop: 6 }}>{mine ? "Send a quote from the Quote column." : `${e.businessName} sends a quote first.`}</div>
+                    )}
+                  </div>
+                  {moneyLines.length ? (
+                    <div data-testid="enquiry-breakup" style={{ marginTop: 12, background: "var(--solid)", borderRadius: 13, padding: "4px 12px" }}>
+                      {moneyLines.map((l, i) => (
+                        <div key={l.k} data-testid={`breakup-${l.k.toLowerCase().replace(/[^a-z]+/g, "-")}`} style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "8px 0", borderBottom: i < moneyLines.length - 1 ? "1px dashed var(--el)" : "none", fontSize: 12.5 }}>
+                          <span style={{ color: "var(--sub)", fontWeight: 700 }}>{l.k}</span>
+                          {l.note ? <span style={{ fontSize: 9.5, fontWeight: 900, color: l.c ?? "var(--muted)", textTransform: "uppercase", letterSpacing: 0.5 }}>{l.note}</span> : null}
+                          <b style={{ marginLeft: "auto", fontFamily: DOS_MONO, color: l.note ? undefined : l.c }}>{l.v}</b>
                         </div>
                       ))}
                     </div>
+                  ) : null}
 
-                    {projectOn && dues.length ? (
-                      <div data-testid="dues" style={{ marginTop: 11 }}>
-                        <div style={{ ...smallLabel, marginBottom: 6 }}>DUE</div>
+                  {/* ── WHAT IS DUE, with its button — inside the one card ── */}
+                  {base && projectOn && dues.length ? (
+                    <>
+                      <div data-testid="dues" style={{ marginTop: 12 }}>
+                        <div style={{ ...smallLabel, marginBottom: 6 }}>DUE NOW</div>
                         {dues.map((d) => (
-                          <div key={`${d.quoteId}-${d.part}`} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0" }}>
+                          <div key={`${d.quoteId}-${d.part}`} style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 11px", marginBottom: 6, borderRadius: 12, background: "rgba(245,158,11,.1)", border: "1.5px solid rgba(245,158,11,.35)" }}>
                             <span style={{ flex: 1, fontSize: 12.5, fontWeight: 800 }}>
                               {d.word} · {money(d.amount)}
                             </span>
@@ -1026,9 +1039,9 @@ export function EnquiryDetail({
                           </button>
                         ) : null}
                       </div>
-                    ) : null}
-                  </Surface>
-                ) : null}
+                    </>
+                  ) : null}
+                </Surface>
 
                 {/* ── ADDITIONS ── */}
                 {adds.length || (mine && acts && projectOn && !ending) ? (

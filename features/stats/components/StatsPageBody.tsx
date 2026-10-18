@@ -3,13 +3,15 @@ import { findDiscoverCities } from "@/repositories/cities";
 import { DOS_STYLE_NAMES } from "@/lib/constants/styles";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { photoUrl } from "@/lib/media/photo";
-import { findChart, findEntityChartRow, findMyHistory, findMyPlace, findMyStats, findPersonHistory } from "@/repositories/stats";
+import { findChart, findEntityChartRow, findMyHistory, findMyPlace, findMyStats, findPersonHistory, findStudioHistory } from "@/repositories/stats";
 import { EMPTY_STATS, parseChartMetric, type ChartSegment, type DanceStats, type Standing } from "@/types/stats";
 
 /* ⚠ "history" went on 2 Oct 2026 (the user: "remove history from stats for all
    profiles") — an old `?tab=history` link falls through to Record */
 const TABS = ["record", "charts"] as const;
-const SEGMENTS: ChartSegment[] = ["dancer", "artist", "studio", "crew"];
+/* ⚠ NO CREW BOARD (18 Oct 2026, the user: "crew rankings to be removed for
+   now"). `dance_chart` still answers for crews; nothing here asks it. */
+const SEGMENTS: ChartSegment[] = ["dancer", "artist", "studio"];
 
 export type StatsQuery = { tab?: string; seg?: string; city?: string; metric?: string; style?: string };
 
@@ -77,7 +79,12 @@ export async function StatsPageBody({ subject, query, basePath }: { subject: Sta
   const tab = (TABS as readonly string[]).includes(query.tab ?? "") ? (query.tab as (typeof TABS)[number]) : "record";
   /** the board being BROWSED. It opens on the subject's own, which is what
    *  somebody pressing Rankings on a profile came to see. */
-  const segment: ChartSegment = SEGMENTS.includes((query.seg ?? "") as ChartSegment) ? (query.seg as ChartSegment) : subject.segment;
+  const segment: ChartSegment = SEGMENTS.includes((query.seg ?? "") as ChartSegment)
+    ? (query.seg as ChartSegment)
+    : SEGMENTS.includes(subject.segment)
+      ? subject.segment
+      : "dancer";
+  const isCrew = subject.kind === "crew";
   const cityList = await findDiscoverCities(supabase);
   const city = cityList.some((c) => c.city === query.city) ? (query.city as string) : null;
   const metric = parseChartMetric(query.metric);
@@ -92,17 +99,24 @@ export async function StatsPageBody({ subject, query, basePath }: { subject: Sta
   const [ownStats, history, chart, myPlace, boardPlace, everywhere, inCity] = await Promise.all([
     isMe ? findMyStats(supabase) : Promise.resolve(null),
     /* somebody else's PUBLIC sessions (11 Oct 2026) — a signed-in reader, a person */
-    isMe ? findMyHistory(supabase) : user && subject.kind === "person" ? findPersonHistory(supabase, subject.id) : Promise.resolve([]),
-    tab === "charts" && canBrowseBoards ? findChart(supabase, { segment, city, style: styleFilter }) : Promise.resolve([]),
+    isMe
+      ? findMyHistory(supabase)
+      : subject.kind === "studio"
+        ? findStudioHistory(supabase, subject.id, { name: subject.name, city: subject.city }, nowIso)
+        : user && subject.kind === "person"
+          ? findPersonHistory(supabase, subject.id)
+          : Promise.resolve([]),
+    tab === "charts" && canBrowseBoards && !isCrew ? findChart(supabase, { segment, city, style: styleFilter }) : Promise.resolve([]),
     isMe ? findMyPlace(supabase, "dancer", null) : Promise.resolve(null),
     /* where YOU stand on THIS board — a people board only, and only when it is
        your own record (the prototype pins a "you" row on Dancers and Artists) */
     isMe && tab === "charts" && (segment === "dancer" || segment === "artist") ? findMyPlace(supabase, segment, city) : Promise.resolve(null),
     findEntityChartRow(supabase, { segment: subject.segment, id: subject.id }),
-    subject.city ? findEntityChartRow(supabase, { segment: subject.segment, id: subject.id, city: subject.city }) : Promise.resolve(null),
+    subject.city && !isCrew ? findEntityChartRow(supabase, { segment: subject.segment, id: subject.id, city: subject.city }) : Promise.resolve(null),
   ]);
 
-  const standings: Standing[] = [{ scope: "Everywhere", row: everywhere }, ...(subject.city ? [{ scope: `In ${subject.city}`, row: inCity }] : [])];
+  /* a crew keeps its board row (its record is counted from it) and no standings */
+  const standings: Standing[] = isCrew ? [] : [{ scope: "Everywhere", row: everywhere }, ...(subject.city ? [{ scope: `In ${subject.city}`, row: inCity }] : [])];
 
   /* the styles a board can be narrowed by: the ones its rows carry, plus the
      one already chosen (so a filter that empties the board can still be cleared) */
@@ -117,7 +131,7 @@ export async function StatsPageBody({ subject, query, basePath }: { subject: Sta
       backHref={subject.backHref}
       subjectKind={subject.kind}
       isMe={isMe}
-      sessionsRead={isMe || (Boolean(user) && subject.kind === "person")}
+      sessionsRead={isMe || subject.kind === "studio" || (Boolean(user) && subject.kind === "person")}
       canBrowseBoards={canBrowseBoards}
       standings={standings}
       boardRow={everywhere}

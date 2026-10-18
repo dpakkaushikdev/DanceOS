@@ -62,7 +62,8 @@ export default async function StylePage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const SEGS: ChartSegment[] = ["studio", "artist", "crew", "dancer"];
+  /* ⚠ no Crews board (18 Oct 2026, the user: "crew rankings to be removed for now") */
+  const SEGS: ChartSegment[] = ["studio", "artist", "dancer"];
   /* ⚠ A BOARD THAT CANNOT BE READ IS AN EMPTY BOARD, never a 500 — this page is
      mostly an encyclopedia entry and must not fail over a leaderboard.
      ⚠ THE CLASSES COLUMN (10 Oct 2026, the user: "add a column called classes
@@ -77,7 +78,7 @@ export default async function StylePage({
     findPublishedClasses(supabase, 120, null, style).catch(() => [] as PublicClassListing[]),
     user ? findMyEnrolledSessionIds(supabase).catch(() => new Map<string, { id: string; status: ClassBookingStatus }>()) : Promise.resolve(new Map<string, { id: string; status: ClassBookingStatus }>()),
   ]);
-  const boards = boardsList ? (Object.fromEntries(boardsList) as Record<ChartSegment, ChartRow[]>) : null;
+  const boards = boardsList ? (Object.fromEntries(boardsList) as Partial<Record<ChartSegment, ChartRow[]>>) : null;
   const ids = styleClassesRaw.map((c) => c.id);
   const sessionIds = styleClassesRaw.map((c) => c.session?.id).filter(Boolean) as string[];
   /* ⚠ THE PROFILE YOU ARE ACTING AS (11 Oct 2026, B23) — Discover's own gate: a

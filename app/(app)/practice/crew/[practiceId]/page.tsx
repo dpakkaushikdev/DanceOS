@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { DeskBody, DeskTop } from "@/components/ui/DeskSections";
-import { toolBtn } from "@/components/ui/ToolCard";
 import { DOS_TOOLS, DeskHero } from "@/features/businesses/components/biz-kit";
-import { PracticeCard } from "@/features/crews/components/practice-card";
+import { PracticeBodyHead, PracticeDetail, type PracticeDoor } from "@/features/crews/components/PracticeDetail";
 import { PracticeCallOff, PracticeRegister, type RegisterRow } from "@/features/crews/components/PracticeRegister";
 import { DOS_UI, INK, LILAC } from "@/lib/design/tokens";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -17,9 +15,10 @@ const stampNowIso = (): string => new Date().toISOString();
 /* a crew practice wears the Crews tool's colour, as its card's kind chip does */
 const TINT = DOS_TOOLS.crews.c;
 
-/** A CREW'S PRACTICE, ON ITS OWN PAGE (18 Oct 2026). Where it is, when, the note
- *  — and for the person who LEADS the crew, the register. A member reads the
- *  details and nothing to press.
+/** A CREW'S PRACTICE, ON ITS OWN PAGE (18 Oct 2026; re-cut the same day on
+ *  `PracticeDetail` — the user: "better looking practice detail page, handle
+ *  buttons better"). Where it is, when, the note — and for the person who LEADS
+ *  the crew, the register. A member reads the details and nothing to press.
  *
  *  ⚠ THE GATE IS THE READ: `my_crew_practices` is scoped to `auth.uid()` inside
  *  its own SQL, so a practice of a crew the reader is not on is simply not in the
@@ -51,35 +50,37 @@ export default async function CrewPracticePage({ params }: { params: Promise<{ p
   }));
   const nowIso = stampNowIso();
   const now = new Date(nowIso).getTime();
+  const doors: PracticeDoor[] = [
+    { href: `/crew/${p.crewId}`, word: "The crew", label: `Open ${p.crewName}`, sub: "Its page and roster" },
+    ...(p.iLead ? [{ href: `/crews/${p.crewId}/manage/practice`, word: "Practice desk", label: `The practice desk of ${p.crewName}`, sub: "Every practice of this crew" }] : []),
+  ];
+  const mayCallOff = p.iLead && p.status !== "cancelled" && new Date(p.endsAt).getTime() >= now;
 
   return (
     <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, padding: "0 var(--dos-gutter)", boxSizing: "border-box", paddingBottom: "var(--dos-foot)" }}>
       <DeskTop>
         <DeskHero tool="practice" as="h1" margin="0 0 12px" />
         <div data-testid="practice-detail" data-kind="crew">
-          <PracticeCard
-            practice={p}
+          <PracticeDetail
+            kind="crew"
+            name={p.crewName}
+            photoPath={p.crewPhotoPath}
+            label={p.crewStyle || null}
+            role={PRACTICE_WORD[p.myStatus]}
+            startsAt={p.startsAt}
+            endsAt={p.endsAt}
+            place={p.place}
+            note={p.note}
+            cancelled={p.status === "cancelled"}
             now={now}
-            linked={false}
-            actions={
-              <>
-                <Link href={`/crew/${p.crewId}`} aria-label={`Open ${p.crewName}`} style={toolBtn("secondary", TINT)}>
-                  The crew ›
-                </Link>
-                {p.iLead ? (
-                  <Link href={`/crews/${p.crewId}/manage/practice`} aria-label={`The practice desk of ${p.crewName}`} style={toolBtn("secondary", TINT)}>
-                    Desk ›
-                  </Link>
-                ) : null}
-                {p.iLead && p.status !== "cancelled" && new Date(p.endsAt).getTime() >= now ? <PracticeCallOff practiceId={p.id} crewId={p.crewId} when={practiceWhen(p.startsAt)} /> : null}
-              </>
-            }
+            doors={doors}
+            danger={mayCallOff ? <PracticeCallOff practiceId={p.id} crewId={p.crewId} when={practiceWhen(p.startsAt)} /> : null}
           />
         </div>
       </DeskTop>
       {p.iLead ? (
         <DeskBody>
-          <div style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: 0.9, color: "var(--muted)", margin: "2px 0 8px" }}>REGISTER</div>
+          <PracticeBodyHead>REGISTER</PracticeBodyHead>
           <PracticeRegister rows={rows} target={{ kind: "crew", practiceId: p.id, crewId: p.crewId }} tint={TINT} locked={p.status === "cancelled"} />
         </DeskBody>
       ) : null}

@@ -4,8 +4,21 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { clearNotifications, markNotificationsRead, setNotificationPrefs } from "@/repositories/notifications";
-import { DEFAULT_PREFS, type NotificationKind } from "@/types/notification";
+import { clearNotifications, findMyNotificationPrefs, findMyNotifications, markNotificationsRead, setNotificationPrefs } from "@/repositories/notifications";
+import { DEFAULT_PREFS, type AppNotification, type NotificationKind, type NotificationPrefs } from "@/types/notification";
+
+/** THE DRAWER'S READ (18 Oct 2026) — the bell opens notifications from the left
+ *  in place, so the list is fetched on the press rather than by a page. Both
+ *  reads are scoped to `auth.uid()` in the repository, exactly as the page's. */
+export async function loadMyNotificationsAction(): Promise<{ notifications: AppNotification[]; prefs: NotificationPrefs; nowIso: string } | { error: string }> {
+  const supabase = await requireUser();
+  try {
+    const [notifications, prefs] = await Promise.all([findMyNotifications(supabase), findMyNotificationPrefs(supabase)]);
+    return { notifications, prefs, nowIso: new Date().toISOString() };
+  } catch (error: unknown) {
+    return { error: error instanceof Error ? error.message : "Could not load your notifications" };
+  }
+}
 
 /** Step 24's writes, by app area since 11 Oct 2026. Nothing here raises a
  *  notification — triggers do that where the fact happens. These are the three

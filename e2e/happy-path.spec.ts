@@ -1887,17 +1887,31 @@ test.describe.serial("DanceOS, end to end", () => {
       const row = page.getByText(text).first();
       if (await row.isVisible().catch(() => false)) return row;
       try { await expect(row).toBeVisible({ timeout: 4_000 }); return row; } catch {}
-      await page.getByTestId("notif-tab-history").click();
+      await showColumn(page, "history");
       await expect(row).toBeVisible({ timeout: 15_000 });
       return row;
     };
+    /* ONE BUTTON TOP RIGHT (18 Oct 2026): it reads History while New is shown and
+       New while History is — so it carries the OTHER column's test id, and asking
+       for the column already shown presses nothing */
+    async function showColumn(page: Page, col: "new" | "history") {
+      const btn = page.getByTestId(`notif-tab-${col}`);
+      if (await btn.isVisible().catch(() => false)) await btn.click();
+      await expect(page.getByTestId(`notif-tab-${col === "new" ? "history" : "new"}`)).toBeVisible({ timeout: 15_000 });
+    }
     // a chip does nothing until hydration — press until it reports itself pressed
     const pickChip = (page: Page, group: string) => pressPill(page, page.getByTestId(`notif-chip-${group}`));
     await goHome(owner);
     await expect(owner.getByTestId("bell-badge")).toBeVisible();
-    await owner.getByRole("link", { name: /^Notifications/ }).click();
-    await owner.waitForURL(/\/notifications/);
-    await expect(owner.getByRole("heading", { level: 1, name: "Notifications" })).toBeVisible();
+    // the bell opens the drawer from the LEFT, in place (18 Oct 2026)
+    await owner.getByRole("button", { name: /^Notifications/ }).click();
+    const notifDrawer = owner.getByTestId("notif-drawer");
+    await expect(notifDrawer.getByRole("heading", { level: 1, name: "Updates" })).toBeVisible({ timeout: 15_000 });
+    await notifDrawer.getByRole("button", { name: "Close notifications" }).click();
+    await expect(notifDrawer).toHaveCount(0);
+    // the address still opens the same screen as a page (Rule 14)
+    await owner.goto("/notifications");
+    await expect(owner.getByRole("heading", { level: 1, name: "Updates" })).toBeVisible();
     // every area's chip is always drawn, a 0 included
     for (const g of ["all", "class", "team", "crew", "enquiry", "money", "danceos"]) {
       await expect(owner.getByTestId(`notif-chip-${g}`)).toBeVisible();
@@ -1907,13 +1921,13 @@ test.describe.serial("DanceOS, end to end", () => {
     const booked = `${learnerName} booked ${classTitle}`;
     await findRow(owner, booked);
     // Mark read: the New column empties of Classes and the row moves to Earlier
-    await owner.getByTestId("notif-tab-new").click();
+    await showColumn(owner, "new");
     const markClasses = owner.getByRole("button", { name: "Mark Classes read" });
     if (await markClasses.isVisible().catch(() => false)) {
       await markClasses.click();
       await expect(owner.getByText("Classes read")).toBeVisible();
     }
-    await owner.getByTestId("notif-tab-history").click();
+    await showColumn(owner, "history");
     await expect(owner.getByText(booked).first()).toBeVisible({ timeout: 15_000 });
     // an area switched off "here" is hidden from the screen, and nothing is deleted
     await owner.getByRole("button", { name: "Notification settings" }).click();
@@ -1931,7 +1945,7 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(owner.getByText(booked).first()).toBeVisible({ timeout: 15_000 });
     // the trainer: the learner's seat tells the confirmed TEACHER too (20261017090000)
     await trainer.goto("/notifications");
-    await expect(trainer.getByRole("heading", { level: 1, name: "Notifications" })).toBeVisible();
+    await expect(trainer.getByRole("heading", { level: 1, name: "Updates" })).toBeVisible();
     await pickChip(trainer, "class");
     await findRow(trainer, booked);
     // the crew ask the trainer answered is in the Crews area
@@ -1941,10 +1955,10 @@ test.describe.serial("DanceOS, end to end", () => {
     await findRow(trainer, roster);
     // HISTORY IS NEVER CLEARED (18 Oct 2026): mark the area read, and the row is
     // in History, by day, with no Clear and no Hide anywhere on the screen
-    await trainer.getByTestId("notif-tab-new").click();
+    await showColumn(trainer, "new");
     const markCrews = trainer.getByTestId("notif-read-all");
     if (await markCrews.isVisible().catch(() => false)) await markCrews.click();
-    await trainer.getByTestId("notif-tab-history").click();
+    await showColumn(trainer, "history");
     await expect(trainer.getByText(roster).first()).toBeVisible({ timeout: 15_000 });
     await expect(trainer.getByTestId("notif-day").first()).toBeVisible();
     await expect(trainer.getByTestId("notif-clear")).toHaveCount(0);
@@ -2017,14 +2031,15 @@ test.describe.serial("DanceOS, end to end", () => {
 
     /* and a crew's own page wears the same three, which is where the crew
        home's chip points since the board went (29 Sep 2026) */
+    /* ⚠ but NO RANKINGS for a crew since 18 Oct 2026 (the user: "crew rankings
+       to be removed for now") — an old `?tab=charts` lands on its Record, and
+       the boards offer no Crews segment */
     await learner.goto(`/crew/${crewId}/stats?tab=charts`);
     await expect(learner.getByRole("heading", { name: crewName })).toBeVisible();
-    await expect(learner.getByTestId("standing-card").first()).toBeVisible();
-    /* the crew's points are its confirmed members — ⚠ no "Event entered · +3 pts"
-       since 29 Sep 2026, when events went */
-    await learner.getByRole("button", { name: "Points" }).click();
-    await expect(learner.getByText("Event entered", { exact: true })).toHaveCount(0);
-    await expect(learner.getByText("Confirmed member", { exact: true })).toBeVisible();
+    await expect(learner.getByTestId("standing-card")).toHaveCount(0);
+    await expect(learner.getByLabel(/^Members — \d+ confirmed/)).toBeVisible();
+    await learner.goto(`/person/${trainerId}/stats?tab=charts`);
+    await expect(learner.getByRole("link", { name: "Crews", exact: true })).toHaveCount(0);
   });
 
   test("person pages: the doors that had nowhere to go", async () => {
@@ -2856,9 +2871,10 @@ test.describe.serial("DanceOS, end to end", () => {
     await rankingBtn.click();
     await learner.waitForURL(new RegExp(`/crew/${crewId}/stats`));
     await expect(learner.getByRole("heading", { name: crewName })).toBeVisible();
-    /* the standings live in the Rankings column — the screen opens on Record */
-    await learner.getByRole("link", { name: "Rankings", exact: true }).click();
-    await expect(learner.getByTestId("standing-card").first()).toBeVisible();
+    /* ⚠ NO RANKINGS FOR A CREW (18 Oct 2026, the user: "crew rankings to be
+       removed for now") — its stats are its Record alone */
+    await expect(learner.getByRole("link", { name: "Rankings", exact: true })).toHaveCount(0);
+    await expect(learner.getByLabel(/^Members — \d+ confirmed/)).toBeVisible();
 
     /* ⚠ THE RANK IS OFF BOTH SCREENS (19 Sep 2026 — "remove rank from profile
        tab", then "Remove rank from home"). Where you stand is the Stats chip's
@@ -3693,10 +3709,10 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(learner.getByRole("heading", { name: trainerName })).toBeVisible();
     await expect(learner.getByTestId("standing-card")).toHaveCount(2);
     await expect(learner.getByTestId("standing-card").first()).toContainText(standing);
+    /* a crew has no standings since 18 Oct 2026 (no crew rankings) */
     await learner.goto(`/crew/${crewId}/stats?tab=charts`);
     await expect(learner.getByRole("heading", { name: crewName })).toBeVisible();
-    await expect(learner.getByTestId("standing-card")).toHaveCount(2);
-    await expect(learner.getByTestId("standing-card").first()).toContainText(standing);
+    await expect(learner.getByTestId("standing-card")).toHaveCount(0);
     /* a STRANGER reads a listed studio's — but a plain user's is still a
        signed-in page. ⚠ A public ORGANIZATION's was read here too until
        29 Sep 2026, by its business id, and asserted to list no studios. */

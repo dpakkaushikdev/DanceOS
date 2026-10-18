@@ -397,6 +397,15 @@ a:focus-visible:not([data-slot]) {
     transform: translateX(0);
   }
 }
+/* the notifications drawer slides in from the LEFT, the bell's side (18 Oct 2026) */
+@keyframes dosDrawerLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
 /* Settings swapping in as a pane of that drawer */
 @keyframes dosPaneIn {
   from {
@@ -474,6 +483,26 @@ a:focus-visible:not([data-slot]) {
 }
 .dos-entity-tile:active {
   transform: scale(0.94);
+}
+/* Discover's tile: the icon's halo breathes and two lights drift (18 Oct 2026) */
+@keyframes dosTileHalo {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
+@keyframes dosTileFloat {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(-8px, 6px);
+  }
 }
 /* a heading counting in, letter by letter (18 Oct 2026, BeatText.tsx) — a lift
    that runs along the word and rests; transform only, the ink never changes */

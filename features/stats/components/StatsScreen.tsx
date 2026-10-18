@@ -146,7 +146,7 @@ export function StatsScreen({
   chartStyles,
   myPlace,
   boardPlace,
-  tab,
+  tab: tabProp,
   nowIso,
   basePath,
 }: {
@@ -215,11 +215,18 @@ export function StatsScreen({
    *  React #441 on the Earnings screen (21 Sep). */
   basePath: string;
 }) {
+  /* ⚠ A CREW HAS NO RANKINGS COLUMN (18 Oct 2026, the user: "crew rankings to be
+     removed for now") — an old `?tab=charts` on a crew lands on its record */
+  const tab: Tab = subjectKind === "crew" ? "record" : tabProp;
+  const isStudioSubject = subjectKind === "studio";
+  /* a studio is on ONE side of the floor — the classes it held */
+  const shownSides: Side[] = isStudioSubject ? ["conducted"] : SIDES;
+  const pastOf = (k: Side) => (isStudioSubject && k === "conducted" ? "Held" : SIDE_PAST[k]);
   const [open, setOpen] = useState<string | null>(null);
   /** the points rules on the Charts board — a disclosure since 27 Sep, where a
    *  permanent full-width card stood between the controls and the board */
   const [rulesOpen, setRulesOpen] = useState(false);
-  const [cvSide, setCvSide] = useState<Side>("attended");
+  const [cvSide, setCvSide] = useState<Side>(subjectKind === "studio" ? "conducted" : "attended");
   const [grain, setGrain] = useState<Grain>("week");
   const [dim, setDim] = useState<Dim>("style");
   const [sortKey, setSortKey] = useState<SortKey>("sessions");
@@ -273,12 +280,26 @@ export function StatsScreen({
    *
    *  ⚠ The three BIG cards above have always drawn their zeros, so this also
    *  ends a disagreement inside one screen. */
-  const small: Array<[string, number, string, Array<[string, string]>]> = [
-    ["Styles", styleRows.length, "#22C55E", styleRows],
-    ["Assisted for", assistedFor.length, "#0D9488", assistedFor],
-    ["Trained under", trainedUnder.length, "#EAB308", trainedUnder],
-    ["Studios", studioRows.length, "#14B8A6", studioRows],
-  ];
+  /* ⚠ A STUDIO'S GRID (18 Oct 2026, the user: "studio records should be better
+     and similar to a persons record page") — the same four-cell grid, counted off
+     the classes it HELD: the styles taught there, the teachers who took them, the
+     rooms they ran in, and the classes themselves */
+  const teacherRows = tally(history, (r) => r.artistName);
+  const roomRows = tally(history, (r) => r.room);
+  const classRows = tally(history, (r) => r.title);
+  const small: Array<[string, number, string, Array<[string, string]>]> = isStudioSubject
+    ? [
+        ["Styles", styleRows.length, "#22C55E", styleRows],
+        ["Teachers", teacherRows.length, "#EAB308", teacherRows],
+        ["Rooms", roomRows.length, "#0D9488", roomRows],
+        ["Classes", classRows.length, "#14B8A6", classRows],
+      ]
+    : [
+        ["Styles", styleRows.length, "#22C55E", styleRows],
+        ["Assisted for", assistedFor.length, "#0D9488", assistedFor],
+        ["Trained under", trainedUnder.length, "#EAB308", trainedUnder],
+        ["Studios", studioRows.length, "#14B8A6", studioRows],
+      ];
 
   /** WHICH OF THE FOUR IS OPEN, AND ITS ROWS (27 Sep 2026). Derived from `open`
    *  rather than held beside it, so the sheet cannot come to show one card's
@@ -305,7 +326,8 @@ export function StatsScreen({
   });
   const top = Math.max(1, ...buckets.map((b) => b.conducted + b.assisted + b.attended));
   const grainLabel = grain === "day" ? "last 14 days" : grain === "week" ? "last 8 weeks" : "last 3 months";
-  const keyOf = (r: HistoryRow) => (dim === "style" ? r.style : dim === "artist" ? (r.artistName ?? "—") : (r.businessName ?? r.room ?? "—"));
+  const keyOf = (r: HistoryRow) =>
+    dim === "style" ? r.style : dim === "artist" ? (r.artistName ?? "—") : isStudioSubject ? (r.room ?? "No room") : (r.businessName ?? r.room ?? "—");
   const groups = (() => {
     const g = new Map<string, { key: string; sessions: number; hours: number }>();
     bySide(cvSide).forEach((r) => {
@@ -322,8 +344,8 @@ export function StatsScreen({
   const mx = Math.max(1, ...groups.map((x) => x[sortKey === "key" ? "sessions" : sortKey]));
   const DIMS: Array<[Dim, string]> = [
     ["style", "Dance style"],
-    ["artist", isArtist ? "Artist" : "Taught by"],
-    ["studio", "Studio"],
+    ["artist", isStudioSubject ? "Teacher" : isArtist ? "Artist" : "Taught by"],
+    ["studio", isStudioSubject ? "Room" : "Studio"],
   ];
 
 
@@ -388,11 +410,18 @@ export function StatsScreen({
         return { key: k, label: SIDE_CARD[k], n, sub: h, aria: `${SIDE_CARD[k]} — ${n} session${n === 1 ? "" : "s"}, ${h}`, colour: SIDE_TINT[k] };
       })
     : subjectKind === "studio"
-      ? [
-          { key: "conducted", label: "Sessions held", n: subjectRow?.conducted ?? 0, sub: hoursWords(subjectRow?.hours ?? 0), aria: `Sessions held — ${subjectRow?.conducted ?? 0}, ${hoursWords(subjectRow?.hours ?? 0)}`, colour: SIDE_TINT.conducted },
-          { key: "floor", label: "On the floor", n: subjectRow?.extra ?? 0, sub: "people", aria: `On the floor — ${subjectRow?.extra ?? 0} people`, colour: SIDE_TINT.attended },
-          { key: "points", label: "Points", n: Math.round(subjectRow?.points ?? 0), sub: "on the board", aria: `Points — ${Math.round(subjectRow?.points ?? 0)} on the board`, colour: "#7C3AED" },
-        ]
+      ? (() => {
+          /* ⚠ the board row counts sessions HELD with a register; the history
+             counts every ended session of a published class — the larger of the
+             two is what the studio has run, and its hours follow it */
+          const held = Math.max(subjectRow?.conducted ?? 0, history.length);
+          const hrs = Math.max(subjectRow?.hours ?? 0, Math.round((history.reduce((a, r) => a + r.minutes, 0) / 60) * 10) / 10);
+          return [
+            { key: "conducted", label: "Sessions held", n: held, sub: hoursWords(hrs), aria: `Sessions held — ${held}, ${hoursWords(hrs)}`, colour: SIDE_TINT.conducted },
+            { key: "floor", label: "On the floor", n: subjectRow?.extra ?? 0, sub: "people", aria: `On the floor — ${subjectRow?.extra ?? 0} people`, colour: SIDE_TINT.attended },
+            { key: "teachers", label: "Teachers", n: teacherRows.length, sub: `${styleRows.length} style${styleRows.length === 1 ? "" : "s"}`, aria: `Teachers — ${teacherRows.length}, ${styleRows.length} styles`, colour: "#EAB308" },
+          ];
+        })()
       : [
           { key: "members", label: "Members", n: subjectRow?.extra ?? 0, sub: "confirmed", aria: `Members — ${subjectRow?.extra ?? 0} confirmed`, colour: SIDE_TINT.attended },
           { key: "points", label: "Points", n: Math.round(subjectRow?.points ?? 0), sub: "on the board", aria: `Points — ${Math.round(subjectRow?.points ?? 0)} on the board`, colour: "#7C3AED" },
@@ -417,7 +446,9 @@ export function StatsScreen({
     ? sessionsRead
       ? `The lists and graphs below are ${name.split(" ")[0]}'s sessions at public classes on DanceOS.`
       : `${name.split(" ")[0]}'s own sessions are theirs to read — the record above is counted from them.`
-    : `${name}'s sessions are read by its own people — the record above is counted from them.`;
+    : isStudioSubject
+      ? `The lists and graphs below are ${name}'s published classes that have ended. Who came to each is the studio's own to read.`
+      : `${name}'s sessions are read by its own people — the record above is counted from them.`;
 
   return (
     <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", paddingBottom: 40 }}>
@@ -519,7 +550,9 @@ export function StatsScreen({
               ["record", "Record"],
               ["charts", "Rankings"],
             ] as Array<[Tab, string]>
-          ).map(([k, l]) => (
+          )
+            .filter(([k]) => !(subjectKind === "crew" && k === "charts"))
+            .map(([k, l]) => (
             /* ⚠ A TAB IS A SETTING OF THIS PAGE, SO IT REPLACES (1 Oct 2026) —
                a push per tap made the back swipe walk Rankings → History →
                Record before it ever left the screen. The 19 Sep rule, which the
@@ -639,6 +672,10 @@ export function StatsScreen({
                   Counted off sessions that have <b style={{ color: SUB }}>ended</b> — taught, assisted, or danced and checked in to. {sessionsNote}
                   {stats.firstSession ? ` This record runs from ${monthWords(stats.firstSession)} to ${monthWords(stats.lastSession)}.` : ""}
                 </>
+              ) : isStudioSubject ? (
+                <>
+                  Counted off the classes {name} has <b style={{ color: SUB }}>held</b> — a published class once its session had ended. People on the floor are the ones checked in at the door. {sessionsNote}
+                </>
               ) : (
                 <>Counted off sessions that have ended and registers that were run. {sessionsNote}</>
               )}
@@ -670,15 +707,15 @@ export function StatsScreen({
               <SectionCard icon={ICON.record} label="THE WHOLE RECORD" col={SEC.record}>
                 {/* WHICH SIDE OF THE FLOOR (10225): the chosen side takes its own colour */}
                 <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-                  {SIDES.map((k) => {
+                  {shownSides.map((k) => {
                     const on = cvSide === k;
                     const c = SIDE_TINT[k];
                     const n = bySide(k).length;
                     return (
-                      <span key={k} role="button" tabIndex={0} aria-label={`${SIDE_PAST[k]} — ${n}`} aria-pressed={on} onKeyDown={pressKey(() => setCvSide(k))} onClick={() => setCvSide(k)} style={{ flex: 1, position: "relative", overflow: "hidden", textAlign: "left", padding: "10px 11px 9px", borderRadius: 14, cursor: "pointer", boxSizing: "border-box", background: on ? `${c}1a` : CARD, border: `1.5px solid ${on ? c : LINE}`, transition: "background .15s" }}>
+                      <span key={k} role="button" tabIndex={0} aria-label={`${pastOf(k)} — ${n}`} aria-pressed={on} onKeyDown={pressKey(() => setCvSide(k))} onClick={() => setCvSide(k)} style={{ flex: 1, position: "relative", overflow: "hidden", textAlign: "left", padding: "10px 11px 9px", borderRadius: 14, cursor: "pointer", boxSizing: "border-box", background: on ? `${c}1a` : CARD, border: `1.5px solid ${on ? c : LINE}`, transition: "background .15s" }}>
                         <span aria-hidden="true" style={{ position: "absolute", left: 0, right: 0, top: 0, height: 3, background: on ? c : "transparent" }} />
                         <span style={{ display: "block", fontSize: 19, fontWeight: 900, lineHeight: 1, letterSpacing: -0.5, fontFamily: DOS_DISPLAY, fontVariantNumeric: "tabular-nums", color: on ? c : INK }}>{n}</span>
-                        <span style={{ display: "block", ...micro, color: on ? c : MUTED, marginTop: 4 }}>{SIDE_PAST[k]}</span>
+                        <span style={{ display: "block", ...micro, color: on ? c : MUTED, marginTop: 4 }}>{pastOf(k)}</span>
                       </span>
                     );
                   })}
@@ -717,10 +754,10 @@ export function StatsScreen({
                     })}
                   </div>
                   <div style={{ display: "flex", gap: 12, marginTop: 9, flexWrap: "wrap" }}>
-                    {SIDES.map((k) => (
+                    {shownSides.map((k) => (
                       <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10, fontWeight: 800, color: SUB }}>
                         <span style={{ width: 8, height: 8, borderRadius: 2, background: SIDE_TINT[k] }} />
-                        {SIDE_PAST[k]}
+                        {pastOf(k)}
                       </span>
                     ))}
                   </div>
@@ -833,7 +870,7 @@ export function StatsScreen({
               <SectionCard icon={ICON.boards} label="BROWSE THE BOARDS" col={SEC.boards}>
             {/* the four boards, in the app's one column look (11 Oct 2026) */}
             <div role="group" aria-label="Board" style={{ ...columnTrack(), marginBottom: 9 }}>
-              {CHART_SEGMENTS.map((s) => {
+              {CHART_SEGMENTS.filter((s) => s.k !== "crew").map((s) => {
                 const on = segment === s.k;
                 return (
                   <Link key={s.k} href={chartHref({ seg: s.k })} replace scroll={false} aria-pressed={on} style={columnTab(on)}>

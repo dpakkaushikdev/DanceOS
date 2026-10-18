@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useOptimisticNav } from "@/features/shell/components/SegmentedNav";
-import { DiscoverScene, DiscoverTileIcon } from "./DiscoverLogo";
+import { DiscoverTileIcon } from "./DiscoverLogo";
 
 /** DISCOVER'S SECTION TILES (4571-4585), PRESSED THE MOMENT THEY ARE TAPPED
  *  (20 Sep 2026, the user: *"see such bug doesnt appear anywhere in the system
@@ -74,13 +74,21 @@ export function DiscoverTabs({
               animation: `dosTileIn .4s cubic-bezier(.34,1.56,.64,1) ${i * 60}ms both`,
             }}
           >
-            {DiscoverScene({ k: t.key }) ?? (
-              <span aria-hidden="true" style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>{t.icon}</span>
-            )}
-            {/* THE TITLE ROW, ANIMATED (18 Oct 2026, the user: "titles and icon
-                being animated"): the tile's own icon on its loop, then the word
-                with its letters lifting one after another. Decorative only — the
-                anchor's `aria-label` is the name, so the letters are hidden. */}
+            {/* ⚠ THE ICON IS THE PICTURE (18 Oct 2026, the user: "icon and name- no
+                pic but should be bigger and animated somehow. the icon should be
+                used as a pic"). The picture scenes are gone from the tile: the
+                tool's own animated icon stands at 50px in the middle on a
+                breathing halo, two soft lights drift behind it, and the name sits
+                under it with its letters lifting. Decorative — the anchor's
+                `aria-label` is the name. Reduced motion stops all of it. */}
+            <span aria-hidden="true" style={{ position: "absolute", width: 70, height: 70, borderRadius: 35, top: -22, right: -20, background: "rgba(255,255,255,.18)", animation: `dosTileFloat 5s ease-in-out ${i * 0.4}s infinite alternate` }} />
+            <span aria-hidden="true" style={{ position: "absolute", width: 44, height: 44, borderRadius: 22, bottom: 14, left: -16, background: "rgba(255,255,255,.12)", animation: `dosTileFloat 6s ease-in-out ${i * 0.3 + 1}s infinite alternate-reverse` }} />
+            <span aria-hidden="true" style={{ position: "absolute", left: 0, right: 0, top: 12, display: "grid", placeItems: "center" }}>
+              <span style={{ position: "relative", width: 66, height: 66, display: "grid", placeItems: "center" }}>
+                <span style={{ position: "absolute", inset: 0, borderRadius: 33, background: "rgba(255,255,255,.2)", border: "1.5px solid rgba(255,255,255,.35)", animation: `dosTileHalo 2.4s ease-in-out ${i * 0.25}s infinite` }} />
+                <DiscoverTileIcon k={t.key} size={on ? 44 : 40} />
+              </span>
+            </span>
             <div
               aria-hidden="true"
               style={{
@@ -88,20 +96,17 @@ export function DiscoverTabs({
                 left: 0,
                 right: 0,
                 bottom: 0,
-                padding: "16px 2px 6px",
+                padding: "0 2px 9px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 3,
-                fontSize: 11,
+                fontSize: 12.5,
                 fontWeight: 900,
                 letterSpacing: 0.2,
                 whiteSpace: "nowrap",
-                background: "linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.66))",
-                textShadow: "0 1px 2px rgba(0,0,0,.55)",
+                textShadow: "0 1px 2px rgba(0,0,0,.4)",
               }}
             >
-              <DiscoverTileIcon k={t.key} />
               <span style={{ display: "inline-flex" }}>
                 {Array.from(t.word).map((ch, j) => (
                   <span key={j} style={{ display: "inline-block", animation: `dosTileLetter 2.6s ease-in-out ${i * 0.35 + j * 0.08}s infinite` }}>

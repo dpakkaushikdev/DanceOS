@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { DeskBody, DeskTop } from "@/components/ui/DeskSections";
-import { toolBtn } from "@/components/ui/ToolCard";
+import { PracticeBodyHead, PracticeDetail } from "@/features/crews/components/PracticeDetail";
 import { DOS_TOOLS, DeskHero } from "@/features/businesses/components/biz-kit";
 import { PracticeRegister, type RegisterRow } from "@/features/crews/components/PracticeRegister";
-import { EnquiryPracticeCard } from "@/features/enquiries/components/EnquiryPracticeCard";
 import { DOS_UI, INK, LILAC } from "@/lib/design/tokens";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findEnquiryPracticeDetail } from "@/repositories/enquiryTeam";
-import { ENQ_PART_WORD, ENQ_PERSON_WORD } from "@/types/enquiry";
+import { ENQ_PART_WORD, ENQ_PERSON_WORD, enquiryTypeLabel } from "@/types/enquiry";
 
 export const metadata: Metadata = { title: "Practice — DanceOS" };
 
@@ -60,34 +58,43 @@ export default async function JobPracticePage({ params }: { params: Promise<{ pr
       <DeskTop>
         <DeskHero tool="practice" as="h1" margin="0 0 12px" />
         <div data-testid="practice-detail" data-kind="enquiry" data-part={p.myPart}>
-          <EnquiryPracticeCard
-            practice={p}
+          <PracticeDetail
+            kind="job"
+            name={p.hostName}
+            photoPath={p.hostPhotoPath}
+            label={enquiryTypeLabel(p.typeKey)}
+            role={ENQ_PART_WORD[p.myPart].sub}
+            startsAt={p.startsAt}
+            endsAt={p.endsAt}
+            place={p.place}
+            note={p.note}
+            cancelled={p.status === "cancelled"}
             now={now}
-            linked={false}
-            actions={
-              p.myPart !== "participant" ? (
-                <Link href={`/inbox/enquiries/${p.enquiryId}?show=practices`} aria-label={`Open the enquiry with ${p.hostName}`} style={toolBtn("secondary", TINT)}>
-                  The enquiry ›
-                </Link>
-              ) : null
-            }
+            doors={p.myPart !== "participant" ? [{ href: `/inbox/enquiries/${p.enquiryId}?show=practices`, word: "The enquiry", label: `Open the enquiry with ${p.hostName}`, sub: "Its team, practices and payments" }] : []}
           />
         </div>
       </DeskTop>
       <DeskBody>
         {runs ? (
           <>
-            <div style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: 0.9, color: "var(--muted)", margin: "2px 0 8px" }}>REGISTER</div>
+            <PracticeBodyHead>REGISTER</PracticeBodyHead>
             <PracticeRegister rows={rows} target={{ kind: "enquiry", practiceId: p.id, enquiryId: p.enquiryId }} tint={TINT} locked={p.status === "cancelled"} />
           </>
         ) : (
-          <div data-testid="practice-you" style={{ background: "var(--card)", border: "1.5px solid var(--el)", borderRadius: 16, padding: "14px 14px" }}>
-            <div style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: 0.9, color: "var(--muted)" }}>YOU</div>
-            <div style={{ fontSize: 13, fontWeight: 900, marginTop: 4 }}>{ENQ_PART_WORD[p.myPart].sub}</div>
-            <div data-testid="practice-you-in" data-in={meIn ? "1" : "0"} style={{ fontSize: 11.5, color: meIn ? TINT : "var(--sub)", fontWeight: 800, marginTop: 3 }}>
-              {p.status === "cancelled" ? "Called off" : meIn ? "✓ You are checked in" : "Not checked in yet"}
+          <>
+            <PracticeBodyHead>YOU</PracticeBodyHead>
+            <div data-testid="practice-you" style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", border: `1.5px solid ${meIn ? TINT : "var(--el)"}`, borderRadius: 18, padding: "13px 14px" }}>
+              <span aria-hidden="true" style={{ width: 38, height: 38, borderRadius: 19, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 17, fontWeight: 900, background: meIn ? TINT : "var(--el)", color: meIn ? "#fff" : "var(--muted)" }}>
+                {meIn ? "✓" : "·"}
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 900 }}>{ENQ_PART_WORD[p.myPart].sub}</div>
+                <div data-testid="practice-you-in" data-in={meIn ? "1" : "0"} style={{ fontSize: 11.5, color: meIn ? TINT : "var(--sub)", fontWeight: 800, marginTop: 2 }}>
+                  {p.status === "cancelled" ? "Called off" : meIn ? "You are checked in" : "Not checked in yet — the host marks you in at the door"}
+                </div>
+              </div>
             </div>
-          </div>
+          </>
         )}
       </DeskBody>
     </div>

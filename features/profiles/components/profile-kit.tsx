@@ -219,7 +219,8 @@ export const pictureChipPaint = {
   border: "1.5px solid rgba(255,255,255,.35)",
 } as const;
 
-export const cornerChip: CSSProperties = { width: 36, height: 36, borderRadius: 12, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxSizing: "border-box", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", background: "rgba(0,0,0,.42)", color: "#fff", border: "1.5px solid rgba(255,255,255,.28)", textDecoration: "none", padding: 0, fontFamily: "inherit" };
+/* ROUND (18 Oct 2026, the user: "home edit and eye button on top right should be circular") */
+export const cornerChip: CSSProperties = { width: 38, height: 38, borderRadius: 19, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxSizing: "border-box", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", background: "rgba(0,0,0,.42)", color: "#fff", border: "1.5px solid rgba(255,255,255,.28)", textDecoration: "none", padding: 0, fontFamily: "inherit" };
 
 /** ⚠ `PencilIcon` IS BACK (26 Sep 2026) — it was deleted on 22 Sep when its
  *  last two corner callers moved into Settings, and the user has now moved EDIT

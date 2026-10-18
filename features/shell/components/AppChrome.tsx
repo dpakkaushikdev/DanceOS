@@ -16,7 +16,9 @@ import type { Business } from "@/types/business";
 import { setToolOrderAction } from "@/features/home/server-actions/toolOrder";
 import { toolsLayoutKey } from "@/features/home/toolOrder";
 import { DrawerTools } from "@/features/shell/components/DrawerTools";
-import { markNotificationsReadAction } from "@/features/notifications/server-actions/notifications";
+import { loadMyNotificationsAction, markNotificationsReadAction } from "@/features/notifications/server-actions/notifications";
+import { NotificationsScreen } from "@/features/notifications/components/NotificationsScreen";
+import type { AppNotification, NotificationPrefs } from "@/types/notification";
 import { viewKey, viewToolOf, type ViewMode, type ViewTool } from "@/features/shell/viewMode";
 import { ViewModeContext } from "@/features/shell/components/ViewToggle";
 
@@ -368,6 +370,31 @@ export function AppChrome({
      back. Opening the drawer always starts on the profiles. `?settings=1` still
      opens the bottom sheet for a deep link. */
   const [pane, setPane] = useState<"main" | "settings">("main");
+  /* ⚠ NOTIFICATIONS OPEN FROM THE LEFT, IN PLACE (18 Oct 2026, the user:
+     "notification should open from left like profile switcher"). The bell is a
+     button now; the list is read on the press (`loadMyNotificationsAction`) and
+     drawn by the same `NotificationsScreen` the `/notifications` address still
+     renders (Rule 14). Keyed on the page it was opened on, like the switcher, so
+     tapping a row that navigates closes it by itself. */
+  const [notifFor, setNotifFor] = useState<string | null>(null);
+  const notifOpen = notifFor === pathname;
+  const [notifData, setNotifData] = useState<{ notifications: AppNotification[]; prefs: NotificationPrefs; nowIso: string } | null>(null);
+  const [notifError, setNotifError] = useState<string | null>(null);
+  const [notifStamp, setNotifStamp] = useState(0);
+  const loadNotes = useCallback(async () => {
+    const r = await loadMyNotificationsAction();
+    if ("error" in r) setNotifError(r.error);
+    else {
+      setNotifError(null);
+      setNotifData(r);
+    }
+  }, []);
+  const openNotes = () => {
+    setOpenFor(null);
+    setNotifStamp((n) => n + 1);
+    setNotifFor(pathname);
+    void loadNotes();
+  };
   /* LOG OUT ASKS FIRST (3 Oct 2026, the user: "should not log out without
      confirmation") — both the menu's Log out and an admin's Sign out open this
      rather than submitting */
@@ -393,7 +420,19 @@ export function AppChrome({
      seen, never on a timer. One call per tool visit, at most 200 ids. */
   const seenRef = useRef<string>("");
   useEffect(() => {
-    const tile = switcher.flatMap((i) => i.tiles ?? []).find((t) => t.noteIds?.length && (pathname === t.href.split("?")[0] || pathname.startsWith(`${t.href.split("?")[0]}/`)));
+    /* ⚠ THE LONGEST MATCH, NOT THE FIRST (18 Oct 2026, found auditing the counts):
+       the person's Studios tool is `/business`, which prefixes every studio desk —
+       so `find` picked it on `/business/{id}/inbox`, marked the person's studio
+       news read, and never cleared that desk's own count. The tool whose address
+       is the longest prefix of this page is the one being opened. */
+    const matches = switcher
+      .flatMap((i) => i.tiles ?? [])
+      .filter((t) => {
+        const p = t.href.split("?")[0];
+        return pathname === p || pathname.startsWith(`${p}/`);
+      })
+      .sort((a, b) => b.href.split("?")[0].length - a.href.split("?")[0].length);
+    const tile = matches[0];
     if (!tile?.noteIds?.length) return;
     const sig = tile.noteIds.join(",");
     if (seenRef.current === sig) return;
@@ -623,7 +662,7 @@ export function AppChrome({
             immediately before the mark. */}
         <span style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0, flex: 1 }}>
           {adminOnly ? null : (
-          <Link href="/notifications" {...tapHandlers} onClick={(e) => { wasSwipe(e); }} aria-label={unread > 0 ? `Notifications — ${unread} unread` : "Notifications"} style={{ ...chipStyle, textDecoration: "none" }}>
+          <button type="button" data-testid="bell" aria-haspopup="dialog" aria-expanded={notifOpen} {...tapHandlers} onClick={(e) => { if (wasSwipe(e)) return; openNotes(); }} aria-label={unread > 0 ? `Notifications — ${unread} unread` : "Notifications"} style={{ ...chipStyle, cursor: "pointer", fontFamily: "inherit" }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 8.5a6 6 0 1 0-12 0c0 5-2 6.5-2 6.5h16s-2-1.5-2-6.5" />
               <path d="M10.5 19a2 2 0 0 0 3 0" />
@@ -633,7 +672,7 @@ export function AppChrome({
                 {unread > 9 ? "9+" : unread}
               </span>
             ) : null}
-          </Link>
+          </button>
           )}
         </span>
         <span
@@ -755,6 +794,37 @@ export function AppChrome({
           The tools left the three homes for it. Portalled, because the top bar is
           a transformed element and a fixed scrim drawn inside it would cover the
           bar alone. A navigation changes the pathname, which closes it. ── */}
+      {notifOpen && !adminOnly ? (
+        <Portal>
+          <div onClick={() => setNotifFor(null)} style={{ position: "fixed", inset: 0, zIndex: 700, background: "rgba(0,0,0,.4)" }} />
+          <div style={{ position: "fixed", top: 0, bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 430, zIndex: 710, pointerEvents: "none", display: "flex", justifyContent: "flex-start" }}>
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Notifications"
+              data-testid="notif-drawer"
+              onKeyDown={(e) => { if (e.key === "Escape") setNotifFor(null); }}
+              style={{ pointerEvents: "auto", width: "92%", maxWidth: 380, height: "100%", overflowY: "auto", boxSizing: "border-box", background: "var(--solid)", color: "var(--text)", borderRight: "1.5px solid var(--el)", borderRadius: "0 26px 26px 0", boxShadow: "18px 0 48px rgba(0,0,0,.4)", padding: "calc(var(--dos-safe-top) + 14px) 12px calc(var(--dos-safe-bottom) + 18px)", fontFamily: DOS_UI, animation: "dosDrawerLeft .22s ease" }}
+            >
+              {notifData ? (
+                <NotificationsScreen
+                  key={notifStamp}
+                  variant="drawer"
+                  notifications={notifData.notifications}
+                  prefs={notifData.prefs}
+                  nowIso={notifData.nowIso}
+                  onClose={() => setNotifFor(null)}
+                  onRefresh={() => void loadNotes()}
+                />
+              ) : (
+                <div data-testid="notif-loading" style={{ padding: "40px 10px", textAlign: "center", fontSize: 13, color: notifError ? "#F87171" : "var(--muted)" }}>
+                  {notifError ?? "Loading…"}
+                </div>
+              )}
+            </div>
+          </div>
+        </Portal>
+      ) : null}
       {menuOpen && !adminOnly ? (
         <Portal>
           <div onClick={() => setOpenFor(null)} style={{ position: "fixed", inset: 0, zIndex: 700, background: "rgba(0,0,0,.4)" }} />

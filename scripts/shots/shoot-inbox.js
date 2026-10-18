@@ -150,7 +150,7 @@ const pressed = async (loc) => (await loc.getAttribute("aria-pressed").catch(() 
     check((await crewPtr.count()) === 1 && /1 crew invite\b/.test(await crewPtr.innerText().catch(() => "")), "crew-invites pointer counts the live ask, and not the withdrawn one");
     check((await crewPtr.getAttribute("href").catch(() => null)) === "/team", "…and opens Team › Other Teams too");
     check((await sp.getByTestId("class-requests-pointer").count()) === 0, "no class-requests pointer while no class ask waits (drawn only when n > 0)");
-    check(/2 waiting on you/.test(await sp.getByTestId("inbox-sub").innerText().catch(() => "")), "the head counts what the pointers count");
+    check((await sp.getByTestId("inbox-sub").count()) === 0, "no \"waiting on you\" line under the heading (18 Oct 2026)");
     /* ⚠ an old address still lands — on Enquiries (Rule 14) */
     for (const old of ["invites", "requests"]) {
       await sp.goto(`${BASE}/inbox?show=${old}`, { waitUntil: "networkidle" });
@@ -210,9 +210,9 @@ const pressed = async (loc) => (await loc.getAttribute("aria-pressed").catch(() 
     check(await pressed(sp.getByRole("button", { name: "Sent enquiries", exact: true })), "?side=sent opens on the Sent chip");
     const sentCard = sp.getByRole("link", { name: `Choreographer enquiry to Kappa Hall ${stamp}` });
     check((await sentCard.count()) === 1, "sender: the OPEN enquiry is under Ongoing › Sent, and only it (the declined one is under Past)");
-    const sentText = await sp.getByTestId("enquiry-card").filter({ has: sentCard }).first().innerText().catch(() => "");
+    const sentText = await sentCard.first().innerText().catch(() => "");
     check(/\bKH\b/.test(sentText) && !/\bZQ\b/.test(sentText), `enquiry card: the studio's face, not your own (${/\bKH\b/.test(sentText) ? "KH" : "-"} / ${/\bZQ\b/.test(sentText) ? "ZQ shown" : "no ZQ"})`);
-    check((await sp.getByTestId("enquiry-accept").count()) === 0, "a sent enquiry carries no Accept — it is the studio's move");
+    check((await sp.getByTestId("enquiry-accept").count()) === 0 && (await sentCard.getByRole("button").count()) === 0, "a card carries no buttons (18 Oct 2026)");
 
     await sp.getByRole("button", { name: "Past enquiries", exact: true }).click();
     check(/tab=past/.test(sp.url()), "the column is the address (replaced)");
@@ -225,12 +225,12 @@ const pressed = async (loc) => (await loc.getAttribute("aria-pressed").catch(() 
     check(new RegExp(`/business/${studio.id}/inbox\\?show=enquiries$`).test(op.url()), `the old ?as= address lands on the studio's Inbox (${op.url().replace(BASE, "")})`);
     const recvCard = op.getByRole("link", { name: `Choreographer enquiry from Zed Quill ${stamp}` });
     check((await recvCard.count()) === 1, "studio inbox: the open enquiry is on its Enquiries desk");
-    const recvBox = op.getByTestId("enquiry-card").filter({ has: recvCard }).first();
+    const recvBox = recvCard.first();
     const recvText = await recvBox.innerText().catch(() => "");
     check(/\bZQ\b/.test(recvText) && !/\bKH\b/.test(recvText), "studio's card: the sender's face, not the studio's own");
     check(await pressed(op.getByRole("button", { name: "To do enquiries", exact: true })), "studio inbox: a NEW enquiry waits on the studio, so it opens on To do");
-    check((await op.getByTestId("enquiries-move").getByTestId("enquiry-card").filter({ has: recvCard }).count()) === 1, "…filed under To do › Your move");
-    check((await recvBox.getByTestId("enquiry-accept").count()) === 1 && (await recvBox.getByRole("link", { name: /^Decline the enquiry from/ }).count()) === 1, "the card carries Accept · Decline ›");
+    check((await op.getByTestId("enquiries-move").getByRole("link", { name: `Choreographer enquiry from Zed Quill ${stamp}` }).count()) === 1, "…filed under To do › Your move");
+    check((await recvBox.getByRole("button").count()) === 0 && /Accept or decline/.test(await recvBox.getByTestId("enquiry-move").innerText().catch(() => "")), "the card carries no buttons — its pill says Accept or decline");
     check((await recvCard.getAttribute("href").catch(() => null)) === `/business/${studio.id}/inbox/enquiries/${open.id}`, "the card opens under the studio's own address");
     check((await op.getByRole("button", { name: /^Enquiry settings/ }).count()) === 1, "studio inbox: the studio's Enquiry settings stay with the desk");
     check((await op.getByTestId("enquiries-chips").count()) === 0 && (await op.getByRole("button", { name: "Sent enquiries" }).count()) === 0, "studio inbox: no chips — a studio sends none");

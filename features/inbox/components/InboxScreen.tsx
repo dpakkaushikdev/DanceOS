@@ -2,45 +2,38 @@
 
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
-import { DOS_UI, LILAC, TAB_SUB, TAB_TITLE } from "@/lib/design/tokens";
+import { DOS_UI, LILAC, MUTED, SUB, TAB_SUB, TAB_TITLE } from "@/lib/design/tokens";
 import { BeatText } from "@/components/ui/BeatText";
 import { ColumnCount, columnTab, columnTrack } from "@/components/ui/ColumnTabs";
 import { InvertedPanel } from "@/components/ui/InvertedPanel";
 import { TopPanel } from "@/components/ui/TopPanel";
-import {
-  ENQ_CLOSED,
-  ENQ_ENDED,
-  ENQ_STAGES,
-  ENQ_STAGE_WORD,
-  ENQ_TYPES,
-  enquiryStage,
-  enquiryValueInr,
-  type Enquiry,
-  type EnquiryJobAsk,
-  type EnquiryTypeKey,
-} from "@/types/enquiry";
+import { ENQ_CLOSED, enquiryStage, type Enquiry, type EnquiryJobAsk } from "@/types/enquiry";
 import { EnquiryJobsList } from "@/features/enquiries/components/EnquiryJobsList";
-import { DOS_MONO, moneyShort, pressKey } from "./inbox-kit";
-import { EnquiryCard } from "@/features/enquiries/components/enquiry-kit";
-import { InboxFilters, NO_FILTER, applyInboxFilter, type InboxFilter, type InboxSort } from "./InboxFilters";
-import { Breakup } from "./Breakup";
+import { DOS_MONO } from "./inbox-kit";
+import { EnquiryDeskCard, enquiryMove } from "./EnquiryDeskCard";
+import { SIDE_PARAM, type EnquiriesSide, type EnquiriesTab } from "@/features/inbox/enquiriesAddress";
 
-/** The Inbox, lifted from prototype S_chats (5617-6098) after internal chat was
- *  removed from the product: "what remains is the work … The badge counts only
- *  what waits on YOU."
+/** ⚠⚠ THE ENQUIRIES TOOL, HANDLED THE WAY CLASSES IS (18 Oct 2026, the user:
+ *  "handle enquiries like how we handle classes kinda messed up right now … can
+ *  remove break up from enquiries … right wordings at right places and
+ *  shorter"). The Classes screen is the pattern, part for part:
  *
- *  ⚠⚠ ENQUIRIES ONLY SINCE 11 Oct 2026 (the user: "only enquiries to be handled
- *  from inbox and rest all from their respective home tile section how we did
- *  for classes"). The Requests and Invites columns are gone: a class ask is
- *  answered in Classes' To do, a team invitation on the Studios hub's Team
- *  column, a crew ask on the Crews hub's Member column. What stays here is one
- *  POINTER LINE for each of those, drawn only while something waits there —
- *  the class pointer's own treatment of the same morning — so the count still
- *  reaches somebody who never opens those tiles.
+ *   TO DO    — what waits on THIS profile: a new enquiry to accept, a quote to
+ *              send or to answer, an addition, a completion, ending terms, and
+ *              the jobs somebody asked you onto ("Asked to work on"). The tab's
+ *              count is this column, amber.
+ *   ONGOING  — open or running, but the other end's move.
+ *   PAST     — completed, declined, withdrawn, called off.
  *
- *  ⚠ `RequestItem` moved to `features/inbox/requestItems.ts` with the class asks
- *  it describes, and the `embed` mode (the Classes screen's old Requests column)
- *  went: nothing drew it any more. */
+ *  One chip row narrows any column — All · Received · Sent — every chip always
+ *  drawn, a 0 included; a studio's desk has no Sent side, so no chips at all.
+ *  The column and the chip are the ADDRESS (`?tab=`, `?side=`), replaced rather
+ *  than pushed. Each card carries its one move on its own bar.
+ *
+ *  ⚠ GONE: Received · Sent · Completed as columns, the three figures, the
+ *  Breakup, the filter sheet and the Enquiries · Jobs switch — the jobs are a
+ *  group inside the columns now. The pointer lines stay (11 Oct 2026): they say
+ *  what waits on you on another tile. */
 
 /** one line saying how many of something wait elsewhere, and where (11 Oct 2026) */
 export interface InboxPointer {
@@ -56,15 +49,55 @@ export interface InboxPointer {
   tint: string;
 }
 
-type Side3 = "in" | "out" | "done";
-const emptyBox: React.CSSProperties = { background: "var(--card)", border: "1.5px dashed var(--el)", borderRadius: 16, padding: "22px 16px", textAlign: "center" };
+const TAB_WORD: Record<EnquiriesTab, string> = { todo: "To do", ongoing: "Ongoing", past: "Past" };
+const SIDE_WORD: Record<EnquiriesSide, string> = { all: "All", in: "Received", out: "Sent" };
+type Group = "jobsAsked" | "move" | "running" | "waiting" | "jobsOn" | "past";
+const GROUP_WORD: Record<Group, string> = {
+  jobsAsked: "Asked to work on",
+  move: "Your move",
+  running: "Running",
+  waiting: "Waiting on them",
+  jobsOn: "Jobs you're on",
+  past: "",
+};
+const GROUP_TAB: Record<Group, EnquiriesTab> = { jobsAsked: "todo", move: "todo", running: "ongoing", waiting: "ongoing", jobsOn: "ongoing", past: "past" };
+const GROUP_ORDER: Group[] = ["jobsAsked", "move", "running", "waiting", "jobsOn", "past"];
+
+interface Row {
+  key: string;
+  id: string;
+  side: "in" | "out";
+  group: Group;
+  at: string;
+  e?: Enquiry;
+  move?: string | null;
+}
+
+const RUNNING = new Set(["ongoing", "advance_paid", "paid", "completing"]);
+
+const chip = (on: boolean, quiet: boolean): React.CSSProperties => ({
+  flexShrink: 0,
+  padding: "8px 13px",
+  borderRadius: 999,
+  cursor: "pointer",
+  fontSize: 12,
+  fontWeight: 800,
+  fontFamily: "inherit",
+  border: `1.5px solid ${on ? "var(--text)" : "var(--el)"}`,
+  background: on ? "var(--text)" : "var(--card)",
+  color: on ? "var(--solid)" : quiet ? MUTED : "var(--text)",
+  whiteSpace: "nowrap",
+});
+const head: React.CSSProperties = { fontSize: 10, fontWeight: 900, letterSpacing: 1, color: SUB, textTransform: "uppercase", margin: "4px 2px 9px" };
 
 export function InboxScreen({
   accent,
   enquiriesIn,
   enquiriesOut,
   nowIso,
-  initialSection,
+  initialTab = null,
+  initialSide = "all",
+  detailBase = "/inbox/enquiries",
   deskSub = null,
   receivedOnly = false,
   settings = null,
@@ -76,143 +109,134 @@ export function InboxScreen({
   enquiriesIn: Enquiry[];
   enquiriesOut: Enquiry[];
   nowIso: string;
-  /** `?show=done` opens on the Completed side; anything else on Received */
-  initialSection?: "enq" | "done" | "jobs";
+  /** the column the address asked for; null opens on To do while something
+   *  waits on you, else Ongoing (the Classes rule) */
+  initialTab?: EnquiriesTab | null;
+  initialSide?: EnquiriesSide;
+  /** where a card opens — a studio's desk keeps its own address */
+  detailBase?: string;
   /** WHOSE DESK THIS IS, when it is a studio's (27 Sep 2026) */
   deskSub?: string | null;
   /** a studio's desk — what it was asked, and no Sent side */
   receivedOnly?: boolean;
-  /** what you take — the enquiry settings (27 Sep 2026) */
+  /** what you take — the enquiry settings' gear (27 Sep 2026) */
   settings?: ReactNode;
-  /** the lines pointing at what moved to its own tile (11 Oct 2026) — each is
-   *  drawn only while n > 0 */
+  /** the lines pointing at what moved to its own tile — each drawn only while n > 0 */
   pointers?: InboxPointer[];
-  /** ⚠ THE JOBS YOU WERE PUT ON (18 Oct 2026, `20261025090000`) — a person's own
-   *  Inbox only. Null draws no Enquiries · Jobs switch at all (a studio's desk). */
+  /** the jobs you were put on (`20261025090000`) — a person's desk only */
   jobs?: EnquiryJobAsk[] | null;
 }) {
-  const [area, setArea] = useState<"enq" | "jobs">(initialSection === "jobs" && jobs ? "jobs" : "enq");
-  const pickArea = (a: "enq" | "jobs") => {
-    setArea(a);
-    /* the address keeps the column, so a reload and a shared link land here */
+  /* ── every enquiry as one row, filed into its column ── */
+  const rows: Row[] = [];
+  const file = (e: Enquiry, side: "in" | "out") => {
+    const stage = enquiryStage(e);
+    const move = enquiryMove(e, side === "out", nowIso);
+    const group: Group = ENQ_CLOSED.has(stage) ? "past" : move ? "move" : RUNNING.has(stage) ? "running" : "waiting";
+    rows.push({ key: `${side}-${e.id}`, id: e.id, side, group, at: group === "past" ? (e.closedAt ?? e.createdAt) : e.createdAt, e, move });
+  };
+  enquiriesIn.forEach((e) => file(e, "in"));
+  if (!receivedOnly) enquiriesOut.forEach((e) => file(e, "out"));
+  const asked = (jobs ?? []).filter((j) => j.status === "asked");
+  const on = (jobs ?? []).filter((j) => j.status !== "asked");
+
+  const countsIn = (t: EnquiriesTab, s: EnquiriesSide) => {
+    const enq = rows.filter((r) => GROUP_TAB[r.group] === t && (s === "all" || r.side === s));
+    /* an enquiry sent to your own page is on both sides — "All" counts it once */
+    const n = s === "all" ? new Set(enq.map((r) => r.id)).size : enq.length;
+    const js = s === "out" ? 0 : t === "todo" ? asked.length : t === "ongoing" ? on.length : 0;
+    return n + js;
+  };
+  const owed = countsIn("todo", "all");
+  const live = pointers.filter((p) => p.n > 0);
+  const waitingHere = owed + live.reduce((s, p) => s + p.n, 0);
+
+  const [tab, setTab] = useState<EnquiriesTab>(initialTab ?? (owed > 0 ? "todo" : "ongoing"));
+  const [side, setSide] = useState<EnquiriesSide>(receivedOnly ? "all" : initialSide);
+
+  /* the column and the chip are the ADDRESS, REPLACED (the 19 Sep rule) — and the
+     old `?show=` goes, so a reload lands on what is shown */
+  const write = (t: EnquiriesTab, s: EnquiriesSide) => {
     try {
       const u = new URL(window.location.href);
-      if (a === "jobs") u.searchParams.set("show", "jobs");
-      else u.searchParams.delete("show");
+      u.searchParams.delete("show");
+      u.searchParams.set("tab", t);
+      if (SIDE_PARAM[s]) u.searchParams.set("side", SIDE_PARAM[s]);
+      else u.searchParams.delete("side");
       window.history.replaceState(window.history.state, "", u.toString());
     } catch {
       /* the column still switches */
     }
   };
-  const [enqSide, setEnqSide] = useState<Side3>(initialSection === "done" ? "done" : "in");
-  /* ⚠ ONE FILTER, DISCOVER'S ANATOMY (3 Oct 2026); a side switch clears it,
-     because a STAGE picked on one side names nothing on another */
-  const [fEnq, setFEnq] = useState<InboxFilter>(NO_FILTER);
-  const pickEnqSide = (s: Side3) => {
-    setEnqSide(s);
-    setFEnq(NO_FILTER);
+  const pickTab = (t: EnquiriesTab) => {
+    setTab(t);
+    write(t, side);
+  };
+  const pickSide = (s: EnquiriesSide) => {
+    setSide(s);
+    write(tab, s);
   };
 
-  const newIn = enquiriesIn.filter((e) => enquiryStage(e) === "new");
-  const live = pointers.filter((p) => p.n > 0);
-  /* WHAT WAITS ON YOU: the new enquiries, and what the pointers count */
-  const askedJobs = (jobs ?? []).filter((j) => j.status === "asked").length;
-  const owed = newIn.length + askedJobs + live.reduce((s, p) => s + p.n, 0);
-
-  /* ⚠ A CLOSED ENQUIRY — COMPLETED, LOST OR CANCELLED — IS UNDER COMPLETED (2 Oct
-     2026), deduped by id because an enquiry sent to your own page is on both sides */
-  const closedEnq = (e: Enquiry) => ENQ_CLOSED.has(enquiryStage(e));
-  const doneEnq = (() => {
+  /* what this column shows, newest first, an enquiry drawn once under All */
+  const shown = (() => {
     const seen = new Set<string>();
-    return [...enquiriesIn, ...enquiriesOut]
-      .filter(closedEnq)
-      .filter((e) => {
-        if (seen.has(e.id)) return false;
-        seen.add(e.id);
+    return rows
+      .filter((r) => GROUP_TAB[r.group] === tab && (side === "all" || r.side === side))
+      .sort((a, b) => b.at.localeCompare(a.at))
+      .filter((r) => {
+        if (side !== "all") return true;
+        if (seen.has(r.id)) return false;
+        seen.add(r.id);
         return true;
-      })
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      });
   })();
+  const showJobs = side !== "out";
 
-  /* Received · Sent · Completed — the app's one column look (`ColumnTabs`) */
-  const sideSwitch = (cur: Side3, set: (s: Side3) => void, nIn: number, nOut: number | null, nDone: number, noun: string) => (
-    <div data-testid="inbox-sides" role="group" aria-label={`${noun} sides`} style={{ ...columnTrack(), marginTop: 12 }}>
-      {(
-        [
-          ["in", "Received", nIn, true],
-          ...(nOut === null ? [] : [["out", "Sent", nOut, false]]),
-          ["done", "Completed", nDone, false],
-        ] as Array<[Side3, string, number, boolean]>
-      ).map(([k, l, n, owedSide]) => (
-        <div key={k} role="button" tabIndex={0} aria-pressed={cur === k} aria-label={`${l} ${noun}`} onKeyDown={pressKey(() => set(k))} onClick={() => set(k)} style={columnTab(cur === k)}>
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{l}</span>
-          {n > 0 ? <ColumnCount n={n} on={cur === k} attention={owedSide} /> : null}
-        </div>
-      ))}
+  const tabs = (
+    <div role="group" aria-label="Enquiries" style={{ ...columnTrack(), marginTop: 4 }}>
+      {(["todo", "ongoing", "past"] as EnquiriesTab[]).map((t) => {
+        const n = countsIn(t, "all");
+        return (
+          <button key={t} type="button" aria-pressed={tab === t} aria-label={`${TAB_WORD[t]} enquiries`} data-testid={`enquiries-tab-${t}`} onClick={() => pickTab(t)} style={columnTab(tab === t)}>
+            {TAB_WORD[t]}
+            {n > 0 ? <ColumnCount n={n} on={tab === t} attention={t === "todo"} /> : null}
+          </button>
+        );
+      })}
     </div>
   );
 
-  /* ⚠ THE CARD IS THE ENQUIRY KIT'S (2 Oct 2026); which end the reader is on is
-     decided PER CARD, because Completed mixes both ends */
-  const outIds = new Set(enquiriesOut.map((x) => x.id));
-  const enquiryCard = (e: Enquiry) => <EnquiryCard key={e.id} e={e} out={outIds.has(e.id)} nowIso={nowIso} />;
-
-  const side = enqSide === "out" ? enquiriesOut : enquiriesIn;
-  const st = (e: Enquiry) => enquiryStage(e);
-  /* the three phases of the 3 Oct 2026 process */
-  const open2 = side.filter((e) => ["new", "accepted", "quoted"].includes(st(e)));
-  const onNow = side.filter((e) => ["ongoing", "advance_paid", "paid", "completing"].includes(st(e)));
-  const done2 = side.filter((e) => st(e) === "completed");
-  const ended = side.filter((e) => ENQ_ENDED.has(st(e)));
-  const sum = (a: Enquiry[]) => a.reduce((x, e) => x + enquiryValueInr(e), 0);
-  const tiles: Array<[string, string, string, string]> =
-    enqSide === "out"
-      ? [
-          [String(open2.length), "Waiting", moneyShort(sum(open2)), "#3B82F6"],
-          [String(onNow.length), "On", moneyShort(sum(onNow)), "#22C55E"],
-          [String(done2.length), "Completed", `${ended.length} ended`, "#F59E0B"],
-        ]
-      : [
-          [String(open2.length), "Open", moneyShort(sum(open2)), "#3B82F6"],
-          [String(onNow.length + done2.length), "Won", moneyShort(sum([...onNow, ...done2])), "#22C55E"],
-          [`${Math.round((100 * (onNow.length + done2.length)) / Math.max(1, onNow.length + done2.length + ended.length))}%`, "Win rate", `${ended.length} ended`, "#F59E0B"],
-        ];
-  /* ⚠ the LIST is what is still open; the tiles count the whole side */
-  const isClosed = (e: Enquiry) => ENQ_CLOSED.has(st(e));
-  const liveSide = side.filter((e) => !isClosed(e));
-  const liveIn = enquiriesIn.filter((e) => !isClosed(e)).length;
-  const liveOut = enquiriesOut.filter((e) => !isClosed(e)).length;
-  const typeLabel = (k: EnquiryTypeKey) => ENQ_TYPES.find((t) => t.k === k)?.label ?? k;
-  const enqRead = {
-    text: (e: Enquiry) => `${e.fromName} ${e.businessName} ${typeLabel(e.typeKey)} ${e.message} ${e.whereText ?? ""} ${e.fields.map(([, v]) => v).join(" ")}`,
-    kind: (e: Enquiry) => e.typeKey,
-    stage: (e: Enquiry) => st(e),
-    at: (e: Enquiry) => e.createdAt,
-    value: (e: Enquiry) => enquiryValueInr(e),
-    /* the job's own date — the first one still ahead, else the last */
-    when: (e: Enquiry) => {
-      const today = nowIso.slice(0, 10);
-      const ds = [...e.dates].sort();
-      return ds.find((d) => d >= today) ?? ds[ds.length - 1] ?? null;
-    },
-  };
-  const enqBase = enqSide === "done" ? doneEnq : liveSide;
-  const filtered = applyInboxFilter(enqBase, fEnq, enqRead);
-  const enqKinds = ENQ_TYPES.map((t) => [t.k, t.label, enqBase.filter((e) => e.typeKey === t.k).length] as const).filter(([, , n]) => n > 0);
-  const enqStages = ENQ_STAGES.filter((s) => (enqSide === "done" ? ENQ_CLOSED.has(s) : !ENQ_CLOSED.has(s)) && enqBase.some((e) => st(e) === s)).map((s) => [s, ENQ_STAGE_WORD[s]] as const);
-  const ENQ_SORTS: ReadonlyArray<readonly [InboxSort, string]> = [["new", "Newest"], ["old", "Oldest"], ["soon", "Job date"], ["value", "Highest value"]];
-  const brkRows = enqSide === "done" ? doneEnq : side;
-  const brkByType = ENQ_TYPES.map((t) => ({ k: t.k, label: t.label, rows: brkRows.filter((e) => e.typeKey === t.k) })).filter((x) => x.rows.length);
-  const noMatch = (
-    <div style={emptyBox}>
-      <div style={{ fontSize: 12.5, fontWeight: 800 }}>Nothing matches</div>
-      <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 3 }}>Try a different search or clear the filters.</div>
+  /* ⚠ EVERY CHIP ALWAYS DRAWN, a 0 included (the Classes rule) — and none on a
+     studio's desk, whose one chip would say what All says */
+  const chips = receivedOnly ? null : (
+    <div role="group" aria-label="Show" data-testid="enquiries-chips" style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 2, marginTop: 10 }}>
+      {(["all", "in", "out"] as EnquiriesSide[]).map((s) => {
+        const n = countsIn(tab, s);
+        return (
+          <button key={s} type="button" aria-pressed={side === s} aria-label={s === "all" ? "All enquiries" : `${SIDE_WORD[s]} enquiries`} data-testid={`enquiries-chip-${SIDE_PARAM[s] || "all"}`} onClick={() => pickSide(s)} style={chip(side === s, n === 0)}>
+            {SIDE_WORD[s]} · {n}
+          </button>
+        );
+      })}
     </div>
   );
+
+  const groups = GROUP_ORDER.filter((g) => GROUP_TAB[g] === tab)
+    .map((g) => {
+      if (g === "jobsAsked") return { g, n: showJobs ? asked.length : 0, node: <EnquiryJobsList jobs={asked} bare /> };
+      if (g === "jobsOn") return { g, n: showJobs ? on.length : 0, node: <EnquiryJobsList jobs={on} bare /> };
+      const rs = shown.filter((r) => r.group === g);
+      return {
+        g,
+        n: rs.length,
+        node: rs.map((r) => <EnquiryDeskCard key={r.key} e={r.e!} out={r.side === "out"} nowIso={nowIso} href={`${detailBase}/${r.id}`} move={tab === "todo" ? (r.move ?? null) : null} />),
+      };
+    })
+    .filter((x) => x.n > 0);
+
+  const emptyWord = tab === "todo" ? "Nothing waiting on you." : tab === "ongoing" ? (side === "out" ? "Send one from any profile." : "Nothing on right now.") : "Nothing yet.";
 
   return (
     <div style={{ position: "relative", background: LILAC, color: "var(--text)", maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      {/* the TOP squircle: the heading, the settings and the three sides (3 Oct 2026) */}
       <TopPanel tint={accent} style={{ margin: "12px 16px 12px" }}>
         <div style={{ position: "relative" }}>
           <h1 data-testid="inbox-title" style={TAB_TITLE}>
@@ -221,13 +245,12 @@ export function InboxScreen({
           </h1>
           <div data-testid="inbox-sub" style={{ ...TAB_SUB, margin: "5px 0 12px" }}>
             {deskSub ? `${deskSub} · ` : ""}
-            {owed > 0 ? `${owed} waiting on you` : "All caught up"}
+            {waitingHere > 0 ? `${waitingHere} waiting on you` : "All caught up"}
           </div>
           {/* the enquiry settings' gear, top right (12 Oct 2026) */}
           {settings}
         </div>
-        {/* ⚠ WHAT MOVED TO ITS OWN TILE (11 Oct 2026) — one line each, only while
-            something waits there; the class line's own treatment */}
+        {/* ⚠ WHAT WAITS ON ANOTHER TILE (11 Oct 2026) — one line each, only while something does */}
         {live.map((p) => (
           <Link
             key={p.testId}
@@ -246,80 +269,30 @@ export function InboxScreen({
             </span>
           </Link>
         ))}
-        {/* ⚠ ENQUIRIES · JOBS (18 Oct 2026) — always drawn on a person's Inbox, each counted */}
-        {jobs ? (
-          <div data-testid="inbox-areas" role="group" aria-label="Enquiries or jobs" style={{ ...columnTrack(), marginTop: 4 }}>
-            {(
-              [
-                ["enq", "Enquiries", liveIn + (receivedOnly ? 0 : liveOut), newIn.length > 0],
-                ["jobs", "Jobs", jobs.length, askedJobs > 0],
-              ] as Array<["enq" | "jobs", string, number, boolean]>
-            ).map(([k, l, n, att]) => (
-              <div key={k} role="button" tabIndex={0} aria-pressed={area === k} aria-label={k === "jobs" ? "Your jobs" : "Your enquiries"} onKeyDown={pressKey(() => pickArea(k))} onClick={() => pickArea(k)} style={columnTab(area === k)}>
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{l}</span>
-                <ColumnCount n={n} on={area === k} attention={att} />
-              </div>
-            ))}
-          </div>
-        ) : null}
-        {/* ⚠ NO SENT SIDE ON A STUDIO'S DESK (2 Oct 2026) — an enquiry is sent by a person */}
-        {area === "enq" ? sideSwitch(enqSide, pickEnqSide, liveIn, receivedOnly ? null : liveOut, doneEnq.length, "enquiries") : null}
+        {tabs}
+        {chips}
       </TopPanel>
 
-      {area === "jobs" && jobs ? (
-        <InvertedPanel ground="page" style={{ flex: 1, margin: "0 16px calc(var(--dos-foot, 96px) + 12px)", borderRadius: 22, padding: "18px 14px 18px" }}>
-          <div data-testid="inbox-jobs" style={{ position: "relative" }}>
-            <EnquiryJobsList jobs={jobs} />
-          </div>
-        </InvertedPanel>
-      ) : null}
-
-      {/* ── THE MIDDLE: the three figures and the Breakup (3 Oct 2026) ── */}
-      {area === "enq" && ((enqSide !== "done" && side.length > 0) || brkRows.length > 0) ? (
-        <TopPanel testId="inbox-overview" style={{ margin: "0 16px 12px" }}>
-          {enqSide !== "done" && side.length > 0 ? (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 7 }}>
-              {tiles.map(([v, l, s2, c2]) => (
-                <div key={l} style={{ background: "var(--solid)", border: "1.5px solid var(--el)", borderTop: `3px solid ${c2}`, borderRadius: 14, padding: "10px 9px" }}>
-                  <div style={{ fontFamily: DOS_MONO, fontSize: 16, fontWeight: 600, letterSpacing: -0.4 }}>{v}</div>
-                  <div style={{ fontSize: 8.5, fontWeight: 900, letterSpacing: 0.4, textTransform: "uppercase", color: "var(--sub)", marginTop: 2 }}>{l}</div>
-                  <div style={{ fontSize: 9.5, color: c2, fontWeight: 700, marginTop: 2, fontFamily: DOS_MONO }}>{s2}</div>
-                </div>
-              ))}
+      <InvertedPanel ground="page" style={{ flex: 1, margin: "0 16px calc(var(--dos-foot, 96px) + 12px)", borderRadius: 22, padding: "16px 14px 18px" }}>
+        <div data-testid="inbox-panel" data-tab={tab} style={{ position: "relative" }}>
+          {groups.length === 0 ? (
+            <div data-testid="enquiries-empty" style={{ textAlign: "center", padding: "30px 18px", color: SUB, border: "1.5px dashed var(--el)", borderRadius: 20, fontSize: 13, lineHeight: 1.5 }}>
+              {emptyWord}
             </div>
-          ) : null}
-          {brkRows.length > 0 ? <Breakup rows={brkRows} byType={brkByType} sum={sum} stageOf={st} first={!(enqSide !== "done" && side.length > 0)} /> : null}
-        </TopPanel>
-      ) : null}
-
-      {/* ── THE LOWER PANEL: the search and the cards, on the page's own theme ── */}
-      {area === "enq" ? (
-      <InvertedPanel ground="page" style={{ flex: 1, margin: "0 16px calc(var(--dos-foot, 96px) + 12px)", borderRadius: 22, padding: "18px 14px 18px" }}>
-        <div data-testid="inbox-panel" style={{ position: "relative" }}>
-          {enqBase.length ? <InboxFilters value={fEnq} onChange={setFEnq} noun="enquiries" kinds={enqKinds} stages={enqStages} sorts={ENQ_SORTS} stageLabel="STATUS" quickStages /> : null}
-          {enqSide === "done" && doneEnq.length === 0 ? (
-            <div style={emptyBox}>
-              <div style={{ fontSize: 12.5, fontWeight: 800 }}>Nothing completed yet</div>
-              <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 3 }}>Closed enquiries land here.</div>
-            </div>
-          ) : enqSide !== "done" && side.length === 0 ? (
-            <div style={emptyBox}>
-              <div style={{ fontSize: 12.5, fontWeight: 800 }}>Nothing here</div>
-              <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 3 }}>{enqSide === "out" ? "Send one from any profile." : "None in yet."}</div>
-            </div>
-          ) : enqSide !== "done" && liveSide.length === 0 ? (
-            <div style={emptyBox}>
-              <div style={{ fontSize: 12.5, fontWeight: 800 }}>Nothing open</div>
-              <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 3 }}>Closed ones are under Completed.</div>
-            </div>
-          ) : filtered.length === 0 ? (
-            noMatch
           ) : (
-            filtered.map(enquiryCard)
+            groups.map(({ g, n, node }) => (
+              <section key={g} data-testid={`enquiries-${g}`} style={{ marginBottom: 6 }}>
+                {GROUP_WORD[g] ? (
+                  <h2 style={{ ...head, color: tab === "todo" ? "#F59E0B" : SUB }}>
+                    {GROUP_WORD[g]} · {n}
+                  </h2>
+                ) : null}
+                {node}
+              </section>
+            ))
           )}
         </div>
       </InvertedPanel>
-      ) : null}
     </div>
   );
 }

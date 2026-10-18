@@ -195,9 +195,12 @@ const tomorrowIst = () => {
     await leader.getByText("Studio 4, Baner").waitFor({ timeout: 20000 }).catch(() => {});
     check(await leader.getByText("Studio 4, Baner").isVisible().catch(() => false), "the practice is on the desk as soon as the sheet closes, with where it is");
     check(await leader.getByText("Knee pads").isVisible().catch(() => false), "…and what to bring");
-    check(await leader.getByText("YOU ARRANGED IT").isVisible().catch(() => false), "⚠ THE LEADER IS NOT ASKED — they arranged it, and the desk says so instead of offering them a yes/no");
+    check(await leader.getByText("You arranged it").first().isVisible().catch(() => false), "⚠ THE LEADER IS NOT ASKED — they arranged it, and the card says so instead of offering them a yes/no");
     check((await leader.getByRole("button", { name: /^(I am coming|Coming to|Cannot make)/ }).count()) === 0, "…and nobody is offered an answer — a practice is a notice");
-    check(await leader.getByText("0 of 2 checked in").isVisible().catch(() => false), "the roster is the crew — the leader and the confirmed member — none checked in yet");
+    /* ⚠ 18 Oct 2026, the user: "register button not required outside, only while
+       clicking inside that practice" — no card carries a register */
+    check((await leader.getByRole("button", { name: /^Register for/ }).count()) === 0 && (await leader.getByRole("link", { name: /^Open the register for/ }).count()) === 0, "⚠ no Register on the desk's card — the register is inside the practice");
+    check((await leader.getByTestId("practice-kind").first().innerText().catch(() => "")) === "CREW", "…and the card wears its kind chip, CREW");
 
     /* ── 3 · THE MEMBER IS TOLD, NOT ASKED ── */
     await member.goto(`${BASE}/notifications`, { waitUntil: "networkidle" });
@@ -207,14 +210,16 @@ const tomorrowIst = () => {
 
     /* ── 4 · THE REGISTER ── */
     await leader.goto(`${BASE}/crews/${crewId}/manage/practice`, { waitUntil: "networkidle" });
-    check(await leader.getByText("0 of 2 checked in").isVisible().catch(() => false), "the leader's desk counts the register, not answers");
-    /* 2 Oct 2026: the card leads with the crew it is for, then a date block */
+    /* the card names its crew, and the WHOLE card opens the practice's own page,
+       where the register is (18 Oct 2026) */
     const card = leader.getByTestId("practice-card").first();
-    check((await card.innerText()).includes(crewName), "the practice card names its crew at the top");
+    check((await card.innerText()).includes(crewName), "the practice card names its crew");
     await card.screenshot({ path: require("path").join(__dirname, "shots", "practice-card.png") }).catch(() => {});
-    await leader.getByRole("button", { name: /^Register for/ }).first().click();
-    await leader.waitForTimeout(1200);
-    check(await leader.getByText(memberName).first().isVisible().catch(() => false), "the register lists the member, read ON THE PRESS");
+    await leader.getByRole("link", { name: /^Open the practice — / }).first().click();
+    await leader.waitForURL(/\/practice\/crew\/[0-9a-f-]+$/, { timeout: 20000 });
+    check(await leader.getByTestId("practice-register").isVisible().catch(() => false), "the card opens /practice/crew/{id}, and the register is there");
+    check(await leader.getByTestId("practice-register-count").innerText().then((t) => t.includes("0 of 2 checked in")).catch(() => false), "the roster is the crew — the leader and the confirmed member — none checked in yet");
+    check(await leader.getByText(memberName).first().isVisible().catch(() => false), "the register lists the member");
     check(await leader.getByText("Leader").first().isVisible().catch(() => false), "…and the leader first");
     const checkIn = leader.getByRole("button", { name: `Check ${memberName} in` });
     check((await checkIn.count()) === 1, "…with a Check in button, like a class register");
@@ -247,10 +252,13 @@ const tomorrowIst = () => {
        on a person's schedule without pressing anything, and the drawer counts it */
     check(await member.getByText(/Studio 4, Baner/).first().isVisible().catch(() => false), "a PERSON's calendar shows the practice beside the classes, with nothing pressed");
     await member.getByRole("button", { name: "Calendar menu" }).click();
-    check((await member.getByRole("checkbox", { name: /^Practice: 1$/ }).count()) === 1, "…and the drawer's Practice checkbox counts one");
+    /* ⚠ two practice calendars since 18 Oct 2026 — Crew practice and Job practice */
+    check((await member.getByRole("checkbox", { name: /^Crew practice: 1$/ }).count()) === 1, "…and the drawer's Crew practice checkbox counts one");
+    check((await member.getByRole("checkbox", { name: /^Job practice: 0$/ }).count()) === 1, "…beside a Job practice checkbox of its own, counting none");
     await member.getByRole("button", { name: "Close the menu" }).click();
     check(await member.getByText(new RegExp(crewName)).first().isVisible().catch(() => false), "…naming WHICH crew");
     check(await member.getByText(/^Your crew ·/).first().isVisible().catch(() => false), "…as their crew's");
+    check((await member.locator('[data-testid="cal-pill"][data-practice-kind="crew"]').count()) >= 1, "…on a Crew practice pill");
 
     /* ── 6 · THE MEMBER CAN SEE IT AND ANSWER IT (28 Sep 2026, the user: *"no
        way to check practices you have been a part of fix that"*).
@@ -273,29 +281,26 @@ const tomorrowIst = () => {
     check(await member.getByText("Studio 4, Baner").first().isVisible().catch(() => false), "…with the practice on it, where and when");
     check(await member.getByText(crewName).first().isVisible().catch(() => false), "…and WHICH CREW, because this list can hold three crews' practices in one evening");
     check((await member.getByRole("button", { name: /^(Coming to|Cannot make)/ }).count()) === 0, "…with no answer pair — a practice is a notice");
-    check((await member.getByRole("button", { name: /^Register for/ }).count()) === 0, "⚠ and NO register — that is the leader's, and a member is not offered a control the database would refuse");
-    /* the leader's own hub shows the same practice with the door to the register
-       instead of an answer they were never asked for */
+    check((await member.getByRole("button", { name: /^Register for/ }).count()) === 0, "⚠ and NO register — that lives inside the practice");
     await leader.goto(`${BASE}/practice`, { waitUntil: "networkidle" });
     check(await leader.getByTestId("my-practices").isVisible().catch(() => false), "the leader's Practice screen carries it too — one list, every crew");
-    check((await leader.getByRole("link", { name: /^Open the register for/ }).count()) === 1, "…with Register › to their own desk");
+    check((await leader.getByRole("link", { name: /^Open the register for/ }).count()) === 0 && (await leader.getByRole("button", { name: /^Register/ }).count()) === 0, "⚠ …with NO Register on the card (18 Oct 2026) — the card opens the practice");
     check((await leader.getByRole("button", { name: /^Coming to/ }).count()) === 0, "…and no answer pair");
 
-    /* ⚠ TWO COLUMNS (1 Oct 2026, the user: *"practice also in 2 columns"*) — the
-       Crews hub's own split. The pill's accessible name is its `aria` plus its
-       count, never the visible word (SegmentedNav:78). */
-    const yoursPill = (pg) => pg.getByRole("link", { name: /^Practices of the crews you lead/ });
-    const inPill = (pg) => pg.getByRole("link", { name: /^Practices of the crews you are a part of/ });
-    check((await yoursPill(leader).count()) === 1 && (await inPill(leader).count()) === 1, "⚠⚠ the Practice screen is two columns — Yours · You are in");
-    check(/[?&]show=/.test(leader.url()) === false && (await leader.getByRole("link", { name: /^Open the register for/ }).count()) === 1, "…the leader lands on Yours, where the practice they arranged is");
-    await inPill(leader).click();
-    await leader.waitForTimeout(500);
-    check((await leader.getByText("Studio 4, Baner").count()) === 0, "…and it is NOT under You are in — a practice sits in exactly one column");
-    await member.goto(`${BASE}/practice`, { waitUntil: "networkidle" });
-    check((await member.getByText("Studio 4, Baner").count()) >= 1, "…while a member who leads nothing lands on You are in, with the practice on it");
-    await yoursPill(member).click();
-    await member.waitForTimeout(500);
-    check((await member.getByText("Studio 4, Baner").count()) === 0 && (await member.getByText(/practices you arrange/).count()) === 1, "…and their Yours column is empty and says what would land there");
+    /* ⚠⚠ HANDLED LIKE CLASSES (18 Oct 2026, the user: "handle practice like
+       classes as well") — Upcoming · Past, chips All · Crew · Job, every chip
+       drawn with its count, the address replaced */
+    check((await leader.getByTestId("practice-tab-upcoming").count()) === 1 && (await leader.getByTestId("practice-tab-past").count()) === 1, "⚠⚠ the Practice screen is two columns — Upcoming · Past");
+    check((await leader.getByTestId("practice-group-week").count()) + (await leader.getByTestId("practice-group-today").count()) === 1, "…tomorrow's practice sits under This week (or Today across midnight)");
+    check(/^All · \d+$/.test(await leader.getByTestId("practice-chip-all").innerText()) && /^Crew · 1$/.test(await leader.getByTestId("practice-chip-crew").innerText()) && /^Job · 0$/.test(await leader.getByTestId("practice-chip-job").innerText()), "…and the chips All · Crew · Job, every one drawn, a 0 included");
+    await leader.getByTestId("practice-chip-job").click();
+    await leader.waitForTimeout(300);
+    check((await leader.getByText("Studio 4, Baner").count()) === 0 && /kind=job/.test(leader.url()), "…the Job chip leaves the crew practice out and writes ?kind=job");
+    await leader.getByTestId("practice-tab-past").click();
+    await leader.waitForTimeout(300);
+    check(/tab=past/.test(leader.url()) && (await leader.getByTestId("practice-empty").count()) === 1, "…and Past is empty and says so");
+    await member.goto(`${BASE}/practice?show=in`, { waitUntil: "networkidle" });
+    check((await member.getByTestId("practice-chip-crew").getAttribute("aria-pressed")) === "true" && (await member.getByText("Studio 4, Baner").count()) >= 1, "…an old ?show=in address lands on the Crew chip, with the practice on it (Rule 14)");
 
     /* ⚠ AND THE CALENDAR ROW NOW OPENS A SCREEN THAT CAN ACT ON IT. A member's
        used to carry the crew's PUBLIC page — true, and useless: that page says
@@ -305,7 +310,7 @@ const tomorrowIst = () => {
       const a = [...document.querySelectorAll("a")].find((x) => /Studio 4, Baner/.test(x.textContent || ""));
       return a ? a.getAttribute("href") : null;
     });
-    check(memberHref === "/practice?show=in", `a member's calendar row opens the Practice screen's "You are in" column, — it reads ${memberHref}`);
+    check(/^\/practice\/crew\/[0-9a-f-]+$/.test(memberHref || ""), `a member's calendar row opens the practice's own page — it reads ${memberHref}`);
 
     /* ── 7 · CALLING IT OFF SAYS SO ── */
     await leader.goto(`${BASE}/crews/${crewId}/manage/practice`, { waitUntil: "networkidle" });

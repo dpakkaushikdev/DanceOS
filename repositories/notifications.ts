@@ -84,6 +84,38 @@ export async function findMyUnreadNotes(supabase: SupabaseClient, userId: string
   return (data ?? []) as { id: string; kind: string; href: string | null }[];
 }
 
+/** ⚠ A STUDIO'S ENQUIRY NEWS IS THE STUDIO'S (18 Oct 2026, the user: "studio
+ *  enquiries merging with user/artist enquiries notifications should not happen").
+ *  Every enquiry notification is stored pointing at `/inbox/enquiries/{id}`, the
+ *  PERSON's address, so the drawer counted a studio's enquiries on the person's
+ *  own Enquiries tool. The stored row is left alone; here, for the studios this
+ *  account RUNS, an enquiry it did not send is re-pointed at that studio's own
+ *  desk (`/business/{id}/inbox/enquiries/{id}`), which is where the count then
+ *  lands and where the detail page now redirects. One read, by id. */
+export async function pointEnquiryNotesAtTheirDesk<T extends { href: string | null }>(
+  supabase: SupabaseClient,
+  notes: T[],
+  userId: string,
+  studioIds: string[]
+): Promise<T[]> {
+  if (studioIds.length === 0) return notes;
+  const idOf = (href: string | null) => href?.match(/^\/inbox\/enquiries\/([0-9a-f-]{36})/i)?.[1] ?? null;
+  const ids = [...new Set(notes.map((n) => idOf(n.href)).filter((x): x is string => Boolean(x)))];
+  if (ids.length === 0) return notes;
+  const { data, error } = await supabase.from("enquiries").select("id, business_id, from_user_id").in("id", ids);
+  if (error || !data) return notes;
+  const studios = new Set(studioIds);
+  const desk = new Map<string, string>();
+  for (const e of data as { id: string; business_id: string | null; from_user_id: string }[]) {
+    if (e.business_id && studios.has(e.business_id) && e.from_user_id !== userId) desk.set(e.id, e.business_id);
+  }
+  return notes.map((n) => {
+    const id = idOf(n.href);
+    const biz = id ? desk.get(id) : undefined;
+    return biz && n.href ? { ...n, href: `/business/${biz}${n.href}` } : n;
+  });
+}
+
 /** The bell's badge — one number, through the aggregate function (which leaves
  *  out a group switched off "here"). */
 export async function findMyUnreadCount(supabase: SupabaseClient): Promise<number> {

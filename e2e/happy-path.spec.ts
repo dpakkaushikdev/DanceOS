@@ -1,5 +1,18 @@
 import { test, expect, type Browser, type BrowserContext, type Locator, type Page } from "@playwright/test";
 
+/** ⚠ HOME IS REACHED THROUGH THE BAR SINCE 18 Oct 2026: a document load of "/"
+ *  opens the app on Discover (the user: "whenever they open the app land on
+ *  discover first"), so a test that wants Home presses Home, as a person does.
+ *  Retried, because a press before hydration is a document load of "/" again. */
+async function goHome(page: Page) {
+  await page.goto("/discover");
+  await expect(async () => {
+    await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Home", exact: true }).click();
+    await page.waitForURL((u) => u.pathname === "/", { timeout: 4_000 });
+  }).toPass({ timeout: 40_000 });
+}
+
+
 /**
  * The MVP happy path (CLAUDE.md Steps 6+8): signup → onboard studio → create
  * class → owner pulls the booking link off the class detail page → a learner
@@ -229,7 +242,7 @@ async function pressPill(page: Page, name: RegExp | string | Locator, attr: "ari
    holds are the "Edit details" chip beside the name, and that is what opens the
    sheet. Settings has no Edit tile any more, and that is asserted where it was. */
 async function openEditProfile(page: Page) {
-  await page.goto("/");
+  await goHome(page);
   await enterEditMode(page);
   await page.getByRole("button", { name: "Edit details" }).click();
   const sheet = page.getByRole("dialog", { name: "Edit profile" });
@@ -451,7 +464,7 @@ test.describe.serial("DanceOS, end to end", () => {
     // Nothing waits on an admin, and the hub offers Add studio from the first
     // minute (20260926090000 took the "Only an organization" line out of
     // why_no_studio).
-    await owner.goto("/");
+    await goHome(owner);
     await expect(owner.getByRole("status", { name: /^Verification:/ })).toHaveCount(0);
 
     await owner.goto("/business");
@@ -696,7 +709,7 @@ test.describe.serial("DanceOS, end to end", () => {
     // Home: NO card (11 Sep 2026 — the user: "after verification I don't need
     // this box; the user will create the studio and to make it discoverable he
     // will subscribe"). The hub's PUBLIC · GRANTED row above is the studio's own state.
-    await owner.goto("/");
+    await goHome(owner);
     await expect(owner.getByRole("status", { name: /^Verification:/ })).toHaveCount(0);
 
     // an admin is ADMIN ONLY (9 Sep 2026): no profile, no Home — the panel is
@@ -923,7 +936,7 @@ test.describe.serial("DanceOS, end to end", () => {
        card is gone; the Inbox keeps one pointer line counting it; the hub opens
        on Team while it waits, with Decline · Join on the invitation's card.
        Asserted at all three ends. */
-    await trainer.goto("/");
+    await goHome(trainer);
     await expect(trainer.getByText(`${studioName} wants you on the team`)).toHaveCount(0);
     await expect(trainer.getByText("Answer this")).toHaveCount(0);
     await trainer.goto("/inbox");
@@ -1556,8 +1569,11 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(owner.getByTestId("enquiry-stage")).toHaveText("Advance paid", { timeout: 15_000 });
 
     /* money has moved, so withdrawing is TERMS the business answers, not an exit */
+    /* Withdraw is the pill on the top right since 18 Oct 2026; pressed, it says
+       what the money means */
     await learner.reload();
-    await expect(learner.getByText(/has been paid — propose how much goes back/)).toBeVisible();
+    await learner.getByTestId("enquiry-end").click();
+    await expect(learner.getByText(/is paid — propose what goes back/)).toBeVisible();
 
     /* completion waits for the balance — the button is offered, and off */
     await expect(owner.getByRole("button", { name: "Mark the project complete" })).toBeDisabled();
@@ -1877,7 +1893,7 @@ test.describe.serial("DanceOS, end to end", () => {
     };
     // a chip does nothing until hydration — press until it reports itself pressed
     const pickChip = (page: Page, group: string) => pressPill(page, page.getByTestId(`notif-chip-${group}`));
-    await owner.goto("/");
+    await goHome(owner);
     await expect(owner.getByTestId("bell-badge")).toBeVisible();
     await owner.getByRole("link", { name: /^Notifications/ }).click();
     await owner.waitForURL(/\/notifications/);
@@ -2166,7 +2182,7 @@ test.describe.serial("DanceOS, end to end", () => {
        both, and it is where a picture is changed. The file still goes from THIS
        browser straight to Storage with the trainer's own session (the proof
        covers the rules; only a browser can cover the upload). */
-    await trainer.goto("/");
+    await goHome(trainer);
     await trainer.getByTestId("hero-disc").waitFor();
     /* ⚠ TWO CONTROLS, TWO JOBS, NO SHEET IN BETWEEN (20 Sep 2026, the user:
        "Profile pic edit should just be a pencil besides and clciking on photo to
@@ -2236,7 +2252,7 @@ test.describe.serial("DanceOS, end to end", () => {
        promise, and the installed TWA reopens on the last URL it showed. So this
        segment asserts the promise is kept and that what the screen used to list
        is still reachable — which is the only thing that made removing it safe. */
-    await owner.goto("/");
+    await goHome(owner);
     await expect(owner.getByRole("link", { name: "Everything you manage", exact: true })).toHaveCount(0);
     await expect(owner.getByRole("link", { name: "Manage", exact: true })).toHaveCount(0);
 
@@ -2348,7 +2364,7 @@ test.describe.serial("DanceOS, end to end", () => {
        offers a control on none of them; Home is where they change. ---- */
     await expect(trainer.getByRole("button", { name: "Add a dance style" })).toHaveCount(0);
     await expect(trainer.getByRole("button", { name: "Add a link" })).toHaveCount(0);
-    await trainer.goto("/");
+    await goHome(trainer);
     await trainer.getByTestId("hero-disc").waitFor();
     /* and on Home the two ＋ appear with the pencil (26 Sep 2026) — not before */
     await expect(trainer.getByRole("button", { name: "Add a dance style" })).toHaveCount(0);
@@ -2396,7 +2412,7 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(trainer.getByRole("textbox", { name: "Search" })).toBeVisible();
     await trainer.getByTestId("follows-tab-followers").click();
     await expect(trainer.getByTestId("follows-tab-followers")).toHaveAttribute("aria-selected", "true");
-    await trainer.goto("/");
+    await goHome(trainer);
     /* ⚠ AND NO RANK (19 Sep 2026, the user: "Remove rank from home") — where you
        stand is the Stats chip's own screen, which prints its population too */
     await expect(trainer.getByRole("link", { name: /rank/i })).toHaveCount(0);
@@ -2535,7 +2551,7 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(settings2.getByText("PRO ACTIVE")).toHaveCount(0);
     await expect(settings2.getByRole("button", { name: "Artist tools" })).toHaveCount(0);
     await expect(settings2.getByRole("link", { name: /Subscription/ })).toHaveCount(0);
-    await trainer.goto("/");
+    await goHome(trainer);
     await expect((await tools(trainer)).getByRole("link", { name: "Subscription", exact: true })).toHaveAttribute("href", "/subscription");
     await closeTools(trainer);
     // 10 Sep 2026: ENDING means stop renewing, the way every real subscription
@@ -2629,7 +2645,7 @@ test.describe.serial("DanceOS, end to end", () => {
     expect(moved.ok).toBeTruthy();
 
     // the learner's Home: one card in the rail, saying what the session is to them — and that it is on now
-    await learner.goto("/");
+    await goHome(learner);
     await expect(learner.getByText("1 today")).toBeVisible();
     const card = learner.getByTestId("deck-card").first();
     await expect(card.getByRole("link", { name: `Open ${classTitle}` })).toBeVisible();
@@ -2681,7 +2697,7 @@ test.describe.serial("DanceOS, end to end", () => {
     await trainer.goto(`/c/${shareSlug}`);
     await expect(trainer.getByRole("link", { name: `Open ${trainerName}` })).toBeVisible();
     await expect(trainer.getByRole("button", { name: "Accept this ask" })).toHaveCount(0);
-    await trainer.goto("/");
+    await goHome(trainer);
     const taught = trainer.getByTestId("deck-card").first();
     await expect(taught.getByText("Teaching", { exact: true })).toBeVisible();
     await expect(taught.getByRole("button", { name: "Invoice" })).toHaveCount(0);
@@ -2691,7 +2707,7 @@ test.describe.serial("DanceOS, end to end", () => {
     // owner is a PERSON, so this is a user's Home — its Studios tile is the door
     // to every studio they run and nothing on it opens a register or a studio
     // calendar).
-    await owner.goto("/");
+    await goHome(owner);
     await expect(owner.getByRole("link", { name: "Classes at this studio" })).toHaveCount(0);
     await expect(owner.getByRole("link", { name: "Open the studio calendar" })).toHaveCount(0);
     await expect((await tools(owner)).getByRole("link", { name: "Students", exact: true })).toHaveCount(0);
@@ -2772,7 +2788,7 @@ test.describe.serial("DanceOS, end to end", () => {
     /* ⚠ COMPLETED, NOT SENT, since 3 Oct 2026: the enquiry segment now ends with
        the business marking this enquiry Completed, and a closed enquiry lives
        under Completed (C96) — the Sent side holds only what is still open */
-    await learner.getByRole("button", { name: "Completed enquiries" }).click();
+    await learner.getByRole("button", { name: "Past enquiries" }).click();
     await learner.getByRole("link", { name: `Choreographer enquiry to ${studioName}` }).click();
     await learner.waitForURL(/\/inbox\/enquiries\/[0-9a-f-]+$/);
     await expect(learner.getByRole("link", { name: `Call ${studioName}` })).toHaveAttribute("href", "tel:+919000011111");
@@ -2782,7 +2798,7 @@ test.describe.serial("DanceOS, end to end", () => {
     // since 2 Oct 2026 — the unscoped desk is the owner's personal profile.
     await owner.goto(`/enquiries?as=${businessId}`);
     /* ⚠ the studio's desk opens on Received, and this enquiry was closed */
-    await owner.getByRole("button", { name: "Completed enquiries" }).click();
+    await owner.getByRole("button", { name: "Past enquiries" }).click();
     await owner.getByRole("link", { name: `Choreographer enquiry from ${learnerName}` }).click();
     await owner.waitForURL(/\/inbox\/enquiries\/[0-9a-f-]+$/);
     /* ⚠ 3 Oct 2026: the rebuilt detail page draws NO Call at all when the
@@ -2857,7 +2873,7 @@ test.describe.serial("DanceOS, end to end", () => {
     for (const page of [learner, trainer]) {
       await page.goto("/profile");
       await expect(page.getByRole("link", { name: rankLink })).toHaveCount(0);
-      await page.goto("/");
+      await goHome(page);
       await expect(page.getByRole("link", { name: rankLink })).toHaveCount(0);
       /* and the chip that DOES answer it is still exactly one, on both */
       await expect(page.getByRole("link", { name: "Stats", exact: true })).toHaveCount(1);
@@ -3786,7 +3802,7 @@ test.describe.serial("DanceOS, end to end", () => {
        the only thing that moved is the word on their seat. */
     const studioRow = () => learner.getByRole("menuitem", { name: new RegExp(studioName) });
 
-    await learner.goto("/");
+    await goHome(learner);
     await learner.getByRole("button", { name: "Switch profile" }).click();
     /* ⚠ a MENUITEM, not a link: the switcher is a menu (`aria-haspopup="menu"`),
        so its rows carry that role however they are rendered. */
@@ -3801,7 +3817,7 @@ test.describe.serial("DanceOS, end to end", () => {
     await owner.getByRole("dialog", { name: learnerName }).getByRole("button", { name: `Make ${learnerName} Owner` }).click();
     await expect(owner.getByRole("status")).toContainText("Owner", { timeout: 15_000 });
 
-    await learner.goto("/");
+    await goHome(learner);
     await learner.getByRole("button", { name: "Switch profile" }).click();
     await expect(studioRow()).toBeVisible({ timeout: 15_000 });
     await expect(studioRow()).toHaveAttribute("href", `/business/${businessId}`);

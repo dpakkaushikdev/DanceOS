@@ -85,6 +85,8 @@ export const studioTilesFor = (businessId: string, memberRole: MemberRole): Tile
     { name: DOS_TOOLS.calendar.name, href: desk("calendar"), k: "calendar", c: DOS_TOOLS.calendar.c },
     /* the studio's own enquiries desk, which was its Inbox tab (18 Oct 2026) */
     { name: DOS_TOOLS.enquiries.name, href: desk("inbox"), k: "enquiries", c: DOS_TOOLS.enquiries.c },
+    /* the practices of the jobs this studio works (18 Oct 2026) */
+    { name: DOS_TOOLS.practice.name, href: desk("practice"), k: "practice", c: DOS_TOOLS.practice.c },
     ...(memberRole === "visiting_faculty" || memberRole === "assistant"
       ? []
       : ([{ name: DOS_TOOLS.students.name, href: desk("students"), k: "students", c: DOS_TOOLS.students.c }] as Tile[])),

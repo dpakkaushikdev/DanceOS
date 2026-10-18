@@ -113,9 +113,9 @@ const tomorrowIst = () =>
     await personRow.waitFor({ timeout: 20000 });
     check((await personRow.getByTestId("enquiry-person-status").getAttribute("data-status")) === "asked", "owner's Team: the participant reads Asked until they answer");
 
-    /* ── 2 · THE PARTICIPANT ACCEPTS ON /inbox?show=jobs ── */
+    /* ── 2 · THE PARTICIPANT ACCEPTS ON /inbox — a job is a group inside To do since 18 Oct 2026 ── */
     await dp.goto(`${BASE}/inbox?show=jobs`, { waitUntil: "networkidle" });
-    check((await dp.getByRole("button", { name: "Your jobs" }).getAttribute("aria-pressed")) === "true", "participant: ?show=jobs opens the Jobs column");
+    check((await dp.getByRole("button", { name: "Your jobs" }).count()) === 0, "participant: no Jobs column — the ask sits under To do");
     const job = dp.getByTestId("enquiry-job").filter({ hasText: `Job Hall ${stamp}` });
     await job.waitFor({ timeout: 20000 });
     check((await job.getByTestId("enquiry-job-status").getAttribute("data-status")) === "asked", "participant: the job card reads Asked");
@@ -142,9 +142,9 @@ const tomorrowIst = () =>
     check((await op.getByRole("button", { name: /^Check .* in$/ }).count()) === 0, "no register inline on the enquiry page any more");
 
     /* ── 4 · IT IS ON THE PARTICIPANT'S /practice AND CALENDAR ── */
-    await dp.goto(`${BASE}/practice?type=enquiry`, { waitUntil: "networkidle" });
-    check((await dp.getByTestId("practice-types").count()) === 1, "participant /practice: the Crew · Enquiry types are drawn");
-    check((await dp.getByRole("link", { name: "Enquiry practices" }).getAttribute("aria-current")) === "page", "participant /practice: the Enquiry type is the one shown");
+    await dp.goto(`${BASE}/practice?kind=job`, { waitUntil: "networkidle" });
+    check((await dp.getByTestId("practice-chips").count()) === 1, "participant /practice: the All · Crew · Job chips are drawn");
+    check((await dp.getByTestId("practice-chip-job").getAttribute("aria-pressed")) === "true", "participant /practice: ?kind=job opens on the Job chip");
     check((await dp.getByTestId("enquiry-practice-card").filter({ hasText: `Hall ${stamp}` }).count()) === 1, "participant /practice: the job's practice is listed");
     await dp.goto(`${BASE}/calendar`, { waitUntil: "networkidle" });
     check((await dp.locator(`a[href="/practice/job/${pr.id}"]`).count()) >= 1, "participant calendar: the practice is on it, opening its own page");

@@ -1,5 +1,18 @@
 import { test, expect, type BrowserContext, type Locator, type Page } from "@playwright/test";
 
+/** ⚠ HOME IS REACHED THROUGH THE BAR SINCE 18 Oct 2026: a document load of "/"
+ *  opens the app on Discover (the user: "whenever they open the app land on
+ *  discover first"), so a test that wants Home presses Home, as a person does.
+ *  Retried, because a press before hydration is a document load of "/" again. */
+async function goHome(page: Page) {
+  await page.goto("/discover");
+  await expect(async () => {
+    await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Home", exact: true }).click();
+    await page.waitForURL((u) => u.pathname === "/", { timeout: 4_000 });
+  }).toPass({ timeout: 40_000 });
+}
+
+
 /**
  * The admin panel, phase 2 (10 Sep 2026): reporting, and taking ONE business
  * off Discover.
@@ -406,7 +419,7 @@ test.describe.serial("the admin panel: businesses and reports", () => {
     // 26 Sep 2026: that account is a plain person). What still wears the badge
     // is the STUDIO — being taken off Discover is a moderation decision, not the
     // withdrawal of a verification, and the two must not be confused.
-    await owner.goto("/");
+    await goHome(owner);
     await expect(owner.getByRole("status", { name: /^Verification:/ })).toHaveCount(0);
     await owner.goto("/business");
     await expect(owner.getByTestId("studio-card").filter({ hasText: studioName }).getByLabel("Verified")).toBeVisible();

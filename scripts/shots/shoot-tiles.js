@@ -15,6 +15,18 @@ const path = require("path");
 
 const REPO = path.join(__dirname, "..", "..");
 const BASE = process.env.DANCEOS_BASE_URL || "http://localhost:3100";
+
+/** ⚠ HOME IS REACHED THROUGH THE BAR SINCE 18 Oct 2026 — a document load of "/"
+ *  opens the app on Discover, so a check that wants Home presses Home. */
+const goHome = async (page) => {
+  await page.goto(`${BASE}/discover`, { waitUntil: "networkidle" });
+  for (let i = 0; i < 10; i++) {
+    await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Home", exact: true }).click().catch(() => {});
+    const ok = await page.waitForURL((u) => u.pathname === "/", { timeout: 3000 }).then(() => true).catch(() => false);
+    if (ok) return;
+  }
+  throw new Error("could not reach Home through the bar");
+};
 const env = Object.fromEntries(
   fs.readFileSync(path.join(REPO, ".env.local"), "utf8").split(/\r?\n/).filter((l) => l.includes("="))
     .map((l) => [l.slice(0, l.indexOf("=")).trim(), l.slice(l.indexOf("=") + 1).trim()])
@@ -339,7 +351,7 @@ async function personOpensAStudio(page, who, acc, stamp) {
     /* ⚠ the artist PAGE is provisioned by Home's first render (`ensureArtistPage`),
        so the tiles that point at it are only right on the SECOND look — which is
        itself worth checking, because a first-time artist sees the first one. */
-    await p2.goto(`${BASE}/`, { waitUntil: "networkidle" });
+    await goHome(p2);
     await pressEveryTile(p2, "artist", ["Classes", "Calendar", "Enquiries", "Crews", "Practice", "Studios", "Routines", "Team", "Students", "Earnings", "Memberships", "Assets"]);
 
     /* ⚠ A FORM OPENS OVER THE DESK THAT OFFERED IT, AND IS STILL A PAGE OF ITS

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { FormBar } from "@/components/ui/FormPage";
 import { DOS_MONO, money } from "@/features/inbox/components/inbox-kit";
 import type { QuoteItem } from "@/types/enquiry";
 
@@ -250,7 +251,9 @@ export function QuoteComposer({
           {error}
         </div>
       ) : null}
-      <div style={{ display: "flex", gap: 7 }}>
+      {/* ⚠ the composer lives in a FormPage sheet (18 Oct 2026), so its two
+          buttons are the sheet's own action bar, stuck to the panel's foot */}
+      <FormBar>
         <button type="button" onClick={onCancel} style={{ ...btn, flex: 1, background: "var(--el)", color: "var(--sub)" }}>
           Cancel
         </button>
@@ -270,7 +273,7 @@ export function QuoteComposer({
         >
           {why ?? submitWord}
         </button>
-      </div>
+      </FormBar>
     </div>
   );
 }

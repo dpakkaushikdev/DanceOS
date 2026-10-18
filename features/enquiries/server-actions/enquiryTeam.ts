@@ -17,7 +17,11 @@ import {
 /** AN ENQUIRY'S TEAM AND PRACTICES (18 Oct 2026). Shape only — every rule (who
  *  works the enquiry, who counts as team, a closed enquiry takes nobody, the
  *  register is for the job's own people) is the RPC's, and its refusal is
- *  passed through in its own words. */
+ *  passed through in its own words.
+ *  ⚠ No action here checks WHICH END the caller is on: since `20261026090000`
+ *  the SENDER may add a participant and remove one they added, and the RPCs
+ *  decide that — an app-side "business only" gate would refuse what the
+ *  database allows. */
 
 export interface JobActionResult {
   error: string | null;
@@ -33,6 +37,8 @@ async function signedIn() {
 
 function revalidate(enquiryId: string) {
   revalidatePath(`/inbox/enquiries/${enquiryId}`);
+  /* a studio's enquiry lives under the studio's own address (18 Oct 2026) */
+  revalidatePath("/business/[businessId]/inbox/enquiries/[enquiryId]", "page");
   /* a practice and a job show on these too (18 Oct 2026) */
   revalidatePath("/practice");
   revalidatePath("/calendar");
@@ -187,7 +193,7 @@ export async function addEnquiryFileAction(input: z.input<typeof fileSchema>): P
   if (!supabase) return { error: "Sign in first" };
   const d = parsed.data;
   const r = await guarded(() => addEnquiryFile(supabase, d.enquiryId, d.kind, d.label, d.url));
-  if (!r.error) revalidatePath(`/inbox/enquiries/${d.enquiryId}`);
+  if (!r.error) revalidate(d.enquiryId);
   return r;
 }
 
@@ -199,6 +205,6 @@ export async function removeEnquiryFileAction(input: z.input<typeof removeFileSc
   const supabase = await signedIn();
   if (!supabase) return { error: "Sign in first" };
   const r = await guarded(() => removeEnquiryFile(supabase, parsed.data.fileId));
-  if (!r.error) revalidatePath(`/inbox/enquiries/${parsed.data.enquiryId}`);
+  if (!r.error) revalidate(parsed.data.enquiryId);
   return r;
 }

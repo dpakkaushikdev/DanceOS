@@ -31,6 +31,18 @@ const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY;
 const adminHeaders = { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" };
 const BASE = "http://localhost:3000";
+
+/** ⚠ HOME IS REACHED THROUGH THE BAR SINCE 18 Oct 2026 — a document load of "/"
+ *  opens the app on Discover, so a check that wants Home presses Home. */
+const goHome = async (page) => {
+  await page.goto(`${BASE}/discover`, { waitUntil: "networkidle" });
+  for (let i = 0; i < 10; i++) {
+    await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Home", exact: true }).click().catch(() => {});
+    const ok = await page.waitForURL((u) => u.pathname === "/", { timeout: 3000 }).then(() => true).catch(() => false);
+    if (ok) return;
+  }
+  throw new Error("could not reach Home through the bar");
+};
 /* a 1x1 PNG — the smallest thing the bucket's mime list accepts */
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==", "base64");
 
@@ -85,7 +97,7 @@ async function signUp(page, email) {
     await shot("onboarding-done");
     await page.getByRole("button", { name: "Open DanceOS →" }).click();
     await page.waitForURL((u) => !u.pathname.startsWith("/onboarding"));
-    await page.goto(`${BASE}/`);
+    await goHome(page);
     /* a person's Home says nothing about a GST number — that is an ORGANIZATION
        BUSINESS's, in that organization's own Settings (26 Sep 2026) */
     await shot("home-user");

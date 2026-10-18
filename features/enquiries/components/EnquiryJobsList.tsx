@@ -18,7 +18,10 @@ import { ENQ_PERSON_WORD, ENQ_TINT, enquiryTypeLabel, type EnquiryJobAsk } from 
 const dayWords = (d: string | null) =>
   d ? new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", weekday: "short", day: "numeric", month: "short" }).format(new Date(`${d}T12:00:00+05:30`)) : "—";
 
-export function EnquiryJobsList({ jobs }: { jobs: EnquiryJobAsk[] }) {
+/** ⚠ `bare` (18 Oct 2026): the jobs are a group inside the Enquiries columns now
+ *  ("Asked to work on" in To do, "Jobs you're on" in Ongoing), so a list there
+ *  draws no empty state of its own — the column says when there is nothing */
+export function EnquiryJobsList({ jobs, bare = false }: { jobs: EnquiryJobAsk[]; bare?: boolean }) {
   const router = useRouter();
   const [answered, setAnswered] = useState<Record<string, "joined" | "declined">>({});
   const [busy, setBusy] = useState<string | null>(null);
@@ -40,6 +43,7 @@ export function EnquiryJobsList({ jobs }: { jobs: EnquiryJobAsk[] }) {
   };
 
   if (jobs.length === 0 && Object.keys(answered).length === 0) {
+    if (bare) return null;
     return (
       <div data-testid="enquiry-jobs" style={{ background: "var(--card)", border: "1.5px dashed var(--el)", borderRadius: 16, padding: "22px 16px", textAlign: "center" }}>
         <div style={{ fontSize: 12.5, fontWeight: 800 }}>No jobs yet</div>

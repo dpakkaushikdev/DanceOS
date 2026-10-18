@@ -155,7 +155,19 @@ export interface CalendarPracticeEntry {
   going: number;
   asked: number;
   href: string;
+  /** ⚠ WHICH KIND OF PRACTICE (18 Oct 2026, the user: *"calendar should have
+   *  different section for practice for enquiry and crew practice"*) — a crew's
+   *  rehearsal or an enquiry job's. Optional because the job half is built in
+   *  another module; `practiceKindOf` falls back to the address, which always
+   *  says (`/practice/job/…` vs `/practice/crew/…`). */
+  kind?: PracticeKind;
 }
+
+export type PracticeKind = "crew" | "job";
+
+/** a practice row's kind — its own word, else the address it opens */
+export const practiceKindOf = (e: Pick<CalendarPracticeEntry, "kind" | "href">): PracticeKind =>
+  e.kind ?? (e.href.startsWith("/practice/job/") ? "job" : "crew");
 
 /** One month of the calendar's window, with what a Monday-first grid needs. */
 export interface CalendarMonth {

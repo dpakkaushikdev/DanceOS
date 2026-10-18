@@ -33,7 +33,10 @@ export function isMissingSchema(error: { code?: string; message?: string } | nul
   return /does not exist|could not find the (table|function)|schema cache/i.test(error.message ?? "");
 }
 
-export const NOT_SWITCHED_ON = "Team and practices are not switched on yet";
+/** a person on an enquiry job, with who put them there */
+export type EnquiryJobPerson = EnquiryPerson & { addedBy: string | null };
+
+export const NOT_SWITCHED_ON ="Team and practices are not switched on yet";
 
 export async function findEnquiryJob(supabase: SupabaseClient, enquiryId: string): Promise<EnquiryJob> {
   const empty: EnquiryJob = { available: false, people: [], practices: [] };
@@ -41,7 +44,7 @@ export async function findEnquiryJob(supabase: SupabaseClient, enquiryId: string
   const [peopleRes, practiceRes] = await Promise.all([
     supabase
       .from("enquiry_people")
-      .select("id, user_id, kind, role, status, created_at")
+      .select("id, user_id, kind, role, status, created_at, created_by")
       .eq("enquiry_id", enquiryId)
       .is("deleted_at", null)
       .order("created_at", { ascending: true })
@@ -65,7 +68,7 @@ export async function findEnquiryJob(supabase: SupabaseClient, enquiryId: string
     throw new Error(`enquiryTeam.practices failed: ${practiceRes.error.message}`);
   }
 
-  const rows = (peopleRes.data ?? []) as Array<{ id: string; user_id: string; kind: EnquiryPersonKind; role: string | null; status: string | null }>;
+  const rows = (peopleRes.data ?? []) as Array<{ id: string; user_id: string; kind: EnquiryPersonKind; role: string | null; status: string | null; created_by: string | null }>;
   const practices = (practiceRes.data ?? []) as Array<{ id: string; starts_at: string; ends_at: string; place: string; note: string | null; status: "scheduled" | "cancelled" }>;
 
   /* names and pictures: `enquiry_people.user_id` references profiles, but a
@@ -93,9 +96,13 @@ export async function findEnquiryJob(supabase: SupabaseClient, enquiryId: string
     inBy.set(a.practice_id, [...(inBy.get(a.practice_id) ?? []), a.user_id]);
   }
 
-  const people: EnquiryPerson[] = rows.map((r) => {
+  /* ⚠ `addedBy` rides beside the shared type (18 Oct 2026): the sender may take
+     off a participant THEY added (`20261026090000`), so the panel needs to know
+     who added each row. Read as `EnquiryJobPerson`. */
+  const people: EnquiryJobPerson[] = rows.map((r) => {
     const p = byId.get(r.user_id);
     return {
+      addedBy: r.created_by,
       id: r.id,
       userId: r.user_id,
       kind: r.kind,
@@ -284,7 +291,27 @@ export function enquiryPracticeToCalendar(p: MyEnquiryPractice): CalendarPractic
     going: p.checkedIn,
     asked: p.people,
     href: `/practice/job/${p.id}`,
+    kind: "job",
   };
+}
+
+/** ⚠ A STUDIO'S OWN PRACTICE DESK (18 Oct 2026, the user: "practice tool for
+ *  studio as well"). A studio has no crew, so its practices are its enquiry
+ *  jobs' — the caller's own `my_enquiry_practices` (which already holds every
+ *  job they RUN), narrowed to the enquiries THIS studio works. The enquiry ids
+ *  are read under the caller's RLS and scoped to the business out loud. */
+export async function findBusinessEnquiryPractices(
+  supabase: SupabaseClient,
+  businessId: string,
+  opts: { from: string; to: string }
+): Promise<MyEnquiryPractice[]> {
+  const [{ data, error }, mine] = await Promise.all([
+    supabase.from("enquiries").select("id").eq("business_id", businessId).is("deleted_at", null).limit(2000),
+    findMyEnquiryPractices(supabase, opts),
+  ]);
+  if (error || !data) return [];
+  const ours = new Set((data as { id: string }[]).map((r) => r.id));
+  return mine.filter((p) => ours.has(p.enquiryId));
 }
 
 /** an enquiry's links, newest last — either end reads them (RLS: `is_enquiry_end`) */

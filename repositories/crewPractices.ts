@@ -129,7 +129,10 @@ export function practiceToCalendar(p: CrewPractice): CalendarPracticeEntry {
        ⚠ AND THAT SCREEN IS `/practice` NOW, IN ITS "You are in" COLUMN (1 Oct
        2026): practice left the Crews hub for its own Home tile on 29 Sep and this
        line went on pointing at a hub that no longer carries any practice. */
-    href: p.iLead ? `/crews/${p.crewId}/manage/practice` : "/practice?show=in",
+    /* ⚠ AND SINCE 18 Oct 2026 EVERY ROW OPENS THE PRACTICE ITSELF — its own page
+       has the details for everybody and the register for the leader */
+    href: `/practice/crew/${p.id}`,
+    kind: "crew",
   };
 }
 

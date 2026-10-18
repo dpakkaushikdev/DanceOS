@@ -63,6 +63,8 @@ function revalidateInbox(enquiryId?: string) {
     revalidatePath(`/inbox/enquiries/${enquiryId}`);
   }
   revalidatePath("/inbox/enquiries/[enquiryId]", "page");
+  /* a studio's enquiry lives under the studio's own address (18 Oct 2026) */
+  revalidatePath("/business/[businessId]/inbox/enquiries/[enquiryId]", "page");
 }
 
 export async function sendEnquiryAction(input: z.input<typeof sendSchema>): Promise<EnquiryActionResult> {

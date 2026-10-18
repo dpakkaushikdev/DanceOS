@@ -3,9 +3,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import { findMyMemberships } from "@/repositories/businesses";
 import { resolveActingAs } from "@/repositories/actingAs";
 
-/** the "the app is open" marker — see `updateSession` */
-export const OPEN_COOKIE = "dos_open";
-export const OPEN_COOKIE_OPTIONS = { path: "/", maxAge: 60 * 30, httpOnly: true, sameSite: "lax" as const };
+/** a ONE-SHOT "land on Home this once" marker — only the end of onboarding sets
+ *  it, and the proxy spends it on the next document load of `/` (see `updateSession`) */
+export const OPEN_COOKIE = "dos_home_once";
+export const OPEN_COOKIE_OPTIONS = { path: "/", maxAge: 120, httpOnly: true, sameSite: "lax" as const };
 
 /** Refreshes the auth session cookie on every request (called from proxy.ts). */
 export async function updateSession(request: NextRequest) {
@@ -55,14 +56,23 @@ export async function updateSession(request: NextRequest) {
      lives 30 minutes, so a refresh or a client hop to Home while the app is in
      use stays on Home — and onboarding's own landing on Home is a client
      navigation, which never comes through here as a document. */
+  /* ⚠ 18 Oct 2026, the user: "make sure user and artist whenever they open the
+     app land on discover first. breaking right now". The marker USED to be a
+     30-minute cookie refreshed on every request, so reopening the app within
+     half an hour of last using it landed on Home. A DOCUMENT load of `/` only
+     happens on a fresh open or a reload (every in-app hop to Home is a client
+     navigation), so every one of them goes to Discover now — except the single
+     landing onboarding's finish asks for, which spends its one-shot marker. */
   const isDocument = request.headers.get("sec-fetch-dest") === "document" || (!request.headers.get("rsc") && (request.headers.get("accept") ?? "").includes("text/html"));
-  if (userId && request.nextUrl.pathname === "/" && isDocument && !request.cookies.get(OPEN_COOKIE)) {
-    const res = NextResponse.redirect(new URL("/discover", request.url), 307);
-    supabaseResponse.cookies.getAll().forEach((c) => res.cookies.set(c));
-    res.cookies.set(OPEN_COOKIE, "1", OPEN_COOKIE_OPTIONS);
-    return res;
+  if (userId && request.nextUrl.pathname === "/" && isDocument) {
+    if (request.cookies.get(OPEN_COOKIE)) {
+      supabaseResponse.cookies.set(OPEN_COOKIE, "", { ...OPEN_COOKIE_OPTIONS, maxAge: 0 });
+    } else {
+      const res = NextResponse.redirect(new URL("/discover", request.url), 307);
+      supabaseResponse.cookies.getAll().forEach((c) => res.cookies.set(c));
+      return res;
+    }
   }
-  if (userId) supabaseResponse.cookies.set(OPEN_COOKIE, "1", OPEN_COOKIE_OPTIONS);
 
   const forward = await retiredAddress(request, supabase, userId);
   if (forward) {

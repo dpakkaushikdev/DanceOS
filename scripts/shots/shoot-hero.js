@@ -49,6 +49,18 @@ const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY;
 const adminHeaders = { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" };
 const BASE = process.env.DANCEOS_BASE_URL || "http://localhost:3000";
+
+/** ⚠ HOME IS REACHED THROUGH THE BAR SINCE 18 Oct 2026 — a document load of "/"
+ *  opens the app on Discover, so a check that wants Home presses Home. */
+const goHome = async (page) => {
+  await page.goto(`${BASE}/discover`, { waitUntil: "networkidle" });
+  for (let i = 0; i < 10; i++) {
+    await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Home", exact: true }).click().catch(() => {});
+    const ok = await page.waitForURL((u) => u.pathname === "/", { timeout: 3000 }).then(() => true).catch(() => false);
+    if (ok) return;
+  }
+  throw new Error("could not reach Home through the bar");
+};
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==", "base64");
 const FILE = { name: "face.png", mimeType: "image/png", buffer: PNG };
 /* THE CROPPER (18 Sep 2026): every picture stops in "Crop & preview" first, so a
@@ -632,7 +644,7 @@ const enterEdit = async (page) => {
        on the disc, an empty header (a user holds one), and a QR to its own page.
        ⚠ The organization's own home at `/business/{orgId}` was driven at the end
        of this script until 29 Sep 2026, when organizations went. */
-    await owner.goto(`${BASE}/`);
+    await goHome(owner);
     await owner.getByRole("heading", { name: "EEE Dance Company", exact: true }).waitFor();
     check((await discImgs(owner)) === 1, "owner home: the profile photo is on the disc");
     check((await railImgs(owner)) === 0, "owner home: an empty header — nothing added yet (a user holds one)");
@@ -697,7 +709,7 @@ const enterEdit = async (page) => {
     await owner.getByTestId("home-following").click();
     await owner.waitForURL(/\/follows\/person\/[0-9a-f-]+\?tab=following/, { timeout: 15000 }).catch(() => {});
     check(/\/follows\/person\//.test(owner.url()), "owner home: and the Following figure opens the follow page (12 Oct 2026)");
-    await owner.goto(`${BASE}/`);
+    await goHome(owner);
     await owner.getByRole("heading", { name: "EEE Dance Company", exact: true }).waitFor();
     check((await owner.getByLabel("Change your photo").count()) === 0, "owner home: no ＋ on the disc — the picture is changed behind the pencil beside it");
     /* the chrome, re-cut 19 Sep 2026: THREE in the bar, the DISC is the door to the public page (the eye left Home
@@ -759,7 +771,7 @@ const enterEdit = async (page) => {
     /* exact: "Delete my account" (6 Oct 2026) also contains the word */
     await ownerSettings.getByText("ACCOUNT", { exact: true }).waitFor();
     check((await ownerSettings.getByRole("button", { name: "Edit profile", exact: true }).count()) === 0 && !(await ownerSettings.innerText()).includes("YOU\n"), "settings: NO Edit profile tile and no YOU block — the pencil is on Home's corner (26 Sep 2026)");
-    await owner.goto(`${BASE}/`);
+    await goHome(owner);
     await enterEdit(owner);
     const ownerEdit = owner.getByRole("button", { name: "Edit details", exact: true });
     await ownerEdit.waitFor();
@@ -887,12 +899,13 @@ const enterEdit = async (page) => {
     await owner.goto(`${BASE}/enquiries?as=${studioId}`, { waitUntil: "networkidle" });
     check(new RegExp(`/business/${studioId}/inbox\\?show=enquiries$`).test(owner.url()), `enquiries: the old ?as= address lands on the studio's own Inbox (${owner.url()})`);
     /* ⚠ ENQUIRIES ONLY since 11 Oct 2026 — no column pills; it opens on Received */
-    check((await owner.getByRole("button", { name: "Received enquiries", exact: true }).getAttribute("aria-pressed").catch(() => null)) === "true", "studio inbox: it opens on Received enquiries");
+    /* ⚠ RE-CUT 18 Oct 2026: To do · Ongoing · Past, and a studio's desk has no Received · Sent chips */
+    check((await owner.getByTestId("enquiries-tab-todo").count()) === 1 && (await owner.getByTestId("enquiries-chips").count()) === 0, "studio inbox: To do · Ongoing · Past with no Received · Sent chips");
     const enqTypes = owner.getByRole("button", { name: /^Enquiry settings/ }).first();
     check((await enqTypes.count()) === 1, "enquiries desk: the studio's own What-you-take disclosure is here — the settings moved with the tool");
     await enqTypes.click();
     check((await owner.getByRole("switch", { name: "Take enquiries" }).count()) === 1, "enquiries desk: and the Take-enquiries switch is the first thing under it");
-    await owner.goto(`${BASE}/`);
+    await goHome(owner);
     await shot("owner-home");
 
     /* ⚠ THE ORGANIZATION'S OWN HOME AND ITS PUBLIC PAGE were driven here — the
@@ -909,7 +922,7 @@ const enterEdit = async (page) => {
     const shotMe = shotOf(me);
     userId = await signUp(me, `hero-user-${stamp}@example.com`);
     await onboard(me, "Rhea Kapoor", "Pune");
-    await me.goto(`${BASE}/`);
+    await goHome(me);
     await me.getByRole("heading", { name: "Rhea Kapoor", exact: true }).waitFor();
     check((await discImgs(me)) === 1, "user home: the profile photo is on the disc");
     {
@@ -1049,7 +1062,7 @@ const enterEdit = async (page) => {
         method: "POST", headers: adminHeaders,
         body: JSON.stringify({ kind: "artist", user_id: userId, plan_key: "artist_monthly", price_inr: 0, period: "monthly", status: "active", current_period_start: today, current_period_end: until, granted: true, note: "Granted by shoot-hero.js — nothing charged", created_by: userId, updated_by: userId }),
       });
-      await me.goto(`${BASE}/`);
+      await goHome(me);
       await me.getByText(/^Artist(-\d{6})?$/).first().waitFor();
       check((await railImgs(me)) === 1, "artist home: the header picture is still there");
       await openPosters();

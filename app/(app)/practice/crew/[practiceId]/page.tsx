@@ -5,16 +5,17 @@ import { DeskBody, DeskTop } from "@/components/ui/DeskSections";
 import { toolBtn } from "@/components/ui/ToolCard";
 import { DOS_TOOLS, DeskHero } from "@/features/businesses/components/biz-kit";
 import { PracticeCard } from "@/features/crews/components/practice-card";
-import { PracticeRegister, type RegisterRow } from "@/features/crews/components/PracticeRegister";
+import { PracticeCallOff, PracticeRegister, type RegisterRow } from "@/features/crews/components/PracticeRegister";
 import { DOS_UI, INK, LILAC } from "@/lib/design/tokens";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findMyCrewPractices, findPracticePeople } from "@/repositories/crewPractices";
-import { PRACTICE_TINT, PRACTICE_WORD } from "@/types/crewPractice";
+import { PRACTICE_TINT, PRACTICE_WORD, practiceWhen } from "@/types/crewPractice";
 
 export const metadata: Metadata = { title: "Practice — DanceOS" };
 
 const stampNowIso = (): string => new Date().toISOString();
-const TINT = DOS_TOOLS.practice.c;
+/* a crew practice wears the Crews tool's colour, as its card's kind chip does */
+const TINT = DOS_TOOLS.crews.c;
 
 /** A CREW'S PRACTICE, ON ITS OWN PAGE (18 Oct 2026). Where it is, when, the note
  *  — and for the person who LEADS the crew, the register. A member reads the
@@ -59,16 +60,18 @@ export default async function CrewPracticePage({ params }: { params: Promise<{ p
           <PracticeCard
             practice={p}
             now={now}
+            linked={false}
             actions={
               <>
-                {p.iLead ? (
-                  <Link href={`/crews/${p.crewId}/manage/practice`} aria-label={`The practice desk of ${p.crewName}`} style={toolBtn("secondary", TINT)}>
-                    Practice desk ›
-                  </Link>
-                ) : null}
                 <Link href={`/crew/${p.crewId}`} aria-label={`Open ${p.crewName}`} style={toolBtn("secondary", TINT)}>
                   The crew ›
                 </Link>
+                {p.iLead ? (
+                  <Link href={`/crews/${p.crewId}/manage/practice`} aria-label={`The practice desk of ${p.crewName}`} style={toolBtn("secondary", TINT)}>
+                    Desk ›
+                  </Link>
+                ) : null}
+                {p.iLead && p.status !== "cancelled" && new Date(p.endsAt).getTime() >= now ? <PracticeCallOff practiceId={p.id} crewId={p.crewId} when={practiceWhen(p.startsAt)} /> : null}
               </>
             }
           />

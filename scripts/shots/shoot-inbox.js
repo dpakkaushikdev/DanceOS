@@ -131,9 +131,14 @@ const pressed = async (loc) => (await loc.getAttribute("aria-pressed").catch(() 
     /* ⚠⚠ ENQUIRIES ONLY (11 Oct 2026): no Requests and no Invites column — the
        three sides are the enquiries' own, in the top squircle */
     check((await sp.getByRole("button", { name: /^(Enquiries|Requests|Invites) — / }).count()) === 0, "sender inbox: no columns any more — the Inbox is enquiries only");
-    const sides = ["Received", "Sent", "Completed"].map((s) => sp.getByRole("button", { name: `${s} enquiries`, exact: true }));
-    check((await Promise.all(sides.map((l) => l.count()))).every((n) => n === 1), "sender inbox: Received · Sent · Completed enquiries");
-    check(await pressed(sides[0]), "sender inbox: it opens on Received");
+    /* ⚠⚠ TO DO · ONGOING · PAST, AND ALL · RECEIVED · SENT CHIPS (18 Oct 2026, the
+       user: "handle enquiries like how we handle classes") */
+    const cols = ["To do", "Ongoing", "Past"].map((s) => sp.getByRole("button", { name: `${s} enquiries`, exact: true }));
+    check((await Promise.all(cols.map((l) => l.count()))).every((n) => n === 1), "sender inbox: To do · Ongoing · Past columns");
+    check(await pressed(cols[1]), "sender inbox: nothing waits on the sender, so it opens on Ongoing (the Classes rule)");
+    check((await sp.getByTestId("enquiries-chips").getByRole("button").count()) === 3, "sender inbox: All · Received · Sent chips, every one drawn");
+    check((await sp.getByTestId("pipeline-breakup").count()) === 0 && (await sp.getByTestId("inbox-overview").count()) === 0, "no Breakup and no figures squircle");
+    check((await sp.getByRole("button", { name: "Your jobs" }).count()) === 0, "no Enquiries · Jobs switch — jobs are a group inside the columns");
     for (const noun of ["requests", "invitations"]) {
       check((await sp.getByRole("button", { name: `Received ${noun}`, exact: true }).count()) === 0, `sender inbox: no "${noun}" sides left`);
     }
@@ -149,8 +154,12 @@ const pressed = async (loc) => (await loc.getAttribute("aria-pressed").catch(() 
     /* ⚠ an old address still lands — on Enquiries (Rule 14) */
     for (const old of ["invites", "requests"]) {
       await sp.goto(`${BASE}/inbox?show=${old}`, { waitUntil: "networkidle" });
-      check((await sp.getByRole("button", { name: "Received enquiries", exact: true }).count()) === 1 && /\/inbox\?show=/.test(sp.url()), `?show=${old} lands on the Inbox's Enquiries`);
+      check((await sp.getByRole("button", { name: "To do enquiries", exact: true }).count()) === 1 && /\/inbox\?show=/.test(sp.url()), `?show=${old} lands on Enquiries`);
     }
+    await sp.goto(`${BASE}/inbox?show=done`, { waitUntil: "networkidle" });
+    check(await pressed(sp.getByRole("button", { name: "Past enquiries", exact: true })), "?show=done lands on Past (Rule 14)");
+    await sp.goto(`${BASE}/inbox?show=jobs`, { waitUntil: "networkidle" });
+    check(await pressed(sp.getByRole("button", { name: "To do enquiries", exact: true })), "?show=jobs lands on To do, where the jobs asked of you are");
 
     /* ── THE TEAM INVITE IS ANSWERED ON TEAM › OTHER TEAMS (18 Oct 2026) ── */
     await sp.goto(`${BASE}/business?show=team`, { waitUntil: "networkidle" });
@@ -197,16 +206,17 @@ const pressed = async (loc) => (await loc.getAttribute("aria-pressed").catch(() 
     await sp.goto(`${BASE}/inbox`, { waitUntil: "networkidle" });
     check((await sp.getByTestId("team-invites-pointer").count()) === 0 && (await sp.getByTestId("crew-invites-pointer").count()) === 0, "nothing waits: neither pointer is drawn");
 
-    await sp.goto(`${BASE}/inbox?show=enquiries`, { waitUntil: "networkidle" });
-    check(await pressed(sp.getByRole("button", { name: "Received enquiries", exact: true })), "?show=enquiries opens on Received enquiries");
-    await sp.getByRole("button", { name: "Sent enquiries" }).click();
+    await sp.goto(`${BASE}/inbox?tab=ongoing&side=sent`, { waitUntil: "networkidle" });
+    check(await pressed(sp.getByRole("button", { name: "Sent enquiries", exact: true })), "?side=sent opens on the Sent chip");
     const sentCard = sp.getByRole("link", { name: `Choreographer enquiry to Kappa Hall ${stamp}` });
-    check((await sentCard.count()) === 1, "sender: the OPEN enquiry is on the Sent side, and only it (the declined one is not on the live desk)");
-    const sentText = await sentCard.first().innerText().catch(() => "");
+    check((await sentCard.count()) === 1, "sender: the OPEN enquiry is under Ongoing › Sent, and only it (the declined one is under Past)");
+    const sentText = await sp.getByTestId("enquiry-card").filter({ has: sentCard }).first().innerText().catch(() => "");
     check(/\bKH\b/.test(sentText) && !/\bZQ\b/.test(sentText), `enquiry card: the studio's face, not your own (${/\bKH\b/.test(sentText) ? "KH" : "-"} / ${/\bZQ\b/.test(sentText) ? "ZQ shown" : "no ZQ"})`);
+    check((await sp.getByTestId("enquiry-accept").count()) === 0, "a sent enquiry carries no Accept — it is the studio's move");
 
-    await sp.getByRole("button", { name: "Completed enquiries", exact: true }).click();
-    check((await sp.getByRole("link", { name: `Choreographer enquiry to Kappa Hall ${stamp}` }).count()) === 1, "Enquiries › Completed: the DECLINED enquiry is here");
+    await sp.getByRole("button", { name: "Past enquiries", exact: true }).click();
+    check(/tab=past/.test(sp.url()), "the column is the address (replaced)");
+    check((await sp.getByRole("link", { name: `Choreographer enquiry to Kappa Hall ${stamp}` }).count()) === 1, "Enquiries › Past: the DECLINED enquiry is here");
 
     /* ── THE STUDIO'S INBOX ── */
     const op = await (await browser.newContext({ viewport: { width: 430, height: 932 } })).newPage();
@@ -215,23 +225,21 @@ const pressed = async (loc) => (await loc.getAttribute("aria-pressed").catch(() 
     check(new RegExp(`/business/${studio.id}/inbox\\?show=enquiries$`).test(op.url()), `the old ?as= address lands on the studio's Inbox (${op.url().replace(BASE, "")})`);
     const recvCard = op.getByRole("link", { name: `Choreographer enquiry from Zed Quill ${stamp}` });
     check((await recvCard.count()) === 1, "studio inbox: the open enquiry is on its Enquiries desk");
-    const recvText = await recvCard.first().innerText().catch(() => "");
+    const recvBox = op.getByTestId("enquiry-card").filter({ has: recvCard }).first();
+    const recvText = await recvBox.innerText().catch(() => "");
     check(/\bZQ\b/.test(recvText) && !/\bKH\b/.test(recvText), "studio's card: the sender's face, not the studio's own");
-    check((await op.getByRole("button", { name: /^Enquiry settings/ }).count()) === 1, "studio inbox: the studio's Enquiry settings moved with the desk");
-    check((await op.getByRole("button", { name: "Sent enquiries" }).count()) === 0, "studio inbox: no Sent enquiries side — a studio sends none");
+    check(await pressed(op.getByRole("button", { name: "To do enquiries", exact: true })), "studio inbox: a NEW enquiry waits on the studio, so it opens on To do");
+    check((await op.getByTestId("enquiries-move").getByTestId("enquiry-card").filter({ has: recvCard }).count()) === 1, "…filed under To do › Your move");
+    check((await recvBox.getByTestId("enquiry-accept").count()) === 1 && (await recvBox.getByRole("link", { name: /^Decline the enquiry from/ }).count()) === 1, "the card carries Accept · Decline ›");
+    check((await recvCard.getAttribute("href").catch(() => null)) === `/business/${studio.id}/inbox/enquiries/${open.id}`, "the card opens under the studio's own address");
+    check((await op.getByRole("button", { name: /^Enquiry settings/ }).count()) === 1, "studio inbox: the studio's Enquiry settings stay with the desk");
+    check((await op.getByTestId("enquiries-chips").count()) === 0 && (await op.getByRole("button", { name: "Sent enquiries" }).count()) === 0, "studio inbox: no chips — a studio sends none");
     check((await op.getByRole("button", { name: /^(Requests|Invites) — / }).count()) === 0 && (await op.getByTestId("class-requests-pointer").count()) === 0, "studio inbox: enquiries only, and no room-request pointer while no room is asked for (11 Oct 2026)");
-    /* ⚠ THREE SHAPES (3 Oct 2026, the user: "Received, sent, completed part of
-       upper half. everything below this and above search enquiries is the middle
-       half … search enquiries to till end of page third half") */
-    check((await op.getByTestId("top-panel").getByTestId("inbox-sides").count()) === 1, "inbox: Received · Completed are in the TOP squircle (3 Oct 2026)");
-    check((await op.getByTestId("inbox-overview").getByTestId("pipeline-breakup").count()) === 1, "inbox: the Breakup is in the MIDDLE squircle, its own shape (3 Oct 2026)");
-    check((await op.getByTestId("inbox-panel").getByRole("searchbox").or(op.getByTestId("inbox-panel").getByRole("textbox")).count()) >= 1 && (await op.getByTestId("inbox-overview").getByRole("textbox").count()) === 0, "inbox: the search starts the THIRD panel, under the overview (3 Oct 2026)");
-    check((await op.getByTestId("inbox-overview").getByRole("heading", { name: "Breakup", exact: true }).count()) === 1 && (await op.getByText("Pipeline breakup").count()) === 0, "inbox: it is called Breakup now, not Pipeline breakup (3 Oct 2026)");
-    check(/Total · \d+ enquir/.test(await op.getByTestId("pipeline-breakup").innerText().catch(() => "")), "inbox: the Breakup leads with its total and how many enquiries make it (3 Oct 2026)");
-    await op.screenshot({ path: path.join(__dirname, "shots", "inbox-studio-received.png"), fullPage: true });
-    await op.getByRole("button", { name: "Completed enquiries", exact: true }).click();
-    await op.screenshot({ path: path.join(__dirname, "shots", "inbox-studio-completed.png"), fullPage: true });
-    check((await op.getByRole("link", { name: `Choreographer enquiry from Zed Quill ${stamp}` }).count()) === 1, "studio › Enquiries › Completed: the DECLINED enquiry is here");
+    check((await op.getByTestId("pipeline-breakup").count()) === 0 && (await op.getByTestId("inbox-overview").count()) === 0, "studio inbox: no Breakup (18 Oct 2026)");
+    await op.screenshot({ path: path.join(__dirname, "shots", "inbox-studio-todo.png"), fullPage: true });
+    await op.getByRole("button", { name: "Past enquiries", exact: true }).click();
+    await op.screenshot({ path: path.join(__dirname, "shots", "inbox-studio-past.png"), fullPage: true });
+    check((await op.getByRole("link", { name: `Choreographer enquiry from Zed Quill ${stamp}` }).count()) === 1, "studio › Enquiries › Past: the DECLINED enquiry is here");
 
     /* ── THE OWNER'S OWN INBOX: no invitations it sent (11 Oct 2026) — those are
        on each studio's Team desk and each crew's Team desk, with Withdraw ── */

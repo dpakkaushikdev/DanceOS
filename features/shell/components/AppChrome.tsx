@@ -14,6 +14,8 @@ import type { ArtistPlan } from "@/repositories/plans";
 import type { Profile, ProfileRole } from "@/types/profile";
 import type { Business } from "@/types/business";
 import { setToolOrderAction } from "@/features/home/server-actions/toolOrder";
+import { toolsLayoutKey } from "@/features/home/toolOrder";
+import { DrawerTools } from "@/features/shell/components/DrawerTools";
 import { markNotificationsReadAction } from "@/features/notifications/server-actions/notifications";
 import { viewKey, viewToolOf, type ViewMode, type ViewTool } from "@/features/shell/viewMode";
 import { ViewModeContext } from "@/features/shell/components/ViewToggle";
@@ -852,11 +854,15 @@ export function AppChrome({
               {hereItem?.tiles && hereItem.tiles.length > 0 ? (
                 <>
                   <div style={{ height: 1.5, background: "var(--el)", margin: "12px 6px" }} />
-                  <div data-testid="drawer-tools-head" style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: 1.2, color: "var(--muted)", padding: "0 6px 6px", textTransform: "uppercase" }}>
-                    {TOOLS_HEADING[hereItem.kind === "me" ? (settings?.plan?.active ? "artist" : "user") : hereItem.kind]}
-                  </div>
-                  <nav aria-label="Tools" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    {hereItem.tiles.map((t) => (
+                  {/* THE TOOLS HEADING WITH ARRANGE ON ITS RIGHT (18 Oct 2026) — `DrawerTools`
+                      draws the heading, the Arrange ↔ Done button and the drag list; the
+                      normal-mode row below is the chrome's own, unchanged */}
+                  <DrawerTools
+                    key={hereItem.key}
+                    heading={TOOLS_HEADING[hereItem.kind === "me" ? (settings?.plan?.active ? "artist" : "user") : hereItem.kind]}
+                    layoutKey={hereItem.kind === "me" ? toolsLayoutKey(settings?.plan?.active ? "artist" : "user") : toolsLayoutKey(hereItem.kind, hereItem.key)}
+                    tiles={hereItem.tiles}
+                    renderLink={(t) => (
                       <Link
                         key={t.name}
                         href={t.href}
@@ -882,8 +888,8 @@ export function AppChrome({
                           <path d="M9.5 5.5 16 12l-6.5 6.5" />
                         </svg>
                       </Link>
-                    ))}
-                  </nav>
+                    )}
+                  />
                 </>
               ) : null}
 

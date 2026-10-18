@@ -60,8 +60,11 @@ export const DOS_TOOLS = {
   /* was #F97316, thirteen degrees off Events' amber and the same lightness —
      the warm band holds five tools, so this one separates by depth */
   team: { name: "Team", c: "#EA580C" },
-  /* was #3498DB — a blue eight degrees off Studios' */
-  rooms: { name: "Rooms", c: "#4F46E5" },
+  /* was #3498DB — a blue eight degrees off Studios' — then #4F46E5, which Practice
+     wears and, since 18 Oct 2026 ("practice tool for studio as well"), sits beside
+     on a studio's grid. A deep blue now: a studio's grid carries no other blue
+     (Studios is a person's tile), Calendar's cyan is 32° off and a step lighter */
+  rooms: { name: "Rooms", c: "#1D4ED8" },
   /* ⚠ `media` (fuchsia #C026D3) went with the Media desk on 5 Oct 2026 — its
      tile left every grid on 21 Sep, and the desk was the last thing reading it */
   /* STATS (15 Sep 2026, the user: "remove stats from the navigation menu, keep

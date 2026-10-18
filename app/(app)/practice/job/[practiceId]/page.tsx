@@ -14,7 +14,8 @@ import { ENQ_PART_WORD, ENQ_PERSON_WORD } from "@/types/enquiry";
 export const metadata: Metadata = { title: "Practice — DanceOS" };
 
 const stampNowIso = (): string => new Date().toISOString();
-const TINT = DOS_TOOLS.practice.c;
+/* a job practice wears the Enquiries tool's colour, as its card's kind chip does */
+const TINT = DOS_TOOLS.enquiries.c;
 
 /** AN ENQUIRY JOB'S PRACTICE, ON ITS OWN PAGE (18 Oct 2026, `20261025090000`).
  *
@@ -84,7 +85,7 @@ export default async function JobPracticePage({ params }: { params: Promise<{ pr
             <div style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: 0.9, color: "var(--muted)" }}>YOU</div>
             <div style={{ fontSize: 13, fontWeight: 900, marginTop: 4 }}>{ENQ_PART_WORD[p.myPart].sub}</div>
             <div data-testid="practice-you-in" data-in={meIn ? "1" : "0"} style={{ fontSize: 11.5, color: meIn ? TINT : "var(--sub)", fontWeight: 800, marginTop: 3 }}>
-              {p.status === "cancelled" ? "This practice was called off" : meIn ? "✓ You are checked in" : "Not checked in yet — the person running it marks the register"}
+              {p.status === "cancelled" ? "Called off" : meIn ? "✓ You are checked in" : "Not checked in yet"}
             </div>
           </div>
         )}

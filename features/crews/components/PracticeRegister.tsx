@@ -3,7 +3,8 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { setPracticeAttendanceAction } from "@/features/crews/server-actions/practices";
+import { cancelCrewPracticeAction, setPracticeAttendanceAction } from "@/features/crews/server-actions/practices";
+import { DeleteIconButton } from "@/components/ui/DeleteIconButton";
 import { checkInEnquiryPracticeAction } from "@/features/enquiries/server-actions/enquiryTeam";
 import { photoUrl } from "@/lib/media/photo";
 import { CrewFace, Toast } from "./crew-kit";
@@ -24,6 +25,27 @@ export interface RegisterRow {
   sub: string;
   subTint: string;
   present: boolean;
+}
+
+/** CALL OFF, ON A CREW PRACTICE'S OWN PAGE (18 Oct 2026) — the leader's, beside
+ *  the register; `cancel_crew_practice` refuses anybody else in words */
+export function PracticeCallOff({ practiceId, crewId, when }: { practiceId: string; crewId: string; when: string }) {
+  const router = useRouter();
+  return (
+    <DeleteIconButton
+      label={`Call off ${when}`}
+      title="Call off this practice?"
+      body={`${when} — the crew is told.`}
+      goWord="Call it off"
+      word="Call off"
+      onConfirm={async () => {
+        const r = await cancelCrewPracticeAction({ practiceId, crewId });
+        if (r.error) return r.error;
+        router.refresh();
+        return null;
+      }}
+    />
+  );
 }
 
 export type RegisterTarget = { kind: "crew"; practiceId: string; crewId: string } | { kind: "enquiry"; practiceId: string; enquiryId: string };

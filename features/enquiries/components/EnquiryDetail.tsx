@@ -20,8 +20,10 @@ import { confirmCheckoutAction, startEnquiryCheckoutAction } from "@/features/pa
 import { EnqFace, EnquiryRoad, stageTint } from "@/features/enquiries/components/enquiry-kit";
 import { QuoteComposer, QuoteLines, type ComposerValue } from "@/features/enquiries/components/QuoteComposer";
 import { EnquiryFilesPanel, EnquiryPracticesPanel, EnquiryTeamPanel, type TeamPick } from "@/features/enquiries/components/EnquiryJobPanels";
+import { EnquiryFormSheet } from "@/features/enquiries/components/EnquiryFormSheet";
 import { DosHero, EnqIcon, Eyebrow, Surface, agoWords, dateWords, money } from "@/features/inbox/components/inbox-kit";
 import { DOS_MONO } from "@/features/inbox/components/inbox-kit";
+import { ColumnCount, columnTab, columnTrack } from "@/components/ui/ColumnTabs";
 import { openCashfreeCheckout, preloadCheckout } from "@/lib/cashfree/checkout-client";
 import { DOS_UI, LILAC } from "@/lib/design/tokens";
 import {
@@ -44,23 +46,20 @@ import {
   type EnquiryQuote,
 } from "@/types/enquiry";
 
-/** ONE ENQUIRY, END TO END (3 Oct 2026 — the user's own process, agreed point by
- *  point; it replaces the 2 Oct redesign's hand-moved stages and three closes).
+/** ONE ENQUIRY, END TO END (3 Oct 2026 — the user's own process; re-cut 18 Oct
+ *  2026: "what they asked for … on top", "different columns inside payments —
+ *  earnings, quote with history", "quote should open like a form", "call it off
+ *  should be on top right", "profile pics on top should take to profile").
  *
- *  Read top to bottom as the conversation it is:
- *    WHO · WHERE IT STANDS (the road, and who ended it and why)
- *    the business ACCEPTS or DECLINES (with a reason) a new enquiry
- *    WHAT they asked for
- *    THE QUOTE — lines or one total, an advance, a valid-until; the sender
- *      accepts it whole or asks for a revision (with a reason)
- *    THE PROJECT — once on: what it costs, what is paid, what is due, paid
- *      online or recorded by hand; ADDITIONS (and reductions) at any stage
- *    COMPLETION — either side marks it, the other confirms
- *    ENDING IT — before money at once; after money, refund terms the other side
- *      accepts, counters or refuses
- *    QUOTE HISTORY — every quote and every reason, oldest first
- *  Every rule is the database's (the RPCs); the page says it first so a press is
- *  never the way somebody learns it. */
+ *  Top to bottom:
+ *    the header (call off / withdraw on its top right), WHO (faces are doors),
+ *    WHAT THEY ASKED FOR, WHERE IT STANDS, then the sections
+ *    Payments · Team · Practices · Files — both ends see all four.
+ *    PAYMENTS: what needs an answer now (accept the enquiry, the ending terms,
+ *    completion), then two columns — EARNINGS (the figures, the project, what is
+ *    due and paid, additions) · QUOTE (the live quote and its history).
+ *  Every rule is the database's (the RPCs). ⚠ Money logic is untouched by the
+ *  re-cut — the same actions, the same arguments, only moved. */
 
 const bizBtn: React.CSSProperties = {
   width: "100%",
@@ -91,15 +90,18 @@ const fieldStyle: React.CSSProperties = {
   fontFamily: "inherit",
 };
 const smallLabel: React.CSSProperties = { fontSize: 9, fontWeight: 900, letterSpacing: 0.7, color: "var(--muted)" };
+const hint: React.CSSProperties = { fontSize: 11, color: "var(--sub)", lineHeight: 1.5 };
 
 export type EnquirySection = "payments" | "team" | "practices" | "files";
-/* ⚠ the sender sees Payments · Files; the business all four (18 Oct 2026) */
-const SECTIONS: Array<{ k: EnquirySection; label: string; both: boolean }> = [
-  { k: "payments", label: "Payments", both: true },
-  { k: "team", label: "Team", both: false },
-  { k: "practices", label: "Practices", both: false },
-  { k: "files", label: "Files", both: true },
+/* ⚠ BOTH ENDS SEE ALL FOUR since 18 Oct 2026 (`20261026090000` lets the sender
+   read the job) — the sender reads the team and practices and adds participants */
+const SECTIONS: Array<{ k: EnquirySection; label: string }> = [
+  { k: "payments", label: "Payments" },
+  { k: "team", label: "Team" },
+  { k: "practices", label: "Practices" },
+  { k: "files", label: "Files" },
 ];
+type PayColumn = "earnings" | "quote";
 
 const signed = (n: number) => `${n < 0 ? "−" : ""}${money(Math.abs(n))}`;
 
@@ -161,6 +163,17 @@ interface Ask {
   done: string;
 }
 
+/** a face, as a door to the profile when there is one */
+function FaceDoor({ href, label, children }: { href: string | null; label: string; children: React.ReactNode }) {
+  return href ? (
+    <Link href={href} aria-label={label} style={{ display: "inline-flex", flexShrink: 0, borderRadius: 14 }}>
+      {children}
+    </Link>
+  ) : (
+    <>{children}</>
+  );
+}
+
 export function EnquiryDetail({
   enquiry: e,
   mine,
@@ -173,6 +186,8 @@ export function EnquiryDetail({
   team = [],
   initialTab = "payments",
   files = { available: false, files: [] },
+  fromHref = null,
+  toHref = null,
 }: {
   /** the links shared on the enquiry (`20261025090000`), read for both ends */
   files?: { available: boolean; files: EnquiryFile[] };
@@ -193,6 +208,11 @@ export function EnquiryDetail({
   payOnline?: boolean;
   /** the outcome a phone was brought back with from the payment (`/pay/return`) */
   paidBack?: "paid" | "processing" | "refunded" | "failed" | null;
+  /** the sender's profile — the FROM face is a door to it */
+  fromHref?: string | null;
+  /** the asked side's profile (a studio's page, an artist's person page, a crew's
+   *  page) — null when it cannot be resolved, and the TO face is then a picture */
+  toHref?: string | null;
 }) {
   const router = useRouter();
   const type = enquiryTypeOf(e.typeKey);
@@ -220,8 +240,12 @@ export function EnquiryDetail({
   const [askReason, setAskReason] = useState("");
   const [askAmount, setAskAmount] = useState("");
   const [openOrder, setOpenOrder] = useState<string | null>(null);
-  const sections = SECTIONS.filter((s) => s.both || mine);
-  const [tab, setTab] = useState<EnquirySection>(sections.some((s) => s.k === initialTab) ? initialTab : "payments");
+  const [tab, setTab] = useState<EnquirySection>(SECTIONS.some((s) => s.k === initialTab) ? initialTab : "payments");
+  /* ⚠ the column is DERIVED until somebody picks one: while it is being priced
+     it opens on the Quote, once the project is on on the Earnings — so accepting
+     a quote lands on what is now due without an effect writing state */
+  const [payPick, setPayPick] = useState<PayColumn | null>(null);
+  const payCol: PayColumn = payPick ?? (base && (projectOn || closed) ? "earnings" : "quote");
   /* the section is the address (`?show=`), replaced — a tap is not a page */
   const pickTab = (k: EnquirySection) => {
     setTab(k);
@@ -329,16 +353,29 @@ export function EnquiryDetail({
     void confirmPay(checkout.orderId);
   };
 
+  const closeComposer = () => {
+    setComposer(null);
+    setError(null);
+  };
+  /* ⚠ the composer is a SHEET: it closes FIRST (spending its history entry) and
+     the page re-reads after, so a `back()` never races the refresh (19 Sep) */
   const submitComposer = async (v: ComposerValue) => {
-    if (!composer) return;
-    const ok =
+    if (!composer || busy) return;
+    setBusy(true);
+    setError(null);
+    const out =
       composer.mode === "quote"
-        ? await run(() => sendQuoteAction({ enquiryId: e.id, items: v.items, lumpInr: v.lumpInr, advancePct: v.advancePct, validUntil: v.validUntil, note: v.note }), quotes.length ? "Revised quote sent — they have been told" : "Quote sent — they have been told")
-        : await run(
-            () => sendAdditionAction({ enquiryId: e.id, items: v.items, lumpInr: v.lumpInr, note: v.note, revises: composer.revises?.id ?? null }),
-            "Addition sent — they have been told"
-          );
-    if (ok) setComposer(null);
+        ? await sendQuoteAction({ enquiryId: e.id, items: v.items, lumpInr: v.lumpInr, advancePct: v.advancePct, validUntil: v.validUntil, note: v.note })
+        : await sendAdditionAction({ enquiryId: e.id, items: v.items, lumpInr: v.lumpInr, note: v.note, revises: composer.revises?.id ?? null });
+    setBusy(false);
+    if (out.error) {
+      setError(out.error);
+      return;
+    }
+    const done = composer.mode === "quote" ? (quotes.length ? "Revised quote sent — they have been told" : "Quote sent — they have been told") : "Addition sent — they have been told";
+    setComposer(null);
+    fire(done);
+    setTimeout(() => router.refresh(), 600);
   };
 
   const rows: Array<[string, string]> = [
@@ -350,6 +387,7 @@ export function EnquiryDetail({
   const endedBy = e.closedBy === meId ? "by you" : e.closedBy === e.fromUserId ? `by ${e.fromName}` : mine ? "by your side" : `by ${e.businessName}`;
   const accepted = e.endings.find((x) => x.status === "accepted");
   const lastRefused = [...e.endings].reverse().find((x) => x.status === "refused");
+  const mayEnd = !closed && !ending && acts && !(mine && e.status === "new");
 
   /* ── the payments summary (18 Oct 2026) — every figure from `enquiryMoney`,
      the quote being priced standing in for the project before one is accepted ── */
@@ -418,6 +456,93 @@ export function EnquiryDetail({
       </div>
     ) : null;
 
+  /* ── ENDING IT, from the header's top right (18 Oct 2026) ── */
+  const openEnd = () =>
+    openAsk({
+      key: "end",
+      title: mine ? "Call off this enquiry?" : "Withdraw this enquiry?",
+      placeholder: "Why — they will read this",
+      confirm: m.paidInr > 0 ? "Propose these terms" : mine ? "Call it off" : "Withdraw",
+      danger: true,
+      amount: m.paidInr > 0 ? { max: m.paidInr, start: m.paidInr } : undefined,
+      run: (reason, amount) => endEnquiryAction({ enquiryId: e.id, reason, refundInr: amount }),
+      done: m.paidInr > 0 ? "Terms sent — they have been told" : mine ? "Called off — they have been told" : "Withdrawn — they have been told",
+    });
+
+  /* ── THE QUOTE CARD (the Quote column) — the live quote while it is being
+     priced, the accepted one once the project is on ── */
+  const shown = live ?? base;
+  const mayQuote = mine && acts && ["new", "accepted", "quoted"].includes(e.status);
+  const quoteCard = shown ? (
+    <Surface tint={quoteColour(shown, nowIso)}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+        <span style={smallLabel}>{quotes.length > 1 ? `QUOTE #${shown.n}` : "THE QUOTE"}</span>
+        <span data-testid="live-quote-state" style={{ marginLeft: "auto", fontSize: 10, fontWeight: 900, color: quoteColour(shown, nowIso) }}>
+          {quoteWord(shown, nowIso)}
+        </span>
+      </div>
+      <div style={{ fontSize: 30, fontWeight: 900, letterSpacing: -0.8, marginTop: 4 }}>{money(shown.costInr)}</div>
+      <QuoteLines items={shown.items} costInr={shown.costInr} />
+      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+        {(
+          [
+            ["Advance", shown.advanceInr ? `${money(shown.advanceInr)} · ${shown.advancePct}%` : "none"],
+            ["On completion", money(shown.costInr - shown.advanceInr)],
+            ...(shown.validUntil && shown.status === "sent" ? ([["Valid until", dateWords(shown.validUntil)]] as Array<[string, string]>) : []),
+          ] as Array<[string, string]>
+        ).map(([k, v]) => (
+          <div key={k} style={{ flex: 1, background: "var(--solid)", borderRadius: 11, padding: "8px 10px", minWidth: 0 }}>
+            <div style={{ ...smallLabel, letterSpacing: 0.6 }}>{k.toUpperCase()}</div>
+            <div style={{ fontSize: 12, fontWeight: 900, marginTop: 2, color: k === "Valid until" && quoteExpired(shown, nowIso) ? "#F87171" : undefined }}>{v}</div>
+          </div>
+        ))}
+      </div>
+      {shown.note ? <div style={{ ...hint, marginTop: 8 }}>{shown.note}</div> : null}
+
+      {shown.status === "sent" && !closed ? (
+        mine ? (
+          <div style={{ ...hint, marginTop: 10 }}>{quoteExpired(shown, nowIso) ? "Expired before they answered — send a revised one." : `Waiting on ${e.fromName}.`}</div>
+        ) : (
+          <>
+            <div style={{ display: "flex", gap: 7, marginTop: 11 }}>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  openAsk({
+                    key: "revise",
+                    title: "Ask for a revised quote",
+                    placeholder: "What should change — the price, a line, the advance…",
+                    confirm: "Ask for a revision",
+                    run: (reason) => answerQuoteAction({ quoteId: shown.id, enquiryId: e.id, answer: "revise", reason }),
+                    done: "Asked for a revised quote — they have been told",
+                  })
+                }
+                style={{ ...ghostBtn, flex: 1 }}
+              >
+                Ask to revise
+              </button>
+              <button
+                type="button"
+                disabled={busy || quoteExpired(shown, nowIso)}
+                aria-label="Accept this quote"
+                onClick={() => void run(() => answerQuoteAction({ quoteId: shown.id, enquiryId: e.id, answer: "accept", reason: null }), shown.advanceInr > 0 ? `Accepted — the project is on, ${money(shown.advanceInr)} due as the advance` : "Accepted — the project is on")}
+                style={{ ...greenBtn, flex: 1.4, opacity: quoteExpired(shown, nowIso) ? 0.45 : 1 }}
+              >
+                {quoteExpired(shown, nowIso) ? "Expired" : `Accept ${money(shown.costInr)}`}
+              </button>
+            </div>
+            {askBox("revise")}
+          </>
+        )
+      ) : null}
+    </Surface>
+  ) : (
+    <Surface>
+      <div style={hint}>{mine ? "No quote yet." : `No quote yet — ${e.businessName} sends one here.`}</div>
+    </Surface>
+  );
+
   return (
     <div style={{ background: LILAC, maxWidth: 430, margin: "0 auto", color: "var(--text)", paddingBottom: 40, fontFamily: DOS_UI, minHeight: "100vh" }}>
       <DosHero
@@ -426,16 +551,40 @@ export function EnquiryDetail({
         title={otherName}
         sub={`${agoWords(e.createdAt, nowIso)} · ${m.totalInr ? `project ${money(m.totalInr)}` : live ? `quoted ${money(live.costInr)}` : "no quote yet"}`}
         right={
-          <span style={{ width: 38, height: 38, borderRadius: 19, background: "rgba(255,255,255,.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <EnqIcon k={e.typeKey} size={19} color="#fff" sw={2} />
-          </span>
+          mayEnd ? (
+            /* ⚠ CALL IT OFF ON THE TOP RIGHT (18 Oct 2026). The accessible name is
+               the old button's, so every locator still finds it */
+            <button
+              type="button"
+              disabled={busy}
+              aria-label={mine ? "Call it off" : "Withdraw enquiry"}
+              data-testid="enquiry-end"
+              onClick={openEnd}
+              style={{ flexShrink: 0, padding: "7px 12px", borderRadius: 999, border: "1.5px solid rgba(255,255,255,.55)", background: "rgba(220,38,38,.92)", color: "#fff", fontWeight: 900, fontSize: 11.5, cursor: "pointer", fontFamily: "inherit" }}
+            >
+              {mine ? "Call off" : "Withdraw"}
+            </button>
+          ) : (
+            <span style={{ width: 38, height: 38, borderRadius: 19, background: "rgba(255,255,255,.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <EnqIcon k={e.typeKey} size={19} color="#fff" sw={2} />
+            </span>
+          )
         }
       />
       <div style={{ padding: "12px var(--dos-gutter) 0" }}>
-        {/* ── WHO ── */}
+        {ask?.key === "end" ? (
+          <Surface tint="#F87171">
+            <div style={hint}>{m.paidInr > 0 ? `${money(m.paidInr)} is paid — propose what goes back; ${otherName} accepts, counters or refuses.` : `Nothing is paid, so it ends at once.`}</div>
+            {askBox("end")}
+          </Surface>
+        ) : null}
+
+        {/* ── WHO — each face is a door to that profile ── */}
         <Surface>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <EnqFace path={e.fromPhotoPath} name={e.fromName} size={42} tint={tint} />
+            <FaceDoor href={fromHref} label={`Open ${e.fromName}'s profile`}>
+              <EnqFace path={e.fromPhotoPath} name={e.fromName} size={42} tint={tint} />
+            </FaceDoor>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={smallLabel}>FROM</div>
               <div style={{ fontSize: 13.5, fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{mine ? e.fromName : "You"}</div>
@@ -447,7 +596,9 @@ export function EnquiryDetail({
               <div style={smallLabel}>TO</div>
               <div style={{ fontSize: 13.5, fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{mine ? "You" : e.businessName}</div>
             </div>
-            <EnqFace path={e.toPhotoPath} name={e.businessName} size={42} tint="#64748B" />
+            <FaceDoor href={toHref} label={`Open ${e.businessName}'s profile`}>
+              <EnqFace path={e.toPhotoPath} name={e.businessName} size={42} tint="#64748B" />
+            </FaceDoor>
           </div>
           {tel ? (
             <a
@@ -460,6 +611,34 @@ export function EnquiryDetail({
               </svg>
               Call {mine && e.mobile ? <span style={{ fontFamily: DOS_MONO, fontWeight: 600, color: "var(--sub)" }}>{e.mobile}</span> : null}
             </a>
+          ) : null}
+        </Surface>
+
+        {/* ── WHAT THEY ASKED FOR — first, above where it stands (18 Oct 2026) ── */}
+        <Surface tint={tint}>
+          <Eyebrow
+            tint={tint}
+            right={
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10.5, fontWeight: 900, color: tint }}>
+                <EnqIcon k={e.typeKey} size={13} color={tint} sw={2} />
+                {type?.label ?? e.typeKey}
+              </span>
+            }
+          >
+            {mine ? "WHAT THEY ASKED FOR" : "WHAT YOU ASKED FOR"}
+          </Eyebrow>
+          <dl data-testid="enquiry-asked" style={{ margin: 0 }}>
+            {rows.map(([k, v], i) => (
+              <div key={`${k}·${i}`} style={{ display: "grid", gridTemplateColumns: "96px 1fr", gap: 10, padding: "7px 0", borderBottom: i < rows.length - 1 ? "1.5px solid var(--el)" : "none", fontSize: 12 }}>
+                <dt style={{ ...smallLabel, fontSize: 9.5, paddingTop: 2 }}>{k.toUpperCase()}</dt>
+                <dd style={{ margin: 0, fontWeight: 800, overflowWrap: "anywhere" }}>{v}</dd>
+              </div>
+            ))}
+          </dl>
+          {e.message ? (
+            <blockquote data-testid="enquiry-message" style={{ margin: "10px 0 0", padding: "9px 12px", borderLeft: `3px solid ${tint}`, background: "var(--solid)", borderRadius: "0 10px 10px 0", fontSize: 12.5, lineHeight: 1.55, fontStyle: "italic", overflowWrap: "anywhere" }}>
+              “{e.message}”
+            </blockquote>
           ) : null}
         </Surface>
 
@@ -490,632 +669,499 @@ export function EnquiryDetail({
               ) : null}
             </div>
           ) : null}
-          {mine && !canWork ? <div style={{ fontSize: 11, color: "var(--sub)", marginTop: 9 }}>Its owners and managers answer, quote and record money — you can read it.</div> : null}
+          {mine && !canWork ? <div style={{ ...hint, marginTop: 9 }}>Read only — its owners and managers act on it.</div> : null}
         </Surface>
 
-        {/* ── THREE SECTIONS (18 Oct 2026): Payments · Team · Practices — the
-            business's side only; the sender reads the money alone ── */}
-        {sections.length > 1 ? (
-          <div role="tablist" aria-label="Enquiry sections" style={{ display: "flex", gap: 4, padding: 4, borderRadius: 999, background: "var(--el)", marginBottom: 10 }}>
-            {sections.map((s) => {
-              const on = tab === s.k;
-              const count =
-                s.k === "team"
-                  ? job.people.length
-                  : s.k === "practices"
-                    ? job.practices.filter((p) => p.status === "scheduled" && p.endsAt >= nowIso).length
-                    : s.k === "files"
-                      ? files.files.length
-                      : null;
-              return (
-                <button
-                  key={s.k}
-                  type="button"
-                  role="tab"
-                  aria-selected={on}
-                  data-testid={`enquiry-tab-${s.k}`}
-                  onClick={() => pickTab(s.k)}
-                  style={{ flex: 1, padding: "9px 6px", borderRadius: 999, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 900, background: on ? "var(--text)" : "transparent", color: on ? "var(--solid)" : "var(--sub)" }}
-                >
-                  {s.label}
-                  {count ? <span style={{ marginLeft: 5, fontSize: 10.5, opacity: 0.75 }}>{count}</span> : null}
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
+        {/* ── FOUR SECTIONS, BOTH ENDS (18 Oct 2026) ── */}
+        <div role="tablist" aria-label="Enquiry sections" style={{ ...columnTrack(), marginBottom: 10 }}>
+          {SECTIONS.map((s) => {
+            const on = tab === s.k;
+            const count =
+              s.k === "team"
+                ? job.people.length
+                : s.k === "practices"
+                  ? job.practices.filter((p) => p.status === "scheduled" && p.endsAt >= nowIso).length
+                  : s.k === "files"
+                    ? files.files.length
+                    : null;
+            return (
+              <button key={s.k} type="button" role="tab" aria-selected={on} data-testid={`enquiry-tab-${s.k}`} onClick={() => pickTab(s.k)} style={columnTab(on)}>
+                {s.label}
+                {count ? <ColumnCount n={count} on={on} /> : null}
+              </button>
+            );
+          })}
+        </div>
 
-        {tab === "team" && mine ? <EnquiryTeamPanel enquiryId={e.id} job={job} canWork={canWork} team={team} tint={tint} /> : null}
-        {tab === "practices" && mine ? (
-          <EnquiryPracticesPanel enquiryId={e.id} job={job} canWork={canWork} closed={closed} nowIso={nowIso} tint={tint} hostName={e.businessName} hostPhotoPath={e.toPhotoPath} typeKey={e.typeKey} />
+        {tab === "team" ? <EnquiryTeamPanel enquiryId={e.id} job={job} canWork={mine && canWork} team={team} tint={tint} meId={meId} sender={{ id: e.fromUserId, name: e.fromName }} /> : null}
+        {tab === "practices" ? (
+          <EnquiryPracticesPanel
+            enquiryId={e.id}
+            job={job}
+            canWork={mine && canWork}
+            closed={closed}
+            nowIso={nowIso}
+            tint={tint}
+            hostName={e.businessName}
+            hostPhotoPath={e.toPhotoPath}
+            typeKey={e.typeKey}
+            myPart={mine ? (canWork ? "runs" : "team") : "participant"}
+            linked={mine}
+          />
         ) : null}
         {tab === "files" ? <EnquiryFilesPanel enquiryId={e.id} available={files.available} files={files.files} meId={meId} canWork={mine && canWork} closed={closed} tint={tint} /> : null}
 
         {tab === "payments" ? (
           <>
-        {/* ── THE MONEY, ALWAYS DRAWN (18 Oct 2026, the user: "payments to be
-            better") — the four figures read ₹0 or "—" before there is a quote,
-            because a summary that appears only once there is money says nothing
-            about where an enquiry is. Then the breakup: what the quote is made of,
-            what was added or taken off, and what went back. ── */}
-        <Surface tint="#22C55E">
-          <Eyebrow tint="#22C55E">PAYMENTS</Eyebrow>
-          <div data-testid="enquiry-money" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
-            {moneyFigures.map(([k, v, sub, colour]) => (
-              <div key={k} data-testid={`money-${k.toLowerCase()}`} style={{ background: "var(--solid)", borderRadius: 12, padding: "10px 11px", border: "1.5px solid var(--el)", borderTop: `3px solid ${colour}` }}>
-                <div style={{ fontSize: 17, fontWeight: 900, fontFamily: DOS_MONO, letterSpacing: -0.3 }}>{v}</div>
-                <div style={smallLabel}>{k.toUpperCase()}</div>
-                <div style={{ fontSize: 10, color: "var(--sub)", marginTop: 2, fontWeight: 700 }}>{sub}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ ...smallLabel, marginTop: 12, marginBottom: 6 }}>BREAKUP</div>
-          <div data-testid="enquiry-breakup" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
-            {breakup.map(([k, v]) => (
-              <div key={k} data-testid={`breakup-${k.toLowerCase().replace(/[^a-z]+/g, "-")}`} style={{ background: "var(--card)", borderRadius: 10, padding: "8px 9px", border: "1.5px solid var(--el)", minWidth: 0 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 900, fontFamily: DOS_MONO, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v}</div>
-                <div style={{ ...smallLabel, fontSize: 8.5, marginTop: 1 }}>{k.toUpperCase()}</div>
-              </div>
-            ))}
-          </div>
-        </Surface>
-
-        {paidBack ? (
-          <div
-            role="status"
-            data-testid="paid-back"
-            style={{
-              borderRadius: 14,
-              padding: "11px 13px",
-              marginBottom: 10,
-              fontSize: 12,
-              fontWeight: 800,
-              background: paidBack === "paid" ? "rgba(34,197,94,.14)" : "var(--card)",
-              border: `1.5px solid ${paidBack === "paid" ? "#22C55E" : "var(--el)"}`,
-              color: paidBack === "paid" ? "#22C55E" : "var(--sub)",
-            }}
-          >
-            {paidBack === "paid" ? "✓ Payment confirmed" : paidBack === "processing" ? "Payment received — the bank is still confirming it" : paidBack === "refunded" ? "That payment could not be applied — it is on its way back" : "The payment didn't go through — nothing was charged"}
-          </div>
-        ) : null}
-
-        {/* ── 2 · ACCEPT OR DECLINE (the business, on a new enquiry) ── */}
-        {mine && acts && e.status === "new" ? (
-          <Surface tint="#3B82F6">
-            <Eyebrow tint="#3B82F6">NEW ENQUIRY</Eyebrow>
-            <div style={{ fontSize: 12, color: "var(--sub)", lineHeight: 1.5, marginBottom: 10 }}>Accept it to start talking price, or decline it — {e.fromName} is told either way.</div>
-            <div style={{ display: "flex", gap: 7 }}>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() =>
-                  openAsk({
-                    key: "decline",
-                    title: "Decline this enquiry?",
-                    placeholder: "Why — they will read this",
-                    confirm: "Decline",
-                    danger: true,
-                    run: (reason) => respondToEnquiryAction({ enquiryId: e.id, accept: false, reason }),
-                    done: "Declined — they have been told",
-                  })
-                }
-                style={{ ...ghostBtn, flex: 1 }}
+            {paidBack ? (
+              <div
+                role="status"
+                data-testid="paid-back"
+                style={{
+                  borderRadius: 14,
+                  padding: "11px 13px",
+                  marginBottom: 10,
+                  fontSize: 12,
+                  fontWeight: 800,
+                  background: paidBack === "paid" ? "rgba(34,197,94,.14)" : "var(--card)",
+                  border: `1.5px solid ${paidBack === "paid" ? "#22C55E" : "var(--el)"}`,
+                  color: paidBack === "paid" ? "#22C55E" : "var(--sub)",
+                }}
               >
-                Decline
-              </button>
-              <button type="button" disabled={busy} onClick={() => void run(() => respondToEnquiryAction({ enquiryId: e.id, accept: true, reason: null }), "Accepted — they have been told")} style={{ ...greenBtn, flex: 1.4 }}>
-                Accept enquiry
-              </button>
-            </div>
-            {askBox("decline")}
-          </Surface>
-        ) : null}
-
-        {/* ── A REVISION ASKED FOR ── */}
-        {revisionAsked(e) && live ? (
-          <div data-testid="revision-asked" style={{ borderRadius: 14, padding: "11px 13px", marginBottom: 10, fontSize: 12, lineHeight: 1.5, background: "rgba(245,158,11,.12)", border: "1.5px solid #F59E0B" }}>
-            <b style={{ color: "#F59E0B" }}>{mine ? `${e.fromName} asked for a revised quote.` : "You asked for a revised quote."}</b>
-            {live.answerReason ? <div style={{ marginTop: 4 }}>“{live.answerReason}”</div> : null}
-            <div style={{ marginTop: 4, color: "var(--sub)" }}>{mine ? "Send a new one below." : `${e.businessName} has been told — the new quote will land here.`}</div>
-          </div>
-        ) : null}
-
-        {/* ── WHAT ── */}
-        <Surface tint={tint}>
-          <Eyebrow tint={tint}>{mine ? "WHAT THEY ASKED FOR" : "WHAT YOU ASKED FOR"}</Eyebrow>
-          {rows.map(([k, v], i) => (
-            <div key={`${k}·${i}`} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "6px 0", borderBottom: "1.5px solid var(--el)", fontSize: 11.5 }}>
-              <span style={{ color: "var(--sub)" }}>{k}</span>
-              <b style={{ textAlign: "right", fontWeight: 700 }}>{v}</b>
-            </div>
-          ))}
-          <div style={{ fontSize: 12.5, lineHeight: 1.55, marginTop: 9 }}>“{e.message}”</div>
-        </Surface>
-
-        {/* ── THE QUOTE ── while it is being priced; once the project is on, THE PROJECT below carries it */}
-        {live && !projectOn && !(closed && base) ? (
-          <Surface tint={quoteColour(live, nowIso)}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-              <span style={smallLabel}>{quotes.length > 1 ? `QUOTE #${live.n}` : "THE QUOTE"}</span>
-              <span data-testid="live-quote-state" style={{ marginLeft: "auto", fontSize: 10, fontWeight: 900, color: quoteColour(live, nowIso) }}>
-                {quoteWord(live, nowIso)}
-              </span>
-            </div>
-            <div style={{ fontSize: 30, fontWeight: 900, letterSpacing: -0.8, marginTop: 4 }}>{money(live.costInr)}</div>
-            <QuoteLines items={live.items} costInr={live.costInr} />
-            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-              {(
-                [
-                  ["Advance", live.advanceInr ? `${money(live.advanceInr)} · ${live.advancePct}%` : "none"],
-                  ["On completion", money(live.costInr - live.advanceInr)],
-                  ...(live.validUntil ? ([["Valid until", dateWords(live.validUntil)]] as Array<[string, string]>) : []),
-                ] as Array<[string, string]>
-              ).map(([k, v]) => (
-                <div key={k} style={{ flex: 1, background: "var(--solid)", borderRadius: 11, padding: "8px 10px", minWidth: 0 }}>
-                  <div style={{ ...smallLabel, letterSpacing: 0.6 }}>{k.toUpperCase()}</div>
-                  <div style={{ fontSize: 12, fontWeight: 900, marginTop: 2, color: k === "Valid until" && quoteExpired(live, nowIso) ? "#F87171" : undefined }}>{v}</div>
-                </div>
-              ))}
-            </div>
-            {live.note ? <div style={{ fontSize: 11.5, color: "var(--sub)", marginTop: 8, lineHeight: 1.5 }}>{live.note}</div> : null}
-
-            {live.status === "sent" && !closed ? (
-              mine ? (
-                <div style={{ fontSize: 11, color: "var(--sub)", marginTop: 10, lineHeight: 1.5 }}>
-                  {quoteExpired(live, nowIso) ? "It expired before they answered — send a revised one." : `Sent to ${e.fromName}. You will see it here the moment they answer.`}
-                </div>
-              ) : (
-                <>
-                  <div style={{ display: "flex", gap: 7, marginTop: 11 }}>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() =>
-                        openAsk({
-                          key: "revise",
-                          title: "Ask for a revised quote",
-                          placeholder: "What should change — the price, a line, the advance…",
-                          confirm: "Ask for a revision",
-                          run: (reason) => answerQuoteAction({ quoteId: live.id, enquiryId: e.id, answer: "revise", reason }),
-                          done: "Asked for a revised quote — they have been told",
-                        })
-                      }
-                      style={{ ...ghostBtn, flex: 1 }}
-                    >
-                      Ask to revise
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy || quoteExpired(live, nowIso)}
-                      aria-label="Accept this quote"
-                      onClick={() => void run(() => answerQuoteAction({ quoteId: live.id, enquiryId: e.id, answer: "accept", reason: null }), live.advanceInr > 0 ? `Accepted — the project is on, ${money(live.advanceInr)} due as the advance` : "Accepted — the project is on")}
-                      style={{ ...greenBtn, flex: 1.4, opacity: quoteExpired(live, nowIso) ? 0.45 : 1 }}
-                    >
-                      {quoteExpired(live, nowIso) ? "Expired" : `Accept ${money(live.costInr)}`}
-                    </button>
-                  </div>
-                  {quoteExpired(live, nowIso) ? <div style={{ fontSize: 10.5, color: "#F87171", marginTop: 7 }}>This quote expired — ask for a revised one.</div> : null}
-                  {askBox("revise")}
-                </>
-              )
+                {paidBack === "paid" ? "✓ Payment confirmed" : paidBack === "processing" ? "Payment received — the bank is still confirming it" : paidBack === "refunded" ? "That payment could not be applied — it is on its way back" : "The payment didn't go through — nothing was charged"}
+              </div>
             ) : null}
-          </Surface>
-        ) : null}
 
-        {/* ── THE PROJECT ── what it costs, what is paid, what is due */}
-        {base && (projectOn || closed) ? (
-          <Surface tint="#22C55E">
-            <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-              <span style={smallLabel}>THE PROJECT</span>
-              <span style={{ marginLeft: "auto", fontSize: 10, fontWeight: 900, color: m.outstandingInr ? "#F59E0B" : "#22C55E" }}>{m.outstandingInr ? `${money(m.outstandingInr)} to pay` : "✓ Paid in full"}</span>
-            </div>
-            <div data-testid="project-total" style={{ fontSize: 30, fontWeight: 900, letterSpacing: -0.8, marginTop: 4 }}>
-              {money(m.totalInr)}
-            </div>
-            <QuoteLines items={base.items} costInr={base.costInr} />
-            <div style={{ marginTop: 9 }}>
-              {(
-                [
-                  ["Quote", money(base.costInr)],
-                  ...adds.filter((a) => a.status === "accepted").map((a) => [`Addition #${a.n}`, signed(a.costInr)] as [string, string]),
-                  ["Paid", money(m.paidInr)],
-                ] as Array<[string, string]>
-              ).map(([k, v]) => (
-                <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 12, borderBottom: "1px solid var(--el)" }}>
-                  <span style={{ color: "var(--sub)" }}>{k}</span>
-                  <b>{v}</b>
-                </div>
-              ))}
-            </div>
-            {base.note ? <div style={{ fontSize: 11.5, color: "var(--sub)", marginTop: 8, lineHeight: 1.5 }}>{base.note}</div> : null}
-
-            {projectOn && dues.length ? (
-              <div data-testid="dues" style={{ marginTop: 11 }}>
-                <div style={{ ...smallLabel, marginBottom: 6 }}>DUE</div>
-                {dues.map((d) => (
-                  <div key={`${d.quoteId}-${d.part}`} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0" }}>
-                    <span style={{ flex: 1, fontSize: 12.5, fontWeight: 800 }}>
-                      {d.word} · {money(d.amount)}
-                    </span>
-                    {mine ? (
-                      acts ? (
-                        <button
-                          type="button"
-                          disabled={busy}
-                          onClick={() => void run(() => recordEnquiryPaymentAction({ quoteId: d.quoteId, enquiryId: e.id, part: d.part }), `${d.word} recorded · ${money(d.amount)}`)}
-                          style={{ ...greenBtn, width: "auto", padding: "8px 12px", fontSize: 11.5 }}
-                        >
-                          Record received
-                        </button>
-                      ) : null
-                    ) : canPay ? (
-                      <button type="button" disabled={busy} data-testid="enquiry-pay" onClick={() => void pay(d)} style={{ ...greenBtn, width: "auto", padding: "8px 12px", fontSize: 11.5 }}>
-                        Pay {money(d.amount)}
-                      </button>
-                    ) : null}
-                  </div>
-                ))}
-                <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 4, lineHeight: 1.5 }}>
-                  {mine ? `For cash or a bank transfer — ${e.fromName} can also pay here online.` : canPay ? "UPI · cards · netbanking, through Cashfree. You come straight back here." : ending ? "Payments pause while the terms to end it are open." : `Settle with ${e.businessName} directly and they will record it here.`}
-                </div>
-                {busy && openOrder ? (
-                  <button type="button" onClick={() => void confirmPay(openOrder)} style={{ display: "block", margin: "8px auto 0", background: "none", border: "none", color: "var(--sub)", fontSize: 11.5, fontWeight: 800, textDecoration: "underline", cursor: "pointer", fontFamily: "inherit" }}>
-                    Paid already, or stuck? Check my payment
+            {/* ── WHAT NEEDS AN ANSWER NOW, above the columns ── */}
+            {mine && acts && e.status === "new" ? (
+              <Surface tint="#3B82F6">
+                <Eyebrow tint="#3B82F6">NEW ENQUIRY</Eyebrow>
+                <div style={{ display: "flex", gap: 7 }}>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() =>
+                      openAsk({
+                        key: "decline",
+                        title: "Decline this enquiry?",
+                        placeholder: "Why — they will read this",
+                        confirm: "Decline",
+                        danger: true,
+                        run: (reason) => respondToEnquiryAction({ enquiryId: e.id, accept: false, reason }),
+                        done: "Declined — they have been told",
+                      })
+                    }
+                    style={{ ...ghostBtn, flex: 1 }}
+                  >
+                    Decline
                   </button>
+                  <button type="button" disabled={busy} onClick={() => void run(() => respondToEnquiryAction({ enquiryId: e.id, accept: true, reason: null }), "Accepted — they have been told")} style={{ ...greenBtn, flex: 1.4 }}>
+                    Accept enquiry
+                  </button>
+                </div>
+                {askBox("decline")}
+              </Surface>
+            ) : null}
+
+            {revisionAsked(e) && live ? (
+              <div data-testid="revision-asked" style={{ borderRadius: 14, padding: "11px 13px", marginBottom: 10, fontSize: 12, lineHeight: 1.5, background: "rgba(245,158,11,.12)", border: "1.5px solid #F59E0B" }}>
+                <b style={{ color: "#F59E0B" }}>{mine ? `${e.fromName} asked for a revised quote.` : "You asked for a revised quote."}</b>
+                {live.answerReason ? <div style={{ marginTop: 4 }}>“{live.answerReason}”</div> : null}
+              </div>
+            ) : null}
+
+            {/* ── ENDING IT ── terms after money; at once before it */}
+            {ending ? (
+              <Surface tint="#F87171">
+                <Eyebrow tint="#F87171">{ending.outcome === "withdrawn" ? "ENDING IT · WITHDRAWAL" : "ENDING IT · CALLED OFF"}</Eyebrow>
+                <div data-testid="ending-terms" style={{ fontSize: 12.5, lineHeight: 1.5 }}>
+                  <b>{ending.side === mySide ? "You" : otherName}</b> proposed {money(ending.refundInr)} back of the {money(m.paidInr)} paid.
+                  <div style={{ marginTop: 4, color: "var(--sub)" }}>“{ending.reason}”</div>
+                </div>
+                {e.endings.length > 1 ? (
+                  <div style={{ marginTop: 8 }}>
+                    {e.endings
+                      .filter((x) => x.id !== ending.id)
+                      .map((x) => (
+                        <div key={x.id} style={{ fontSize: 10.5, color: "var(--muted)", padding: "2px 0" }}>
+                          {x.side === mySide ? "You" : otherName} · {money(x.refundInr)} · {x.status}
+                          {x.answerReason ? ` — “${x.answerReason}”` : ""}
+                        </div>
+                      ))}
+                  </div>
                 ) : null}
-              </div>
-            ) : null}
-          </Surface>
-        ) : null}
-
-        {/* ── ADDITIONS ── */}
-        {adds.length || (mine && acts && projectOn && !ending) ? (
-          <Surface>
-            <Eyebrow>{`ADDITIONS${adds.length ? ` · ${adds.length}` : ""}`}</Eyebrow>
-            <div data-testid="additions">
-              {adds.map((a) => {
-                const revisedBy = adds.find((x) => x.revises === a.id);
-                return (
-                  <div key={a.id} data-testid={`addition-${a.n}`} style={{ padding: "9px 0", borderBottom: "1px solid var(--el)", opacity: a.status === "cancelled" || a.status === "superseded" ? 0.6 : 1 }}>
-                    <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}>
-                      <span style={{ fontSize: 9.5, fontWeight: 900, color: "var(--muted)", fontFamily: DOS_MONO }}>#{a.n}</span>
-                      <b style={{ fontSize: 14, color: a.costInr < 0 ? "#22C55E" : undefined }}>{a.costInr < 0 ? `${signed(a.costInr)} off` : `+${money(a.costInr)}`}</b>
-                      <span style={{ marginLeft: "auto", fontSize: 10, fontWeight: 900, color: quoteColour(a, nowIso) }}>{quoteWord(a, nowIso)}</span>
-                    </div>
-                    {a.revises ? <div style={{ fontSize: 10.5, color: "var(--muted)", marginTop: 2 }}>Revised from #{adds.find((x) => x.id === a.revises)?.n ?? "?"}</div> : null}
-                    {a.note ? <div style={{ fontSize: 11.5, color: "var(--sub)", marginTop: 3 }}>{a.note}</div> : null}
-                    <QuoteLines items={a.items} costInr={a.costInr} />
-                    {a.answerReason ? <div style={{ fontSize: 11.5, marginTop: 5 }}>Declined: “{a.answerReason}”</div> : null}
-                    {a.status === "sent" && projectOn ? (
-                      mine ? (
-                        acts ? (
-                          <button type="button" disabled={busy} onClick={() => void run(() => cancelAdditionAction({ quoteId: a.id, enquiryId: e.id }), "Taken back — they have been told")} style={{ ...ghostBtn, marginTop: 8, padding: 9, fontSize: 11.5 }}>
-                            Take it back
-                          </button>
-                        ) : null
-                      ) : (
-                        <>
-                          <div style={{ display: "flex", gap: 7, marginTop: 8 }}>
-                            <button
-                              type="button"
-                              disabled={busy}
-                              onClick={() =>
-                                openAsk({
-                                  key: `decline-add-${a.id}`,
-                                  title: "Decline this addition",
-                                  placeholder: "Why — they can send a revised one",
-                                  confirm: "Decline",
-                                  danger: true,
-                                  run: (reason) => answerQuoteAction({ quoteId: a.id, enquiryId: e.id, answer: "decline", reason }),
-                                  done: "Declined — they have been told",
-                                })
-                              }
-                              style={{ ...ghostBtn, flex: 1, padding: 10, fontSize: 12 }}
-                            >
-                              Decline
-                            </button>
-                            <button type="button" disabled={busy} aria-label={`Accept addition #${a.n}`} onClick={() => void run(() => answerQuoteAction({ quoteId: a.id, enquiryId: e.id, answer: "accept", reason: null }), a.costInr > 0 ? `Accepted — ${money(a.costInr)} is due now` : "Accepted — the balance is lower")} style={{ ...greenBtn, flex: 1.4, padding: 10, fontSize: 12 }}>
-                              Accept {a.costInr < 0 ? `${signed(a.costInr)} off` : `+${money(a.costInr)}`}
-                            </button>
-                          </div>
-                          {askBox(`decline-add-${a.id}`)}
-                        </>
-                      )
-                    ) : null}
-                    {mine && acts && a.status === "declined" && !revisedBy && projectOn && !ending ? (
-                      <button type="button" onClick={() => setComposer({ mode: "addition", revises: a })} style={{ ...ghostBtn, marginTop: 8, padding: 9, fontSize: 11.5 }}>
-                        Send a revised addition
-                      </button>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-            {!adds.length ? <div style={{ fontSize: 11.5, color: "var(--sub)" }}>Nothing added yet. Anything extra — or a reduction — goes here, for {e.fromName} to accept.</div> : null}
-            {mine && acts && projectOn && !ending && !(composer && composer.mode === "addition") ? (
-              <button type="button" onClick={() => setComposer({ mode: "addition", revises: null })} style={{ ...bizBtn, marginTop: 10, background: tint, color: "#08060C" }}>
-                Add to the project
-              </button>
-            ) : null}
-            {composer && composer.mode === "addition" ? (
-              <div style={{ marginTop: 10 }}>
-                <Eyebrow tint={tint}>{composer.revises ? `REVISE ADDITION #${composer.revises.n}` : "ADD TO THE PROJECT"}</Eyebrow>
-                <QuoteComposer
-                  mode="addition"
-                  tint={tint}
-                  todayKey={todayKey}
-                  start={composer.revises ? { items: composer.revises.items, costInr: composer.revises.costInr, advancePct: 0, note: composer.revises.note } : null}
-                  busy={busy}
-                  error={error}
-                  submitWord="Send the addition"
-                  onSubmit={(v) => void submitComposer(v)}
-                  onCancel={() => setComposer(null)}
-                />
-              </div>
-            ) : null}
-          </Surface>
-        ) : null}
-
-        {/* ── COMPLETION ── either side marks it; the other confirms */}
-        {projectOn ? (
-          <Surface tint={e.status === "completing" ? "#22C55E" : undefined}>
-            <Eyebrow>COMPLETION</Eyebrow>
-            {e.status === "completing" ? (
-              e.completeAskedSide === mySide ? (
-                <>
-                  <div data-testid="completion-waiting" style={{ fontSize: 12, lineHeight: 1.5 }}>
-                    You marked the project complete — waiting for {otherName} to confirm.
-                  </div>
-                  {acts ? (
-                    <button type="button" disabled={busy} onClick={() => void run(() => declineCompletionAction({ enquiryId: e.id, reason: null }), "Taken back — the project is on again")} style={{ ...ghostBtn, marginTop: 9, padding: 10, fontSize: 12 }}>
-                      Take it back
+                {acts ? (
+                  ending.side === mySide ? (
+                    <button type="button" disabled={busy} onClick={() => void run(() => retractEndingAction({ endingId: ending.id, enquiryId: e.id }), "Taken back — the project carries on")} style={{ ...ghostBtn, marginTop: 10 }}>
+                      Take back these terms
                     </button>
-                  ) : null}
-                </>
-              ) : (
-                <>
-                  <div data-testid="completion-asked" style={{ fontSize: 12, lineHeight: 1.5 }}>
-                    <b>{otherName}</b> marked the project complete. Confirm it to close the project.
-                  </div>
-                  {acts ? (
+                  ) : (
                     <>
-                      <div style={{ display: "flex", gap: 7, marginTop: 9 }}>
+                      <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
                         <button
                           type="button"
                           disabled={busy}
                           onClick={() =>
                             openAsk({
-                              key: "not-yet",
-                              title: "Not finished yet?",
-                              placeholder: "What is still to do",
-                              confirm: "Say not yet",
-                              run: (reason) => declineCompletionAction({ enquiryId: e.id, reason }),
-                              done: "Sent back — the project is on again",
+                              key: "refuse-ending",
+                              title: "Refuse these terms?",
+                              placeholder: "Why — the project stays open",
+                              confirm: "Refuse",
+                              danger: true,
+                              run: (reason) => answerEndingAction({ endingId: ending.id, enquiryId: e.id, answer: "refuse", refundInr: null, reason }),
+                              done: "Refused — the project stays open",
                             })
                           }
-                          style={{ ...ghostBtn, flex: 1 }}
+                          style={{ ...ghostBtn, flex: 1, minWidth: 90 }}
                         >
-                          Not finished
+                          Refuse
                         </button>
-                        <button type="button" disabled={busy} onClick={() => void run(() => markCompleteAction({ enquiryId: e.id }), "Completed — the project is closed")} style={{ ...greenBtn, flex: 1.4 }}>
-                          Confirm complete
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() =>
+                            openAsk({
+                              key: "counter-ending",
+                              title: "Propose different terms",
+                              placeholder: "Why this amount (optional)",
+                              confirm: "Send the counter",
+                              optional: true,
+                              amount: { max: m.paidInr, start: ending.refundInr },
+                              run: (reason, amount) => answerEndingAction({ endingId: ending.id, enquiryId: e.id, answer: "counter", refundInr: amount, reason: reason || null }),
+                              done: "Counter sent — they have been told",
+                            })
+                          }
+                          style={{ ...ghostBtn, flex: 1, minWidth: 90 }}
+                        >
+                          Counter
+                        </button>
+                        <button type="button" disabled={busy} aria-label="Accept these terms" onClick={() => void run(() => answerEndingAction({ endingId: ending.id, enquiryId: e.id, answer: "accept", refundInr: null, reason: null }), "Agreed — the enquiry is closed")} style={{ ...greenBtn, flex: 1.4, minWidth: 120 }}>
+                          Accept · {money(ending.refundInr)} back
                         </button>
                       </div>
-                      {askBox("not-yet")}
+                      {askBox("refuse-ending")}
+                      {askBox("counter-ending")}
                     </>
-                  ) : null}
-                </>
-              )
-            ) : (
-              <>
-                <div style={{ fontSize: 11.5, color: "var(--sub)", lineHeight: 1.5 }}>
-                  {m.readyToComplete
-                    ? `Everything is paid. Mark it complete when the job is done — ${otherName} confirms it.`
-                    : `It can be completed once ${[m.outstandingInr ? `${money(m.outstandingInr)} is paid` : null, m.additionsWaiting ? "every addition is answered" : null].filter(Boolean).join(" and ") || "everything is settled"}.`}
-                </div>
-                {acts ? (
-                  <button type="button" disabled={busy || !m.readyToComplete || Boolean(ending)} onClick={() => void run(() => markCompleteAction({ enquiryId: e.id }), "Marked complete — they confirm it")} style={{ ...greenBtn, marginTop: 9, opacity: m.readyToComplete && !ending ? 1 : 0.45 }}>
-                    Mark the project complete
-                  </button>
+                  )
                 ) : null}
-              </>
-            )}
-          </Surface>
-        ) : null}
+              </Surface>
+            ) : null}
 
-        {/* ── ENDING IT ── terms after money; at once before it */}
-        {ending ? (
-          <Surface tint="#F87171">
-            <Eyebrow tint="#F87171">{ending.outcome === "withdrawn" ? "ENDING IT · WITHDRAWAL" : "ENDING IT · CALLED OFF"}</Eyebrow>
-            <div data-testid="ending-terms" style={{ fontSize: 12.5, lineHeight: 1.5 }}>
-              <b>{ending.side === mySide ? "You" : otherName}</b> proposed {money(ending.refundInr)} back of the {money(m.paidInr)} paid.
-              <div style={{ marginTop: 4, color: "var(--sub)" }}>“{ending.reason}”</div>
-            </div>
-            {e.endings.length > 1 ? (
-              <div style={{ marginTop: 8 }}>
-                {e.endings
-                  .filter((x) => x.id !== ending.id)
-                  .map((x) => (
-                    <div key={x.id} style={{ fontSize: 10.5, color: "var(--muted)", padding: "2px 0" }}>
-                      {x.side === mySide ? "You" : otherName} · {money(x.refundInr)} · {x.status}
-                      {x.answerReason ? ` — “${x.answerReason}”` : ""}
-                    </div>
-                  ))}
+            {lastRefused && !ending && !closed ? (
+              <div data-testid="ending-refused" style={{ borderRadius: 14, padding: "11px 13px", marginBottom: 10, fontSize: 12, lineHeight: 1.5, background: "var(--card)", border: "1.5px solid var(--el)" }}>
+                {lastRefused.side === mySide ? `${otherName} refused your terms` : "You refused their terms"}
+                {lastRefused.answerReason ? `: “${lastRefused.answerReason}”` : ""}. It stays open —{" "}
+                <Link href="/support" style={{ color: "var(--text)", fontWeight: 800 }}>
+                  message DanceOS
+                </Link>{" "}
+                if you cannot agree.
               </div>
             ) : null}
-            {acts ? (
-              ending.side === mySide ? (
-                <button type="button" disabled={busy} onClick={() => void run(() => retractEndingAction({ endingId: ending.id, enquiryId: e.id }), "Taken back — the project carries on")} style={{ ...ghostBtn, marginTop: 10 }}>
-                  Take back these terms
-                </button>
-              ) : (
-                <>
-                  <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() =>
-                        openAsk({
-                          key: "refuse-ending",
-                          title: "Refuse these terms?",
-                          placeholder: "Why — the project stays open",
-                          confirm: "Refuse",
-                          danger: true,
-                          run: (reason) => answerEndingAction({ endingId: ending.id, enquiryId: e.id, answer: "refuse", refundInr: null, reason }),
-                          done: "Refused — the project stays open",
-                        })
-                      }
-                      style={{ ...ghostBtn, flex: 1, minWidth: 90 }}
-                    >
-                      Refuse
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() =>
-                        openAsk({
-                          key: "counter-ending",
-                          title: "Propose different terms",
-                          placeholder: "Why this amount (optional)",
-                          confirm: "Send the counter",
-                          optional: true,
-                          amount: { max: m.paidInr, start: ending.refundInr },
-                          run: (reason, amount) => answerEndingAction({ endingId: ending.id, enquiryId: e.id, answer: "counter", refundInr: amount, reason: reason || null }),
-                          done: "Counter sent — they have been told",
-                        })
-                      }
-                      style={{ ...ghostBtn, flex: 1, minWidth: 90 }}
-                    >
-                      Counter
-                    </button>
-                    <button type="button" disabled={busy} aria-label="Accept these terms" onClick={() => void run(() => answerEndingAction({ endingId: ending.id, enquiryId: e.id, answer: "accept", refundInr: null, reason: null }), "Agreed — the enquiry is closed")} style={{ ...greenBtn, flex: 1.4, minWidth: 120 }}>
-                      Accept · {money(ending.refundInr)} back
-                    </button>
-                  </div>
-                  {askBox("refuse-ending")}
-                  {askBox("counter-ending")}
-                </>
-              )
-            ) : null}
-          </Surface>
-        ) : null}
 
-        {lastRefused && !ending && !closed ? (
-          <div data-testid="ending-refused" style={{ borderRadius: 14, padding: "11px 13px", marginBottom: 10, fontSize: 12, lineHeight: 1.5, background: "var(--card)", border: "1.5px solid var(--el)" }}>
-            {lastRefused.side === mySide ? `${otherName} refused your terms` : "You refused their terms"}
-            {lastRefused.answerReason ? `: “${lastRefused.answerReason}”` : ""}. The project stays open.{" "}
-            <Link href="/support" style={{ color: "var(--text)", fontWeight: 800 }}>
-              Message DanceOS
-            </Link>{" "}
-            if you cannot agree.
-          </div>
-        ) : null}
-
-        {/* ── THE QUOTE COMPOSER (the business, before the project is on) ── */}
-        {mine && acts && ["new", "accepted", "quoted"].includes(e.status) ? (
-          composer && composer.mode === "quote" ? (
-            <Surface tint={tint}>
-              <Eyebrow tint={tint}>{quotes.length ? "REVISE THE QUOTE" : "SEND A QUOTE"}</Eyebrow>
-              <QuoteComposer
-                mode="quote"
-                tint={tint}
-                todayKey={todayKey}
-                start={live ? { items: live.items, costInr: live.costInr, advancePct: live.advancePct, note: live.note } : null}
-                busy={busy}
-                error={error}
-                submitWord={quotes.length ? "Send the revised quote" : "Send quote"}
-                onSubmit={(v) => void submitComposer(v)}
-                onCancel={() => setComposer(null)}
-              />
-            </Surface>
-          ) : (
-            <button type="button" onClick={() => setComposer({ mode: "quote" })} style={{ ...bizBtn, background: tint, color: "#08060C", marginBottom: 10 }}>
-              {quotes.length ? "Revise the quote" : "Send a quote"}
-            </button>
-          )
-        ) : null}
-
-        {/* ── END IT (either side, while it is open and no terms are) ── */}
-        {!closed && !ending && acts && !(mine && e.status === "new") ? (
-          <Surface>
-            <Eyebrow>{mine ? "CALL IT OFF" : "WITHDRAW"}</Eyebrow>
-            <div style={{ fontSize: 11.5, color: "var(--sub)", lineHeight: 1.5, marginBottom: 9 }}>
-              {m.paidInr > 0
-                ? `${money(m.paidInr)} has been paid — propose how much goes back, and ${otherName} accepts, counters or refuses.`
-                : `Nothing has been paid, so it ends at once. ${otherName} is told why.`}
-            </div>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() =>
-                openAsk({
-                  key: "end",
-                  title: mine ? "Call off this enquiry?" : "Withdraw this enquiry?",
-                  placeholder: "Why — they will read this",
-                  confirm: m.paidInr > 0 ? "Propose these terms" : mine ? "Call it off" : "Withdraw",
-                  danger: true,
-                  amount: m.paidInr > 0 ? { max: m.paidInr, start: mine ? m.paidInr : m.paidInr } : undefined,
-                  run: (reason, amount) => endEnquiryAction({ enquiryId: e.id, reason, refundInr: amount }),
-                  done: m.paidInr > 0 ? "Terms sent — they have been told" : mine ? "Called off — they have been told" : "Withdrawn — they have been told",
-                })
-              }
-              style={{ ...bizBtn, background: "var(--solid)", color: "#F87171", border: "1.5px solid var(--el)" }}
-            >
-              {mine ? "Call it off" : "Withdraw enquiry"}
-            </button>
-            {askBox("end")}
-          </Surface>
-        ) : null}
-
-        {/* ── QUOTE HISTORY ── every quote and every reason, oldest first */}
-        {quotes.length ? (
-          <Surface>
-            <Eyebrow>{`HISTORY · ${quotes.length}`}</Eyebrow>
-            <div data-testid="quote-history">
-              {quotes.map((q, i) => {
-                const prev = quotes[i - 1];
-                const delta = prev ? q.costInr - prev.costInr : 0;
-                const dead = q.status === "superseded";
-                return (
-                  <div key={q.id} style={{ display: "flex", gap: 10, opacity: dead ? 0.6 : 1 }}>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 14, flexShrink: 0 }}>
-                      <span style={{ width: 10, height: 10, borderRadius: 5, background: quoteColour(q, nowIso), marginTop: 4 }} />
-                      {i < quotes.length - 1 ? <span style={{ flex: 1, width: 2, background: "var(--el)", marginTop: 2 }} /> : null}
-                    </div>
-                    <div data-testid={`quote-${q.n}`} style={{ flex: 1, minWidth: 0, marginBottom: i < quotes.length - 1 ? 10 : 0, background: "var(--solid)", border: "1.5px solid var(--el)", borderRadius: 12, padding: "9px 11px" }}>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}>
-                        <span style={{ fontSize: 9.5, fontWeight: 900, color: "var(--muted)", fontFamily: DOS_MONO }}>{i === 0 ? `#${q.n} · FIRST` : `#${q.n} · REVISION ${i}`}</span>
-                        <span data-testid={`quote-${q.n}-state`} style={{ marginLeft: "auto", fontSize: 9.5, fontWeight: 800, color: quoteColour(q, nowIso) }}>
-                          {quoteWord(q, nowIso)}
-                        </span>
+            {/* ── COMPLETION ── either side marks it; the other confirms */}
+            {projectOn ? (
+              <Surface tint={e.status === "completing" ? "#22C55E" : undefined}>
+                <Eyebrow>COMPLETION</Eyebrow>
+                {e.status === "completing" ? (
+                  e.completeAskedSide === mySide ? (
+                    <>
+                      <div data-testid="completion-waiting" style={{ fontSize: 12, lineHeight: 1.5 }}>
+                        Marked complete — waiting for {otherName} to confirm.
                       </div>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 3 }}>
-                        <b style={{ fontSize: 16, fontFamily: DOS_MONO, textDecoration: dead ? "line-through" : "none" }}>{money(q.costInr)}</b>
-                        {delta ? (
-                          <span data-testid={`quote-${q.n}-delta`} style={{ fontSize: 10.5, fontWeight: 900, color: delta < 0 ? "#22C55E" : "#F59E0B" }}>
-                            {delta < 0 ? "▼" : "▲"} {money(Math.abs(delta))}
-                          </span>
-                        ) : prev ? (
-                          <span style={{ fontSize: 10.5, fontWeight: 800, color: "var(--muted)" }}>no change</span>
-                        ) : null}
-                        <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--sub)", fontWeight: 700 }}>{historyDate(q.createdAt)}</span>
-                      </div>
-                      <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 2 }}>
-                        {q.items.length ? `${q.items.length} line${q.items.length > 1 ? "s" : ""} · ` : ""}
-                        {q.advancePct > 0 ? `${money(q.advanceInr)} (${q.advancePct}%) up front` : "No advance"}
-                      </div>
-                      {q.answerReason ? (
-                        <div data-testid={`quote-${q.n}-reason`} style={{ fontSize: 11, marginTop: 5, padding: "6px 8px", borderRadius: 8, background: "var(--el)" }}>
-                          <span style={{ ...smallLabel, display: "block", marginBottom: 2 }}>{q.revisionAskedAt ? "REVISION ASKED" : "REASON"}</span>“{q.answerReason}”
-                        </div>
+                      {acts ? (
+                        <button type="button" disabled={busy} onClick={() => void run(() => declineCompletionAction({ enquiryId: e.id, reason: null }), "Taken back — the project is on again")} style={{ ...ghostBtn, marginTop: 9, padding: 10, fontSize: 12 }}>
+                          Take it back
+                        </button>
                       ) : null}
+                    </>
+                  ) : (
+                    <>
+                      <div data-testid="completion-asked" style={{ fontSize: 12, lineHeight: 1.5 }}>
+                        <b>{otherName}</b> marked it complete.
+                      </div>
+                      {acts ? (
+                        <>
+                          <div style={{ display: "flex", gap: 7, marginTop: 9 }}>
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() =>
+                                openAsk({
+                                  key: "not-yet",
+                                  title: "Not finished yet?",
+                                  placeholder: "What is still to do",
+                                  confirm: "Say not yet",
+                                  run: (reason) => declineCompletionAction({ enquiryId: e.id, reason }),
+                                  done: "Sent back — the project is on again",
+                                })
+                              }
+                              style={{ ...ghostBtn, flex: 1 }}
+                            >
+                              Not finished
+                            </button>
+                            <button type="button" disabled={busy} onClick={() => void run(() => markCompleteAction({ enquiryId: e.id }), "Completed — the project is closed")} style={{ ...greenBtn, flex: 1.4 }}>
+                              Confirm complete
+                            </button>
+                          </div>
+                          {askBox("not-yet")}
+                        </>
+                      ) : null}
+                    </>
+                  )
+                ) : (
+                  <>
+                    <div style={hint}>
+                      {m.readyToComplete
+                        ? `All paid — mark it complete when the job is done.`
+                        : `Can be completed once ${[m.outstandingInr ? `${money(m.outstandingInr)} is paid` : null, m.additionsWaiting ? "every addition is answered" : null].filter(Boolean).join(" and ") || "everything is settled"}.`}
                     </div>
-                  </div>
+                    {acts ? (
+                      <button type="button" disabled={busy || !m.readyToComplete || Boolean(ending)} onClick={() => void run(() => markCompleteAction({ enquiryId: e.id }), "Marked complete — they confirm it")} style={{ ...greenBtn, marginTop: 9, opacity: m.readyToComplete && !ending ? 1 : 0.45 }}>
+                        Mark the project complete
+                      </button>
+                    ) : null}
+                  </>
+                )}
+              </Surface>
+            ) : null}
+
+            {/* ── TWO COLUMNS: EARNINGS · QUOTE (18 Oct 2026) ── */}
+            <div role="tablist" aria-label="Payments" style={{ ...columnTrack(), marginBottom: 10 }}>
+              {(
+                [
+                  ["earnings", "Earnings"],
+                  ["quote", "Quote"],
+                ] as Array<[PayColumn, string]>
+              ).map(([k, w]) => {
+                const on = payCol === k;
+                return (
+                  <button key={k} type="button" role="tab" aria-selected={on} data-testid={`enquiry-pay-${k}`} onClick={() => setPayPick(k)} style={columnTab(on)}>
+                    {w}
+                    {k === "quote" && quotes.length ? <ColumnCount n={quotes.length} on={on} /> : k === "earnings" && dues.length ? <ColumnCount n={dues.length} on={on} attention={canPay || (mine && acts)} /> : null}
+                  </button>
                 );
               })}
             </div>
-          </Surface>
-        ) : null}
+
+            {payCol === "earnings" ? (
+              <>
+                <Surface tint="#22C55E">
+                  <div data-testid="enquiry-money" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
+                    {moneyFigures.map(([k, v, sub, colour]) => (
+                      <div key={k} data-testid={`money-${k.toLowerCase()}`} style={{ background: "var(--solid)", borderRadius: 12, padding: "10px 11px", border: "1.5px solid var(--el)", borderTop: `3px solid ${colour}` }}>
+                        <div style={{ fontSize: 17, fontWeight: 900, fontFamily: DOS_MONO, letterSpacing: -0.3 }}>{v}</div>
+                        <div style={smallLabel}>{k.toUpperCase()}</div>
+                        <div style={{ fontSize: 10, color: "var(--sub)", marginTop: 2, fontWeight: 700 }}>{sub}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ ...smallLabel, marginTop: 12, marginBottom: 6 }}>BREAKUP</div>
+                  <div data-testid="enquiry-breakup" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+                    {breakup.map(([k, v]) => (
+                      <div key={k} data-testid={`breakup-${k.toLowerCase().replace(/[^a-z]+/g, "-")}`} style={{ background: "var(--card)", borderRadius: 10, padding: "8px 9px", border: "1.5px solid var(--el)", minWidth: 0 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 900, fontFamily: DOS_MONO, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v}</div>
+                        <div style={{ ...smallLabel, fontSize: 8.5, marginTop: 1 }}>{k.toUpperCase()}</div>
+                      </div>
+                    ))}
+                  </div>
+                </Surface>
+
+                {/* ── THE PROJECT ── what it costs, what is paid, what is due */}
+                {base && (projectOn || closed) ? (
+                  <Surface tint="#22C55E">
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                      <span style={smallLabel}>THE PROJECT</span>
+                      <span style={{ marginLeft: "auto", fontSize: 10, fontWeight: 900, color: m.outstandingInr ? "#F59E0B" : "#22C55E" }}>{m.outstandingInr ? `${money(m.outstandingInr)} to pay` : "✓ Paid in full"}</span>
+                    </div>
+                    <div data-testid="project-total" style={{ fontSize: 30, fontWeight: 900, letterSpacing: -0.8, marginTop: 4 }}>
+                      {money(m.totalInr)}
+                    </div>
+                    <div style={{ marginTop: 9 }}>
+                      {(
+                        [
+                          ["Quote", money(base.costInr)],
+                          ...adds.filter((a) => a.status === "accepted").map((a) => [`Addition #${a.n}`, signed(a.costInr)] as [string, string]),
+                          ["Paid", money(m.paidInr)],
+                        ] as Array<[string, string]>
+                      ).map(([k, v]) => (
+                        <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 12, borderBottom: "1px solid var(--el)" }}>
+                          <span style={{ color: "var(--sub)" }}>{k}</span>
+                          <b>{v}</b>
+                        </div>
+                      ))}
+                    </div>
+
+                    {projectOn && dues.length ? (
+                      <div data-testid="dues" style={{ marginTop: 11 }}>
+                        <div style={{ ...smallLabel, marginBottom: 6 }}>DUE</div>
+                        {dues.map((d) => (
+                          <div key={`${d.quoteId}-${d.part}`} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0" }}>
+                            <span style={{ flex: 1, fontSize: 12.5, fontWeight: 800 }}>
+                              {d.word} · {money(d.amount)}
+                            </span>
+                            {mine ? (
+                              acts ? (
+                                <button
+                                  type="button"
+                                  disabled={busy}
+                                  onClick={() => void run(() => recordEnquiryPaymentAction({ quoteId: d.quoteId, enquiryId: e.id, part: d.part }), `${d.word} recorded · ${money(d.amount)}`)}
+                                  style={{ ...greenBtn, width: "auto", padding: "8px 12px", fontSize: 11.5 }}
+                                >
+                                  Record received
+                                </button>
+                              ) : null
+                            ) : canPay ? (
+                              <button type="button" disabled={busy} data-testid="enquiry-pay" onClick={() => void pay(d)} style={{ ...greenBtn, width: "auto", padding: "8px 12px", fontSize: 11.5 }}>
+                                Pay {money(d.amount)}
+                              </button>
+                            ) : null}
+                          </div>
+                        ))}
+                        <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 4, lineHeight: 1.5 }}>
+                          {mine ? "Record cash or a bank transfer here." : canPay ? "UPI · cards · netbanking, through Cashfree." : ending ? "Payments pause while the ending terms are open." : `Settle with ${e.businessName} directly — they record it here.`}
+                        </div>
+                        {busy && openOrder ? (
+                          <button type="button" onClick={() => void confirmPay(openOrder)} style={{ display: "block", margin: "8px auto 0", background: "none", border: "none", color: "var(--sub)", fontSize: 11.5, fontWeight: 800, textDecoration: "underline", cursor: "pointer", fontFamily: "inherit" }}>
+                            Paid already, or stuck? Check my payment
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </Surface>
+                ) : null}
+
+                {/* ── ADDITIONS ── */}
+                {adds.length || (mine && acts && projectOn && !ending) ? (
+                  <Surface>
+                    <Eyebrow>{`ADDITIONS${adds.length ? ` · ${adds.length}` : ""}`}</Eyebrow>
+                    <div data-testid="additions">
+                      {adds.map((a) => {
+                        const revisedBy = adds.find((x) => x.revises === a.id);
+                        return (
+                          <div key={a.id} data-testid={`addition-${a.n}`} style={{ padding: "9px 0", borderBottom: "1px solid var(--el)", opacity: a.status === "cancelled" || a.status === "superseded" ? 0.6 : 1 }}>
+                            <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}>
+                              <span style={{ fontSize: 9.5, fontWeight: 900, color: "var(--muted)", fontFamily: DOS_MONO }}>#{a.n}</span>
+                              <b style={{ fontSize: 14, color: a.costInr < 0 ? "#22C55E" : undefined }}>{a.costInr < 0 ? `${signed(a.costInr)} off` : `+${money(a.costInr)}`}</b>
+                              <span style={{ marginLeft: "auto", fontSize: 10, fontWeight: 900, color: quoteColour(a, nowIso) }}>{quoteWord(a, nowIso)}</span>
+                            </div>
+                            {a.revises ? <div style={{ fontSize: 10.5, color: "var(--muted)", marginTop: 2 }}>Revised from #{adds.find((x) => x.id === a.revises)?.n ?? "?"}</div> : null}
+                            {a.note ? <div style={{ fontSize: 11.5, color: "var(--sub)", marginTop: 3 }}>{a.note}</div> : null}
+                            <QuoteLines items={a.items} costInr={a.costInr} />
+                            {a.answerReason ? <div style={{ fontSize: 11.5, marginTop: 5 }}>Declined: “{a.answerReason}”</div> : null}
+                            {a.status === "sent" && projectOn ? (
+                              mine ? (
+                                acts ? (
+                                  <button type="button" disabled={busy} onClick={() => void run(() => cancelAdditionAction({ quoteId: a.id, enquiryId: e.id }), "Taken back — they have been told")} style={{ ...ghostBtn, marginTop: 8, padding: 9, fontSize: 11.5 }}>
+                                    Take it back
+                                  </button>
+                                ) : null
+                              ) : (
+                                <>
+                                  <div style={{ display: "flex", gap: 7, marginTop: 8 }}>
+                                    <button
+                                      type="button"
+                                      disabled={busy}
+                                      onClick={() =>
+                                        openAsk({
+                                          key: `decline-add-${a.id}`,
+                                          title: "Decline this addition",
+                                          placeholder: "Why — they can send a revised one",
+                                          confirm: "Decline",
+                                          danger: true,
+                                          run: (reason) => answerQuoteAction({ quoteId: a.id, enquiryId: e.id, answer: "decline", reason }),
+                                          done: "Declined — they have been told",
+                                        })
+                                      }
+                                      style={{ ...ghostBtn, flex: 1, padding: 10, fontSize: 12 }}
+                                    >
+                                      Decline
+                                    </button>
+                                    <button type="button" disabled={busy} aria-label={`Accept addition #${a.n}`} onClick={() => void run(() => answerQuoteAction({ quoteId: a.id, enquiryId: e.id, answer: "accept", reason: null }), a.costInr > 0 ? `Accepted — ${money(a.costInr)} is due now` : "Accepted — the balance is lower")} style={{ ...greenBtn, flex: 1.4, padding: 10, fontSize: 12 }}>
+                                      Accept {a.costInr < 0 ? `${signed(a.costInr)} off` : `+${money(a.costInr)}`}
+                                    </button>
+                                  </div>
+                                  {askBox(`decline-add-${a.id}`)}
+                                </>
+                              )
+                            ) : null}
+                            {mine && acts && a.status === "declined" && !revisedBy && projectOn && !ending ? (
+                              <button type="button" onClick={() => setComposer({ mode: "addition", revises: a })} style={{ ...ghostBtn, marginTop: 8, padding: 9, fontSize: 11.5 }}>
+                                Send a revised addition
+                              </button>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {!adds.length ? <div style={hint}>Nothing added yet.</div> : null}
+                    {mine && acts && projectOn && !ending ? (
+                      <button type="button" onClick={() => setComposer({ mode: "addition", revises: null })} style={{ ...bizBtn, marginTop: 10, background: tint, color: "#08060C" }}>
+                        Add to the project
+                      </button>
+                    ) : null}
+                  </Surface>
+                ) : null}
+              </>
+            ) : (
+              <>
+                {mayQuote ? (
+                  <button type="button" onClick={() => setComposer({ mode: "quote" })} style={{ ...bizBtn, background: tint, color: "#08060C", marginBottom: 10 }}>
+                    {quotes.length ? "Revise the quote" : "Send a quote"}
+                  </button>
+                ) : null}
+                {quoteCard}
+
+                {/* ── QUOTE HISTORY ── every quote and every reason, oldest first */}
+                {quotes.length ? (
+                  <Surface>
+                    <Eyebrow>{`HISTORY · ${quotes.length}`}</Eyebrow>
+                    <div data-testid="quote-history">
+                      {quotes.map((q, i) => {
+                        const prev = quotes[i - 1];
+                        const delta = prev ? q.costInr - prev.costInr : 0;
+                        const dead = q.status === "superseded";
+                        return (
+                          <div key={q.id} style={{ display: "flex", gap: 10, opacity: dead ? 0.6 : 1 }}>
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 14, flexShrink: 0 }}>
+                              <span style={{ width: 10, height: 10, borderRadius: 5, background: quoteColour(q, nowIso), marginTop: 4 }} />
+                              {i < quotes.length - 1 ? <span style={{ flex: 1, width: 2, background: "var(--el)", marginTop: 2 }} /> : null}
+                            </div>
+                            <div data-testid={`quote-${q.n}`} style={{ flex: 1, minWidth: 0, marginBottom: i < quotes.length - 1 ? 10 : 0, background: "var(--solid)", border: "1.5px solid var(--el)", borderRadius: 12, padding: "9px 11px" }}>
+                              <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}>
+                                <span style={{ fontSize: 9.5, fontWeight: 900, color: "var(--muted)", fontFamily: DOS_MONO }}>{i === 0 ? `#${q.n} · FIRST` : `#${q.n} · REVISION ${i}`}</span>
+                                <span data-testid={`quote-${q.n}-state`} style={{ marginLeft: "auto", fontSize: 9.5, fontWeight: 800, color: quoteColour(q, nowIso) }}>
+                                  {quoteWord(q, nowIso)}
+                                </span>
+                              </div>
+                              <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 3 }}>
+                                <b style={{ fontSize: 16, fontFamily: DOS_MONO, textDecoration: dead ? "line-through" : "none" }}>{money(q.costInr)}</b>
+                                {delta ? (
+                                  <span data-testid={`quote-${q.n}-delta`} style={{ fontSize: 10.5, fontWeight: 900, color: delta < 0 ? "#22C55E" : "#F59E0B" }}>
+                                    {delta < 0 ? "▼" : "▲"} {money(Math.abs(delta))}
+                                  </span>
+                                ) : prev ? (
+                                  <span style={{ fontSize: 10.5, fontWeight: 800, color: "var(--muted)" }}>no change</span>
+                                ) : null}
+                                <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--sub)", fontWeight: 700 }}>{historyDate(q.createdAt)}</span>
+                              </div>
+                              <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 2 }}>
+                                {q.items.length ? `${q.items.length} line${q.items.length > 1 ? "s" : ""} · ` : ""}
+                                {q.advancePct > 0 ? `${money(q.advanceInr)} (${q.advancePct}%) up front` : "No advance"}
+                              </div>
+                              {q.answerReason ? (
+                                <div data-testid={`quote-${q.n}-reason`} style={{ fontSize: 11, marginTop: 5, padding: "6px 8px", borderRadius: 8, background: "var(--el)" }}>
+                                  <span style={{ ...smallLabel, display: "block", marginBottom: 2 }}>{q.revisionAskedAt ? "REVISION ASKED" : "REASON"}</span>“{q.answerReason}”
+                                </div>
+                              ) : null}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </Surface>
+                ) : null}
+              </>
+            )}
           </>
         ) : null}
 
@@ -1125,6 +1171,41 @@ export function EnquiryDetail({
           </div>
         ) : null}
       </div>
+
+      {/* ── THE QUOTE / ADDITION FORM — a sheet (18 Oct 2026, the user: "quote
+          should open like a form when adding or revising") ── */}
+      {composer ? (
+        <EnquiryFormSheet
+          title={composer.mode === "quote" ? (quotes.length ? "Revise the quote" : "Send a quote") : composer.revises ? `Revise addition #${composer.revises.n}` : "Add to the project"}
+          onClose={closeComposer}
+        >
+          {composer.mode === "quote" ? (
+            <QuoteComposer
+              mode="quote"
+              tint={tint}
+              todayKey={todayKey}
+              start={live ? { items: live.items, costInr: live.costInr, advancePct: live.advancePct, note: live.note } : null}
+              busy={busy}
+              error={error}
+              submitWord={quotes.length ? "Send the revised quote" : "Send quote"}
+              onSubmit={(v) => void submitComposer(v)}
+              onCancel={closeComposer}
+            />
+          ) : (
+            <QuoteComposer
+              mode="addition"
+              tint={tint}
+              todayKey={todayKey}
+              start={composer.revises ? { items: composer.revises.items, costInr: composer.revises.costInr, advancePct: 0, note: composer.revises.note } : null}
+              busy={busy}
+              error={error}
+              submitWord="Send the addition"
+              onSubmit={(v) => void submitComposer(v)}
+              onCancel={closeComposer}
+            />
+          )}
+        </EnquiryFormSheet>
+      ) : null}
 
       {toast ? (
         <div role="status" aria-live="polite" style={{ position: "fixed", bottom: 26, left: "50%", transform: "translateX(-50%)", background: "var(--solid)", border: "1.5px solid #0EA5E9", boxShadow: "0 6px 24px rgba(0,0,0,.45)", color: "var(--text)", padding: "11px 18px", borderRadius: 999, fontSize: 13, fontWeight: 700, maxWidth: 360, textAlign: "center", zIndex: 650 }}>

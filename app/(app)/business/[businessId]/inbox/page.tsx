@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { EnquirySettings } from "@/features/enquiries/components/EnquirySettings";
 import { loadEnquiries } from "@/features/enquiries/server/loadEnquiries";
 import { InboxScreen } from "@/features/inbox/components/InboxScreen";
+import { readEnquiriesAddress } from "@/features/inbox/enquiriesAddress";
 import { INBOX_TINT } from "@/lib/design/tokens";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findVenueRequestsForBusinesses } from "@/repositories/classes";
@@ -17,7 +18,7 @@ const stampNowIso = (): string => new Date().toISOString();
  *  with one line counting the room requests that wait in Classes. Every member of
  *  the team reads it — the desk is the studio's CRM and staff answer the phone
  *  (Step 12's rule), and RLS already admits them to each of these rows. */
-export default async function StudioInboxPage({ params, searchParams }: { params: Promise<{ businessId: string }>; searchParams: Promise<{ show?: string }> }) {
+export default async function StudioInboxPage({ params, searchParams }: { params: Promise<{ businessId: string }>; searchParams: Promise<{ show?: string; tab?: string; side?: string }> }) {
   const { businessId } = await params;
   const supabase = await createSupabaseServerClient();
   const {
@@ -41,8 +42,11 @@ export default async function StudioInboxPage({ params, searchParams }: { params
   /* ⚠ an artist page's enquiries are the PERSON's Inbox (2 Oct 2026), so a link
      to "this page's enquiries" lands there rather than on the page's home */
   if (business.type === "artist_page") {
-    const { show } = await searchParams;
-    redirect(show ? `/inbox?show=${encodeURIComponent(show)}` : "/inbox");
+    const q = await searchParams;
+    const keep = new URLSearchParams();
+    for (const k of ["show", "tab", "side"] as const) if (q[k]) keep.set(k, q[k] as string);
+    const qs = keep.toString();
+    redirect(qs ? `/inbox?${qs}` : "/inbox");
   }
   if (business.type !== "studio") {
     redirect(`/business/${businessId}`);
@@ -58,7 +62,7 @@ export default async function StudioInboxPage({ params, searchParams }: { params
   /* ⚠⚠ ENQUIRIES ONLY (11 Oct 2026, the user: "only enquiries to be handled from
      inbox"). The invites this studio SENT left with the Invites column — they
      are on its own Team desk (`/business/{id}/staff`), with Withdraw. */
-  const [venueWaiting, enq, { show }] = await Promise.all([
+  const [venueWaiting, enq, query] = await Promise.all([
     findVenueRequestsForBusinesses(supabase, [businessId], ["requested"]).catch(() => []),
     loadEnquiries(supabase, { kind: "business", id: businessId, memberships }),
     searchParams,
@@ -75,7 +79,10 @@ export default async function StudioInboxPage({ params, searchParams }: { params
       pointers={[
         { testId: "class-requests-pointer", n: venueWaiting.length, href: `/business/${businessId}/classes`, one: "room request", many: "room requests", where: "Room requests are answered in Classes", tint: "#8B5CF6" },
       ]}
-      initialSection={show === "done" ? "done" : undefined}
+      /* ⚠ To do · Ongoing · Past since 18 Oct 2026; a card opens under this
+         studio's own address, so the switcher stays on the studio */
+      initialTab={readEnquiriesAddress(query).tab}
+      detailBase={`/business/${businessId}/inbox/enquiries`}
       nowIso={stampNowIso()}
     />
   );

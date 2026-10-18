@@ -28,6 +28,9 @@ import {
   type EnquiryJob,
   type EnquiryPersonKind,
 } from "@/types/enquiry";
+import type { EnquiryJobPerson } from "@/repositories/enquiryTeam";
+import { EnquiryFormSheet } from "./EnquiryFormSheet";
+import { FORM_INPUT, FORM_LABEL, FormBar, formPrimary, formSecondary } from "@/components/ui/FormPage";
 
 /** THE TEAM AND PRACTICES SEGMENTS of an enquiry (18 Oct 2026). Short words, one
  *  control per act; every rule is the RPC's and its refusal is printed as given.
@@ -79,7 +82,7 @@ function useRun() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const run = async (fn: () => Promise<JobActionResult>): Promise<boolean> => {
+  const run = async (fn: () => Promise<JobActionResult>, opts: { refreshAfter?: number } = {}): Promise<boolean> => {
     setBusy(true);
     setError(null);
     const r = await fn();
@@ -88,7 +91,8 @@ function useRun() {
       setError(r.error);
       return false;
     }
-    router.refresh();
+    if (opts.refreshAfter) setTimeout(() => router.refresh(), opts.refreshAfter);
+    else router.refresh();
     return true;
   };
   return { busy, error, run };
@@ -119,20 +123,31 @@ export function EnquiryTeamPanel({
   canWork,
   team,
   tint,
+  meId,
+  sender,
 }: {
   enquiryId: string;
   job: EnquiryJob;
+  /** an owner or manager on the business's side — adds and removes anybody */
   canWork: boolean;
   /** the business's own people, offered as Team */
   team: TeamPick[];
   tint: string;
+  meId: string;
+  /** who sent the enquiry — ⚠ they may add PARTICIPANTS and take off the ones
+   *  they added (`20261026090000`); the team is the business's to choose */
+  sender: { id: string; name: string };
 }) {
   const { busy, error, run } = useRun();
   const [role, setRole] = useState("");
   const [adding, setAdding] = useState<EnquiryPersonKind | null>(null);
   if (!job.available) return <Off />;
 
-  const on = new Set(job.people.map((p) => p.userId));
+  const isSender = meId === sender.id;
+  const mayAdd = (k: EnquiryPersonKind) => canWork || (isSender && k === "participant");
+  const mayRemove = (p: EnquiryJobPerson) => canWork || (isSender && p.kind === "participant" && p.addedBy === meId);
+  const people = job.people as EnquiryJobPerson[];
+  const on = new Set(people.map((p) => p.userId));
   const freeTeam = team.filter((t) => !on.has(t.userId));
   const groups: EnquiryPersonKind[] = ["team", "participant"];
 
@@ -147,7 +162,7 @@ export function EnquiryTeamPanel({
   return (
     <div data-testid="enquiry-team">
       {groups.map((k) => {
-        const rows = job.people.filter((p) => p.kind === k);
+        const rows = people.filter((p) => p.kind === k);
         return (
           <Surface key={k}>
             <Eyebrow tint={k === "team" ? tint : undefined}>{`${k === "team" ? "TEAM" : "PARTICIPANTS"} · ${rows.length}`}</Eyebrow>
@@ -157,7 +172,10 @@ export function EnquiryTeamPanel({
                 <EnqFace path={p.photoPath} name={p.name} size={34} tint={tint} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
-                  <div style={{ fontSize: 10.5, color: "var(--sub)" }}>{p.role ?? ENQ_PERSON_WORD[p.kind]}</div>
+                  <div style={{ fontSize: 10.5, color: "var(--sub)" }}>
+                    {p.role ?? ENQ_PERSON_WORD[p.kind]}
+                    {p.kind === "participant" && p.addedBy === sender.id ? ` · added by ${p.addedBy === meId ? "you" : sender.name}` : ""}
+                  </div>
                 </div>
                 {/* ⚠ ASKED IS NOT ON IT (18 Oct 2026, `20261025090000`): the person
                     says yes from their Inbox › Jobs before they are told about
@@ -169,21 +187,21 @@ export function EnquiryTeamPanel({
                     bg={p.status === "confirmed" ? "#22C55E22" : "#F59E0B22"}
                   />
                 </span>
-                {canWork ? (
+                {mayRemove(p) ? (
                   <button type="button" disabled={busy} aria-label={`Remove ${p.name}`} onClick={() => void run(() => removeEnquiryPersonAction({ enquiryId, personId: p.id }))} style={{ ...ghost, padding: "6px 10px", fontSize: 11 }}>
                     Remove
                   </button>
                 ) : null}
               </div>
             ))}
-            {canWork ? (
+            {mayAdd(k) ? (
               adding === k ? null : (
                 <button type="button" onClick={() => setAdding(k)} style={{ ...ghost, marginTop: 10, width: "100%" }}>
                   {k === "team" ? "+ Add team" : "+ Add participant"}
                 </button>
               )
             ) : null}
-            {canWork && adding === k ? (
+            {mayAdd(k) && adding === k ? (
               <div style={{ marginTop: 10 }}>
                 <label style={label} htmlFor={`role-${k}`}>
                   ROLE
@@ -207,7 +225,7 @@ export function EnquiryTeamPanel({
                   <PeoplePicker
                     actionWord="Add ›"
                     actionColor={tint}
-                    exclude={[...on]}
+                    exclude={[...on, sender.id]}
                     onPick={(p) => void add(p.id, "participant")}
                     pickLabel={(p) => `Add ${p.fullName} as a participant`}
                   />
@@ -238,11 +256,18 @@ export function EnquiryPracticesPanel({
   hostName,
   hostPhotoPath,
   typeKey,
+  myPart,
+  linked,
 }: {
   enquiryId: string;
   job: EnquiryJob;
   canWork: boolean;
   closed: boolean;
+  /** what the reader is to the job — the card's chip */
+  myPart: "runs" | "team" | "participant";
+  /** the card opens the practice's own page — only for somebody that page admits
+   *  (the business's side and the job's confirmed people); the sender reads it here */
+  linked: boolean;
   nowIso: string;
   tint: string;
   /** whose job it is — the card leads with it */
@@ -259,9 +284,12 @@ export function EnquiryPracticesPanel({
   const past = job.practices.filter((p) => p.endsAt < nowIso);
 
   const save = async () => {
-    if (!form) return;
-    const ok = await run(() =>
-      saveEnquiryPracticeAction({ enquiryId, practiceId: form.practiceId, date: form.date, start: form.start, end: form.end, place: form.place, note: form.note.trim() || null }),
+    if (!form || !form.place.trim() || form.end <= form.start) return;
+    /* ⚠ close FIRST, refresh after: the sheet spends its history entry on close,
+       and a `back()` racing a refresh is the 19 Sep race (the forms' own 600 ms) */
+    const ok = await run(
+      () => saveEnquiryPracticeAction({ enquiryId, practiceId: form.practiceId, date: form.date, start: form.start, end: form.end, place: form.place, note: form.note.trim() || null }),
+      { refreshAfter: 600 },
     );
     if (ok) setForm(null);
   };
@@ -278,6 +306,7 @@ export function EnquiryPracticesPanel({
       <div key={p.id} data-testid="enquiry-practice">
         <EnquiryPracticeCard
           now={now}
+          linked={linked}
           practice={{
             id: p.id,
             enquiryId,
@@ -289,7 +318,7 @@ export function EnquiryPracticesPanel({
             hostName,
             hostPhotoPath,
             typeKey,
-            myPart: canWork ? "runs" : "team",
+            myPart,
             people: confirmed,
             checkedIn: p.checkedIn.length,
           }}
@@ -336,50 +365,51 @@ export function EnquiryPracticesPanel({
 
   return (
     <div data-testid="enquiry-practices">
-      {canWork && !closed && !form ? (
+      {canWork && !closed ? (
         <button type="button" onClick={() => setForm({ practiceId: null, date: istDayKey(nowIso), start: "18:00", end: "19:00", place: "", note: "" })} style={{ ...pill, width: "100%", padding: 12, marginBottom: 10 }}>
           + Add practice
         </button>
       ) : null}
+      {/* ⚠ A FORM SHEET (18 Oct 2026, the user: "add a practice should open a form
+          in enquiry as well") — the app's one form anatomy, not an inline card */}
       {form ? (
-        <Surface tint={tint}>
-          <Eyebrow tint={tint}>{form.practiceId ? "EDIT PRACTICE" : "NEW PRACTICE"}</Eyebrow>
-          <label style={label} htmlFor="ep-date">
+        <EnquiryFormSheet title={form.practiceId ? "Edit practice" : "Add practice"} onClose={() => setForm(null)}>
+          <label style={{ ...FORM_LABEL, display: "block" }} htmlFor="ep-date">
             DATE
           </label>
-          <input id="ep-date" type="date" value={form.date} onChange={(ev) => setForm({ ...form, date: ev.target.value })} style={{ ...field, marginBottom: 8 }} />
-          <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+          <input id="ep-date" type="date" value={form.date} onChange={(ev) => setForm({ ...form, date: ev.target.value })} style={FORM_INPUT} />
+          <div style={{ display: "flex", gap: 8 }}>
             <div style={{ flex: 1 }}>
-              <label style={label} htmlFor="ep-start">
+              <label style={{ ...FORM_LABEL, display: "block" }} htmlFor="ep-start">
                 STARTS
               </label>
-              <input id="ep-start" type="time" value={form.start} onChange={(ev) => setForm({ ...form, start: ev.target.value })} style={field} />
+              <input id="ep-start" type="time" value={form.start} onChange={(ev) => setForm({ ...form, start: ev.target.value })} style={FORM_INPUT} />
             </div>
             <div style={{ flex: 1 }}>
-              <label style={label} htmlFor="ep-end">
+              <label style={{ ...FORM_LABEL, display: "block" }} htmlFor="ep-end">
                 ENDS
               </label>
-              <input id="ep-end" type="time" value={form.end} onChange={(ev) => setForm({ ...form, end: ev.target.value })} style={field} />
+              <input id="ep-end" type="time" value={form.end} onChange={(ev) => setForm({ ...form, end: ev.target.value })} style={FORM_INPUT} />
             </div>
           </div>
-          <label style={label} htmlFor="ep-place">
+          <label style={{ ...FORM_LABEL, display: "block" }} htmlFor="ep-place">
             WHERE
           </label>
-          <input id="ep-place" value={form.place} maxLength={120} onChange={(ev) => setForm({ ...form, place: ev.target.value })} placeholder="Studio A" style={{ ...field, marginBottom: 8 }} />
-          <label style={label} htmlFor="ep-note">
+          <input id="ep-place" value={form.place} maxLength={120} onChange={(ev) => setForm({ ...form, place: ev.target.value })} placeholder="Studio A" style={FORM_INPUT} />
+          <label style={{ ...FORM_LABEL, display: "block" }} htmlFor="ep-note">
             NOTE
           </label>
-          <input id="ep-note" value={form.note} maxLength={280} onChange={(ev) => setForm({ ...form, note: ev.target.value })} placeholder="Optional" style={{ ...field, marginBottom: 10 }} />
-          <div style={{ display: "flex", gap: 7 }}>
-            <button type="button" onClick={() => setForm(null)} style={{ ...ghost, flex: 1 }}>
+          <input id="ep-note" value={form.note} maxLength={280} onChange={(ev) => setForm({ ...form, note: ev.target.value })} placeholder="Optional" style={FORM_INPUT} />
+          <Err text={error} />
+          <FormBar>
+            <button type="button" onClick={() => setForm(null)} style={formSecondary}>
               Cancel
             </button>
-            <button type="button" disabled={busy || !form.place.trim()} onClick={() => void save()} style={{ ...pill, flex: 1.5 }}>
-              {form.practiceId ? "Save" : "Add practice"}
+            <button type="button" disabled={busy} onClick={() => void save()} style={formPrimary(Boolean(form.place.trim()) && form.end > form.start)}>
+              {!form.place.trim() ? "Say where" : form.end <= form.start ? "End after the start" : form.practiceId ? "Save" : "Add practice"}
             </button>
-          </div>
-          <Err text={error} />
-        </Surface>
+          </FormBar>
+        </EnquiryFormSheet>
       ) : null}
       <Surface>
         <Eyebrow>{`COMING UP · ${coming.length}`}</Eyebrow>

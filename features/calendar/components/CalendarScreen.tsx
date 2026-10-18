@@ -21,7 +21,7 @@ import {
 import { compactRangeOf, timeOf } from "@/lib/format/session";
 import { CLASS_RELATION, SIDE_RELATION } from "@/lib/format/classLabels";
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
-import { tileClassOf, type CalendarEntry, type CalendarMonth, type CalendarPracticeEntry, type CalendarSide } from "@/types/calendar";
+import { practiceKindOf, tileClassOf, type CalendarEntry, type CalendarMonth, type CalendarPracticeEntry, type CalendarSide, type PracticeKind } from "@/types/calendar";
 import { PRACTICE_WORD, practiceWhen } from "@/types/crewPractice";
 import { CalendarSync } from "./CalendarSync";
 import { MonthGrid, TimeGrid, useSwipe, type GridItem, type MonthChip } from "./calendar-grid";
@@ -70,8 +70,19 @@ const SIDE_KEYS: CalendarSide[] = ["attending", "assisting", "hosting"];
    green the Practice tile wore until 30 Sep, when that tile was repainted indigo
    because its green sat on Earnings' hue (C90). The tile moved and this copy did
    not, so the calendar's Practice half was the one place still wearing the old
-   paint — the drift a typed copy of a token always ends in. */
-const PRACTICE_C = DOS_TOOLS.practice.c;
+   paint — the drift a typed copy of a token always ends in.
+   ⚠ SUPERSEDED 18 Oct 2026 by `PRACTICE_KIND` below — two kinds, two tools'
+   colours, both still read from `DOS_TOOLS`. */
+/* ⚠⚠ TWO PRACTICE CALENDARS, NOT ONE (18 Oct 2026, the user: *"calendar should
+   have different section for practice for enquiry and crew practice"*). A crew's
+   rehearsal wears the Crews tool's red and a job's the Enquiries tool's violet —
+   each is the colour of the place it came from, so the two never read alike on
+   one evening. Both are ON by default and counted apart in the drawer. */
+const PRACTICE_KIND: Record<PracticeKind, { key: "crewPractice" | "jobPractice"; label: string; word: string; tint: string }> = {
+  crew: { key: "crewPractice", label: "Crew practice", word: "Crew practice", tint: DOS_TOOLS.crews.c },
+  job: { key: "jobPractice", label: "Job practice", word: "Job practice", tint: DOS_TOOLS.enquiries.c },
+};
+const practiceTint = (e: CalendarPracticeEntry): string => (e.cancelled ? "#9CA3AF" : PRACTICE_KIND[practiceKindOf(e)].tint);
 
 /** ⚠⚠ TODAY IS INK, AND IT IS SAID ONCE (28 Sep 2026, the user: *"should not
  *  repeat today teice it appears in blue which it should not on all profile
@@ -365,10 +376,13 @@ export function CalendarScreen({ mode, months, todayKey, entries, practices = []
      Booked · Teaching · Assisting under it) and Practice — the way Google lists
      the calendars it is overlaying. A crew's calendar IS its practices and a
      studio's IS its classes, so neither is offered the two kinds. */
-  const [shown, setShown] = useState<Record<"classes" | "practices" | CalendarSide, boolean>>({ classes: true, practices: true, attending: true, assisting: true, hosting: true });
+  const ALL_ON = { classes: true, crewPractice: true, jobPractice: true, attending: true, assisting: true, hosting: true };
+  const [shown, setShown] = useState<Record<"classes" | "crewPractice" | "jobPractice" | CalendarSide, boolean>>(ALL_ON);
   const flip = (k: keyof typeof shown) => setShown((s) => ({ ...s, [k]: !s[k] }));
   const wantClasses = mode !== "crew" && (mode !== "personal" || shown.classes);
-  const wantPractices = isCrew || (mode === "personal" && shown.practices);
+  /* each practice kind is its own calendar (18 Oct 2026) — a crew's tab shows its
+     own practices whatever the drawer says, since it has no drawer of kinds */
+  const wantPractice = (e: CalendarPracticeEntry) => isCrew || (mode === "personal" && shown[PRACTICE_KIND[practiceKindOf(e)].key]);
   const [menuOpen, setMenuOpen] = useState(false);
   useCloseOnBack(() => setMenuOpen(false), menuOpen);
   /* what the drawer has switched off, in words, for the summary row under the bar */
@@ -377,9 +391,10 @@ export function CalendarScreen({ mode, months, todayKey, entries, practices = []
       ? []
       : [
           ...(!shown.classes ? ["Classes"] : (["attending", "hosting", "assisting"] as CalendarSide[]).filter((k) => !shown[k]).map((k) => CLASS_RELATION[SIDE_RELATION[k]].word)),
-          ...(!shown.practices ? ["Practice"] : []),
+          ...(!shown.crewPractice ? [PRACTICE_KIND.crew.word] : []),
+          ...(!shown.jobPractice ? [PRACTICE_KIND.job.word] : []),
         ];
-  const showAll = () => setShown({ classes: true, practices: true, attending: true, assisting: true, hosting: true });
+  const showAll = () => setShown(ALL_ON);
   /** one of Google's "My calendars" rows — a coloured checkbox, the name, and
    *  what it counts in the view you are on. ⚠ The accessible name is "{name}: {n}"
    *  (the side pills' own since Step 14), so a test and a screen reader find it
@@ -394,6 +409,7 @@ export function CalendarScreen({ mode, months, todayKey, entries, practices = []
         aria-checked={shown[k]}
         aria-disabled={off}
         aria-label={`${label}: ${n}`}
+        data-testid={`cal-calendar-${k}`}
         onClick={() => !off && flip(k)}
         style={{ display: "flex", alignItems: "center", gap: 14, width: "100%", height: 46, padding: indent ? "0 16px 0 46px" : "0 16px", borderRadius: 999, border: "none", background: "transparent", cursor: off ? "default" : "pointer", fontFamily: "inherit", textAlign: "left", opacity: off ? 0.45 : 1 }}
       >
@@ -437,7 +453,7 @@ export function CalendarScreen({ mode, months, todayKey, entries, practices = []
 
   const isToday = (dayKey: string) => dayKey === todayKey;
   /* every kind that is switched on, merged into one list (10 Oct 2026) */
-  const half: Row[] = [...(wantClasses ? entries.map(classRow) : []), ...(wantPractices ? practices.map(practiceRow) : [])];
+  const half: Row[] = [...(wantClasses ? entries.map(classRow) : []), ...practices.filter(wantPractice).map(practiceRow)];
   const roomScoped = half.filter((r) => room === null || r.k !== "class" || r.room === room);
   /* ⚠ THE SIDES ARE A CLASS IDEA and a practice has none — nobody trains at
      their own crew's rehearsal — so they narrow classes and nothing else */
@@ -479,7 +495,7 @@ export function CalendarScreen({ mode, months, todayKey, entries, practices = []
   const sideCounts = Object.fromEntries(
     SIDE_KEYS.map((k) => [k, classScoped.filter((e) => e.side === k).length])
   ) as Record<CalendarSide, number>;
-  const practicesInScope = practices.filter((e) => inScope(e.dayKey)).length;
+  const practicesInScope = (k: PracticeKind) => practices.filter((e) => practiceKindOf(e) === k && inScope(e.dayKey)).length;
   const classesInScope = classScoped.length;
 
   /* ── MOVING THE SCHEDULE (9166-9188): in a list, "go to a date" means SCROLL
@@ -683,18 +699,22 @@ export function CalendarScreen({ mode, months, todayKey, entries, practices = []
     const past = r.dayKey < todayKey;
     if (r.k === "practice") {
       const e = r.e;
-      const bg = e.cancelled ? "#9CA3AF" : PRACTICE_C;
+      const pk = practiceKindOf(e);
+      const bg = practiceTint(e);
       const ink = inkOn(bg);
       return (
         <Link
           key={r.id}
           data-testid="cal-pill"
           data-kind="practice"
+          data-practice-kind={pk}
           href={e.href}
           aria-label={`${e.crewName} practice, ${practiceWhen(e.startsAt)}${e.cancelled ? " — called off" : ""}`}
           style={{ ...CHIP, background: bg, color: ink, opacity: past ? 0.55 : 1 }}
         >
-          <span style={{ ...CHIP_NAME, textDecoration: e.cancelled ? "line-through" : "none" }}>{e.crewName} · Practice</span>
+          <span style={{ ...CHIP_NAME, textDecoration: e.cancelled ? "line-through" : "none" }}>
+            {e.crewName} · {PRACTICE_KIND[pk].word}
+          </span>
           <span style={CHIP_SUB}>
             {[e.cancelled ? "Called off" : e.standingWord ?? PRACTICE_WORD[e.standing], compactRangeOf(e.startsAt, e.endsAt), e.place].filter(Boolean).join(" · ")}
           </span>
@@ -766,7 +786,7 @@ export function CalendarScreen({ mode, months, todayKey, entries, practices = []
   const block = (r: Row, h: number, narrow: boolean) => {
     const isPractice = r.k === "practice";
     const cancelled = isPractice && r.e.cancelled;
-    const tint = isPractice ? (cancelled ? MUTED : PRACTICE_C) : dosStyleColor(r.style);
+    const tint = isPractice ? (cancelled ? MUTED : PRACTICE_KIND[practiceKindOf(r.e)].tint) : dosStyleColor(r.style);
     const draft = r.k === "class" && r.e.classStatus === "draft";
     const draftWord = draft ? (r.dayKey < todayKey ? "Closed" : "Draft") : null;
     const name = isPractice ? r.e.crewName : r.style;
@@ -778,7 +798,7 @@ export function CalendarScreen({ mode, months, todayKey, entries, practices = []
           : [draftWord, room === null ? r.e.room : null].filter(Boolean).join(" · ")
         : cancelled
           ? "Called off"
-          : r.e.standingWord ?? PRACTICE_WORD[r.e.standing];
+          : `${PRACTICE_KIND[practiceKindOf(r.e)].word} · ${r.e.standingWord ?? PRACTICE_WORD[r.e.standing]}`;
     const label = r.k === "class" ? `Open ${r.e.title}` : `${r.e.crewName} practice, ${practiceWhen(r.startsAt)}${cancelled ? " — called off" : ""}`;
     return (
       <Link
@@ -825,7 +845,7 @@ export function CalendarScreen({ mode, months, todayKey, entries, practices = []
     agendaOf(dayKey).map((r) => ({
       id: r.id,
       label: r.k === "practice" ? r.e.crewName : r.style,
-      tint: r.k === "practice" ? (r.e.cancelled ? MUTED : PRACTICE_C) : dosStyleColor(r.style),
+      tint: r.k === "practice" ? (r.e.cancelled ? MUTED : PRACTICE_KIND[practiceKindOf(r.e)].tint) : dosStyleColor(r.style),
       faded: dayKey < todayKey || (r.k === "practice" && r.e.cancelled),
     }));
   const swipe = useSwipe((dir) => {
@@ -1374,7 +1394,7 @@ export function CalendarScreen({ mode, months, todayKey, entries, practices = []
                 <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 1, color: MUTED, textTransform: "uppercase", padding: "4px 16px 6px" }}>My calendars</div>
                 {checkRow("classes", "Classes", classesInScope, TOOL_COLOUR, false, false)}
                 {SIDE_KEYS.map((k) => checkRow(k, SIDES[k].name, sideCounts[k], SIDES[k].tint, !shown.classes, true))}
-                {checkRow("practices", "Practice", practicesInScope, PRACTICE_C, false, false)}
+                {(["crew", "job"] as PracticeKind[]).map((k) => checkRow(PRACTICE_KIND[k].key, PRACTICE_KIND[k].label, practicesInScope(k), PRACTICE_KIND[k].tint, false, false))}
                 {hiddenWords.length ? (
                   <button type="button" onClick={showAll} style={{ ...SUMMARY_CHIP, margin: "10px 16px 0" }}>
                     Show everything

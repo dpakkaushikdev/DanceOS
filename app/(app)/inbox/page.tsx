@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { EnquirySettings } from "@/features/enquiries/components/EnquirySettings";
 import { loadEnquiries } from "@/features/enquiries/server/loadEnquiries";
 import { InboxScreen } from "@/features/inbox/components/InboxScreen";
+import { readEnquiriesAddress } from "@/features/inbox/enquiriesAddress";
 import { INBOX_TINT } from "@/lib/design/tokens";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findMyPendingClassPeople } from "@/repositories/classPeople";
@@ -28,7 +29,7 @@ const stampNowIso = (): string => new Date().toISOString();
  *  the switch list behind the Invites column's settings (that switch is on each
  *  hub's gear now). Old `?show=requests` / `?show=invites` links land here, on
  *  Enquiries — nothing breaks, the column is simply not there (Rule 14). */
-export default async function InboxPage({ searchParams }: { searchParams: Promise<{ show?: string }> }) {
+export default async function InboxPage({ searchParams }: { searchParams: Promise<{ show?: string; tab?: string; side?: string }> }) {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -38,7 +39,9 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
   }
 
   const nowIso = stampNowIso();
-  const [memberships, { show }] = await Promise.all([findMyMemberships(supabase), searchParams]);
+  const [memberships, query] = await Promise.all([findMyMemberships(supabase), searchParams]);
+  /* ⚠ To do · Ongoing · Past since 18 Oct 2026 — every older `?show=` still lands */
+  const at = readEnquiriesAddress(query);
 
   /* the enquiries, through the loader a studio's Inbox shares; and the three
      counts, each answering an empty list rather than failing the Inbox */
@@ -72,7 +75,8 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
         { testId: "artist-invites-pointer", n: invitesIn.filter((i) => isArtistTeam(i.businessType)).length, href: "/team", one: "artist team invite", many: "artist team invites", where: "Answered on Team › Other Teams", tint: "#0EA5E9" },
         { testId: "crew-invites-pointer", n: crewIn.length, href: "/team", one: "crew invite", many: "crew invites", where: "Answered on Team › Other Teams", tint: "#DC2626" },
       ]}
-      initialSection={show === "done" ? "done" : show === "jobs" ? "jobs" : undefined}
+      initialTab={at.tab}
+      initialSide={at.side}
       jobs={jobs}
       nowIso={nowIso}
     />

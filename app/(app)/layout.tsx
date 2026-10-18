@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { photoUrl } from "@/lib/media/photo";
 import { amIPlatformAdmin } from "@/repositories/admin";
 import { findMyLedCrews } from "@/repositories/crews";
-import { findMyUnreadCount, findMyUnreadNotes } from "@/repositories/notifications";
+import { findMyUnreadCount, findMyUnreadNotes, pointEnquiryNotesAtTheirDesk } from "@/repositories/notifications";
 import { badgeSwitcher, type UnreadNote } from "@/features/home/toolBadges";
 import { findMyArtistPlan } from "@/repositories/plans";
 import { findProfileById } from "@/repositories/profiles";
@@ -115,6 +115,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
      ⚠ `ownBusiness` is the artist page this account OWNS — never a business it
      is merely on the team of, and never an arbitrary pick among the ones it
      owns. */
+  /* a studio's enquiry news counts on THAT studio's row, never the person's (18 Oct 2026) */
+  const deskNotes = user
+    ? await pointEnquiryNotesAtTheirDesk(supabase, unreadNotes, user.id, runsA.filter((m) => m.business.type === "studio").map((m) => m.business.id)).catch(() => unreadNotes)
+    : unreadNotes;
+
   const settings: ChromeSettings | null = profile
     ? {
         profile,
@@ -133,7 +138,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     : null;
 
   return (
-    <AppChrome unread={adminOnly ? 0 : unread} adminOnly={adminOnly} switcher={badgeSwitcher(switcher, unreadNotes)} settings={settings} views={viewsOf(layout)}>
+    <AppChrome unread={adminOnly ? 0 : unread} adminOnly={adminOnly} switcher={badgeSwitcher(switcher, deskNotes)} settings={settings} views={viewsOf(layout)}>
       {children}
     </AppChrome>
   );

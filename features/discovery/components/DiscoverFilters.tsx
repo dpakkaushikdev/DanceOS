@@ -79,7 +79,7 @@ export function DosStyleTile({ label, color, on, tap, aria, small }: { label: st
   );
 }
 
-export function DiscoverFilters({ tab, city, filters, styleOrder, tabs, as = null, priceCeil = 500 }: { tab: string; city: string; filters: DiscoverFilters; styleOrder: string[]; tabs?: React.ReactNode; /** ⚠ WHICH PROFILE IS READING THIS SHELF — carried through every href this control builds (27 Sep 2026). Dropping it on a style tap would have quietly restored the Book button a studio is not supposed to have: the gate is only as durable as the least careful link on the page. */ as?: string | null; /** the price bar's right end — the dearest class in this city, worked out by the page (10 Oct 2026) */ priceCeil?: number }) {
+export function DiscoverFilters({ tab, city, filters, styleOrder, tabs, as = null, priceCeil = 500, part = "all" }: { tab: string; city: string; filters: DiscoverFilters; styleOrder: string[]; tabs?: React.ReactNode; /** ⚠ WHICH HALF TO DRAW (18 Oct 2026, the user: "filters should be placed under headings like studios near you, upcoming classes, artist and styles"). "top" is the search box and the tabs, in the top squircle; "bar" is Filters · N, the quick chips and the sheet, drawn under the shelf's own heading. Each half is drawn ONCE on the page, so no control answers to its name twice. */ part?: "all" | "top" | "bar"; /** ⚠ WHICH PROFILE IS READING THIS SHELF — carried through every href this control builds (27 Sep 2026). Dropping it on a style tap would have quietly restored the Book button a studio is not supposed to have: the gate is only as durable as the least careful link on the page. */ as?: string | null; /** the price bar's right end — the dearest class in this city, worked out by the page (10 Oct 2026) */ priceCeil?: number }) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [searchOn, setSearchOn] = useState(false);
@@ -235,6 +235,8 @@ export function DiscoverFilters({ tab, city, filters, styleOrder, tabs, as = nul
   return (
     <>
       <style>{KEYFRAMES}</style>
+      {part !== "bar" ? (
+      <>
       {/* the global search box: everything, in sections (4535) */}
       <div style={{ position: "relative", margin: "12px 0 4px" }}>
         <input
@@ -293,6 +295,8 @@ export function DiscoverFilters({ tab, city, filters, styleOrder, tabs, as = nul
 
       {/* the five section tabs — the page hands them in, so they sit under the search box as they do in the prototype (4571) */}
       {tabs}
+      </>
+      ) : null}
 
       {/* ⚠⚠ THE STYLE RAIL MOVED INTO THE SHEET (2 Oct 2026, the user: "dance
           styles inside filter on discover for studios, artist crews, classes and
@@ -304,8 +308,10 @@ export function DiscoverFilters({ tab, city, filters, styleOrder, tabs, as = nul
           ⚠ The Styles tab has filters at last: its shelf can be narrowed by
           family, by style and to the styles taught in this city, and ordered. */}
 
+      {part !== "top" ? (
+      <>
       {/* Filters · N, the quick chips (4655-4696), then whatever is picked */}
-      <div style={{ display: "flex", gap: 7, alignItems: "center", padding: "10px 0 10px", overflowX: "auto", scrollbarWidth: "none" }}>
+      <div data-testid="discover-filter-bar" style={{ display: "flex", gap: 7, alignItems: "center", padding: part === "bar" ? "10px 0 12px" : "10px 0 10px", overflowX: "auto", scrollbarWidth: "none" }}>
         <div
           role="button"
           tabIndex={0}
@@ -418,6 +424,8 @@ export function DiscoverFilters({ tab, city, filters, styleOrder, tabs, as = nul
             </div>
           </div>
         </div>
+      ) : null}
+      </>
       ) : null}
     </>
   );

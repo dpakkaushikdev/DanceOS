@@ -169,12 +169,18 @@ export function InboxScreen({
     stage: (e: Enquiry) => st(e),
     at: (e: Enquiry) => e.createdAt,
     value: (e: Enquiry) => enquiryValueInr(e),
+    /* the job's own date — the first one still ahead, else the last */
+    when: (e: Enquiry) => {
+      const today = nowIso.slice(0, 10);
+      const ds = [...e.dates].sort();
+      return ds.find((d) => d >= today) ?? ds[ds.length - 1] ?? null;
+    },
   };
   const enqBase = enqSide === "done" ? doneEnq : liveSide;
   const filtered = applyInboxFilter(enqBase, fEnq, enqRead);
   const enqKinds = ENQ_TYPES.map((t) => [t.k, t.label, enqBase.filter((e) => e.typeKey === t.k).length] as const).filter(([, , n]) => n > 0);
   const enqStages = ENQ_STAGES.filter((s) => (enqSide === "done" ? ENQ_CLOSED.has(s) : !ENQ_CLOSED.has(s)) && enqBase.some((e) => st(e) === s)).map((s) => [s, ENQ_STAGE_WORD[s]] as const);
-  const ENQ_SORTS: ReadonlyArray<readonly [InboxSort, string]> = [["new", "Newest"], ["old", "Oldest"], ["value", "Highest value"]];
+  const ENQ_SORTS: ReadonlyArray<readonly [InboxSort, string]> = [["new", "Newest"], ["old", "Oldest"], ["soon", "Job date"], ["value", "Highest value"]];
   const brkRows = enqSide === "done" ? doneEnq : side;
   const brkByType = ENQ_TYPES.map((t) => ({ k: t.k, label: t.label, rows: brkRows.filter((e) => e.typeKey === t.k) })).filter((x) => x.rows.length);
   const noMatch = (
@@ -190,11 +196,12 @@ export function InboxScreen({
       <TopPanel tint={accent} style={{ margin: "12px 16px 12px" }}>
         <div style={{ position: "relative" }}>
           <h1 data-testid="inbox-title" style={TAB_TITLE}>
-            <BeatText text="Inbox" />
+            {/* ⚠ "Enquiries", not "Inbox" (18 Oct 2026, the user: "inbox to be renamed as Enquiries") */}
+            <BeatText text="Enquiries" />
           </h1>
           <div data-testid="inbox-sub" style={{ ...TAB_SUB, margin: "5px 0 12px" }}>
             {deskSub ? `${deskSub} · ` : ""}
-            {owed > 0 ? `${owed} waiting on you` : "Nothing waiting on you"}
+            {owed > 0 ? `${owed} waiting on you` : "All caught up"}
           </div>
           {/* the enquiry settings' gear, top right (12 Oct 2026) */}
           {settings}
@@ -244,21 +251,21 @@ export function InboxScreen({
       {/* ── THE LOWER PANEL: the search and the cards, on the page's own theme ── */}
       <InvertedPanel ground="page" style={{ flex: 1, margin: "0 16px calc(var(--dos-foot, 96px) + 12px)", borderRadius: 22, padding: "18px 14px 18px" }}>
         <div data-testid="inbox-panel" style={{ position: "relative" }}>
-          {enqBase.length ? <InboxFilters value={fEnq} onChange={setFEnq} noun="enquiries" kinds={enqKinds} stages={enqStages} sorts={ENQ_SORTS} /> : null}
+          {enqBase.length ? <InboxFilters value={fEnq} onChange={setFEnq} noun="enquiries" kinds={enqKinds} stages={enqStages} sorts={ENQ_SORTS} stageLabel="STATUS" quickStages /> : null}
           {enqSide === "done" && doneEnq.length === 0 ? (
             <div style={emptyBox}>
               <div style={{ fontSize: 12.5, fontWeight: 800 }}>Nothing completed yet</div>
-              <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 3 }}>Enquiries land here once they are completed, lost or cancelled.</div>
+              <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 3 }}>Closed enquiries land here.</div>
             </div>
           ) : enqSide !== "done" && side.length === 0 ? (
             <div style={emptyBox}>
               <div style={{ fontSize: 12.5, fontWeight: 800 }}>Nothing here</div>
-              <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 3 }}>{enqSide === "out" ? "You have not sent any enquiries yet — send one from any profile." : "No enquiries have come in yet."}</div>
+              <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 3 }}>{enqSide === "out" ? "Send one from any profile." : "None in yet."}</div>
             </div>
           ) : enqSide !== "done" && liveSide.length === 0 ? (
             <div style={emptyBox}>
               <div style={{ fontSize: 12.5, fontWeight: 800 }}>Nothing open</div>
-              <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 3 }}>Completed, lost and cancelled enquiries are under Completed.</div>
+              <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 3 }}>Closed ones are under Completed.</div>
             </div>
           ) : filtered.length === 0 ? (
             noMatch

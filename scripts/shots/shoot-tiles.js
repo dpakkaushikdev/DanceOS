@@ -285,8 +285,15 @@ async function personOpensAStudio(page, who, acc, stamp) {
   await page.getByTestId("classes-answered").click().catch(() => {});
   const inbox = await page.getByTestId("answered-list").innerText().catch(() => "");
   check(/Hip-Hop/.test(inbox) && /confirmed/i.test(inbox), `${who} · Classes keeps it behind the Answered button, the class card wearing its answer (${inbox.replace(/\s+/g, " ").slice(0, 80) || "no Answered list"})`);
+  /* ⚠ SINCE 18 Oct 2026 opening a tool marks its notifications READ, so the
+     Classes visit above moved this line from New to History (today open) */
   await page.goto(`${BASE}/notifications`, { waitUntil: "networkidle" });
-  check(/You take Hip-Hop/.test(await page.locator("body").innerText().catch(() => "")), `${who} · and the bell says "You take …" — the log the user asked for`);
+  let bell = await page.locator("body").innerText().catch(() => "");
+  if (!/You take Hip-Hop/.test(bell)) {
+    await page.goto(`${BASE}/notifications?show=earlier`, { waitUntil: "networkidle" });
+    bell = await page.locator("body").innerText().catch(() => "");
+  }
+  check(/You take Hip-Hop/.test(bell), `${who} · and the bell says "You take …" — the log the user asked for (New or History)`);
   return studioId;
 }
 
@@ -308,7 +315,7 @@ async function personOpensAStudio(page, who, acc, stamp) {
        should be seprate tab in home tab not in crew") — pressed here so the new
        tile is DRIVEN rather than skipped: `pressEveryTile` only presses names it
        is given, so a tile left off this list is a tile nothing opens. */
-    await pressEveryTile(p1, "user", ["Classes", "Calendar", "Crews", "Practice", "Studios", "Routines", "Team", "Memberships", "Earnings"]);
+    await pressEveryTile(p1, "user", ["Classes", "Calendar", "Enquiries", "Crews", "Practice", "Studios", "Routines", "Team", "Memberships", "Earnings"]);
     /* the grid is arrangeable, and the arrangement is the account's (22 Sep 2026) */
     await arrangeGrid(p1, "user", `${BASE}/`);
     /* a person opens a studio, runs it from the switcher, takes their own class (26 Sep 2026) */
@@ -333,7 +340,7 @@ async function personOpensAStudio(page, who, acc, stamp) {
        so the tiles that point at it are only right on the SECOND look — which is
        itself worth checking, because a first-time artist sees the first one. */
     await p2.goto(`${BASE}/`, { waitUntil: "networkidle" });
-    await pressEveryTile(p2, "artist", ["Classes", "Calendar", "Crews", "Practice", "Studios", "Routines", "Team", "Students", "Earnings", "Memberships", "Assets"]);
+    await pressEveryTile(p2, "artist", ["Classes", "Calendar", "Enquiries", "Crews", "Practice", "Studios", "Routines", "Team", "Students", "Earnings", "Memberships", "Assets"]);
 
     /* ⚠ A FORM OPENS OVER THE DESK THAT OFFERED IT, AND IS STILL A PAGE OF ITS
        OWN (22 Sep 2026, the user: "All forms and add buttons anywhere in home
@@ -491,7 +498,7 @@ async function personOpensAStudio(page, who, acc, stamp) {
     const vTxt = await p3.locator("body").innerText().catch(() => "");
     check((vres ? vres.status() : 0) < 400 && vTxt.includes("Get this studio verified"), "studio · and Verification has a page, with the real form on it");
     await p3.goto(`${BASE}/business/${studio.id}`, { waitUntil: "networkidle" });
-    for (const want of ["Classes", "Calendar", "Team", "Students", "Earnings", "Memberships", "Assets", "Rooms"]) {
+    for (const want of ["Classes", "Calendar", "Enquiries", "Team", "Students", "Earnings", "Memberships", "Assets", "Rooms"]) {
       const t = stiles.find((x) => x.name === want);
       if (!t) { check(false, `studio · has a ${want} tile`); continue; }
       const res = await p3.goto(`${BASE}${t.href}`, { waitUntil: "domcontentloaded" });
@@ -563,7 +570,9 @@ async function personOpensAStudio(page, who, acc, stamp) {
       back: [...document.querySelectorAll('[aria-label="Go back"]')].length,
     }));
     check(drill.switcher === 1, `drill page · the switcher is here, once (${drill.switcher})`);
-    check(drill.back === 1, `drill page · and the back chip is NOT what the mark replaced (${drill.back})`);
+    /* ⚠ NO BACK CHIP ANYWHERE since 18 Oct 2026 (the user: "remove back button on
+       left of logo should not appear at all") — the system back is the way out */
+    check(drill.back === 0, `drill page · and no back chip beside the logo (${drill.back})`);
     await openDrawer(p3);
     const menu = p3.getByTestId("profile-drawer");
     await menu.waitFor({ state: "visible", timeout: 15_000 });

@@ -8,7 +8,8 @@ import {
 } from "@/lib/format/month";
 import { dosClassLabel } from "@/lib/constants/styles";
 import { enquiryTypeOf } from "@/types/enquiry";
-import { EARNING_TINT, type EarningsReport, type MoneyItem, type MoneyLine } from "@/types/earnings";
+import { EARNING_TINT, type EarningsRangeKeys, type EarningsReport, type MoneyItem, type MoneyLine } from "@/types/earnings";
+import { rangeFromIso, rangeGrain, rangeKeys, rangeToIso } from "@/features/payouts/earningsRange";
 
 /** EARNINGS, COUNTED THE SAME WAY FOR EVERY KIND OF PROFILE (21 Sep 2026, the
  *  user: "lets fix earnings for all profile types … Revenue with breakup and
@@ -71,11 +72,18 @@ const enquiryWords = (typeKey: string | null | undefined) => enquiryTypeOf(typeK
  *  recorded on the 21st belongs to the 21st in the country the app serves. */
 const dayToIso = (day: string) => `${day}T00:00:00+05:30`;
 
-type Window = { from: string; keys: string[] };
+/** ⚠ `to` is an EXCLUSIVE upper bound — far in the future for a period window
+ *  (which ends now), the day after a custom range ends otherwise (18 Oct 2026) */
+type Window = { from: string; to: string; keys: string[]; grain: Period; range: EarningsRangeKeys | null };
 
-const windowFor = (nowIso: string, period: Period): Window => {
+const FAR = "9999-12-31T00:00:00+05:30";
+
+const windowFor = (nowIso: string, period: Period, range?: EarningsRangeKeys | null): Window => {
+  if (range) {
+    return { from: rangeFromIso(range), to: rangeToIso(range), keys: rangeKeys(range), grain: rangeGrain(range), range };
+  }
   const keys = bucketsWindow(nowIso, period, BUCKETS[period]);
-  return { from: bucketStartIso(keys[0], period), keys };
+  return { from: bucketStartIso(keys[0], period), to: FAR, keys, grain: period, range: null };
 };
 
 /** the report a screen draws: a bucket per column, and the breakup of whichever
@@ -85,7 +93,8 @@ function assemble(
   keys: string[],
   revenue: Array<{ key: string; label: string; by: Bucketed; items?: Itemed; href?: string; note?: string; hideAtZero?: boolean }>,
   expenses: Array<{ key: string; label: string; by: Bucketed; items?: Itemed; href?: string; note?: string; hideAtZero?: boolean }>,
-  complete: boolean
+  complete: boolean,
+  range: EarningsRangeKeys | null = null
 ): EarningsReport {
   const lines: EarningsReport["lines"] = {};
   type Src = (typeof revenue)[number];
@@ -103,7 +112,7 @@ function assemble(
       expensesInr: exp.reduce((n, l) => n + l.amountInr, 0),
     };
   });
-  return { period, buckets, lines, complete };
+  return { period, buckets, lines, complete, range };
 }
 
 /** ⚠ ENQUIRY MONEY, READ THE 3 Oct 2026 WAY. One quote row can carry up to two
@@ -112,8 +121,9 @@ function assemble(
  *  accepted REDUCTION lowers what the balance turned out to be (an older row has
  *  no figure and falls back to cost − advance). An ADDITION is one more taking,
  *  its own whole cost, when it was paid; a reduction is never a taking. */
-const ENQUIRY_QUOTE_COLUMNS = "kind, n, cost_inr, advance_inr, advance_paid_at, full_paid_at, balance_paid_inr, enquiries (type_key, profiles (full_name))";
+const ENQUIRY_QUOTE_COLUMNS = "enquiry_id, kind, n, cost_inr, advance_inr, advance_paid_at, full_paid_at, balance_paid_inr, enquiries (type_key, profiles (full_name))";
 type EnquiryQuoteRow = {
+  enquiry_id?: string | null;
   kind: string | null;
   n: number;
   cost_inr: number;
@@ -147,12 +157,15 @@ function enquiryTakings(q: EnquiryQuoteRow): Array<{ at: string; amountInr: numb
 export async function findBusinessEarnings(
   supabase: SupabaseClient,
   businessIds: string[],
-  period: Period,
-  nowIso: string
+  askedPeriod: Period,
+  nowIso: string,
+  /** a custom window (18 Oct 2026) — null for the four periods */
+  askedRange: EarningsRangeKeys | null = null
 ): Promise<EarningsReport> {
-  const { from, keys } = windowFor(nowIso, period);
-  if (businessIds.length === 0) return assemble(period, keys, [], [], true);
+  const { from, to, keys, grain: period, range } = windowFor(nowIso, askedPeriod, askedRange);
+  if (businessIds.length === 0) return assemble(period, keys, [], [], true, range);
   const fromDay = from.slice(0, 10);
+  const toDay = to.slice(0, 10);
 
   const [payments, refunds, payouts, assets, quotes, subs, handBack] = await Promise.all([
     /* what students paid — the three subjects an order can name (the CHECK
@@ -164,31 +177,37 @@ export async function findBusinessEarnings(
       .from("payments")
       /* the names behind each payment (2 Oct 2026) — which class or membership,
          and who paid; every key here is a single unambiguous FK */
-      .select("amount_inr, created_at, orders (membership_id, event_id, enquiry_quote_id, classes (style, level), memberships (name), profiles (full_name))")
+      /* `method`, `business_id`, the class's slug and the membership's id ride
+         along (18 Oct 2026) so every row can open the exact place it is about
+         and the reports can split by how students paid */
+      .select("amount_inr, created_at, method, business_id, orders (membership_id, event_id, enquiry_quote_id, class_id, classes (style, level, share_slug), memberships (name), profiles (full_name))")
       .in("business_id", businessIds)
       .eq("kind", "order")
       .in("status", ["captured", "refunded"])
       .is("deleted_at", null)
       .gte("created_at", from)
+      .lt("created_at", to)
       .limit(MAX_ROWS),
     supabase
       .from("refunds")
-      .select("amount_inr, decided_at, updated_at, profiles (full_name), orders (classes (style, level), memberships (name))")
+      .select("amount_inr, decided_at, updated_at, business_id, profiles (full_name), orders (class_id, classes (style, level), memberships (name))")
       .in("business_id", businessIds)
       .eq("status", "processed")
       .is("deleted_at", null)
       .gte("updated_at", from)
+      .lt("updated_at", to)
       .limit(MAX_ROWS),
     /* ⚠ `done` and `in_transit` only: money that has left or is leaving. An
        `on_hold` or `failed` payout has not been spent, and the existing desk
        tiles all three together under "In transit", which is a different classPerson. */
     supabase
       .from("payouts")
-      .select("amount_inr, paid_on, status, profiles (full_name)")
+      .select("amount_inr, paid_on, status, user_id, business_id, method, profiles (full_name)")
       .in("business_id", businessIds)
       .in("status", ["done", "in_transit"])
       .is("deleted_at", null)
       .gte("paid_on", fromDay)
+      .lt("paid_on", toDay)
       .limit(MAX_ROWS),
     /* ⚠ ASSETS ARE AN EXPENSE (21 Sep 2026, the user: "with assets just need
        price to be linked with expenses in earnings, no separate association of
@@ -198,10 +217,11 @@ export async function findBusinessEarnings(
        purchase date; the screen says so rather than implying one. */
     supabase
       .from("assets")
-      .select("name, category, value_inr, created_at")
+      .select("name, category, value_inr, created_at, business_id")
       .in("business_id", businessIds)
       .is("deleted_at", null)
       .gte("created_at", from)
+      .lt("created_at", to)
       .limit(MAX_ROWS),
     /* ⚠ ENQUIRY MONEY, WHICH NO EARNINGS SCREEN HAS EVER SHOWN. A celebration or
        a corporate show is recorded as received by the business
@@ -232,6 +252,7 @@ export async function findBusinessEarnings(
       .is("deleted_at", null)
       .in("subscriptions.business_id", businessIds)
       .gte("created_at", from)
+      .lt("created_at", to)
       .limit(MAX_ROWS),
     /* ⚠ AN ENQUIRY'S REFUND HANDED BACK BY HAND (3 Oct 2026, Rule 9). Ending a
        project after money moved settles a refund: the part that went in through
@@ -241,12 +262,13 @@ export async function findBusinessEarnings(
        Through the enquiry, because the terms carry no business of their own. */
     supabase
       .from("enquiry_endings")
-      .select("refund_hand_inr, answered_at, enquiries!inner (type_key, business_id, profiles (full_name))")
+      .select("enquiry_id, refund_hand_inr, answered_at, enquiries!inner (type_key, business_id, profiles (full_name))")
       .eq("status", "accepted")
       .gt("refund_hand_inr", 0)
       .is("deleted_at", null)
       .in("enquiries.business_id", businessIds)
       .gte("answered_at", from)
+      .lt("answered_at", to)
       .limit(MAX_ROWS),
   ]);
 
@@ -281,10 +303,10 @@ export async function findBusinessEarnings(
   const boughtI: Itemed = new Map();
   const planI: Itemed = new Map();
   /** count a row once: its money into the bucket, its name into the list */
-  const take = (by: Bucketed, items: Itemed, at: string, amountInr: number, label: string) => {
+  const take = (by: Bucketed, items: Itemed, at: string, amountInr: number, label: string, extra: Partial<MoneyItem> = {}) => {
     const k = bucketKeyOf(at, period);
     add(by, k, amountInr);
-    addItem(items, k, { label, amountInr, at });
+    addItem(items, k, { label, amountInr, at, ...extra });
   };
 
   /* ⚠ PostgREST TYPES A TO-ONE EMBED AS AN ARRAY though it returns an object —
@@ -292,72 +314,109 @@ export async function findBusinessEarnings(
      compiler. Getting this wrong would not throw: every payment would fall
      through to Classes and the breakup would silently be one line. */
   type Named = { full_name: string | null };
-  type ClassBit = { style: string; level: string };
+  type ClassBit = { style: string; level: string; share_slug?: string | null };
   type Subject = {
     membership_id: string | null;
     event_id: string | null;
     enquiry_quote_id?: string | null;
+    class_id?: string | null;
     classes?: ClassBit | ClassBit[] | null;
     memberships?: { name: string } | Array<{ name: string }> | null;
     profiles?: Named | Named[] | null;
   };
-  type PayRow = { amount_inr: number; created_at: string; orders: Subject | Subject[] | null };
+  type PayRow = { amount_inr: number; created_at: string; method?: string | null; business_id?: string | null; orders: Subject | Subject[] | null };
   for (const p of (payments.data ?? []) as unknown as PayRow[]) {
     const s = single(p.orders);
     const who = single(s?.profiles)?.full_name ?? null;
     const tail = who ? ` — ${who}` : "";
+    const b = p.business_id ?? "";
     /* ⚠ AN ENQUIRY PAID ONLINE (3 Oct 2026) is counted ONCE, from its quote below
        — the capture stamps the quote's paid-at — so its payments row is skipped
        here, or the `else` would ALSO fold it into Classes */
     if (s?.enquiry_quote_id) continue;
-    if (s?.membership_id) take(memberships, membershipsI, p.created_at, p.amount_inr, `${single(s.memberships)?.name ?? "A membership"}${tail}`);
-    else if (s?.event_id) take(events, eventsI, p.created_at, p.amount_inr, `A ticket or entry${tail}`);
-    else take(classes, classesI, p.created_at, p.amount_inr, `${classWords(single(s?.classes)) ?? "A class"}${tail}`);
+    if (s?.membership_id) {
+      const name = single(s.memberships)?.name ?? "A membership";
+      take(memberships, membershipsI, p.created_at, p.amount_inr, `${name}${tail}`, {
+        group: name,
+        method: p.method ?? null,
+        href: b ? `/business/${b}/memberships/${s.membership_id}` : undefined,
+      });
+    } else if (s?.event_id) take(events, eventsI, p.created_at, p.amount_inr, `A ticket or entry${tail}`, { group: "Tickets", method: p.method ?? null });
+    else {
+      const c = single(s?.classes);
+      const name = classWords(c) ?? "A class";
+      take(classes, classesI, p.created_at, p.amount_inr, `${name}${tail}`, {
+        group: name,
+        method: p.method ?? null,
+        href: c?.share_slug ? `/c/${c.share_slug}` : b ? `/business/${b}/classes` : undefined,
+      });
+    }
   }
 
   /* a refund belongs to the month it was DECIDED — the rule `findBusinessIncome`
      set on 28 Aug — or, for the rail's own automatic ones that nobody decided,
      the moment the row last moved */
+  type RefundOrder = { class_id?: string | null; classes?: ClassBit | ClassBit[] | null; memberships?: { name: string } | Array<{ name: string }> | null };
   type RefundRow = {
     amount_inr: number;
     decided_at: string | null;
     updated_at: string;
+    business_id?: string | null;
     profiles?: Named | Named[] | null;
-    orders?: { classes?: ClassBit | ClassBit[] | null; memberships?: { name: string } | Array<{ name: string }> | null } | Array<{ classes?: ClassBit | ClassBit[] | null; memberships?: { name: string } | Array<{ name: string }> | null }> | null;
+    orders?: RefundOrder | RefundOrder[] | null;
   };
   for (const r of (refunds.data ?? []) as unknown as RefundRow[]) {
     const o = single(r.orders);
     const what = classWords(single(o?.classes)) ?? single(o?.memberships)?.name ?? "A refund";
     const who = single(r.profiles)?.full_name;
-    take(refunded, refundedI, r.decided_at ?? r.updated_at, r.amount_inr, `${what}${who ? ` — ${who}` : ""}`);
+    /* the refund desk FOCUSED on that class (`?class=`) — the exact place */
+    const href = r.business_id ? `/business/${r.business_id}/refunds${o?.class_id ? `?class=${o.class_id}` : ""}` : undefined;
+    take(refunded, refundedI, r.decided_at ?? r.updated_at, r.amount_inr, `${what}${who ? ` — ${who}` : ""}`, { group: what, href });
   }
 
-  type PayoutRow = { amount_inr: number; paid_on: string; profiles?: Named | Named[] | null };
+  type PayoutRow = { amount_inr: number; paid_on: string; user_id?: string | null; business_id?: string | null; method?: string | null; profiles?: Named | Named[] | null };
   for (const p of (payouts.data ?? []) as unknown as PayoutRow[]) {
-    take(pay, payI, dayToIso(p.paid_on), p.amount_inr, single(p.profiles)?.full_name ?? "Somebody on your team");
+    const name = single(p.profiles)?.full_name ?? "Somebody on your team";
+    take(pay, payI, dayToIso(p.paid_on), p.amount_inr, name, {
+      group: name,
+      method: p.method ?? null,
+      /* their Member Detail page, where every payment to them is listed */
+      href: p.business_id && p.user_id ? `/business/${p.business_id}/staff/${p.user_id}` : undefined,
+    });
   }
 
   /* ⚠ a ₹0 asset is one the business ALREADY HAD: it adds nothing to the total,
      and it is still listed, because "what all has been put in it" is the ask */
-  type AssetRow = { name: string; category: string; value_inr: number; created_at: string };
+  type AssetRow = { name: string; category: string; value_inr: number; created_at: string; business_id?: string | null };
   for (const a of (assets.data ?? []) as AssetRow[]) {
-    take(bought, boughtI, a.created_at, a.value_inr, `${a.name} · ${a.category}${a.value_inr > 0 ? "" : " (already had it)"}`);
+    take(bought, boughtI, a.created_at, a.value_inr, `${a.name} · ${a.category}${a.value_inr > 0 ? "" : " (already had it)"}`, {
+      group: a.category,
+      href: a.business_id ? `/business/${a.business_id}/assets` : undefined,
+    });
   }
 
   for (const q of (quotes.data ?? []) as unknown as EnquiryQuoteRow[]) {
-    for (const t of enquiryTakings(q)) take(enquiries, enquiriesI, t.at, t.amountInr, t.label);
+    const href = q.enquiry_id ? `/inbox/enquiries/${q.enquiry_id}` : undefined;
+    const group = enquiryWords(single(q.enquiries)?.type_key);
+    for (const t of enquiryTakings(q)) take(enquiries, enquiriesI, t.at, t.amountInr, t.label, { href, group });
   }
   /* a hand-back is a refund like any other on this ledger — the same line */
-  type HandRow = { refund_hand_inr: number; answered_at: string | null; enquiries?: { type_key: string; profiles?: Named | Named[] | null } | Array<{ type_key: string; profiles?: Named | Named[] | null }> | null };
+  type HandRow = { enquiry_id?: string | null; refund_hand_inr: number; answered_at: string | null; enquiries?: { type_key: string; profiles?: Named | Named[] | null } | Array<{ type_key: string; profiles?: Named | Named[] | null }> | null };
   for (const h of (handBack.data ?? []) as unknown as HandRow[]) {
     if (!h.answered_at) continue;
     const e = single(h.enquiries);
     const who = single(e?.profiles)?.full_name;
-    take(refunded, refundedI, h.answered_at, h.refund_hand_inr, `${enquiryWords(e?.type_key)} refund, by hand${who ? ` — ${who}` : ""}`);
+    const what = enquiryWords(e?.type_key);
+    take(refunded, refundedI, h.answered_at, h.refund_hand_inr, `${what} refund, by hand${who ? ` — ${who}` : ""}`, {
+      group: what,
+      href: h.enquiry_id ? `/inbox/enquiries/${h.enquiry_id}` : undefined,
+    });
   }
 
-  for (const s of (subs.data ?? []) as Array<{ amount_inr: number; created_at: string }>) {
-    take(plan, planI, s.created_at, s.amount_inr, "Studio subscription");
+  type SubRow = { amount_inr: number; created_at: string; subscriptions?: { business_id: string | null } | Array<{ business_id: string | null }> | null };
+  for (const s of (subs.data ?? []) as unknown as SubRow[]) {
+    const b = single(s.subscriptions)?.business_id;
+    take(plan, planI, s.created_at, s.amount_inr, "Studio subscription", { group: "Subscription", href: b ? `/business/${b}/subscription` : "/subscription" });
   }
 
   const one = businessIds.length === 1 ? businessIds[0] : null;
@@ -395,12 +454,16 @@ export async function findBusinessEarnings(
       { key: "enquiries", label: "Enquiries", by: enquiries, items: enquiriesI, href: one ? `/business/${one}/inbox?show=enquiries` : "/inbox?show=enquiries" },
     ],
     [
-      { key: "pay", label: "What you paid your people", by: pay, items: payI, href: one ? `/business/${one}/earnings` : undefined },
+      /* ⚠ "Team pay", and its desk is the TEAM desk (18 Oct 2026, the user: "what
+         you owe should be handled from teams not here") — this line pointed at
+         the Earnings desk itself, i.e. the page you were already on */
+      { key: "pay", label: "Team pay", by: pay, items: payI, href: one ? `/business/${one}/staff` : undefined },
       { key: "refunds", label: "Refunds", by: refunded, items: refundedI, href: one ? `/business/${one}/refunds` : undefined },
       { key: "assets", label: "Assets bought", by: bought, items: boughtI, href: one ? `/business/${one}/assets` : undefined },
       { key: "plan", label: "DanceOS subscription", by: plan, items: planI, href: "/subscription" },
     ],
-    complete
+    complete,
+    range
   );
 }
 
@@ -412,39 +475,51 @@ export async function findBusinessEarnings(
 export async function findPersonEarnings(
   supabase: SupabaseClient,
   userId: string,
-  period: Period,
+  askedPeriod: Period,
   nowIso: string,
   /** the businesses this person OWNS — see `findMyEarnings` (2 Oct 2026) */
-  excludeBusinessIds: readonly string[] = []
+  excludeBusinessIds: readonly string[] = [],
+  askedRange: EarningsRangeKeys | null = null
 ): Promise<EarningsReport> {
-  const { from, keys } = windowFor(nowIso, period);
+  const { from, to, keys, grain: period, range } = windowFor(nowIso, askedPeriod, askedRange);
   let q = supabase
     .from("payouts")
-    .select("amount_inr, paid_on, businesses (name)")
+    .select("amount_inr, paid_on, method, business_id, businesses (name)")
     .eq("user_id", userId);
   if (excludeBusinessIds.length) q = q.not("business_id", "in", `(${excludeBusinessIds.join(",")})`);
   const { data, error } = await q
     .in("status", ["done", "in_transit"])
     .is("deleted_at", null)
     .gte("paid_on", from.slice(0, 10))
+    .lt("paid_on", to.slice(0, 10))
     .limit(MAX_ROWS);
   if (error) throw error;
 
   const taught: Bucketed = new Map();
   const taughtI: Itemed = new Map();
-  type Row = { amount_inr: number; paid_on: string; businesses?: { name: string } | Array<{ name: string }> | null };
+  type Row = { amount_inr: number; paid_on: string; method?: string | null; business_id?: string | null; businesses?: { name: string } | Array<{ name: string }> | null };
   for (const p of (data ?? []) as unknown as Row[]) {
     const k = bucketKeyOf(dayToIso(p.paid_on), period);
     add(taught, k, p.amount_inr);
-    /* which studio paid it — the row behind the line (2 Oct 2026) */
-    addItem(taughtI, k, { label: single(p.businesses)?.name ?? "A studio", amountInr: p.amount_inr, at: dayToIso(p.paid_on) });
+    const name = single(p.businesses)?.name ?? "A studio";
+    /* which studio paid it — the row behind the line (2 Oct 2026); it opens that
+       studio's card under Team › Paid to you (18 Oct 2026) */
+    addItem(taughtI, k, {
+      label: name,
+      amountInr: p.amount_inr,
+      at: dayToIso(p.paid_on),
+      group: name,
+      method: p.method ?? null,
+      href: p.business_id ? `/team#paid-${p.business_id}` : "/team#paid-to-you",
+    });
   }
   return assemble(
     period,
     keys,
-    [{ key: "teaching", label: "Paid by studios", by: taught, items: taughtI, href: "/earnings" }],
+    [{ key: "teaching", label: "From studios", by: taught, items: taughtI, href: "/team#paid-to-you" }],
     [],
-    (data?.length ?? 0) < MAX_ROWS
+    (data?.length ?? 0) < MAX_ROWS,
+    range
   );
 }
 

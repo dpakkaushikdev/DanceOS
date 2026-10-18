@@ -493,12 +493,15 @@ export const SchedIcon = () => (
  *  buttons"). It was the first thing in the lower panel; it is the last thing
  *  in the upper one now, directly under the row of ways to reach this profile,
  *  on a studio's/artist's page, a person's and the Profile tab alike. */
+/*  ⚠ IT READS "CLASSES" (18 Oct 2026, the user: "Schedule on profiles should be
+ *  sorted and renamed to Classes"). The route stays `/…/schedule` (Rule 14 —
+ *  a schedule link is a thing studios hand out); only the word moved. */
 export function ScheduleBar({ href, marginTop = 8 }: { href: string; marginTop?: number }) {
   return (
     <div style={{ marginTop }}>
-      <Link href={href} aria-label="Schedule" style={bigWhite}>
+      <Link href={href} aria-label="Classes" data-testid="schedule-bar" style={bigWhite}>
         <SchedIcon />
-        Schedule
+        Classes
       </Link>
     </div>
   );

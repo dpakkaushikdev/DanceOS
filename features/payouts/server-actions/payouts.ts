@@ -58,8 +58,13 @@ async function requireUser() {
 function revalidateMoneySurfaces(businessId?: string) {
   if (businessId) {
     revalidatePath(`/business/${businessId}/earnings`);
+    revalidatePath(`/business/${businessId}/staff`);
   }
   revalidatePath("/business/[businessId]/earnings", "page");
+  /* the pay ledger lives on the Team desk since 18 Oct 2026 — what you owe and
+     what you settled moved there from Earnings, and so did "Paid to you" */
+  revalidatePath("/business/[businessId]/staff", "page");
+  revalidatePath("/team");
   revalidatePath("/earnings");
   revalidatePath("/");
 }

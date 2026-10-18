@@ -370,3 +370,40 @@ export const enquiryValueInr = (e: { quotes: EnquiryQuote[] }): number => {
 
 /** the open ending terms, if any */
 export const openEndingOf = (e: { endings: EnquiryEnding[] }): EnquiryEnding | null => e.endings.find((x) => x.status === "open") ?? null;
+
+/* ── AN ENQUIRY'S TEAM AND PRACTICES (18 Oct 2026, `20261024090000`) ──────────
+   Who is on the job (the business's own team, and participants from DanceOS)
+   and the rehearsals for it. ⚠ The tables arrive with that migration, so every
+   read says whether they were there (`available`) rather than failing. */
+
+export type EnquiryPersonKind = "team" | "participant";
+
+export interface EnquiryPerson {
+  id: string;
+  userId: string;
+  kind: EnquiryPersonKind;
+  role: string | null;
+  name: string;
+  photoPath: string | null;
+  city: string | null;
+}
+
+export interface EnquiryPractice {
+  id: string;
+  startsAt: string;
+  endsAt: string;
+  place: string;
+  note: string | null;
+  status: "scheduled" | "cancelled";
+  /** the user ids checked in (live rows) */
+  checkedIn: string[];
+}
+
+export interface EnquiryJob {
+  /** false while the migration has not been applied — the screen says so in one line */
+  available: boolean;
+  people: EnquiryPerson[];
+  practices: EnquiryPractice[];
+}
+
+export const ENQ_PERSON_WORD: Record<EnquiryPersonKind, string> = { team: "Team", participant: "Participant" };

@@ -43,7 +43,23 @@ export type MoneyLine = {
 };
 
 /** one row behind a line: what it was, how much, and when */
-export type MoneyItem = { label: string; amountInr: number; at: string };
+export type MoneyItem = {
+  label: string;
+  amountInr: number;
+  at: string;
+  /** ⚠ THE EXACT PLACE (18 Oct 2026, the user: "collapsible tiles with data
+   *  taking to exact place") — the class page, the membership, the refund desk
+   *  focused on that class, the team member's own page, the enquiry */
+  href?: string;
+  /** what the row is ABOUT without who paid — "Bollywood · Beginner", a
+   *  membership's name, a person — so the reports can add rows up by subject */
+  group?: string;
+  /** how a student paid, when the row is a payment (upi · card · netbanking …) */
+  method?: string | null;
+};
+
+/** a custom window, two IST day keys, both ends included (`?from=&to=`) */
+export type EarningsRangeKeys = { from: string; to: string };
 
 /** ⚠ THE TINTS LIVE HERE, AS DATA, so the repository can name a line without
  *  importing a client module — and so a source wears one colour wherever it is
@@ -80,6 +96,9 @@ export type EarningsReport = {
    *  counting the latest N rows only rather than printing a total that looks
    *  finished and is not (the 28 Aug rule, kept) */
   complete: boolean;
+  /** set when the window is a custom range — `period` is then the bucket size
+   *  the range was cut into, and the figures describe the whole range */
+  range?: EarningsRangeKeys | null;
 };
 
 export const sumLines = (lines: MoneyLine[]): number => lines.reduce((n, l) => n + l.amountInr, 0);

@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { EarningsDesk } from "@/features/payouts/components/EarningsDesk";
 import { EarningsScreen } from "@/features/payouts/components/EarningsScreen";
-import { monthLabelOf } from "@/lib/format/session";
+import { money } from "@/features/payouts/components/earnings-kit";
+import { asRange } from "@/features/payouts/earningsRange";
 import { asPeriod } from "@/lib/format/period";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findBusinessEarnings } from "@/repositories/earnings";
@@ -21,7 +22,8 @@ export default async function BusinessEarningsPage({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const { businessId } = await params;
-  const period = asPeriod((await searchParams).period);
+  const sp = await searchParams;
+  const period = asPeriod(sp.period);
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -53,42 +55,36 @@ export default async function BusinessEarningsPage({
   }
 
   const now = stampNowIso();
+  const range = asRange(sp.from, sp.to);
   const [report, ledger, income] = await Promise.all([
-    findBusinessEarnings(supabase, [businessId], period, now),
-    findBusinessPayLedger(supabase, businessId, now),
+    findBusinessEarnings(supabase, [businessId], period, now, range),
+    findBusinessPayLedger(supabase, businessId, now).catch(() => null),
     findBusinessIncome(supabase, businessId, now),
   ]);
 
-  /* ⚠ THE SUMMARY IS THE SHARED SCREEN NOW (21 Sep 2026, the user: "lets fix
-     earnings for all profile types"). What this desk used to say at the top —
-     a GROSS card governed by month chips, and a separate money-OUT card whose
-     month label was decorative over an all-time figure — is said above, of one
-     period, with the two sides in the same window and **the net between them**,
-     which no money screen in this app had ever printed.
-     What the desk keeps is its WORK: what you owe person by person, what you
-     have settled, recording a payment, and the month statements with their CSV. */
+  /* ⚠ WHAT YOU OWE YOUR PEOPLE IS THE TEAM DESK'S NOW (18 Oct 2026, the user:
+     "what you owe should be handled from teams not here") — one line here,
+     pointing there. An artist page's owner also has what STUDIOS pay them, which
+     is the Team section's too (`/team`). The desk below keeps the month
+     statements and their CSV. */
+  const team = [
+    {
+      label: "Owed to your team",
+      amountInr: ledger?.owedTotal ?? 0,
+      href: `/business/${businessId}/staff`,
+      note: ledger ? `${money(ledger.paidTotal)} settled · pay from Team` : "Pay from Team",
+    },
+    ...(business.type === "artist_page" ? [{ label: "What studios pay you", href: "/team#paid-to-you", note: "In Team › Other Teams" }] : []),
+  ];
   return (
     <EarningsScreen
       report={report}
       title="Earnings"
-      /* which profile's money this is, in words (2 Oct 2026): an artist's page
-         and their studio drew two screens that read alike */
       sub={`${business.name} · ${business.type === "artist_page" ? "Artist" : "Studio"}`}
       basePath={`/business/${businessId}/earnings`}
+      team={team}
     >
-      <EarningsDesk
-        businessId={businessId}
-        businessName={business.name}
-        ledger={ledger}
-        income={income}
-        monthLabel={monthLabelOf(now)}
-        summary={false}
-        /* an ARTIST PAGE's owner is the one person with two ledgers — what their
-           page took, and what studios have paid them for teaching. Their Home tile
-           opens this one now (20 Sep 2026), so the other gets its door here. A
-           studio's owner is paid by nobody, so they are offered none. */
-        selfEarningsHref={business.type === "artist_page" ? "/earnings" : null}
-      />
+      <EarningsDesk businessName={business.name} income={income} />
     </EarningsScreen>
   );
 }

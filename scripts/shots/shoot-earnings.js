@@ -151,7 +151,7 @@ async function rest(method, pathname, body) {
     const lines = await page.getByTestId("earn-line").allInnerTexts();
     const joined = lines.join(" | ");
     check(/Classes/.test(joined), "studio · the revenue breakup names Classes");
-    check(/What you paid your people/.test(joined), "studio · the expense breakup names what you paid your people");
+    check(/Team pay/.test(joined), "studio · the expense breakup names Team pay (18 Oct 2026: was 'What you paid your people')");
     check(/Assets bought/.test(joined), "studio · and Assets bought — the price linked to expenses (21 Sep)");
     check(/DanceOS subscription/.test(joined), "studio · and the DanceOS subscription — what it pays to be on Discover, an expense no ledger had ever shown");
     check(!/Earn Mirrors/.test(joined) && /₹500/.test(joined), "studio · the ₹0 legacy asset adds nothing — only the ₹500 one is counted");
@@ -183,7 +183,8 @@ async function rest(method, pathname, body) {
     // the chart: one column per bucket, and the toggles
     await page.goto(`${BASE}/business/${businessId}/earnings?period=day`, { waitUntil: "networkidle" });
     check((await page.locator("[data-bucket]").count()) === 14, `studio · the chart draws 14 day columns (${await page.locator("[data-bucket]").count()})`);
-    const revToggle = page.getByRole("button", { name: "Revenue" });
+    /* exact (18 Oct 2026): "Fold the revenue lines" and "Details of revenue" are buttons too */
+    const revToggle = page.getByRole("button", { name: "Revenue", exact: true });
     check((await revToggle.getAttribute("aria-pressed")) === "true", "studio · Revenue is on");
     await revToggle.click();
     check((await revToggle.getAttribute("aria-pressed")) === "false", "studio · and it toggles off");

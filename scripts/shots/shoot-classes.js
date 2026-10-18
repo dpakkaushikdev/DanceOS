@@ -366,7 +366,9 @@ const BOOK_ON_PAGE = /^Book Now$/;
 
     await lPage.goto(`${BASE}/c/${liveSlug}`, { waitUntil: "networkidle" });
     check((await lPage.getByTestId("class-already-started").count()) === 1, "⚠⚠ …and its own page SAYS it has started rather than offering a press the database refuses");
-    check((await lPage.getByRole("button", { name: BOOK_ON_PAGE }).count()) === 0, "…with no Book button left to press");
+    /* ⚠ since 18 Oct 2026 (NoBookBar) the button is DRAWN, disabled, with its
+       reason — what must not exist is one that can be pressed */
+    check((await lPage.locator("button:not([disabled])").filter({ hasText: BOOK_ON_PAGE }).count()) === 0, "…with no Book button left to press");
 
     /* ══ 6 · A LEARNER'S SEAT IS NOT THE OWNER'S ══════════════════════════════ */
     await lPage.goto(`${BASE}/classes`, { waitUntil: "networkidle" });
@@ -471,7 +473,7 @@ const BOOK_ON_PAGE = /^Book Now$/;
        preview, then what is on sale ("SCHEDULE WILL ALWAYS BE ABOVE
        MEMBERSHIPS", 20 Sep 2026). A summary that landed between them would
        have broken a rule the user has stated by name. */
-    const barY = await lPage.getByRole("link", { name: "Schedule" }).first().evaluate((el) => el.getBoundingClientRect().top);
+    const barY = await lPage.getByTestId("schedule-bar").first().evaluate((el) => el.getBoundingClientRect().top);
     const sumY = await lPage.getByTestId("next-sessions").evaluate((el) => el.getBoundingClientRect().top);
     check(sumY > barY, `…drawn UNDER the bar rather than above it (bar ${Math.round(barY)}, summary ${Math.round(sumY)})`);
     /* ⚠ AND BETWEEN THEM, THE STUDIO'S PLACE (5 Oct 2026, the user: "below
@@ -851,7 +853,7 @@ const BOOK_ON_PAGE = /^Book Now$/;
     // b. the booking bar says so, the database refuses the press, the runner can ask again
     await bPage.goto(`${BASE}/c/${stepSlug}`, { waitUntil: "networkidle" });
     check((await bPage.getByTestId("waiting-for-teacher").count()) === 1 && /Waiting for a new teacher/.test(await bPage.getByTestId("waiting-for-teacher").innerText()), "⚠⚠ the booking bar reads Waiting for a new teacher");
-    check((await bPage.getByRole("button", { name: BOOK_ON_PAGE }).count()) === 0, "…with no Book Now to press");
+    check((await bPage.locator("button:not([disabled])").filter({ hasText: BOOK_ON_PAGE }).count()) === 0, "…with no Book Now to press");
     let waitingBook = "ACCEPTED";
     try {
       await rpc(buyer.h, "book_class_session", { p_session_id: stepSes });

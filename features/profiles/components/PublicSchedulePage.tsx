@@ -56,6 +56,7 @@ export async function PublicSchedulePage({ businessId, expect }: { businessId: s
       todayKey={dayKeyOf(now)}
       entries={entries}
       emptyHref={publicProfilePath(business)}
+      roomFilter={business.type === "studio"}
     />
   );
 }

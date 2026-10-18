@@ -1,4 +1,4 @@
-import { MUTED, SUB } from "@/lib/design/tokens";
+import { DOS_DISPLAY, INK, MUTED, SUB } from "@/lib/design/tokens";
 
 /** Discover's small shared parts, lifted from prototype S_discover: the place
  *  mark (DosPinIcon 1491), WHERE AS ONE FACT (DosWhere 4293), the follower
@@ -90,6 +90,35 @@ export function FollowerPill({ n }: { n: number }) {
       </svg>
       {fmtF(n)}
     </span>
+  );
+}
+
+/** ONE SHELF HEADING ON DISCOVER (18 Oct 2026, the user: "headings like studios
+ *  near you, upcoming classes, artist and styles … bolder with totals written
+ *  properly and all in caps. followed by you section should also have same
+ *  heading"). The words in caps at weight 900 in the display face, the total as a
+ *  solid figure pill beside them, and — where it says something — the place in a
+ *  quiet word after it. Every shelf on the page and "Followed by you" draw this
+ *  one component, so the two can never drift apart.
+ *  ⚠ `testId` sits on the wrapper of the figure and the place word together:
+ *  `shoot-inbox` reads the number AND "in all cities" off one element, and
+ *  `shoot-invert` measures its ink against the panel. */
+export function ShelfHead({ title, count, unit, place, testId }: { title: string; count: number; unit: string; place?: string | null; testId?: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0, flexWrap: "wrap" }}>
+      <h2 style={{ margin: 0, fontFamily: DOS_DISPLAY, fontSize: 15.5, fontWeight: 900, letterSpacing: 0.9, lineHeight: 1.15, textTransform: "uppercase", color: INK }}>{title}</h2>
+      <span data-testid={testId} style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0, color: INK }}>
+        <span
+          aria-label={`${count} ${unit}`}
+          style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 24, height: 22, padding: "0 8px", boxSizing: "border-box", borderRadius: 999, background: "var(--text)", color: "var(--solid)", fontSize: 12, fontWeight: 900, fontVariantNumeric: "tabular-nums", letterSpacing: -0.2 }}
+        >
+          {fmtF(count)}
+        </span>
+        {/* ⚠ not text-transformed: `innerText` applies text-transform, and
+            shoot-inbox reads "in all cities" off this element */}
+        {place ? <span style={{ fontSize: 11.5, fontWeight: 800, color: SUB, whiteSpace: "nowrap" }}>in {place}</span> : null}
+      </span>
+    </div>
   );
 }
 

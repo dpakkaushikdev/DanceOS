@@ -4,7 +4,10 @@ import { isCashfreeConfigured } from "@/lib/cashfree/api";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findMyLedCrews } from "@/repositories/crews";
 import { findEnquiryById } from "@/repositories/enquiries";
-import { findMyMemberships, runsTheBusiness } from "@/repositories/businesses";
+import { findBusinessTeam, findMyMemberships, runsTheBusiness } from "@/repositories/businesses";
+import { findEnquiryJob } from "@/repositories/enquiryTeam";
+import { MEMBER_ROLE_WORD } from "@/types/staff";
+import type { EnquiryJob } from "@/types/enquiry";
 
 const stampNowIso = (): string => new Date().toISOString();
 
@@ -19,13 +22,13 @@ export default async function EnquiryPage({
   searchParams,
 }: {
   params: Promise<{ enquiryId: string }>;
-  searchParams: Promise<{ paid?: string }>;
+  searchParams: Promise<{ paid?: string; show?: string }>;
 }) {
   const { enquiryId } = await params;
   /* ⚠ `?paid=` is how /pay/return brings a phone back from the payment
      (3 Oct 2026, "take back once payment is confirmed") — read for the banner
      only; whether it was paid is the quote's own state, read below */
-  const { paid } = await searchParams;
+  const { paid, show } = await searchParams;
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -42,6 +45,21 @@ export default async function EnquiryPage({
   const mine = enquiry.crewId ? ledCrews.some((c) => c.id === enquiry.crewId) : Boolean(seat);
   const canWork = enquiry.crewId ? mine : runsTheBusiness(seat?.memberRole);
 
+  /* ⚠ THE JOB (18 Oct 2026, `20261024090000`): its people and practices, and the
+     business's own team to offer. Read only on the business's side, and every
+     read degrades — before the migration `findEnquiryJob` answers
+     `available: false`, and a failed team read is an empty list, so the money
+     half of the page never fails over the two new sections. */
+  const noJob: EnquiryJob = { available: false, people: [], practices: [] };
+  const [job, team] = mine
+    ? await Promise.all([
+        findEnquiryJob(supabase, enquiry.id).catch(() => noJob),
+        canWork && enquiry.businessId ? findBusinessTeam(supabase, enquiry.businessId).catch(() => []) : Promise.resolve([]),
+      ])
+    : [noJob, []];
+  const teamPicks = team.map((t) => ({ userId: t.userId, name: t.name, photoPath: t.avatarPath, seat: MEMBER_ROLE_WORD[t.role] }));
+  const initialTab = show === "team" || show === "practices" ? show : "payments";
+
   return (
     <EnquiryDetail
       enquiry={enquiry}
@@ -53,6 +71,9 @@ export default async function EnquiryPage({
          business row for the money to land on, so its sender still settles directly */
       payOnline={isCashfreeConfigured() && !enquiry.crewId}
       paidBack={paid === "booked" ? "paid" : paid === "processing" ? "processing" : paid === "refund_pending" ? "refunded" : paid ? "failed" : null}
+      job={job}
+      team={teamPicks}
+      initialTab={initialTab}
     />
   );
 }

@@ -19,6 +19,7 @@ import {
 import { confirmCheckoutAction, startEnquiryCheckoutAction } from "@/features/payments/server-actions/payments";
 import { EnqFace, EnquiryRoad, stageTint } from "@/features/enquiries/components/enquiry-kit";
 import { QuoteComposer, QuoteLines, type ComposerValue } from "@/features/enquiries/components/QuoteComposer";
+import { EnquiryPracticesPanel, EnquiryTeamPanel, type TeamPick } from "@/features/enquiries/components/EnquiryJobPanels";
 import { DosHero, EnqIcon, Eyebrow, Surface, agoWords, dateWords, money } from "@/features/inbox/components/inbox-kit";
 import { DOS_MONO } from "@/features/inbox/components/inbox-kit";
 import { openCashfreeCheckout, preloadCheckout } from "@/lib/cashfree/checkout-client";
@@ -38,6 +39,7 @@ import {
   quoteExpired,
   revisionAsked,
   type Enquiry,
+  type EnquiryJob,
   type EnquiryQuote,
 } from "@/types/enquiry";
 
@@ -88,6 +90,13 @@ const fieldStyle: React.CSSProperties = {
   fontFamily: "inherit",
 };
 const smallLabel: React.CSSProperties = { fontSize: 9, fontWeight: 900, letterSpacing: 0.7, color: "var(--muted)" };
+
+export type EnquirySection = "payments" | "team" | "practices";
+const SECTIONS: Array<{ k: EnquirySection; label: string }> = [
+  { k: "payments", label: "Payments" },
+  { k: "team", label: "Team" },
+  { k: "practices", label: "Practices" },
+];
 
 const signed = (n: number) => `${n < 0 ? "−" : ""}${money(Math.abs(n))}`;
 
@@ -153,7 +162,15 @@ export function EnquiryDetail({
   meId,
   payOnline = false,
   paidBack = null,
+  job = { available: false, people: [], practices: [] },
+  team = [],
+  initialTab = "payments",
 }: {
+  /** the job's people and practices (`20261024090000`) — `available: false` before it is applied */
+  job?: EnquiryJob;
+  /** the business's own people, offered as Team */
+  team?: TeamPick[];
+  initialTab?: EnquirySection;
   enquiry: Enquiry;
   /** the enquiry came TO me — I am on the business's (or crew's) side */
   mine: boolean;
@@ -193,6 +210,15 @@ export function EnquiryDetail({
   const [askReason, setAskReason] = useState("");
   const [askAmount, setAskAmount] = useState("");
   const [openOrder, setOpenOrder] = useState<string | null>(null);
+  const [tab, setTab] = useState<EnquirySection>(initialTab);
+  /* the section is the address (`?show=`), replaced — a tap is not a page */
+  const pickTab = (k: EnquirySection) => {
+    setTab(k);
+    const url = new URL(window.location.href);
+    if (k === "payments") url.searchParams.delete("show");
+    else url.searchParams.set("show", k);
+    window.history.replaceState(window.history.state, "", url.toString());
+  };
 
   /* ── what is due, in the order it falls due ── */
   const dues: Array<{ quoteId: string; part: "advance" | "balance" | "full" | "addition"; amount: number; word: string }> = [];
@@ -432,6 +458,57 @@ export function EnquiryDetail({
           ) : null}
           {mine && !canWork ? <div style={{ fontSize: 11, color: "var(--sub)", marginTop: 9 }}>Its owners and managers answer, quote and record money — you can read it.</div> : null}
         </Surface>
+
+        {/* ── THREE SECTIONS (18 Oct 2026): Payments · Team · Practices — the
+            business's side only; the sender reads the money alone ── */}
+        {mine ? (
+          <div role="tablist" aria-label="Enquiry sections" style={{ display: "flex", gap: 4, padding: 4, borderRadius: 999, background: "var(--el)", marginBottom: 10 }}>
+            {SECTIONS.map((s) => {
+              const on = tab === s.k;
+              const count = s.k === "team" ? job.people.length : s.k === "practices" ? job.practices.filter((p) => p.status === "scheduled" && p.endsAt >= nowIso).length : null;
+              return (
+                <button
+                  key={s.k}
+                  type="button"
+                  role="tab"
+                  aria-selected={on}
+                  data-testid={`enquiry-tab-${s.k}`}
+                  onClick={() => pickTab(s.k)}
+                  style={{ flex: 1, padding: "9px 6px", borderRadius: 999, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 900, background: on ? "var(--text)" : "transparent", color: on ? "var(--solid)" : "var(--sub)" }}
+                >
+                  {s.label}
+                  {count ? <span style={{ marginLeft: 5, fontSize: 10.5, opacity: 0.75 }}>{count}</span> : null}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
+        {tab === "team" && mine ? <EnquiryTeamPanel enquiryId={e.id} job={job} canWork={canWork} team={team} tint={tint} /> : null}
+        {tab === "practices" && mine ? <EnquiryPracticesPanel enquiryId={e.id} job={job} canWork={canWork} closed={closed} nowIso={nowIso} tint={tint} /> : null}
+
+        {tab === "payments" || !mine ? (
+          <>
+        {/* ── EARNINGS — what the job is worth, what came in, what is due ── */}
+        {m.totalInr > 0 ? (
+          <Surface tint="#22C55E">
+            <Eyebrow tint="#22C55E">EARNINGS</Eyebrow>
+            <div data-testid="enquiry-earnings" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+              {(
+                [
+                  ["Total", m.totalInr],
+                  ["Received", m.paidInr],
+                  ["Due", m.outstandingInr],
+                ] as const
+              ).map(([k, v]) => (
+                <div key={k} style={{ background: "var(--solid)", borderRadius: 12, padding: "9px 10px", border: "1.5px solid var(--el)" }}>
+                  <div style={{ fontSize: 15, fontWeight: 900 }}>{money(v)}</div>
+                  <div style={smallLabel}>{k.toUpperCase()}</div>
+                </div>
+              ))}
+            </div>
+          </Surface>
+        ) : null}
 
         {paidBack ? (
           <div
@@ -979,6 +1056,8 @@ export function EnquiryDetail({
               })}
             </div>
           </Surface>
+        ) : null}
+          </>
         ) : null}
 
         {error && !ask && !composer ? (

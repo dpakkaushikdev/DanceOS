@@ -16,7 +16,7 @@ import { DiscoverTabs } from "@/features/discovery/components/DiscoverTabs";
 import { FollowedShelf, type FollowedTile } from "@/features/discovery/components/FollowedShelf";
 import { PlaceChip } from "@/features/discovery/components/PlaceChip";
 import { StudioCard } from "@/features/discovery/components/StudioCard";
-import { ArtistI, ClassI, StudioI } from "@/features/discovery/components/discover-kit";
+import { ArtistI, ClassI, ShelfHead, StudioI } from "@/features/discovery/components/discover-kit";
 import { anyPriceOk, anyStyleOk, filterClasses, filterCrews, filterBusinesses, filterStyleShelf, filtersToParams, parseFilters, priceCeilOf, priceRangeOn, radiusOf, recommendFirst, sortShelf, ALL_CITIES } from "@/features/discovery/filters";
 import { RecommendationSettings } from "@/features/discovery/components/RecommendationSettings";
 import { StyleRequest } from "@/features/discovery/components/StyleRequest";
@@ -24,7 +24,7 @@ import { findMyLearnStyles } from "@/repositories/profiles";
 import { gradientOf } from "@/features/profiles/components/profile-kit";
 import { DOS_STYLE_NAMES } from "@/lib/constants/styles";
 import { INDIA_CENTRE, centreOf, findDiscoverCities } from "@/repositories/cities";
-import { DOS_DISPLAY, DOS_UI, INK, SKY, SUB, TAB_SUB, TAB_TITLE } from "@/lib/design/tokens";
+import { DOS_UI, INK, SKY, SUB, TAB_SUB, TAB_TITLE } from "@/lib/design/tokens";
 import { BeatText } from "@/components/ui/BeatText";
 import { photoUrl } from "@/lib/media/photo";
 import { publicProfilePath } from "@/lib/routes/publicProfile";
@@ -191,7 +191,12 @@ export default async function DiscoverPage({
      signed-in person (the user: "followed crews also dont appear in the followed
      by you row on discover"; a crew has been followable since 19 Sep) */
   const wantsCrews = tab === "crews";
-  const wantsFollows = Boolean(user) && (wantsBusinesses || wantsArtists || wantsCrews);
+  /* ⚠ AND THE CLASSES TAB, WITH BOTH KINDS (18 Oct 2026, the user: "followed by
+     you section for classes which should have both studio and artists") — the
+     studios and the artists you follow are who you take classes from */
+  const wantsFollows = Boolean(user) && (wantsBusinesses || wantsArtists || wantsCrews || tab === "classes");
+  const followsStudios = wantsFollows && (wantsBusinesses || tab === "classes");
+  const followsArtists = wantsFollows && (wantsArtists || tab === "classes");
 
   /* every published class is read on every tab: the classes shelf needs them,
      and the style rail is ORDERED by how many classes each style has (4212) */
@@ -224,9 +229,9 @@ export default async function DiscoverPage({
         })
       : Promise.resolve([]),
     user && tab === "classes" ? findMyEnrolledSessionIds(supabase) : Promise.resolve(new Map<string, { id: string; status: ClassBookingStatus }>()),
-    wantsFollows && wantsBusinesses ? findMyFollowing(supabase) : Promise.resolve([]),
+    followsStudios ? findMyFollowing(supabase) : Promise.resolve([]),
     wantsArtists ? findDiscoverArtists(supabase, { city: cityQ, limit: PAGE_SIZE, offset }) : Promise.resolve([] as DiscoverArtist[]),
-    wantsFollows && wantsArtists ? findMyFollowedPeople(supabase) : Promise.resolve([]),
+    followsArtists ? findMyFollowedPeople(supabase) : Promise.resolve([]),
   ]);
 
   const styleCount = new Map<string, number>();
@@ -293,7 +298,8 @@ export default async function DiscoverPage({
     wantsBusinesses ? findPublishedStylesByBusiness(supabase, nearbyIds) : Promise.resolve(new Map<string, string[]>()),
     wantsFollows && wantsCrews ? findMyFollowedCrews(supabase) : Promise.resolve([] as FollowedCrew[]),
     wantsBusinesses ? findFollowerCounts(supabase, nearbyIds) : Promise.resolve(new Map<string, number>()),
-    wantsBusinesses ? findBusinessCardFacts(supabase, [...nearbyIds, ...followedIds]) : Promise.resolve(new Map<string, BusinessCardFacts>()),
+    /* the followed studios' faces on the Classes tab too (18 Oct 2026) */
+    wantsBusinesses || (tab === "classes" && followedIds.length > 0) ? findBusinessCardFacts(supabase, [...nearbyIds, ...followedIds]) : Promise.resolve(new Map<string, BusinessCardFacts>()),
     wantsBusinesses ? findStudioHeaderPhotosMany(supabase, nearbyIds) : Promise.resolve(new Map<string, HeaderPhoto[]>()),
     wantsArtists && priceAsked ? findClassArtists(supabase, allClasses.map((c) => c.id)) : Promise.resolve(new Map<string, ClassArtist>()),
     /* the follower pill on every style tile (10 Oct 2026) — an aggregate, never a name */
@@ -426,27 +432,31 @@ export default async function DiscoverPage({
       })
     );
   }
+  /* the ARTISTS you follow are people (18 Sep 2026): the ones with a live plan, opening their profile */
+  const artistTiles: FollowedTile[] = followedPeople
+    .filter((p) => p.isArtist)
+    .map((p) => ({ id: p.userId, name: p.name, kind: "artist" as const, href: `/person/${p.userId}`, photo: photoUrl(p.avatarPath ?? undefined), grad: gradientOf(p.name) }));
+  /* the STUDIOS shelf is studios (19 Sep 2026, the user: "there should be only
+     one way to view these pages"): an artist is a person here, and a legacy
+     follow of an artist BUSINESS belongs on the Artists tab beside the people */
+  const studioTiles: FollowedTile[] = followed
+    .filter((f) => f.businessType === "studio")
+    .map((f) => ({
+      id: f.businessId,
+      name: f.businessName,
+      kind: "studio" as const,
+      href: publicProfilePath({ id: f.businessId, type: f.businessType }),
+      photo: photoUrl(facts.get(f.businessId)?.photoPath ?? undefined),
+      grad: gradientOf(f.businessName),
+    }));
   const followedTiles: FollowedTile[] = wantsCrews
     ? followedCrews.map((c) => ({ id: c.crewId, name: c.name, kind: "crew" as const, href: `/crew/${c.crewId}`, photo: photoUrl(c.photo ?? undefined), grad: gradientOf(c.name) }))
     : wantsArtists
-    ? /* the ARTISTS you follow are people (18 Sep 2026): the ones with a live plan, opening their profile */
-      followedPeople
-        .filter((p) => p.isArtist)
-        .map((p) => ({ id: p.userId, name: p.name, kind: "artist" as const, href: `/person/${p.userId}`, photo: photoUrl(p.avatarPath ?? undefined), grad: gradientOf(p.name) }))
-    : /* the STUDIOS shelf is studios (19 Sep 2026, the user: "there should be
-         only one way to view these pages"): an artist is a person here, and a
-         legacy follow of an artist BUSINESS belongs on the Artists tab beside
-         the people, not under a heading that says Studios */
-      followed
-        .filter((f) => f.businessType === "studio")
-        .map((f) => ({
-        id: f.businessId,
-        name: f.businessName,
-        kind: "studio" as const,
-        href: publicProfilePath({ id: f.businessId, type: f.businessType }),
-        photo: photoUrl(facts.get(f.businessId)?.photoPath ?? undefined),
-        grad: gradientOf(f.businessName),
-      }));
+      ? artistTiles
+      : tab === "classes"
+        ? /* studios first, then artists — both kinds you take classes from (18 Oct 2026) */
+          [...studioTiles, ...artistTiles]
+        : studioTiles;
 
   /* ⚠⚠ ON THE STYLES TAB, "FOLLOWED BY YOU" IS YOUR OWN STYLES (10 Oct 2026, the
      user: "styles you add to your profile and styles you want to learn should
@@ -469,7 +479,7 @@ export default async function DiscoverPage({
           tag: danced.includes(s) ? (learnStyles.includes(s) ? "Dance · Learn" : "You dance") : "To learn",
         }))
       : [];
-  const shelfHead = tab === "styles" ? "Dance styles" : tab === "classes" ? "Upcoming classes" : tab === "artists" ? "Artists" : tab === "crews" ? "Crews" : "Studios near you";
+  const shelfHead = tab === "styles" ? "Styles" : tab === "classes" ? "Upcoming classes" : tab === "artists" ? "Artists" : tab === "crews" ? "Crews" : "Studios near you";
   const shelfCount = tab === "styles" ? styleShelf.length : tab === "classes" ? classesShown.length : tab === "crews" ? crews.length : tab === "artists" ? artists.length : businesses.length;
   const narrowed = filters.styles.length > 0 || filters.fams.length > 0 || Object.keys(params).some((k) => ["sort", "dist", "when", "dur", "price", "pmin", "pmax", "has", "cat", "fmt", "q"].includes(k));
   /* the shelf's foot (18 Sep 2026): the Studios and Artists shelves are paged —
@@ -570,8 +580,11 @@ export default async function DiscoverPage({
         <PlaceChip city={city} cities={cities.map((c) => c.city)} tab={tab} extra={{ ...filtersToParams(filters), ...(asRaw ? { as: asRaw } : {}) }} near={near !== null} offerNearMe={wantsBusinesses} />
       </div>
 
-      {/* the search box, the five tabs, the style rail, Filters + quick chips, the filter sheet (Step 23) */}
-      <DiscoverFilters tab={tab} city={city} filters={filters} styleOrder={styleOrder} tabs={tabTiles} as={asRaw} priceCeil={priceCeil} />
+      {/* the search box and the tabs (Step 23). ⚠ Filters + the quick chips moved
+          UNDER THE SHELF'S HEADING (18 Oct 2026, the user: "filters should be
+          placed under headings like studios near you, upcoming classes, artist
+          and styles") — the same component, its other half, drawn below */}
+      <DiscoverFilters part="top" tab={tab} city={city} filters={filters} styleOrder={styleOrder} tabs={tabTiles} as={asRaw} priceCeil={priceCeil} />
       </TopPanel>
 
       {/* "Followed by you" (FollowedRow 4112, mounted 4767) — Studios and Artists, for a signed-in person */}
@@ -594,11 +607,18 @@ export default async function DiscoverPage({
       <InvertedPanel
         ground="page"
         head={
-          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "0 0 10px" }}>
-            <div style={{ fontSize: 15, fontWeight: 800, fontFamily: DOS_DISPLAY, letterSpacing: -0.3 }}>{shelfHead}</div>
-            <div style={{ fontSize: 11, fontWeight: 800, color: SUB }} data-testid="shelf-count">
-              {tab === "styles" ? `${shelfCount} styles` : `${shelfCount} in ${placeWord}`}
-            </div>
+          /* ⚠ ONE HEADING PER SHELF, IN CAPS WITH ITS TOTAL (18 Oct 2026) —
+             `ShelfHead`, the one "Followed by you" wears too — and the filters
+             under it, so what narrows the list sits on the list it narrows */
+          <div style={{ padding: "0 0 2px" }}>
+            <ShelfHead
+              title={shelfHead}
+              count={shelfCount}
+              unit={tab === "styles" ? "styles" : tab === "classes" ? "classes" : tab === "artists" ? "artists" : "studios"}
+              place={tab === "styles" ? null : placeWord}
+              testId="shelf-count"
+            />
+            <DiscoverFilters part="bar" tab={tab} city={city} filters={filters} styleOrder={styleOrder} as={asRaw} priceCeil={priceCeil} />
           </div>
         }
       >
@@ -675,7 +695,7 @@ export default async function DiscoverPage({
       {tab === "styles" && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           {styleShelf.map((s) => (
-            <StyleCard key={s} style={s} classes={styleCount.get(s) ?? 0} city={city} followers={styleFollowers.get(s) ?? 0} />
+            <StyleCard key={s} style={s} followers={styleFollowers.get(s) ?? 0} />
           ))}
         </div>
       )}

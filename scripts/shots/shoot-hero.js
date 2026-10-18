@@ -412,8 +412,9 @@ const enterEdit = async (page) => {
     check(
       (await studioBar.getByRole("link", { name: "Discover" }).count()) === 0 &&
         (await studioBar.getByRole("link", { name: "Enquiries" }).count()) === 0 &&
-        (await studioBar.getByRole("link").count()) === 2,
-      "studio bar: Inbox · Home — two; neither Discover nor Enquiries is on it (2 Oct 2026)"
+        (await studioBar.getByRole("link", { name: "Inbox" }).count()) === 0 &&
+        (await studioBar.getByRole("link").count()) === 1,
+      "studio bar: Home alone — the Inbox left it for the Enquiries tool (18 Oct 2026)"
     );
     await shot("studio-initials");
 
@@ -705,7 +706,7 @@ const enterEdit = async (page) => {
     const bar = owner.getByRole("navigation", { name: "Main" });
     check((await bar.getByRole("link", { name: "Stats" }).count()) === 0 && (await bar.getByRole("link", { name: "Profile" }).count()) === 0, "bar: neither Stats nor Profile is a tab any more");
     check((await bar.getByRole("link", { name: "Public view" }).count()) === 0, "bar: the eye left the bar (19 Sep 2026, the user: 'remove profile tab from navbar')");
-    check((await bar.getByRole("link", { name: "Enquiries" }).count()) === 0 && (await bar.getByRole("link").count()) === 3, "bar: Home · Discover · Inbox — three, Enquiries off it (27 Sep 2026)");
+    check((await bar.getByRole("link", { name: "Enquiries" }).count()) === 0 && (await bar.getByRole("link", { name: "Inbox" }).count()) === 0 && (await bar.getByRole("link").count()) === 2, "bar: Discover · Home — two; the Inbox is the Enquiries tool in the drawer (18 Oct 2026)");
     /* 19 Sep 2026: the corner is the EYE alone — the pencil went into Settings
        ("all edit profile options to be removed from home and profile pages") and
        the DISC became the door to both picture sections ("should be able to click

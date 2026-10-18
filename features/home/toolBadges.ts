@@ -8,8 +8,8 @@ import type { Tile } from "@/features/home/components/tool-grid";
  *  LONGEST prefix of its own — `/business/{id}/refunds` is that studio's, a
  *  class ask at `/my-classes?tab=todo` is the person's Classes — and one that
  *  points nowhere a tool does falls back to its AREA on the person's own row
- *  (class → Classes, team → Team, crew → Crews, money → Earnings). Enquiries
- *  and DanceOS notices are the Inbox's and the bell's, never a tool's. Each
+ *  (class → Classes, team → Team, crew → Crews, money → Earnings, enquiry →
+ *  Enquiries since 18 Oct 2026). DanceOS notices are the bell's alone. Each
  *  notification counts ONCE, on one tool. A pure module: the layout runs it,
  *  the drawer draws it. */
 
@@ -27,7 +27,9 @@ export interface BadgedItem {
 
 const pathOf = (href: string) => href.split("?")[0].split("#")[0].replace(/\/+$/, "") || "/";
 
-const AREA_TOOL: Record<string, Tile["k"]> = { class: "classesmod", team: "team", crew: "crews", money: "earn", membership: "memberships" };
+/* ⚠ ENQUIRIES COUNT ON THE ENQUIRIES TOOL (18 Oct 2026) — the Inbox left the bar
+   for a tool, so its news goes with it instead of only to the bell */
+const AREA_TOOL: Record<string, Tile["k"]> = { class: "classesmod", team: "team", crew: "crews", money: "earn", membership: "memberships", enquiry: "enquiries" };
 
 /** where a person-level address belongs when no tool's own address is a prefix */
 const personToolOf = (href: string): Tile["k"] | null => {
@@ -37,6 +39,7 @@ const personToolOf = (href: string): Tile["k"] | null => {
   if (path === "/team" || (path === "/business" && /show=team/.test(query)) || (path === "/crews" && /show=in/.test(query))) return "team";
   if (path === "/business") return "studios";
   if (path.startsWith("/c/")) return "classesmod";
+  if (path === "/inbox" || path.startsWith("/inbox/") || path === "/enquiries") return "enquiries";
   if (/^\/(invoices|refunds|payments|earnings)/.test(path)) return "earn";
   return null;
 };
@@ -49,7 +52,7 @@ export function badgeSwitcher<T extends BadgedItem>(items: T[], notes: UnreadNot
   };
   const me = items.find((i) => i.key === "me");
   for (const n of notes) {
-    if (n.kind === "enquiry" || n.kind === "danceos") continue;
+    if (n.kind === "danceos") continue;
     const href = n.href ?? "";
     const path = href ? pathOf(href) : "";
     /* 1 · the tool whose address is the longest prefix of this one, on any row */

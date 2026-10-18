@@ -29,6 +29,10 @@ export const tilesFor = (kind: HomeKind, pageId: string | null): Tile[] => {
   const t = {
     classes: { name: DOS_TOOLS.classes.name, href: "/my-classes", k: "classesmod", c: DOS_TOOLS.classes.c },
     calendar: { name: DOS_TOOLS.calendar.name, href: "/calendar", k: "calendar", c: DOS_TOOLS.calendar.c },
+    /* ENQUIRIES IS A TOOL AGAIN (18 Oct 2026, the user: "inbox to be renamed as
+       Enquiries and should be shifted with tools and removed from bottom bar").
+       It opens the desk the Inbox tab opened — `/inbox` stays the address (Rule 14). */
+    enquiries: { name: DOS_TOOLS.enquiries.name, href: "/inbox", k: "enquiries", c: DOS_TOOLS.enquiries.c },
     crews: { name: DOS_TOOLS.crews.name, href: "/crews", k: "crews", c: DOS_TOOLS.crews.c },
     practice: { name: DOS_TOOLS.practice.name, href: "/practice", k: "practice", c: DOS_TOOLS.practice.c },
     studios: { name: DOS_TOOLS.studios.name, href: "/business", k: "studios", c: DOS_TOOLS.studios.c },
@@ -40,6 +44,7 @@ export const tilesFor = (kind: HomeKind, pageId: string | null): Tile[] => {
     return [
       t.classes,
       t.calendar,
+      t.enquiries,
       t.memberships,
       { name: DOS_TOOLS.team.name, href: "/team", k: "team", c: DOS_TOOLS.team.c },
       t.crews,
@@ -54,6 +59,7 @@ export const tilesFor = (kind: HomeKind, pageId: string | null): Tile[] => {
   return [
     t.classes,
     t.calendar,
+    t.enquiries,
     { name: DOS_TOOLS.students.name, href: desk("students"), k: "students", c: DOS_TOOLS.students.c },
     { name: DOS_TOOLS.team.name, href: pageId ? desk("staff") : "/team", k: "team", c: DOS_TOOLS.team.c },
     t.memberships,
@@ -77,6 +83,8 @@ export const studioTilesFor = (businessId: string, memberRole: MemberRole): Tile
   return [
     { name: DOS_TOOLS.classes.name, href: desk("classes"), k: "classesmod", c: DOS_TOOLS.classes.c },
     { name: DOS_TOOLS.calendar.name, href: desk("calendar"), k: "calendar", c: DOS_TOOLS.calendar.c },
+    /* the studio's own enquiries desk, which was its Inbox tab (18 Oct 2026) */
+    { name: DOS_TOOLS.enquiries.name, href: desk("inbox"), k: "enquiries", c: DOS_TOOLS.enquiries.c },
     ...(memberRole === "visiting_faculty" || memberRole === "assistant"
       ? []
       : ([{ name: DOS_TOOLS.students.name, href: desk("students"), k: "students", c: DOS_TOOLS.students.c }] as Tile[])),

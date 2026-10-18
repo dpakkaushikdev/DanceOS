@@ -128,7 +128,9 @@ async function withSeatCounts(supabase: SupabaseClient, entries: CalendarEntry[]
   ]);
   return entries
     .map((e) => ({ ...e, filled: counts.get(e.sessionId) ?? 0, artist: artists.get(e.classId) ?? null }))
-    .sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+    /* by the INSTANT, not the string: two reads can format one timestamp two
+       ways (an embed's `+00:00` against `Z`), and a string sort then misorders */
+    .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt));
 }
 
 /** One person's calendar: what they train in, teach and assist, in a window.
@@ -373,15 +375,20 @@ export async function findPublicBusinessSchedule(
         null
       )
     );
-  /* the artists' published classes it holds are on offer here too (18 Sep 2026) */
-  const [hosted, taught] = await Promise.all([
-    findVenueEntries(supabase, businessId, business, nowIso, toIso, true),
-    teacherId ? findTaughtEntries(supabase, teacherId, nowIso, toIso) : Promise.resolve([] as CalendarEntry[]),
-  ]);
+  /* ⚠⚠ ONLY THIS PAGE'S OWN CLASSES (18 Oct 2026, the user: "should only show
+     published classes by that particular artist or studio"). Since 18 Sep a
+     studio's schedule also listed the artists' classes held in its rooms
+     (`findVenueEntries`) — classes somebody ELSE made. They are off it now; a
+     studio's own calendar still draws them (`findBusinessCalendar`). An
+     artist's list keeps the classes they are the CONFIRMED artist on (C127),
+     which ARE theirs. */
+  const taught = teacherId ? await findTaughtEntries(supabase, teacherId, nowIso, toIso) : [];
   /* one row per session: a class on the page's own books that its owner also
      teaches is the same session, and is drawn once */
   const seen = new Set<string>();
-  const all = [...entries, ...hosted, ...taught].filter((e) => (seen.has(e.sessionId) ? false : (seen.add(e.sessionId), true)));
+  const all = [...entries, ...taught].filter((e) => (seen.has(e.sessionId) ? false : (seen.add(e.sessionId), true)));
+  /* soonest first — `withSeatCounts` sorts by the instant (18 Oct 2026, the
+     user: "should be sorted"; it was a string sort across two read shapes) */
   return withSeatCounts(supabase, all);
 }
 

@@ -30,7 +30,9 @@ import { OtherTeams } from "@/features/staff/components/OtherTeams";
 import { otherTeamsCount, otherTeamsWaiting, type OtherTeamsData } from "@/features/staff/otherTeams";
 import { ColumnCount, columnTab, columnTrack } from "@/components/ui/ColumnTabs";
 import type { TeamMember } from "@/repositories/businesses";
-import type { PayoutMethod, PayoutRecord, PayoutStatus } from "@/types/payout";
+import type { BusinessPayLedger, MyEarnings, PayoutMethod, PayoutRecord, PayoutStatus } from "@/types/payout";
+import { TeamPayLedger } from "@/features/payouts/components/TeamPayLedger";
+import { PaidToYou } from "@/features/staff/components/PaidToYou";
 import type { BusinessType } from "@/types/business";
 import {
   MEMBER_LABEL,
@@ -157,7 +159,14 @@ export function StaffDesk({
   meUserId,
   otherTeams = null,
   initialColumn = "mine",
+  payLedger = null,
+  paidToYou = null,
 }: {
+  /** WHAT YOU OWE YOUR PEOPLE (18 Oct 2026 — moved here from Earnings): the
+   *  owner's pay ledger; null for anybody else or when the read failed */
+  payLedger?: BusinessPayLedger | null;
+  /** WHAT STUDIOS PAY YOU, on your own artist page's Other Teams column */
+  paidToYou?: MyEarnings | null;
   /** the Other Teams column (18 Oct 2026; Artist Teams since 11 Oct) — drawn
    *  only on the viewer's OWN artist page; a studio's desk has one column */
   otherTeams?: { data: OtherTeamsData; stayOn: string } | null;
@@ -233,6 +242,7 @@ export function StaffDesk({
   const labels = labelsFor(businessType);
   const onTeam = team.map((m) => m.userId);
   const paidTo = (userId: string) => payments.filter((p) => p.userId === userId);
+  const owedOf: Record<string, number> = Object.fromEntries((payLedger?.people ?? []).map((p) => [p.userId, p.owedInr]));
   /** how many hold each label, in the roster's own order — ⚠ EVERY label this
    *  profile hands out, 0 included (4 Oct 2026, the user: "count for each role
    *  should be mentioned even if 0"), plus any label somebody holds that this
@@ -348,7 +358,13 @@ export function StaffDesk({
           the roster below, never stored; My Team's alone */}
       {col === "other" && otherTeams ? null : (
         <div style={{ marginTop: 12 }}>
-          <ToolFacts tint={DOS_TOOLS.team.c} items={[{ label: team.length === 1 ? "Member" : "Total members", value: team.length, testId: "team-total" }]} />
+          <ToolFacts
+            tint={DOS_TOOLS.team.c}
+            items={[
+              { label: team.length === 1 ? "Member" : "Total members", value: team.length, testId: "team-total" },
+              ...(isOwner && payLedger ? [{ label: "Owed to team", value: rupees(payLedger.owedTotal), testId: "team-owed-total" }] : []),
+            ]}
+          />
           {roleRows.map((row, i) => (
             <ToolFacts key={i} tint={DOS_TOOLS.team.c} style={{ marginTop: 6 }} items={row} />
           ))}
@@ -358,6 +374,7 @@ export function StaffDesk({
 
       {col === "other" && otherTeams ? (
         <DeskBody style={{ paddingBottom: 4 }}>
+          {paidToYou ? <PaidToYou data={paidToYou} /> : null}
           <OtherTeams data={otherTeams.data} stayOn={otherTeams.stayOn} />
         </DeskBody>
       ) : (
@@ -524,6 +541,9 @@ export function StaffDesk({
                       items={[
                         { label: "Paid", value: rupees(paidTotal) },
                         { label: paid.length === 1 ? "Payment" : "Payments", value: paid.length },
+                        /* what is still owed for sessions taught (18 Oct 2026 — moved
+                           here from Earnings); only when there is something */
+                        ...((owedOf[m.userId] ?? 0) > 0 ? [{ label: "Owed", value: rupees(owedOf[m.userId] ?? 0), testId: "team-card-owed" }] : []),
                         ...(classCounts
                           ? [{ label: (classCounts[m.userId] ?? 0) === 1 ? "Class" : "Classes", value: classCounts[m.userId] ?? 0, testId: "team-card-classes" }]
                           : []),
@@ -634,6 +654,11 @@ export function StaffDesk({
       {/* ⚠ `role="alert"`, like the other two desks: a refusal that is only a
           red line is a refusal a screen reader never hears */}
       {error && <div role="alert" style={{ fontSize: 11.5, color: "#F87171", fontWeight: 700, marginTop: 10 }}>{error}</div>}
+
+      {/* WHAT YOU OWE YOUR PEOPLE — the owner's pay ledger, moved here from
+          Earnings (18 Oct 2026, the user: "what you owe should be handled from
+          teams not here") */}
+      {isOwner && payLedger ? <TeamPayLedger businessId={businessId} ledger={payLedger} /> : null}
       </DeskBody>
       </>
       )}

@@ -8,6 +8,11 @@ import { InviteHeadButtons } from "@/features/inbox/components/JoinInvites";
 import { OtherTeams } from "@/features/staff/components/OtherTeams";
 import { loadOtherTeams } from "@/features/staff/server/loadOtherTeams";
 import { DOS_UI, INK, LILAC } from "@/lib/design/tokens";
+import { PaidToYou } from "@/features/staff/components/PaidToYou";
+import { findMyEarnings } from "@/repositories/payouts";
+
+/* the clock, stamped outside render (react-hooks/purity) */
+const stampNowIso = (): string => new Date().toISOString();
 
 /** /team — the Team tile for everybody (11 Oct 2026, the user's answer "Team tile
  *  for everyone"). Somebody with an artist page of their own has a team, so they
@@ -26,7 +31,13 @@ export default async function TeamPage() {
   const ownPage = memberships.find((m) => m.memberRole === "owner" && m.business.type === "artist_page");
   if (ownPage) redirect(`/business/${ownPage.business.id}/staff?show=other`);
 
-  const data = await loadOtherTeams(supabase, user.id);
+  /* WHAT STUDIOS PAY YOU (18 Oct 2026, moved here from Earnings) — the
+     businesses you own are left out: their money is on their own desks */
+  const owned = memberships.filter((m) => m.memberRole === "owner").map((m) => m.business.id);
+  const [data, paid] = await Promise.all([
+    loadOtherTeams(supabase, user.id),
+    findMyEarnings(supabase, user.id, stampNowIso(), owned).catch(() => null),
+  ]);
   return (
     <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "0 16px 40px", boxSizing: "border-box" }}>
       <DeskTop style={{ paddingBottom: 4 }}>
@@ -42,6 +53,7 @@ export default async function TeamPage() {
         </div>
       </DeskTop>
       <DeskBody style={{ paddingBottom: 4 }}>
+        {paid ? <PaidToYou data={paid} /> : null}
         <OtherTeams data={data} stayOn="/team" />
       </DeskBody>
     </div>

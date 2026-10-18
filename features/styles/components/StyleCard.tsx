@@ -8,7 +8,12 @@ import { FollowerPill } from "@/features/discovery/components/discover-kit";
 /** a dance style on Discover's Styles tab (2 Oct 2026): its drawn dancer on the
  *  style's own colour, its name across the foot, its family above — a door to
  *  the style's own page. */
-export function StyleCard({ style, classes, city, followers }: { style: string; classes: number; city: string; followers?: number }) {
+/* ⚠ NO "N CLASSES IN {CITY}" ON THE FACE (18 Oct 2026, the user: "remove classes
+   in gurgaon etc from the style tiles should not appear outside. should be
+   centrally aligned with pics"). The count still ORDERS the shelf and still
+   answers the "Classes in …" filter; it is simply not printed on the tile, and
+   the family and the name sit centred under the dancer. */
+export function StyleCard({ style, followers }: { style: string; followers?: number }) {
   const color = dosStyleColor(style);
   const { family } = styleInfo(style);
   return (
@@ -24,11 +29,10 @@ export function StyleCard({ style, classes, city, followers }: { style: string; 
           style's outline is measured, so a Breaking freeze and a Ghoomar skirt
           both fill it whole */}
       <StyleArt style={style} frame="card" />
-      <span style={{ position: "absolute", left: 11, right: 11, bottom: 10, color: "#fff" }}>
-        <span style={{ display: "block", fontSize: 9, fontWeight: 900, letterSpacing: 0.8, textTransform: "uppercase", opacity: 0.85 }}>{family}</span>
+      <span style={{ position: "absolute", left: 10, right: 10, bottom: 11, color: "#fff", textAlign: "center" }}>
+        <span style={{ display: "block", fontSize: 9, fontWeight: 900, letterSpacing: 0.8, textTransform: "uppercase", opacity: 0.85, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{family}</span>
         {/* one line whatever the name (18 Oct 2026) — a long one steps down, then ellipsises */}
-        <span title={style} style={{ display: "block", fontFamily: DOS_DISPLAY, fontWeight: 900, fontSize: style.length > 14 ? 14 : 17, letterSpacing: -0.4, lineHeight: 1.2, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{style}</span>
-        {classes > 0 ? <span style={{ display: "block", fontSize: 10.5, fontWeight: 700, opacity: 0.85, marginTop: 3 }}>{classes} {classes === 1 ? "class" : "classes"} in {city}</span> : null}
+        <span title={style} style={{ display: "block", fontFamily: DOS_DISPLAY, fontWeight: 900, fontSize: style.length > 14 ? 14 : 17, letterSpacing: -0.4, lineHeight: 1.2, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textShadow: "0 1px 3px rgba(0,0,0,.35)" }}>{style}</span>
       </span>
       {/* the people who carry this style on their profile or want to learn it
           (10 Oct 2026, the user: "follower count on styles tile on discover") —

@@ -24,7 +24,8 @@ const shelf: React.CSSProperties = { fontSize: 17, fontWeight: 900, letterSpacin
  *  nothing. ⚠ A row with one option or none is not offered (4827's own rule: a
  *  row is offered only where it means something). */
 
-export type InboxSort = "new" | "old" | "value";
+/* `soon` (18 Oct 2026): by the DATE OF THE JOB, soonest first, undated last */
+export type InboxSort = "new" | "old" | "value" | "soon";
 
 export interface InboxFilter {
   q: string;
@@ -41,7 +42,7 @@ export const filterCount = (f: InboxFilter): number => (f.q.trim() ? 1 : 0) + f.
 export function applyInboxFilter<T>(
   rows: T[],
   f: InboxFilter,
-  read: { text: (r: T) => string; kind: (r: T) => string; stage: (r: T) => string; at: (r: T) => string; value?: (r: T) => number },
+  read: { text: (r: T) => string; kind: (r: T) => string; stage: (r: T) => string; at: (r: T) => string; value?: (r: T) => number; when?: (r: T) => string | null },
 ): T[] {
   const term = f.q.trim().toLowerCase();
   const out = rows
@@ -49,8 +50,15 @@ export function applyInboxFilter<T>(
     .filter((r) => f.kinds.length === 0 || f.kinds.includes(read.kind(r)))
     .filter((r) => f.stages.length === 0 || f.stages.includes(read.stage(r)));
   const by = f.sort;
+  const whenOf = (r: T) => (read.when ? read.when(r) : null) ?? "9999";
   return [...out].sort((a, b) =>
-    by === "value" && read.value ? read.value(b) - read.value(a) : by === "old" ? read.at(a).localeCompare(read.at(b)) : read.at(b).localeCompare(read.at(a)),
+    by === "value" && read.value
+      ? read.value(b) - read.value(a)
+      : by === "soon"
+        ? whenOf(a).localeCompare(whenOf(b))
+        : by === "old"
+          ? read.at(a).localeCompare(read.at(b))
+          : read.at(b).localeCompare(read.at(a)),
   );
 }
 
@@ -83,7 +91,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function FilterSheet({ onClose, children, onReset }: { onClose: () => void; children: ReactNode; onReset: () => void }) {
+function FilterSheet({ onClose, children, onReset, label }: { onClose: () => void; children: ReactNode; onReset: () => void; label: string }) {
   useCloseOnBack(onClose);
   /* ⚠ PORTALLED, because the bar stands INSIDE the Inbox's InvertedPanel and
      `.dos-invert` swaps the palette for its whole subtree — so a sheet drawn in
@@ -92,7 +100,7 @@ function FilterSheet({ onClose, children, onReset }: { onClose: () => void; chil
   return (
     <Portal>
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.62)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 660 }}>
-      <div role="dialog" aria-modal="true" aria-label="Inbox filters" onClick={(e) => e.stopPropagation()} style={{ background: "var(--solid)", color: "var(--text)", borderRadius: "24px 24px 0 0", padding: "14px 16px 24px", width: "100%", maxWidth: 430, boxSizing: "border-box", maxHeight: "86vh", overflowY: "auto", animation: "dosSheetUp .28s cubic-bezier(.22,.9,.34,1)" }}>
+      <div role="dialog" aria-modal="true" aria-label={label} onClick={(e) => e.stopPropagation()} style={{ background: "var(--solid)", color: "var(--text)", borderRadius: "24px 24px 0 0", padding: "14px 16px 24px", width: "100%", maxWidth: 430, boxSizing: "border-box", maxHeight: "86vh", overflowY: "auto", animation: "dosSheetUp .28s cubic-bezier(.22,.9,.34,1)" }}>
         <div style={{ width: 40, height: 4, borderRadius: 2, background: "var(--el)", margin: "0 auto 14px" }} />
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 16 }}>
           <span style={{ ...shelf, color: "var(--text)" }}>Filters</span>
@@ -119,7 +127,10 @@ export function InboxFilters({
   stageLabel = "STAGE",
   sorts,
   quickKinds = true,
+  quickStages = false,
 }: {
+  /** the stages as quick chips too (18 Oct 2026) — a status is the commonest filter */
+  quickStages?: boolean;
   value: InboxFilter;
   onChange: (f: InboxFilter) => void;
   /** what is being searched — "enquiries", "requests", "invitations" */
@@ -173,7 +184,17 @@ export function InboxFilters({
               );
             })
           : null}
-        {value.stages.map((s) => {
+        {quickStages && stages.length > 1
+          ? stages.map(([k, l]) => {
+              const on = value.stages.includes(k);
+              return (
+                <div key={`qs-${k}`} role="button" tabIndex={0} aria-pressed={on} aria-label={`Status: ${l}`} onKeyDown={pressKey(() => onChange({ ...value, stages: toggle(value.stages, k) }))} onClick={() => onChange({ ...value, stages: toggle(value.stages, k) })} style={chip(on)}>
+                  {l}
+                </div>
+              );
+            })
+          : null}
+        {(quickStages && stages.length > 1 ? [] : value.stages).map((s) => {
           const l = stages.find(([k]) => k === s)?.[1] ?? s;
           return (
             <div key={`st-${s}`} role="button" tabIndex={0} aria-label={`Remove ${l}`} onKeyDown={pressKey(() => onChange({ ...value, stages: toggle(value.stages, s) }))} onClick={() => onChange({ ...value, stages: toggle(value.stages, s) })} style={chip(true)}>
@@ -189,7 +210,7 @@ export function InboxFilters({
       </div>
 
       {open ? (
-        <FilterSheet onClose={() => setOpen(false)} onReset={() => onChange(NO_FILTER)}>
+        <FilterSheet onClose={() => setOpen(false)} onReset={() => onChange(NO_FILTER)} label={`${noun.charAt(0).toUpperCase()}${noun.slice(1)} filters`}>
           {sorts.length > 1 ? (
             <Row label="SORT BY">
               {sorts.map(([k, l]) => (

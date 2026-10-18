@@ -495,6 +495,46 @@ a:focus-visible:not([data-slot]) {
     filter: drop-shadow(0 0 6px currentColor);
   }
 }
+/* THE TOP BAR'S WORDMARK (18 Oct 2026, the user: "Dance OS logo font and color
+   change completely … should be something else make it different with some
+   different animation"). Upright and heavy, filled with a teal → amber → violet
+   gradient that slides slowly through the word; deeper stops in the light theme
+   so it reads on the warm page. One element moves, never a letter. */
+.dos-wordmark {
+  display: inline-block;
+  background-image: linear-gradient(100deg, #2dd4bf 0%, #fbbf24 38%, #a78bfa 62%, #2dd4bf 100%);
+  background-size: 250% 100%;
+  background-position: 0% 50%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: dosWordSheen 7s ease-in-out infinite alternate, dosWordBreathe 3.6s ease-in-out infinite;
+  transform-origin: 50% 60%;
+}
+html.light .dos-wordmark {
+  background-image: linear-gradient(100deg, #0f766e 0%, #b45309 38%, #6d28d9 62%, #0f766e 100%);
+}
+@keyframes dosWordSheen {
+  from { background-position: 0% 50%; }
+  to { background-position: 100% 50%; }
+}
+@keyframes dosWordBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.035); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dos-wordmark {
+    animation: none !important;
+  }
+}
+@media (forced-colors: active) {
+  .dos-wordmark {
+    background-image: none;
+    -webkit-text-fill-color: CanvasText;
+    color: CanvasText;
+  }
+}
 /* the photo viewer's next picture sliding in from the side it was swiped to */
 @keyframes dosLbFromRight {
   from { transform: translateX(40px); opacity: 0.2; }

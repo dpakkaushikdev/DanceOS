@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
 import { DOS_DISPLAY, DOS_UI } from "@/lib/design/tokens";
 import { PosterBlock, type PosterItem } from "./poster";
@@ -37,6 +38,14 @@ export function PosterSheet({
   onClose: () => void;
 }) {
   useCloseOnBack(onClose);
+  /* ⚠ AS BIG AS THE PHONE ALLOWS (18 Oct 2026, the user: "poster should be
+     bigger in this view"). The sheet only ever mounts from a press, so the
+     window is there to measure; room is kept for the two text lines and Done. */
+  const [size] = useState(() =>
+    typeof window === "undefined"
+      ? 340
+      : Math.max(240, Math.min(window.innerWidth - 32, window.innerHeight - 190, 620)),
+  );
   return (
     <div
       onClick={onClose}
@@ -59,60 +68,35 @@ export function PosterSheet({
         style={{
           position: "relative",
           width: "100%",
-          maxWidth: 330,
+          maxWidth: size,
           boxSizing: "border-box",
           textAlign: "center",
           fontFamily: DOS_UI,
           color: "#fff",
         }}
       >
-        {/* the art at the size a poster is worth opening for, with the dance
-            riding its top edge — the sleeve's own pill, on the scrim */}
-        <div style={{ position: "relative", display: "inline-block", lineHeight: 0, marginTop: 14 }}>
+        {/* ⚠ THE STYLE ONCE AND THE LEVEL ONCE (18 Oct 2026). A class's title
+            IS "{style} · {level}" (17 Sep 2026), so the old pill + title +
+            sub-line printed the style three times and the level twice. Now:
+            the art, then the style, then the level — nothing repeated. */}
+        <div style={{ display: "inline-block", lineHeight: 0 }}>
           <span
             style={{
               display: "block",
               lineHeight: 0,
-              boxShadow: "0 24px 70px rgba(0,0,0,.8), 0 0 60px 18px rgba(0,0,0,.5)",
+              borderRadius: 18,
+              overflow: "hidden",
+              boxShadow: `0 24px 70px rgba(0,0,0,.8), 0 0 0 2px ${col}55`,
             }}
           >
-            <PosterBlock item={posterItem} design={posterK} size={298} />
-          </span>
-          <span
-            style={{
-              position: "absolute",
-              left: "50%",
-              top: 0,
-              transform: "translate(-50%,-50%)",
-              lineHeight: 0,
-              borderRadius: 999,
-              boxShadow: "0 3px 10px rgba(0,0,0,.6)",
-            }}
-          >
-            <span
-              style={{
-                display: "inline-block",
-                padding: "6px 13px",
-                borderRadius: 999,
-                background: col,
-                color: "#fff",
-                fontSize: 11.5,
-                fontWeight: 900,
-                fontFamily: DOS_DISPLAY,
-                letterSpacing: -0.2,
-                whiteSpace: "nowrap",
-                lineHeight: 1.1,
-              }}
-            >
-              {styleName}
-            </span>
+            <PosterBlock item={posterItem} design={posterK} size={size} />
           </span>
         </div>
         <div
           style={{
-            fontSize: 19,
-            fontWeight: 800,
-            letterSpacing: -0.5,
+            fontSize: 22,
+            fontWeight: 900,
+            letterSpacing: -0.6,
             fontFamily: DOS_DISPLAY,
             marginTop: 14,
             overflow: "hidden",
@@ -120,11 +104,13 @@ export function PosterSheet({
             whiteSpace: "nowrap",
           }}
         >
-          {title}
+          {styleName || title}
         </div>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase", color: "rgba(255,255,255,.66)", marginTop: 3 }}>
-          {[styleName, levelWord].filter(Boolean).join(" · ")}
-        </div>
+        {levelWord && (
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase", color: "rgba(255,255,255,.66)", marginTop: 3 }}>
+            {levelWord}
+          </div>
+        )}
         <div
           role="button"
           tabIndex={0}

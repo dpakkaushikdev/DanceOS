@@ -65,8 +65,12 @@ export function CompactCard({
           is pushed to the card's foot under a hairline — the same place on every
           card, which is what lines a row up. ⚠ Reserving a second line for every
           name was tried and read as a hole under every short name. */}
-      <div style={{ minWidth: 0, padding: "2px 2px 0" }}>
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 5, minWidth: 0, fontSize: 14.5, lineHeight: 1.2 }}>
+      {/* ⚠ CENTRED UNDER THE PICTURE (18 Oct 2026, the user: "classes and artist
+          can still be better on discover") — the name a step bigger and the place
+          under it, both on the picture's own axis, so a row of two reads as two
+          portraits rather than two left-ragged captions */}
+      <div style={{ minWidth: 0, padding: "4px 2px 2px", textAlign: "center" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "center", gap: 5, minWidth: 0, fontSize: 15.5, lineHeight: 1.2 }}>
           <span
             title={name}
             style={{
@@ -92,7 +96,7 @@ export function CompactCard({
             {verified ? <span style={{ display: "inline-block", marginLeft: 4, verticalAlign: -2, lineHeight: 0 }}><VerifiedTick size={13} /></span> : null}
           </span>
         </div>
-        <div style={{ marginTop: 4, minWidth: 0, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
+        <div style={{ marginTop: 5, minWidth: 0, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", display: "flex", justifyContent: "center" }}>
           <DosWhere city={city} km={km ?? null} size={11} />
         </div>
       </div>

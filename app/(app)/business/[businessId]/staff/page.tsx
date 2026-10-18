@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findSentInvites } from "@/repositories/invites";
 import { findProfilePhotoPaths } from "@/repositories/profiles";
 import { sentTeamAnsweredRow } from "@/features/inbox/inviteRows";
-import { findBusinessPayLedger } from "@/repositories/payouts";
+import { findBusinessPayLedger, findMyEarnings } from "@/repositories/payouts";
 import { findMyMemberships, findBusinessTeam, runsTheBusiness } from "@/repositories/businesses";
 import { findTeamClassCounts } from "@/repositories/teamMemberWork";
 import { loadOtherTeams } from "@/features/staff/server/loadOtherTeams";
@@ -74,9 +74,15 @@ export default async function BusinessStaffPage({
      Only on the viewer's OWN artist page — a studio's desk is its team alone,
      and a studio's invitations are answered on the Studios hub. */
   const ownArtistPage = business.type === "artist_page" && myRole === "owner";
-  const [classCounts, artistData] = await Promise.all([
+  /* WHAT STUDIOS PAY YOU sits on this column too (18 Oct 2026, moved here from
+     Earnings) — what OTHER businesses paid this artist, their own left out */
+  const owned = ownArtistPage
+    ? (await findMyMemberships(supabase).catch(() => [])).filter((m) => m.memberRole === "owner").map((m) => m.business.id)
+    : [];
+  const [classCounts, artistData, paidToYou] = await Promise.all([
     findTeamClassCounts(supabase, businessId, team.map((m) => m.userId)).catch(() => null),
     ownArtistPage ? loadOtherTeams(supabase, user.id) : Promise.resolve(null),
+    ownArtistPage ? findMyEarnings(supabase, user.id, stampNowIso(), owned).catch(() => null) : Promise.resolve(null),
   ]);
   /* `?show=artists` is the column's name before 18 Oct 2026 — Rule 14 */
   const wantsOther = asked === "other" || asked === "artists";
@@ -90,6 +96,8 @@ export default async function BusinessStaffPage({
       invites={invites}
       answered={answered}
       payments={ledger?.payouts ?? []}
+      payLedger={myRole === "owner" ? ledger : null}
+      paidToYou={paidToYou}
       classCounts={classCounts ? Object.fromEntries(classCounts) : null}
       // asking and removing are the owner's alone (§10.9); everyone else reads
       isOwner={myRole === "owner"}

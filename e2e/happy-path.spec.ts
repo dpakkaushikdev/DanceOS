@@ -1098,13 +1098,19 @@ test.describe.serial("DanceOS, end to end", () => {
     await owner.goto(`/business/${businessId}`);
     await (await tools(owner)).getByRole("link", { name: "Earnings", exact: true }).click();
     await owner.waitForURL(/\/business\/[0-9a-f-]+\/earnings$/);
+    /* ⚠ WHAT YOU OWE YOUR PEOPLE IS THE TEAM DESK'S (18 Oct 2026, the user: "what
+       you owe should be handled from teams not here"): Earnings keeps one line
+       pointing there, and the ledger — with its promise — lives on the Team desk.
+       Nothing is owed yet, because the session is three days out. */
+    await expect(owner.getByText(/DanceOS does not move this money/)).toHaveCount(0);
+    await expect(owner.getByTestId("earn-team").filter({ hasText: "Owed to your team" })).toBeVisible();
+    await owner.getByTestId("earn-team").filter({ hasText: "Owed to your team" }).click();
+    await owner.waitForURL(/\/business\/[0-9a-f-]+\/staff$/);
+    await expect(owner.getByTestId("team-pay-ledger")).toBeVisible();
     await expect(owner.getByText(/DanceOS does not move this money/)).toBeVisible();
-    // 18 Sep 2026: the trainer is ON the ledger from here, because accepting the
-    // class is what let it be published at all — and nothing is owed yet, because
-    // the session is three days out. (Until today the ask was still unanswered at
-    // this point and the desk read "Nobody has taught a session yet".)
+    await expect(owner.getByTestId("team-pay-owed")).toHaveText("₹0");
     await expect(owner.getByText(trainerName).first()).toBeVisible();
-    await expect(owner.getByText("₹0", { exact: true }).first()).toBeVisible();
+    await owner.goto(`/business/${businessId}/earnings`);
 
     /* ---- the income half of the same screen (Step 13b part 2b) --------------
        ⚠ RE-CUT 21 Sep 2026 (the user: "lets fix earnings for all profile
@@ -1123,9 +1129,20 @@ test.describe.serial("DanceOS, end to end", () => {
     for (const p of ["Day", "Week", "Month", "Year"]) {
       await expect(owner.getByRole("link", { name: p, exact: true })).toBeVisible();
     }
-    // HOW STUDENTS PAID stays: the method split is a fact nothing else carries
-    await expect(owner.getByText("HOW STUDENTS PAID")).toBeVisible();
-    await expect(owner.getByText(/No payments yet this month/)).toBeVisible();
+    /* the custom range (18 Oct 2026): the sheet opens, takes two dates, and the
+       window lands in the address */
+    await owner.getByTestId("earn-custom").click();
+    const custom = owner.getByRole("dialog", { name: "Custom dates" });
+    await expect(custom).toBeVisible();
+    await custom.getByRole("button", { name: "Last 30 days" }).click();
+    await owner.waitForURL(/\/earnings\?from=\d{4}-\d{2}-\d{2}&to=\d{4}-\d{2}-\d{2}$/);
+    await expect(owner.getByTestId("earn-revenue")).toHaveText("₹0");
+    /* each section opens a deep dive */
+    await owner.getByTestId("earn-dive-revenue").click();
+    await expect(owner.getByTestId("earn-dive")).toBeVisible();
+    await owner.getByTestId("earn-dive").getByRole("button", { name: "Done", exact: true }).click();
+    await expect(owner.getByTestId("earn-dive")).toHaveCount(0);
+    await owner.goto(`/business/${businessId}/earnings`);
     /* and the month chips keep their own job — opening a past month's STATEMENT,
        with its deductions and its CSV, honestly empty for a new studio */
     await owner.getByRole("button", { name: lastMonthName(), exact: true }).click();
@@ -1134,7 +1151,7 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(owner.getByText("Net settled")).toBeVisible();
     await expect(owner.getByText(/₹0 net · 0 payments/).first()).toBeVisible();
     await owner.getByRole("button", { name: "This month", exact: true }).click();
-    await expect(owner.getByText("HOW STUDENTS PAID")).toBeVisible();
+    await expect(owner.getByText("DEDUCTIONS")).toHaveCount(0);
 
     /* the teaching side, for the person who was asked — the SAME screen a studio
        and an organization now get, with the four filters and the graph, and with
@@ -1374,7 +1391,8 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(learner.getByRole("button", { name: "Following" })).toBeVisible();
     await expect(studioFollow).toHaveAttribute("data-followers", "1");
     // the schedule is the public calendar: published classes still to come
-    await learner.getByRole("link", { name: "Schedule" }).click();
+    /* the bar reads "Classes" since 18 Oct 2026; the route is still /schedule */
+    await learner.getByRole("link", { name: "Classes", exact: true }).click();
     await learner.waitForURL(/\/schedule$/);
     await expect(learner.locator(`[aria-label="Open ${classTitle}"]`)).toBeVisible();
     /* ⚠ AND HERE IT IS STILL A CARD — the other end of the pill check in the
@@ -1444,7 +1462,8 @@ test.describe.serial("DanceOS, end to end", () => {
        `/business/{id}/inbox`, both opened on the Enquiries section. */
     await owner.goto("/enquiries");
     await owner.waitForURL(/\/inbox\?show=enquiries$/);
-    await expect(owner.getByRole("heading", { level: 1, name: "Inbox" })).toBeVisible();
+    /* the desk is headed Enquiries since 18 Oct 2026 ("inbox to be renamed as Enquiries") */
+    await expect(owner.getByRole("heading", { level: 1, name: "Enquiries" })).toBeVisible();
     await expect(owner.getByRole("link", { name: `Choreographer enquiry from ${learnerName}` })).toHaveCount(0);
     await owner.goto(`/enquiries?as=${businessId}`);
     await owner.waitForURL(new RegExp(`/business/${businessId}/inbox\\?show=enquiries$`));
@@ -1469,7 +1488,7 @@ test.describe.serial("DanceOS, end to end", () => {
        present on the studio's own — which is the address its tile opens. */
     await expect(owner.getByRole("button", { name: /^Enquiry settings/ })).toHaveCount(0);
     await owner.goto(`/business/${businessId}/inbox?show=enquiries`);
-    await expect(owner.getByRole("heading", { level: 1, name: "Inbox" })).toBeVisible();
+    await expect(owner.getByRole("heading", { level: 1, name: "Enquiries" })).toBeVisible();
     /* ⚠ the count is the TYPE's, not a constant: a studio is offered four kinds
        (judging is a person's job), an artist page five, an organization three —
        so the assertion is that a real count is stated rather than which one. */

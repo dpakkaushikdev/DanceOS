@@ -1,30 +1,28 @@
 import { redirect } from "next/navigation";
 import { EarningsScreen } from "@/features/payouts/components/EarningsScreen";
-import { MyEarnings } from "@/features/payouts/components/MyEarnings";
+import { asRange } from "@/features/payouts/earningsRange";
 import { asPeriod } from "@/lib/format/period";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findPersonEarnings } from "@/repositories/earnings";
 import { findMyEarnings } from "@/repositories/payouts";
 import { findMyMemberships } from "@/repositories/businesses";
 
-/* the clock is read OUTSIDE the component — `react-hooks/purity` refuses an
-   impure call during render, even in a server component */
+/* the clock is read OUTSIDE the component — `react-hooks/purity` */
 const stampNowIso = (): string => new Date().toISOString();
 
-/** Your own teaching money. Every row is yours: RLS admits you to your classPeople
- *  and to payouts where you are the person paid.
+/** Your own teaching money — what OTHER businesses paid you, by period or by a
+ *  custom range (`?from=&to=`).
  *
- *  ⚠ THE SUMMARY IS THE SHARED EARNINGS SCREEN NOW (21 Sep 2026): the period
- *  filters, the chart and Revenue / Expenses / what is left, the same as every
- *  other kind of profile. `MyEarnings` keeps what is ITS OWN — the studio-by-
- *  studio count of what you are owed, and who has actually paid you — and its
- *  hero and money card are suppressed, because the screen above now says what
- *  they said, and said it of a PERIOD rather than of all time.
+ *  ⚠ THE STUDIO-BY-STUDIO LEDGER IS THE TEAM SECTION'S NOW (18 Oct 2026, the
+ *  user: "what studios pay you should also be handled from team section"):
+ *  `PaidToYou` on `/team`. This screen keeps one line pointing there — what is
+ *  still due — so nothing about it is lost, only moved.
  *
- *  ⚠ A PERSON HAS NO EXPENSES, so "what is left" is what came in, and the screen
- *  says so rather than drawing an empty block. */
+ *  ⚠ A PERSON HAS NO EXPENSES, so "what is left" is what came in. */
 export default async function MyEarningsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const period = asPeriod((await searchParams).period);
+  const sp = await searchParams;
+  const period = asPeriod(sp.period);
+  const range = asRange(sp.from, sp.to);
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -34,22 +32,19 @@ export default async function MyEarningsPage({ searchParams }: { searchParams: P
   }
 
   const now = stampNowIso();
-  /* ⚠ YOUR OWN BUSINESSES ARE NOT "STUDIOS THAT PAID YOU" (2 Oct 2026, the user:
-     "all items on home tab should be for that specific profile"). Measured on
-     their account: this screen listed their own studio and their own artist page
-     under WHERE IT CAME FROM — the same money those two businesses' Earnings
-     desks already show. A person's screen is what OTHER businesses paid them. */
+  /* your own businesses are not "studios that paid you" (2 Oct 2026) */
   const owned = (await findMyMemberships(supabase).catch(() => []))
     .filter((m) => m.memberRole === "owner")
     .map((m) => m.business.id);
-  const [report, data] = await Promise.all([
-    findPersonEarnings(supabase, user.id, period, now, owned),
-    findMyEarnings(supabase, user.id, now, owned),
+  const [report, mine] = await Promise.all([
+    findPersonEarnings(supabase, user.id, period, now, owned, range),
+    findMyEarnings(supabase, user.id, now, owned).catch(() => null),
   ]);
 
-  return (
-    <EarningsScreen report={report} title="Earnings" sub="What studios have paid you" basePath="/earnings" noExpenses>
-      <MyEarnings data={data} summary={false} />
-    </EarningsScreen>
-  );
+  const team =
+    mine && (mine.studios.length > 0 || mine.payouts.length > 0)
+      ? [{ label: "Still due from studios", amountInr: mine.dueTotal, href: "/team#paid-to-you", note: "Each studio's sessions and payments are in Team" }]
+      : [];
+
+  return <EarningsScreen report={report} title="Earnings" sub="What studios have paid you" basePath="/earnings" noExpenses team={team} />;
 }

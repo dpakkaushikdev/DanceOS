@@ -100,12 +100,10 @@ const TAB_ICONS = {
      days, and it was only found because typing the label against this map made
      the compiler list what the map holds. A bar of three icons was carrying
      four. */
-  Inbox: (c) => (
-    <svg width="20" height="20" viewBox="0 0 24 24" stroke={c} {...ICON_STROKE}>
-      <path d="M3.5 13.5h4l1.4 2.6h6.2l1.4-2.6h4" />
-      <path d="M3.5 13.5 6.2 5.2h11.6l2.7 8.3V18a1.8 1.8 0 0 1-1.8 1.8H5.3A1.8 1.8 0 0 1 3.5 18z" />
-    </svg>
-  ),
+  /* ⚠ THE `Inbox` ICON LEFT WITH ITS TAB (18 Oct 2026, the user: "inbox to be
+     renamed as Enquiries and should be shifted with tools and removed from bottom
+     bar"). The desk is the Enquiries tool in the profile drawer now
+     (`features/home/tiles.ts`), drawn with `GLYPH.enquiries`. */
   /* ⚠ THE `Enquiries` ICON WAS HERE FOR ONE DAY (27 Sep 2026). It was the fourth
      tab that morning and a TOOL TILE by the evening, at the same person's word
      ("enquiries should not be on navbar a tab in tools for all"), so the glyph
@@ -120,7 +118,6 @@ const TAB_ICONS = {
 const TAB_TINT = {
   Home: "#22C55E",
   Discover: "#3B82F6",
-  Inbox: "#8B5CF6",
 } satisfies Record<string, string>;
 
 /** the three that are places of their own — the eye to the account's public page
@@ -140,7 +137,6 @@ type TabLabel = keyof typeof TAB_ICONS & keyof typeof TAB_TINT;
    or a crew's own bar alike, so the order never changes under the thumb */
 const TAB_SET: Array<{ label: TabLabel; href: string }> = [
   { label: "Discover", href: "/discover" },
-  { label: "Inbox", href: "/inbox" },
   { label: "Home", href: "/" },
 ];
 
@@ -171,7 +167,9 @@ const SWITCH_TINT: Record<SwitcherItem["kind"], string> = { me: "#5AC8FA", studi
    are not mistaken for a studio. ⚠ An ORGANIZATION's home was `/business/{uuid}`
    too from 26 Sep 2026 and wore the same bar; it went on 29 Sep. */
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
-const STUDIO_HOME_RE = new RegExp(`^/business/(${UUID})(/inbox)?$`, "i");
+/* ⚠ the studio's `/inbox` is no longer an entity TAB (18 Oct 2026): it is the
+   Enquiries tool, a drill page like every other desk */
+const STUDIO_HOME_RE = new RegExp(`^/business/(${UUID})$`, "i");
 /* ⚠ A CREW HAS NO INBOX (11 Oct 2026, the user: "only enquiries to be handled
    from inbox"). A crew takes no enquiries, so its bar is Home alone and
    `/crews/{id}/inbox` forwards to its Team desk (next.config.ts). */
@@ -179,16 +177,14 @@ const CREW_HOME_RE = new RegExp(`^/crews/(${UUID})/manage$`, "i");
 interface Entity {
   kind: "studio" | "crew";
   home: string;
-  /** null for a crew — it has no Inbox since 11 Oct 2026 */
-  inbox: string | null;
   /** what the Discover link carries so the shelf knows who is reading it */
   as: string;
 }
 const entityOf = (pathname: string): Entity | null => {
   const s = pathname.match(STUDIO_HOME_RE);
-  if (s) return { kind: "studio", home: `/business/${s[1]}`, inbox: `/business/${s[1]}/inbox`, as: s[1]! };
+  if (s) return { kind: "studio", home: `/business/${s[1]}`, as: s[1]! };
   const c = pathname.match(CREW_HOME_RE);
-  if (c) return { kind: "crew", home: `/crews/${c[1]}/manage`, inbox: null, as: `crew-${c[1]}` };
+  if (c) return { kind: "crew", home: `/crews/${c[1]}/manage`, as: `crew-${c[1]}` };
   return null;
 };
 
@@ -318,7 +314,6 @@ export function AppChrome({
   const isTab = activeTab !== null;
   /* a studio's or a crew's own pages wear the entity's bar and the mark */
   const entity = entityOf(pathname);
-  const showMark = isTab || entity !== null;
   const showBar = (isTab || entity !== null) && !adminOnly;
   /* ── AN ENTITY'S BAR CARRIES DISCOVER TOO (19 Sep 2026, the user: "studio and
      organizations can have Discover in navbar but should not be able to book any
@@ -344,7 +339,7 @@ export function AppChrome({
      the layout and simply unused here. */
   const bar: Array<{ label: TabLabel; href: string }> = entity
     ? [
-        ...(entity.inbox ? [{ label: "Inbox" as TabLabel, href: entity.inbox }] : []),
+        /* the entity's Inbox tab left on 18 Oct 2026 — Enquiries is a tool now */
         { label: "Home", href: entity.home },
         /* ⚠ ENQUIRIES LEFT THIS BAR THE SAME DAY IT JOINED IT (27 Sep 2026, the
            user: "enquiries should not be on navbar a tab in tools for all"). It
@@ -352,7 +347,7 @@ export function AppChrome({
            desk it opens is scoped to the profile whose grid was pressed. */
       ]
     : TAB_SET;
-  const routeLit = entity ? (pathname === entity.home ? "Home" : entity.inbox && pathname === entity.inbox ? "Inbox" : null) : activeTab;
+  const routeLit = entity ? (pathname === entity.home ? "Home" : null) : activeTab;
   /* ⚠ THE TAB MOVES ON THE PRESS, NOT ON THE ARRIVAL (18 Oct 2026, the user:
      "navbar below should have some animation when switching"). The pressed tab
      lights at once and plays its pop while the page is still on its way; keyed
@@ -561,14 +556,6 @@ export function AppChrome({
     }
   };
 
-  const goBack = () => {
-    if (window.history.length > 1) {
-      router.back();
-    } else {
-      router.push("/");
-    }
-  };
-
   return (
     <div
       style={
@@ -662,59 +649,39 @@ export function AppChrome({
             whiteSpace: "nowrap",
           }}
         >
-          {showMark ? null : (
-            <span
-              role="button"
-              tabIndex={0}
-              aria-label="Go back"
-              {...tapHandlers}
-              onClick={(e) => { if (wasSwipe(e)) return; goBack(); }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  goBack();
-                }
-              }}
-              style={{
-                width: 38,
-                height: 38,
-                flexShrink: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                borderRadius: 19,
-                background: "var(--card)",
-                pointerEvents: "auto",
-              }}
-            >
-              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14.5 5.5 8 12l6.5 6.5" />
-              </svg>
-            </span>
-          )}
-          {/* ⚠⚠ THE LOGO IS CENTRED (18 Oct 2026) and, since the same day, the back
-              chip rides INSIDE the centred group right before the mark. The
-              wordmark is the display face now and RUNS: a lift travels along
-              D-a-n-c-e-O-S the way the start page's 5 · 6 · 7 · 8 beat (the user:
-              "change the danceos heading text in top bar and make in running
-              animation as well"). textContent stays "DanceOS". */}
+          {/* ⚠⚠ NO BACK CHIP, ON ANY SCREEN (18 Oct 2026, the user: "remove back
+              button on left of logo should not appear at all"). The phone's own
+              back gesture and the browser's back are the way out of a drill page;
+              the drawer the picture opens and the bottom bar are the way home.
+              ⚠ THE WORDMARK IS NEW THE SAME DAY (the user: "Dance OS logo font and
+              color change completely dont like that white and pink color should be
+              something else make it different with some different animation"):
+              one word, upright, heavy and tight-tracked, filled with a teal → amber
+              gradient that SLIDES slowly across it (`dosWordSheen`), "OS" a
+              lighter weight so it still reads as two parts. One element animates —
+              no per-letter wave — and reduced motion stops it. textContent stays
+              "DanceOS" for the visually hidden copy; the role="img" name is the word. */}
           <span className="dos-logo-anim" style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", lineHeight: 0 }}>
             <DosMark size={32} />
           </span>
-          <span data-testid="wordmark" className="dos-logo-anim" role="img" aria-label="DanceOS" style={{ flexShrink: 0, fontSize: "clamp(20px, 5.6vw, 24px)", fontWeight: 900, letterSpacing: -0.6, color: INK, fontFamily: DOS_DISPLAY, whiteSpace: "nowrap", fontStyle: "italic" }}>
-            {Array.from("DanceOS").map((ch, i) => (
-              <span
-                key={i}
-                style={{
-                  display: "inline-block",
-                  color: i >= 5 ? "#EC4899" : undefined,
-                  animation: `dosLetterGlow 3.2s ease-in-out ${(i * 0.09).toFixed(2)}s infinite`,
-                }}
-              >
-                {ch}
-              </span>
-            ))}
+          <span
+            data-testid="wordmark"
+            className="dos-wordmark"
+            role="img"
+            aria-label="DanceOS"
+            style={{
+              flexShrink: 0,
+              fontSize: "clamp(21px, 5.8vw, 25px)",
+              fontWeight: 900,
+              letterSpacing: -1.1,
+              lineHeight: 1,
+              fontFamily: DOS_DISPLAY,
+              whiteSpace: "nowrap",
+              textTransform: "uppercase",
+            }}
+          >
+            <span aria-hidden="true">Dance</span>
+            <span aria-hidden="true" style={{ fontWeight: 500, letterSpacing: -0.4, marginLeft: 1 }}>OS</span>
           </span>
         </span>
         <span style={{ display: "flex", gap: 7, flexShrink: 0 }}>

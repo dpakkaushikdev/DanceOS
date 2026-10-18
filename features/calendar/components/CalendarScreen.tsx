@@ -337,9 +337,15 @@ export interface CalendarScreenProps {
   title?: string;
   /** a person's own calendar: the path of their subscribable feed */
   feedPath?: string;
+  /** public only: offer the room dropdown. ⚠ A STUDIO's page alone (18 Oct
+   *  2026, the user: "some artist profiles are getting room filter in their
+   *  schedule which should only be there for studios") — an artist's classes
+   *  carry the rooms of the studios they teach at, which are not theirs to
+   *  filter by. Off unless the caller says so. */
+  roomFilter?: boolean;
 }
 
-export function CalendarScreen({ mode, months, todayKey, entries, practices = [], emptyHref, title: pageTitle, feedPath }: CalendarScreenProps) {
+export function CalendarScreen({ mode, months, todayKey, entries, practices = [], emptyHref, title: pageTitle, feedPath, roomFilter = false }: CalendarScreenProps) {
   const isPublic = mode === "public";
   const isCrew = mode === "crew";
   const idx = (monthKey: string) => months.findIndex((m) => m.key === monthKey);
@@ -827,7 +833,7 @@ export function CalendarScreen({ mode, months, todayKey, entries, practices = []
 
   const nothing = isPublic ? (
     <div style={emptyCard}>
-      No upcoming classes on the schedule yet —{" "}
+      No upcoming classes yet —{" "}
       <Link href={emptyHref} style={{ color: SKY, fontWeight: 800, textDecoration: "none" }}>
         back to the profile →
       </Link>
@@ -917,14 +923,14 @@ export function CalendarScreen({ mode, months, todayKey, entries, practices = []
             your calendar — so it says whose it is in one quiet line instead */}
         {isPublic && pageTitle ? (
           <h1 style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: 1.2, color: MUTED, margin: "6px 0 10px", textTransform: "uppercase" }}>
-            {pageTitle} · schedule
+            {pageTitle} · classes
           </h1>
         ) : null}
 
         {/* one studio = one location — only rooms need filtering (9076-9098) */}
         {/* ⚠ a studio's rooms moved into the drawer (10 Oct 2026, Google's "My
             calendars"); only a public schedule keeps this dropdown on the page */}
-        {isPublic && rooms.length > 0 ? (
+        {isPublic && roomFilter && rooms.length > 0 ? (
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
             <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
               <div

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { Portal } from "@/components/ui/Portal";
 import { QRBlock } from "@/components/ui/QRBlock";
 import { CENTER_CARD, CENTER_SCRIM } from "@/components/ui/centerModal";
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
@@ -109,7 +110,11 @@ export function ClassShareButtons({ link, title, col, fire }: { link: string; ti
           Share class
         </button>
       </div>
+      {/* ⚠ PORTALLED (18 Oct 2026): drawn in place, the scrim sat inside the
+          class card's stacking context and the room tile below painted over
+          its Done button — the 16 Sep lesson. A modal belongs at the root. */}
       {open ? (
+        <Portal>
         <div onClick={() => setOpen(false)} style={CENTER_SCRIM}>
           <div role="dialog" aria-modal="true" aria-label={`Share ${title}`} onClick={(e) => e.stopPropagation()} style={{ ...CENTER_CARD, textAlign: "center", animation: "dosPopIn .3s cubic-bezier(.22,1.2,.36,1)" }}>
             <b style={{ fontSize: 17, display: "block", marginBottom: 12 }}>{title}</b>
@@ -119,6 +124,7 @@ export function ClassShareButtons({ link, title, col, fire }: { link: string; ti
             </button>
           </div>
         </div>
+        </Portal>
       ) : null}
     </>
   );

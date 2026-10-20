@@ -10,7 +10,8 @@ import { findMyFollowedCrews, findMyFollowedPeople, findMyFollowing, findMyPerso
 import { findPersonHeaderPhotos } from "@/repositories/headerPhotos";
 import { findPublicPerson } from "@/repositories/publicPerson";
 import { findInstagramUsernames } from "@/repositories/instagram";
-import { instagramConfig } from "@/lib/instagram/oauth";
+import { cookies } from "next/headers";
+import { INSTAGRAM_PICTURE_COOKIE, instagramConfig, isInstagramPicture } from "@/lib/instagram/oauth";
 import { findPublicStudioTeam } from "@/repositories/publicProfile";
 import { PersonBody } from "@/features/profiles/components/PersonBody";
 import { ProfileLink, ProfileShare } from "@/features/profiles/components/ProfileShare";
@@ -176,7 +177,11 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         ? { error: word.ig_error.slice(0, 200) }
         : null;
   /* no keys, no button — but a tick already earned is still drawn */
-  const instagram = instagramConfig() || igConnected ? { connected: igConnected, returned: igReturned } : null;
+  /* "USE YOUR INSTAGRAM PHOTO?" (20 Oct 2026) — asked once, on the return from a
+     connect that worked, with the picture Instagram itself reported */
+  const offered = igReturned && "username" in igReturned ? ((await cookies()).get(INSTAGRAM_PICTURE_COOKIE)?.value ?? "") : "";
+  const photoOffer = isInstagramPicture(offered) ? offered : null;
+  const instagram = instagramConfig() || igConnected ? { connected: igConnected, returned: igReturned, photoOffer } : null;
   const { businesses: followingBusinesses, crews: followingCrews } = withTeamFollows({ businesses: followedBusinesses, crews: followedCrews }, teams);
 
   /* the metal the KIND wears (DOS_RINGS 1462): gold for an organization, silver

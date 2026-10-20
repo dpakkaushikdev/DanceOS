@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { disconnectInstagramAction } from "@/features/profiles/server-actions/instagram";
+import { adoptInstagramPhotoAction, disconnectInstagramAction, dismissInstagramPhotoAction } from "@/features/profiles/server-actions/instagram";
 import { PLATFORMS, PLATFORM_TINT, handleOf, isPlatform, safeHref, verifiedInstagram } from "@/lib/constants/socials";
 import { CARD, INK, LINE, SUB } from "@/lib/design/tokens";
 import { FORM_TITLE } from "@/components/ui/formTitle";
@@ -43,6 +43,9 @@ export interface InstagramConnectProps {
   connected: string | null;
   /** the word the return from Instagram carried (`?ig=` / `?ig_error=`) */
   returned: { username: string } | { error: string } | null;
+  /** Instagram's profile picture, offered as the DanceOS photo straight after a
+   *  connect that worked (20 Oct 2026); null when there is nothing to offer */
+  photoOffer?: string | null;
 }
 
 export function LinksRowEditor({
@@ -90,6 +93,21 @@ export function LinksRowEditor({
     return () => clearTimeout(t);
   }, [returnedWords]);
 
+  /* "USE YOUR INSTAGRAM PHOTO?" — asked once, on the return from Instagram */
+  const [offer, setOffer] = useState<string | null>(instagram?.photoOffer ?? null);
+  const takePhoto = () =>
+    start(async () => {
+      const out = await adoptInstagramPhotoAction();
+      if (out.error) return fire(out.error);
+      setOffer(null);
+      router.refresh();
+      fire("✓ Your Instagram photo is your profile picture");
+    });
+  const skipPhoto = () => {
+    setOffer(null);
+    void dismissInstagramPhotoAction();
+  };
+
   const disconnect = () =>
     start(async () => {
       const out = await disconnectInstagramAction();
@@ -120,7 +138,7 @@ export function LinksRowEditor({
   };
 
   const offerInstagram = Boolean(instagram && canEdit && !ticked);
-  if (!socials.length && !canChange && !emptyWords && !offerInstagram && !toast) return null;
+  if (!socials.length && !canChange && !emptyWords && !offerInstagram && !toast && !offer) return null;
 
   return (
     <>
@@ -296,6 +314,23 @@ export function LinksRowEditor({
               style={sheetBtn(true)}
             >
               Save
+            </button>
+          </div>
+        </Sheet>
+      ) : null}
+
+      {offer ? (
+        <Sheet label="Use your Instagram photo?" onClose={skipPhoto}>
+          <b style={FORM_TITLE}>Use your Instagram photo?</b>
+          <div style={{ display: "flex", justifyContent: "center", margin: "18px 0 6px" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- Instagram's CDN address, shown once as a preview; it is stored only on a yes */}
+            <img src={offer} alt="Your Instagram profile picture" referrerPolicy="no-referrer" style={{ width: 112, height: 112, borderRadius: "50%", objectFit: "cover", border: `3px solid ${PLATFORM_TINT.Instagram}` }} />
+          </div>
+          <div style={{ fontSize: 12, color: SUB, fontWeight: 600, textAlign: "center", lineHeight: 1.45 }}>It becomes your DanceOS profile picture. You can change it any time.</div>
+          <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+            <button type="button" onClick={skipPhoto} style={sheetBtn(false)}>Not now</button>
+            <button type="button" disabled={pending} onClick={takePhoto} data-testid="instagram-photo-use" style={sheetBtn(true)}>
+              {pending ? "Saving…" : "Use this photo"}
             </button>
           </div>
         </Sheet>

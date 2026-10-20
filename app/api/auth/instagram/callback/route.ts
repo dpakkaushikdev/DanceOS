@@ -45,14 +45,15 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const username = await connectInstagramFromCode({
+    const { username, pictureUrl } = await connectInstagramFromCode({
       userId: user.id,
       code,
       redirectUri: new URL(INSTAGRAM_CALLBACK_PATH, request.nextUrl.origin).toString(),
     });
     revalidatePath("/");
     revalidatePath(`/person/${user.id}`);
-    return homeWithWord(request, { ig: username });
+    /* a picture longer than a cookie can hold is simply not offered */
+    return homeWithWord(request, { ig: username }, pictureUrl && pictureUrl.length <= 3000 ? pictureUrl : null);
   } catch (e: unknown) {
     return homeWithWord(request, { ig_error: e instanceof Error ? e.message : "Instagram could not be connected — try again" });
   }

@@ -83,11 +83,25 @@ type Lines = {
   complete: boolean;
 };
 
+/** WHO A LINES READ IS FOR — at least one of the two, enforced by the type.
+ *  Both optional read as "either, or neither", and neither is the unscoped read
+ *  `audit:reads` refuses; this shape makes `{}` a compile error. */
+type LinesScope = { businessId: string; userId?: string } | { userId: string; businessId?: string };
+
 /** Every live pay line behind a set of payouts, with what it was for — the
  *  settled HISTORY (18 Oct 2026, the user: "should also show history of payments
  *  what is already settled"). Filtered by business or by person, never by RLS
- *  alone (RLS is a ceiling, not a scope). */
-async function readLines(supabase: SupabaseClient, by: { businessId?: string; userId?: string }): Promise<Lines> {
+ *  alone (RLS is a ceiling, not a scope).
+ *
+ *  audit-ok: the scope is applied CONDITIONALLY below (`.eq("business_id")` or
+ *  `.eq("user_id")`, or both), which the audit cannot see as a scope on the
+ *  query's opening line. It is guaranteed all the same: `LinesScope` makes a
+ *  call with neither a type error, so no caller can reach the database
+ *  unscoped. This was CI's only red since `c8c29d0` (18 Oct 2026) — fixed
+ *  27 Oct 2026. ⚠ Do not write the query-opening method name inside this
+ *  comment: the audit bounds its search window at the previous occurrence of
+ *  that token, and a mention here puts the marker outside the window. */
+async function readLines(supabase: SupabaseClient, by: LinesScope): Promise<Lines> {
   let a = supabase
     .from("payout_lines")
     .select("id, payout_id, session_id, user_id, rate_inr, class_sessions (starts_at, classes (style, level))")

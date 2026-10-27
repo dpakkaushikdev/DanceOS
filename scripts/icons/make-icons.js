@@ -1,9 +1,11 @@
 /* Renders the app icons from the app's OWN mark, so the launcher icon and the
  * mark in the top bar are the same drawing rather than two guesses at a logo.
  *
- * The source is DosMark (features/shell/components/AppChrome.tsx:16-48, itself
- * lifted from prototype/DanceOSApp.jsx:1614-1628): the dark gradient tile, the
- * two arcs in pink -> violet -> cyan, and the pink dot.
+ * The source is DosMark (components/ui/DosMark.tsx, itself lifted from
+ * prototype/DanceOSApp.jsx:1614-1628): the dark green-black gradient tile, the
+ * two arcs in teal -> amber -> violet, and the amber dot. No pink since 18 Oct
+ * 2026 (the user: "dont like that white and pink color") — keep the colours
+ * here in step with DosMark, or the launcher icon and the top bar drift apart.
  *
  * Run:  NODE_PATH=$(pwd)/node_modules node scripts/icons/make-icons.js
  * Out:  public/icon-192.png, public/icon-512.png,
@@ -33,7 +35,7 @@ const page = (size, markFraction) => {
   .tile{
     width:${size}px;height:${size}px;
     display:flex;align-items:center;justify-content:center;
-    background:linear-gradient(145deg,#1B1030,#0C0714);
+    background:linear-gradient(145deg,#0B1F1E,#081210);
   }
 </style></head>
 <body>
@@ -41,14 +43,14 @@ const page = (size, markFraction) => {
     <svg width="${mark}" height="${mark}" viewBox="0 0 32 32" fill="none">
       <defs>
         <linearGradient id="dm" x1="2" y1="2" x2="30" y2="30" gradientUnits="userSpaceOnUse">
-          <stop stop-color="#EC4899"/>
-          <stop offset=".55" stop-color="#A855F7"/>
-          <stop offset="1" stop-color="#5AC8FA"/>
+          <stop stop-color="#2DD4BF"/>
+          <stop offset=".55" stop-color="#FBBF24"/>
+          <stop offset="1" stop-color="#A78BFA"/>
         </linearGradient>
       </defs>
       <path d="M24.8 7.2A12.4 12.4 0 1 0 27.5 20" stroke="url(#dm)" stroke-width="3.6" stroke-linecap="round"/>
       <path d="M9.6 22.6a8 8 0 1 1 11.2-1.4" stroke="url(#dm)" stroke-width="3.2" stroke-linecap="round" opacity=".62"/>
-      <circle cx="26.4" cy="6.2" r="3.5" fill="#EC4899"/>
+      <circle cx="26.4" cy="6.2" r="3.5" fill="#FBBF24"/>
     </svg>
   </div>
 </body></html>`;

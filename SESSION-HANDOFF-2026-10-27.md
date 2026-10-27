@@ -23,9 +23,38 @@ deploy.
 ⚠ If you clone into a folder that already holds an older copy, check
 `git remote -v` first. The old account's repo is `dpakkaushik/dancestudio` and
 nothing may be pushed there. On the machine this was written from, the remotes
-are `origin` → DanceOS and `old-origin` → the retired one, and
-`credential.https://github.com.username` is set locally to `dpakkaushikdev`
-because the global gitconfig pins the old account and a push otherwise 403s.
+are `origin` → DanceOS and `old-origin` → the retired one.
+
+### ⚠ Pushing will probably fail the first time, and the error names the wrong thing
+
+The global gitconfig routes github.com credentials through the **GitHub CLI**:
+
+```
+credential.https://github.com.helper = !'C:\Program Files\GitHub CLI\gh.exe' auth git-credential
+```
+
+and `gh auth status` reports it logged in as **`dpakkaushik`**, the retired
+account. Setting `credential.https://github.com.username` to `dpakkaushikdev`
+does not help — the helper ignores it, and git then asks for a password it has
+no way to get. In a non-interactive shell that surfaces as
+`could not read Password for 'https://dpakkaushikdev@github.com'`, which reads
+like a missing password rather than the wrong account. Windows Credential
+Manager is empty for the new account too, despite an older note saying a token
+was stored there.
+
+What works, and what this session's push actually used: the token already in
+`.env.local` as **`NEW_GITHUB_TOKEN`** (a `github_pat_` fine-grained token,
+verified as `dpakkaushikdev` with push rights on DanceOS). Push with a one-off
+authenticated URL so nothing is written to disk:
+
+```bash
+TOKEN=$(grep -m1 '^NEW_GITHUB_TOKEN=' .env.local | cut -d= -f2- | tr -d '\r\n" ')
+git push "https://x-access-token:${TOKEN}@github.com/dpakkaushikdev/DanceOS.git" main:main
+```
+
+Never put that token in a remote URL you save, and never commit it. The better
+long-term fix is `gh auth login` as `dpakkaushikdev` on the new machine, which
+makes a plain `git push` work again.
 
 ## 2. Carry these across by hand — they are NOT in git
 

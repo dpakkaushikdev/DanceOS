@@ -251,7 +251,7 @@ function readBack(size, modules) {
 }
 
 {
-  const cases = ["HELLO", "https://dancestudio-orcin.vercel.app/person/2a9f1c34-5b6d-4e7f-8a90-1b2c3d4e5f60", "Bounce Dance Academy · Pune", "x".repeat(213)];
+  const cases = ["HELLO", "https://danceos-sigma.vercel.app/person/2a9f1c34-5b6d-4e7f-8a90-1b2c3d4e5f60", "Bounce Dance Academy · Pune", "x".repeat(213)];
   let good = true;
   const notes = [];
   for (const text of cases) {
@@ -271,7 +271,7 @@ function readBack(size, modules) {
      if they do, the penalty scoring is not being consulted at all */
   const masks = new Set();
   for (let i = 0; i < 24; i++) {
-    const { size, modules } = qrMatrix("https://dancestudio-orcin.vercel.app/person/" + String(i).padStart(4, "0"));
+    const { size, modules } = qrMatrix("https://danceos-sigma.vercel.app/person/" + String(i).padStart(4, "0"));
     masks.add(readBack(size, modules).mask);
   }
   ok("7 · the penalty scoring really picks between masks", masks.size > 1, `${masks.size} distinct masks over 24 strings: ${[...masks].sort().join(",")}`);
@@ -280,7 +280,7 @@ function readBack(size, modules) {
 /* ── 8 · THE GROUND TRUTH: a PNG to point a phone at ─────────────────────────
    Everything above is arithmetic. Only a camera settles it. */
 {
-  const text = "https://dancestudio-orcin.vercel.app/person/2a9f1c34-5b6d-4e7f-8a90-1b2c3d4e5f60";
+  const text = "https://danceos-sigma.vercel.app/person/2a9f1c34-5b6d-4e7f-8a90-1b2c3d4e5f60";
   const { size, modules } = qrMatrix(text);
   const quiet = 4;
   const scale = 8;

@@ -76,7 +76,7 @@ const api = async (method, p, body) => {
     gitSource: { type: "github", repoId: REPO_ID, ref: "main" },
   });
   console.log(`3. production build started: https://${dep.url}`);
-  console.log(`   watch it at https://vercel.com — it takes 2–4 minutes; the site is https://dancestudio-orcin.vercel.app`);
+  console.log(`   watch it at https://vercel.com — it takes 2–4 minutes; the site is https://danceos-sigma.vercel.app`);
 })().catch((e) => {
   console.error(`FAILED: ${e.message}`);
   process.exit(1);

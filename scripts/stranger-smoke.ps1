@@ -25,7 +25,7 @@
 # because once a page is deleted nothing else in the repo opens its old address.
 #
 #   powershell -File scripts/stranger-smoke.ps1
-#   powershell -File scripts/stranger-smoke.ps1 -Site https://dancestudio-orcin.vercel.app
+#   powershell -File scripts/stranger-smoke.ps1 -Site https://danceos-sigma.vercel.app
 #
 # ASCII ONLY (the 11 Sep 2026 lesson: PowerShell 5.1 decodes a BOM-less file as
 # ANSI, and a UTF-8 em dash becomes a quote that ends a string early).

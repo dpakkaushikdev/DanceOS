@@ -62,24 +62,31 @@ async function fillSignIn(page: Page, email: string, password: string) {
 }
 
 test.describe("email + password auth", () => {
-  test("the welcome screen's two buttons go to different screens", async ({ page }) => {
+  /* ⚠ RE-CUT 27 OCT 2026, and the old name is kept in this comment because the
+     change it tested is the one being undone. It read "the welcome screen's two
+     buttons go to different screens": "Start Dancing" → /login/signup and
+     "Log In" → /login/email, two buttons because with a PASSWORD joining and
+     returning are different acts (18 Sep 2026, the user's words and capital D).
+     Google collapses them into one act, so the welcome screen is one button and
+     those two links no longer exist. What has NOT changed, and is the reason
+     this whole spec still runs, is that the password screens still ANSWER on
+     their own addresses — 57 files mint their sessions through them. */
+  test("the welcome screen is Google alone, and the password screens still answer", async ({ page }) => {
     await page.goto("/login");
 
-    /* The whole point of the change: these were the same destination before.
-       (The words are the user's, 18 Sep 2026: "Start Dancing" with a capital D,
-       and "Log In" rather than "Sign in" — because a new account IS signing in
-       for the first time, so the second button needed a name of its own.) */
-    await expect(page.getByRole("link", { name: "Start Dancing", exact: true })).toHaveAttribute(
-      "href",
-      "/login/signup"
-    );
-    await expect(page.getByRole("link", { name: "Log In", exact: true })).toHaveAttribute(
-      "href",
-      "/login/email"
-    );
+    await expect(page.getByTestId("google-sign-in")).toBeVisible();
+    await expect(page.getByTestId("google-sign-in")).toContainText("Continue with Google");
+
+    /* unlinked, not deleted: nothing on the welcome screen points at them */
+    await expect(page.getByRole("link", { name: "Start Dancing", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Log In", exact: true })).toHaveCount(0);
 
     /* And the mobile channel is gone, not hidden (Step 26 is unbuilt again). */
     await expect(page.getByText("Mobile", { exact: true })).toHaveCount(0);
+
+    /* the harness's own door, which must keep answering */
+    await expect((await page.goto("/login/email"))?.status()).toBe(200);
+    await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
   });
 
   test("a confirmed account signs in with its password", async ({ page }) => {

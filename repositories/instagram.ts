@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { MEDIA_BUCKET, photoPath } from "@/lib/media/photo";
+import { storeRemoteAvatar } from "@/repositories/avatars";
 
 /** CONNECTED INSTAGRAM ACCOUNTS (18 Oct 2026, `20261027090000_instagram_is_connected`).
  *  Readable by anybody (the handle is public once it is on a profile); written
@@ -37,20 +37,15 @@ export async function connectInstagram(
  *  `avatars/{user}/` folder, where the storage policy decides, and
  *  `set_my_profile_photo` records it after re-checking the folder. Resolves to
  *  the stored path. */
+/*  ⚠ THE BODY MOVED TO `repositories/avatars.ts` (27 Oct 2026) when Google
+ *  sign-in wanted the same two steps — one rule, so the two cannot drift. The
+ *  stored path is unchanged: `photoPath` builds it from the folder, a random
+ *  name and the content type, and never from the caller's label. */
 export async function storeInstagramPictureAsAvatar(
   supabase: SupabaseClient,
   input: { userId: string; bytes: Uint8Array; type: "image/jpeg" | "image/png" | "image/webp" }
 ): Promise<string> {
-  const path = photoPath({ kind: "avatar", id: input.userId }, { name: "instagram", type: input.type });
-  const up = await supabase.storage.from(MEDIA_BUCKET).upload(path, input.bytes, { contentType: input.type, upsert: false });
-  if (up.error) throw new Error(`Could not store the picture: ${up.error.message}`);
-  const { data, error } = await supabase.rpc("set_my_profile_photo", { p_path: path });
-  if (error) {
-    /* the object is orphaned without its row — take it back down */
-    await supabase.storage.from(MEDIA_BUCKET).remove([path]);
-    throw new Error(error.message);
-  }
-  return (data as string | null) ?? path;
+  return storeRemoteAvatar(supabase, input);
 }
 
 /** the person's own way out; their Instagram link stays, without the tick */

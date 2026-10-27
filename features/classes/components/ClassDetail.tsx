@@ -1979,8 +1979,9 @@ export function ClassDetail({
         >
           {!isSignedIn ? (
             <Link
-              /* back to THIS class after signing in (B21) */
-              href={`/login/email?next=${encodeURIComponent(`/c/${c.shareSlug}`)}`}
+              /* back to THIS class after signing in (B21). ⚠ `/login` since
+                 27 Oct 2026 — Google is the only door, and it carries `next` on. */
+              href={`/login?next=${encodeURIComponent(`/c/${c.shareSlug}`)}`}
               style={{
                 display: "flex",
                 alignItems: "center",

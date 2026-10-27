@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import { DosStyleCoin } from "@/components/ui/DosStyleKit";
 import { AuthShell } from "@/features/auth/components/AuthShell";
 import { finishOnboardingAction, saveProfileBasicsAction } from "@/features/auth/server-actions/auth";
+import { adoptGooglePictureAction } from "@/features/auth/server-actions/google";
 import { CityPicker } from "@/features/geo/components/CityPicker";
 import { PhotoPicker, uploadPhotoFile } from "@/features/media/components/PhotoPicker";
 import { setMyLearnStylesAction, updateMyProfileAction } from "@/features/profiles/server-actions/profile";
@@ -112,9 +113,15 @@ type Step = "profile" | "learn" | "styles" | "socials" | "proof" | "done";
 export function OnboardingForm({
   userId,
   existing = null,
+  suggestedName = null,
+  googlePhotoUrl = null,
 }: {
   userId: string;
   existing?: Profile | null;
+  /** the name on the Google account, already cut to NAME_MAX (27 Oct 2026) */
+  suggestedName?: string | null;
+  /** Google's picture, shown as the face and adopted by the first Continue */
+  googlePhotoUrl?: string | null;
 }) {
   /* ⚠ ALWAYS A USER (26 Sep 2026): the server refuses any other word */
   const role: ProfileRole = "user";
@@ -124,7 +131,10 @@ export function OnboardingForm({
      action refetches the route) or when somebody comes back the next morning —
      the form picks up from what the row holds rather than asking it all again */
   const [step, setStep] = useState<Step>(existing ? (existing.avatarPath ? "learn" : "profile") : "profile");
-  const [name, setName] = useState(existing?.fullName ?? "");
+  /* ⚠ GOOGLE'S NAME IS A SUGGESTION, NOT A VALUE THE ROW ALREADY HAS: what is
+     stored always wins, so somebody who changed their name and came back is not
+     handed Google's version again (27 Oct 2026) */
+  const [name, setName] = useState(existing?.fullName ?? suggestedName ?? "");
   const [city, setCity] = useState(existing?.city ?? "");
   const [avatarPath, setAvatarPath] = useState<string | null>(existing?.avatarPath ?? null);
   const [saved, setSaved] = useState(Boolean(existing));
@@ -155,10 +165,22 @@ export function OnboardingForm({
   const face = photoUrl(avatarPath);
   const total = 4;
 
+  /* ⚠ GOOGLE'S PICTURE COUNTS AS THE PHOTO (27 Oct 2026). It cannot be stored
+     until the first Continue makes the row, so until then it is only a URL —
+     but demanding "Add your profile photo" from somebody whose face is already
+     on the square would be nonsense. It stops counting the moment they stage
+     one of their own, which is also what the adopt step below checks. */
+  const useGoogleFace = Boolean(googlePhotoUrl) && !avatarPath && !staged;
   /* the button says what is missing (3820-3821): the reason, not a grey nothing */
   /* the city is the user's "location" (requirement 2, 9 Sep 2026): asked before the row is made, required by the database too */
-  const missing = !fullName ? "Enter your name" : !city.trim() ? "Enter your city" : saved && !avatarPath && !staged ? "Add your profile photo" : "";
-  const shown = face ?? staged?.url ?? null;
+  const missing = !fullName
+    ? "Enter your name"
+    : !city.trim()
+      ? "Enter your city"
+      : saved && !avatarPath && !staged && !useGoogleFace
+        ? "Add your profile photo"
+        : "";
+  const shown = face ?? staged?.url ?? (useGoogleFace ? googlePhotoUrl : null);
   const ready = !missing;
 
   /* every later screen lands on the ONE record, through the Profile tab's own door */
@@ -231,6 +253,15 @@ export function OnboardingForm({
               /* a local blob: preview of the cropped file, before it is uploaded */
               // eslint-disable-next-line @next/next/no-img-element
               <img src={staged.url} alt="" width={112} height={112} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+            ) : useGoogleFace && googlePhotoUrl ? (
+              /* ⚠ GOOGLE'S CDN, AND A PLAIN <img> ON PURPOSE (27 Oct 2026):
+                 `next/image` would need googleusercontent in `remotePatterns`,
+                 which is a permanent hole in the image proxy for one preview
+                 that is on screen for about twenty seconds. The stored copy, a
+                 Continue later, is served from our own bucket as every other
+                 face is. */
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={googlePhotoUrl} alt="" width={112} height={112} referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
             ) : (
               "📷"
             )}
@@ -281,6 +312,19 @@ export function OnboardingForm({
                 URL.revokeObjectURL(staged.url);
                 setStaged(null);
                 setAvatarPath(up.path);
+                setStep("learn");
+                return;
+              }
+              /* ⚠ GOOGLE'S PICTURE IS ADOPTED HERE, AND ONLY HERE (27 Oct 2026),
+                 because the row this press just made is what
+                 `set_my_profile_photo` was waiting for. The server re-reads the
+                 address off the session — nothing about which picture to fetch
+                 is sent from this browser. A refusal is not fatal: it is said
+                 out loud and the ＋ is still on the square. */
+              if (!avatarPath && googlePhotoUrl) {
+                const got = await adoptGooglePictureAction();
+                if (got.error || !got.path) return fire(got.error ?? "Could not use your Google picture — add your own");
+                setAvatarPath(got.path);
                 setStep("learn");
                 return;
               }

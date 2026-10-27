@@ -91,8 +91,10 @@ export function EnrollButton({
 
   if (!isSignedIn) {
     return (
-      /* back to THIS class after signing in (B21) */
-      <Link href={`/login/email?next=${encodeURIComponent(`/c/${shareSlug}`)}`} style={{ ...btn(true), textDecoration: "none", display: "block" }}>
+      /* back to THIS class after signing in (B21). ⚠ `/login`, not
+         `/login/email`, since 27 Oct 2026: the password screens are unlinked
+         and Google is the only door — the welcome screen carries `next` on. */
+      <Link href={`/login?next=${encodeURIComponent(`/c/${shareSlug}`)}`} style={{ ...btn(true), textDecoration: "none", display: "block" }}>
         Sign in to book
       </Link>
     );

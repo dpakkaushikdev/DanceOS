@@ -1,8 +1,9 @@
-import Link from "next/link";
 import { DosMark } from "@/components/ui/DosMark";
 import { AuthShell } from "@/features/auth/components/AuthShell";
+import { GoogleButton } from "@/features/auth/components/GoogleButton";
 import { leaveIfSignedIn } from "@/lib/auth/leaveIfSignedIn";
-import { BTN_STYLE, DOS_DISPLAY, GOLD, INK, LINE, SKY, SUB } from "@/lib/design/tokens";
+import { safeNext } from "@/lib/auth/safeNext";
+import { DOS_DISPLAY, GOLD, INK, LINE, SKY, SUB } from "@/lib/design/tokens";
 
 /** Welcome screen, from the prototype (DanceOSApp.jsx:3700-3724) with three
  *  deliberate departures, all logged under "Deliberate deviations from the
@@ -27,13 +28,24 @@ import { BTN_STYLE, DOS_DISPLAY, GOLD, INK, LINE, SKY, SUB } from "@/lib/design/
  *
  *  The tagline is the user's, replacing the prototype's longer one.
  */
-export default async function LoginWelcomePage({ searchParams }: { searchParams: Promise<{ left?: string }> }) {
+export default async function LoginWelcomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ left?: string; next?: string; error?: string }>;
+}) {
   await leaveIfSignedIn();
+  const sp = await searchParams;
   /* AN ACCOUNT CLOSED FROM SETTINGS LANDS HERE (6 Oct 2026, decision 6) — said
      once, so the person is not left wondering whether the press did anything */
-  const left = (await searchParams).left === "1";
+  const left = sp.left === "1";
+  /* ⚠ `next` (11 Oct 2026, B21): "Sign in to book" on a class page comes back
+     to that class. Since 27 Oct it arrives HERE rather than at /login/email,
+     because this is the only door left. Only an in-app path survives. */
+  const next = safeNext(sp.next);
+  /* what /auth/callback bounces back with when Google refuses or is cancelled */
+  const failed = typeof sp.error === "string" && sp.error.trim() ? sp.error.slice(0, 300) : null;
   return (
-    <AuthShell>
+    <AuthShell toast={failed}>
       {left ? (
         <div role="status" data-testid="account-closed" style={{ marginTop: 12, padding: "11px 13px", borderRadius: 14, border: `1.5px solid ${LINE}`, background: "var(--card)", fontSize: 12.5, lineHeight: 1.5, color: SUB }}>
           <b style={{ color: INK }}>Your account is closed.</b> DanceOS will erase it and reply to your address — you cannot sign in to it meanwhile.
@@ -95,37 +107,17 @@ export default async function LoginWelcomePage({ searchParams }: { searchParams:
         Dance First, <span style={{ color: SKY }}>Think Later!</span>
       </div>
 
+      {/* ⚠ ONE BUTTON SINCE 27 OCT 2026 (the user: "i need only google signup").
+          "Start Dancing" and "Log In" went to /login/signup and /login/email —
+          two buttons because, with a password, joining and returning are
+          different acts (deviation row A9, above). Google collapses them back
+          into one: it decides which this is, and the app learns the answer from
+          whether a `profiles` row exists when the callback lands. The password
+          screens still answer on their own addresses (Rule 14 — an address
+          handed out is a promise, and the e2e suite and every proof script mint
+          their sessions through them); nothing in the app links them any more. */}
       <div style={{ display: "flex", flexDirection: "column", gap: 10, animation: "dosRise .6s .3s ease both" }}>
-        <Link
-          href="/login/signup"
-          style={{
-            ...BTN_STYLE,
-            /* an <a> is inline by default, so BTN_STYLE's width and padding need
-               a block box to land on; its textAlign then centres the label */
-            display: "block",
-            background: "#FAFAFA",
-            color: "#0A0A0A",
-            fontWeight: 900,
-            boxShadow: "0 8px 22px rgba(236,72,153,.28)",
-            textDecoration: "none",
-          }}
-        >
-          Start Dancing
-        </Link>
-        <Link
-          href="/login/email"
-          style={{
-            ...BTN_STYLE,
-            display: "block",
-            background: "var(--card)",
-            color: INK,
-            border: `1.5px solid ${LINE}`,
-            textDecoration: "none",
-          }}
-        >
-          Log In
-        </Link>
-        {/* no line under Log In (10 Oct 2026, the user) */}
+        <GoogleButton next={next} />
       </div>
 
       <div style={{ display: "flex", gap: 7, margin: "24px 0 0", animation: "dosRise .6s .4s ease both" }}>

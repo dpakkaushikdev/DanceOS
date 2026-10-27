@@ -1,7 +1,9 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { OnboardingForm } from "@/features/auth/components/OnboardingForm";
+import { googleAvatarUrl, googleFullName } from "@/lib/auth/googleIdentity";
 import { ONBOARDING_COOKIE } from "@/lib/auth/onboarding";
+import { NAME_MAX } from "@/lib/constants/names";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { amIPlatformAdmin } from "@/repositories/admin";
 import { findProfileById } from "@/repositories/profiles";
@@ -35,5 +37,21 @@ export default async function OnboardingPage() {
   /* an organization is asked for no photos during onboarding any more (11 Sep
      2026) — the 5-10 photos belong to a STUDIO and are shown for one on the
      hub, after it exists. The read that fetched them went with the screen. */
-  return <OnboardingForm userId={user.id} existing={profile} />;
+  /* WHAT GOOGLE ALREADY TOLD US (27 Oct 2026). A sign-in that asks for nothing
+     can still arrive knowing the person's name and face, so the form opens with
+     both rather than with two empty fields — the name editable, the picture
+     replaceable by the ＋ as always. The picture is NOT stored yet: it cannot
+     be, because `set_my_profile_photo` refuses a person with no row, and the
+     row is made by the first Continue. The form adopts it on that press. */
+  const suggestedName = googleFullName(user)?.slice(0, NAME_MAX) ?? null;
+  const googlePhotoUrl = googleAvatarUrl(user);
+
+  return (
+    <OnboardingForm
+      userId={user.id}
+      existing={profile}
+      suggestedName={suggestedName}
+      googlePhotoUrl={googlePhotoUrl}
+    />
+  );
 }

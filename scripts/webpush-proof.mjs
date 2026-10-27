@@ -64,7 +64,7 @@ check(!again.subarray(0, 16).equals(salt) && !again.subarray(21, 86).equals(asPu
 const { publicKey, privateKey } = generateKeyPairSync("ec", { namedCurve: "P-256" });
 const jwk = privateKey.export({ format: "jwk" });
 const pubRaw = Buffer.concat([Buffer.from([4]), u(jwk.x), u(jwk.y)]).toString("base64url");
-const header = vapidAuthorization("https://fcm.googleapis.com/fcm/send/abc", { publicKey: pubRaw, privateKey: jwk.d, subject: "https://dancestudio-orcin.vercel.app" });
+const header = vapidAuthorization("https://fcm.googleapis.com/fcm/send/abc", { publicKey: pubRaw, privateKey: jwk.d, subject: "https://danceos-sigma.vercel.app" });
 const m = header.match(/^vapid t=([^.]+)\.([^.]+)\.([^,]+), k=(.+)$/);
 check(Boolean(m) && m[4] === pubRaw, "3a the header carries the token and our public key");
 const claims = JSON.parse(Buffer.from(m[2], "base64url").toString());

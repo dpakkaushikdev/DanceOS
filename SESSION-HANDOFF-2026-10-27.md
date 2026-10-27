@@ -61,8 +61,8 @@ makes a plain `git push` work again.
 | File | Why it is not committed | Where to get it |
 |---|---|---|
 | `.env.local` | every secret the app has | copy from the old machine privately (USB, not email, not the repo) |
-| `android/android.keystore` | signs the Android app; losing control of it means anyone can ship updates | only on the PC that built v1.1.0 in September |
-| `android/keystore-credentials.txt` | its password | same PC |
+| `android/android.keystore` | signs the Android app; losing control of it means anyone can ship updates | only on the PC that built v1.1.0 (Sep) and v1.2.0 (27 Oct): `C:\Users\Admin\Downloads\dancestudio\danceos-android\android.keystore`, and since 27 Oct also copied into that PC's clone at `android/` (gitignored) |
+| `android/keystore-credentials.txt` | its password | same folder |
 
 `.env.local.example` **is** committed and documents every key by name, so use it
 as the checklist when copying. Nothing in it holds a value.
@@ -82,7 +82,9 @@ npm run guard:leftovers       # no test rows left in the live DB
 npm run audit:reads
 ```
 
-Node 24 and npm 11 are what this was built and verified on.
+Node 24 and npm 11 are what this was built and verified on. ⚠ Node 25 (the
+keystore PC) ships no `corepack` at all — `npx -y pnpm@10 install` does the same
+job there.
 
 ⚠ If `npm run typecheck` reports syntax errors inside
 `.next/dev/types/routes.d.ts`, that is a stale generated file, not your code.
@@ -151,23 +153,20 @@ validates on the way back.
 
 ## 6. Still open
 
-1. **Rebuild the Android APK** — the installed one was built in September and
-   still opens the dead host. It cannot be built on the old machine: no
-   keystore, no Java, no Android SDK, no bubblewrap. Use the PC holding
-   `android.keystore`. The site already serves
-   `/.well-known/assetlinks.json` with the existing fingerprint
-   (`19:F2:A9:B2:…`), so a rebuild with the **same** key verifies with no
-   further work. A different key means updating that file and forcing everyone
-   to uninstall first.
+1. ~~**Rebuild the Android APK**~~ — ✅ DONE 27 Oct 2026 on the keystore PC:
+   `android/danceos-1.2.0.apk` and `.aab` (versionCode 3), signed with the
+   **same** key (`19:F2:A9:B2:…`, checked with `apksigner verify --print-certs`
+   against the live `assetlinks.json`), the new DosMark on the launcher. The
+   gotchas met on the way are in the top block of `CLAUDE.md`. ⚠ Not yet
+   installed on a phone — see 6.
 2. **Move the OAuth client out of the Maps demo project** before real users
    arrive. A demo project is a poor home for production login, and the Maps key
    in it already has no billing and has blown its quota repeatedly. Moving it
    later means a new client ID, re-pasting into Supabase, and a window where
    sign-in is broken.
-3. **Regenerate the app icons.** `public/icon-192.png`, `icon-512.png`,
-   `icon-maskable-512.png` and `apple-touch-icon.png` are still the retired pink
-   mark. The app draws the teal, amber and violet `DosMark`, so the installed
-   icon and the Google consent screen do not match it.
+3. ~~**Regenerate the app icons.**~~ — ✅ DONE 27 Oct 2026 (`9e29fcf`):
+   `scripts/icons/make-icons.js` draws `DosMark`'s colours now and the four
+   PNGs were re-cut from it; 1.2.0 carries them.
 4. **Re-register the Cashfree webhook** on
    `https://danceos-sigma.vercel.app/api/webhooks/cashfree`. It is still
    registered against the old host.
@@ -176,3 +175,6 @@ validates on the way back.
    the flow, so identity linking for pre-existing accounts is unproven.
 6. **Google OAuth inside the TWA** is untested. Chrome Custom Tabs should pass
    where an embedded WebView is refused, but nobody has run it on a phone.
+   The APK to run it with is `android/danceos-1.2.0.apk` (27 Oct 2026): it
+   must install over 1.1.0 without an uninstall, open full screen with no
+   address bar, and complete Continue with Google.

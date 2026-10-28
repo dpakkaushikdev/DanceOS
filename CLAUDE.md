@@ -22,6 +22,7 @@ Keys for all of these are in `.env.local` (gitignored). Any older record below t
 > * **Today's schedule is off every home** — `TodayShelf`, `PassDeck`, `findMyDeck`, `findStudioDeck` stay in the repo with no caller, for later. `MyProfilePage` and `OwnProfileScreen` are deleted.
 > * **The bottom bar stays** (the user's word); its Home opens your own `/person/{id}`.
 > * **Verified:** typecheck 0 · lint 0 · build green · on `:3100` the whole suite **46 passed / 3 failed / 7 did not run**, the reds being `paid-webhook`'s known phone-provider 403 twice and one stale locator (the owner's Followers figure on their own studio page is `studio-followers` now — re-cut), then **the happy path 19/19** · `shoot-hero` **186/186** · `shoot-tiles` **129/129** · `shoot-seats` **21/21** · `shoot-practice` **49/49** · `shoot-landing` **16/16**. Shoot re-cuts were all addresses (`/business/{id}` → `/studio/{id}`, `/crews/{id}/manage` → `/crew/{id}`), plus two stale ones from earlier batches (the Payments refusal now says "studio"; two one-shot reads made waits). ⚠ Not looked at on a phone.
+> * **✅ PUSHED AND LIVE (`4710b13`)**: Vercel READY, alias `danceos-sigma.vercel.app` confirmed on the sha through the API, `stranger-smoke` **9/9** on the live site.
 > * **Next, at the user's word:** take Home off the bottom bar (it is reachable from the profile switcher); bring Today's schedule back somewhere when asked.
 
 > ### UI/UX BATCHES 1–3 ARE LIVE; BATCH 5 (THE DESIGN PASS) IS IN PROGRESS (28 Oct 2026, latest) — no migration

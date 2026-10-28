@@ -41,9 +41,11 @@ const set = (s: () => Storage, k: string, v: string) => {
  *
  *  * FIRST OPEN AFTER INSTALL (the APK's flag, turned into a cookie by
  *    `proxy.ts`): read the position. ⚠ Since 1.3.1 the APK ASKS ANDROID ITSELF,
- *    over its splash and before Chrome opens, and sends the flag as `true` only
- *    when the answer was Allow — so this read is answered through location
- *    delegation with no dialog at all. (1.3.0 let this call trigger the dialog;
+ *    over its splash and before Chrome opens; since 1.3.3 it asks on EVERY open
+ *    until allowed and sends the flag as `true` on every open while the location
+ *    is allowed — so "first open" is really "the app opened with the location
+ *    allowed", and this read is answered through location delegation with no
+ *    dialog at all, once per open. (1.3.0 let this call trigger the dialog;
  *    the library then opened it from the background, which HyperOS blocks
  *    silently. See `android/.../LauncherActivity.java`.)
  *  * EVERY LATER OPEN OF THE APP, only if the last answer was yes: refresh the

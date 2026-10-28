@@ -47,7 +47,6 @@ const shelf: React.CSSProperties = { fontSize: 17, fontWeight: 900, letterSpacin
 const figure: React.CSSProperties = { fontFamily: DOS_MONO, fontWeight: 700, fontVariantNumeric: "tabular-nums", letterSpacing: -0.3 };
 const dayWords = (iso: string) =>
   new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short" }).format(new Date(iso));
-const monthWords = (d: string | null) => (d ? new Intl.DateTimeFormat("en-IN", { timeZone: "UTC", month: "short", year: "numeric" }).format(new Date(`${d}T00:00:00Z`)) : "—");
 const initialsOf = (name: string) => name.split(" ").filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "D";
 
 /* the section cards' marks (5 Oct 2026) — one stroke family, drawn in the
@@ -131,14 +130,12 @@ export function StatsScreen({
   boardRow,
   isArtist,
   stats,
-  history,
+  history: historyAll,
   chart,
   segment,
   metric,
   city,
-  styleFilter,
   cities,
-  chartStyles,
   myPlace,
   boardPlace,
   tab: tabProp,
@@ -190,10 +187,7 @@ export function StatsScreen({
   segment: ChartSegment;
   metric: ChartMetric;
   city: string | null;
-  styleFilter: string | null;
   cities: readonly string[];
-  /** the styles a board can be narrowed by — off the rows themselves */
-  chartStyles: string[];
   /** where you stand among dancers — the hero's line */
   myPlace: { place: number; population: number; points: number } | null;
   /** where you stand on THIS board, when it is a people board */
@@ -213,6 +207,10 @@ export function StatsScreen({
   /* ⚠ A CREW HAS NO RANKINGS COLUMN (18 Oct 2026, the user: "crew rankings to be
      removed for now") — an old `?tab=charts` on a crew lands on its record */
   const tab: Tab = subjectKind === "crew" ? "record" : tabProp;
+  /* ⚠ A CLASS WITH NO FACULTY IS NOT ON THE RECORD (29 Oct 2026, the user:
+     "delete classes without faculty from records"). Read-side only — the rows
+     stay in the database; every tally, chart and list below counts these. */
+  const history = historyAll.filter((r) => r.artistName);
   const isStudioSubject = subjectKind === "studio";
   /* a studio is on ONE side of the floor — the classes it held */
   const shownSides: Side[] = isStudioSubject ? ["conducted"] : SIDES;
@@ -221,7 +219,13 @@ export function StatsScreen({
   /** the points rules on the Charts board — a disclosure since 27 Sep, where a
    *  permanent full-width card stood between the controls and the board */
   const [rulesOpen, setRulesOpen] = useState(false);
-  const [cvSide, setCvSide] = useState<Side>(subjectKind === "studio" ? "conducted" : "attended");
+  /* opens on the side with the most sessions (29 Oct 2026) — an artist who
+     only teaches opened on Trained and read "No classes yet" under a full chart */
+  const [cvSide, setCvSide] = useState<Side>(() => {
+    if (subjectKind === "studio") return "conducted";
+    const n = (s: Side) => history.filter((r) => r.side === s).length;
+    return (["attended", "conducted", "assisted"] as Side[]).reduce((best, s) => (n(s) > n(best) ? s : best), "attended" as Side);
+  });
   const [grain, setGrain] = useState<Grain>("week");
   const [dim, setDim] = useState<Dim>("style");
   const [sortKey, setSortKey] = useState<SortKey>("sessions");
@@ -251,12 +255,14 @@ export function StatsScreen({
   const peopleBoard = segment === "dancer" || segment === "artist";
 
   const router = useRouter();
-  const chartHref = (over: { seg?: ChartSegment; city?: string | null; metric?: ChartMetric; style?: string | null }) => {
+  /* ⚠ NO STYLE ON THE BOARDS (29 Oct 2026, the user: "rankings remove dance
+     style from studios, artists and dancers") — the style rail and `?style=` are
+     gone; an old link carrying one is simply ignored by the page */
+  const chartHref = (over: { seg?: ChartSegment; city?: string | null; metric?: ChartMetric }) => {
     const seg = over.seg ?? segment;
     const c = over.city === undefined ? city : over.city;
     const m = over.metric ?? metric;
-    const st = over.style === undefined ? styleFilter : over.style;
-    const q = [`tab=charts`, `seg=${seg}`, c ? `city=${encodeURIComponent(c)}` : null, m !== "overall" ? `metric=${m}` : null, st ? `style=${encodeURIComponent(st)}` : null].filter(Boolean).join("&");
+    const q = [`tab=charts`, `seg=${seg}`, c ? `city=${encodeURIComponent(c)}` : null, m !== "overall" ? `metric=${m}` : null].filter(Boolean).join("&");
     return `${basePath}?${q}`;
   };
   const tabHref = (t: Tab) => (t === "charts" ? chartHref({}) : `${basePath}?tab=${t}`);
@@ -357,6 +363,19 @@ export function StatsScreen({
   const leaderValue = Math.max(1, ...board.map((r) => valueOf(r)));
   const podiumRows = board.length >= 3 && board[0].place === 1 ? board.slice(0, 3) : [];
   const listRows = podiumRows.length ? board.slice(3) : board;
+  /** ⚠ ONE SHORT DETAIL LINE FOR EVERY PLACE, 1 TO THE LAST (29 Oct 2026, the
+   *  user: "make sure 1,2,3 also show the same details but try reducing text").
+   *  Numbers with one word each, never a sentence; no dance style. */
+  const hrs = (h: number) => `${Math.round(h * 10) / 10}h`;
+  const detailOf = (r: ChartRow) =>
+    (r.kind === "crew"
+      ? [`${r.extra} members`]
+      : isStudio
+        ? [`${r.conducted} held`, hrs(r.hours), `${r.extra} dancers`]
+        : segment === "artist"
+          ? [`${r.conducted} taught`, `${r.assisted} asst`, hrs(r.hours)]
+          : [`${r.attended} danced`, hrs(r.hours)]
+    ).join(" · ");
   const hrefOf = (r: ChartRow) => (r.kind === "crew" ? `/crew/${r.id}` : r.kind === "studio" ? `/studio/${r.id}` : `/person/${r.id}`);
 
   /* ── WHOSE RECORD, AND WHAT CAN BE SAID ABOUT IT ─────────────────────────── */
@@ -437,13 +456,6 @@ export function StatsScreen({
           { label: "Studios", n: stats.studios, colour: "#14B8A6", rows: null },
         ]
       : [];
-  const sessionsNote = isPerson
-    ? sessionsRead
-      ? `The lists and graphs below are ${name.split(" ")[0]}'s sessions at public classes on DanceOS.`
-      : `${name.split(" ")[0]}'s own sessions are theirs to read — the record above is counted from them.`
-    : isStudioSubject
-      ? `The lists and graphs below are ${name}'s published classes that have ended. Who came to each is the studio's own to read.`
-      : `${name}'s sessions are read by its own people — the record above is counted from them.`;
 
   return (
     <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", paddingBottom: 40 }}>
@@ -578,7 +590,9 @@ export function StatsScreen({
                     {c.n}
                   </div>
                   <div style={{ ...micro, color: SUB, marginTop: 5, letterSpacing: 0.5 }}>{c.label}</div>
-                  <div style={{ fontSize: 10.5, fontWeight: 800, color: c.colour, marginTop: 3, fontVariantNumeric: "tabular-nums" }}>{c.sub}</div>
+                  {/* ⚠ no line under the label (29 Oct 2026, the user: "remove text
+                      from bottom parts which has text below numbers in record") —
+                      the hours stay in the card's accessible name */}
                 </div>
               ))}
             </div>
@@ -661,25 +675,6 @@ export function StatsScreen({
               </Sheet>
             ) : null}
 
-            <div style={{ fontSize: 10.5, color: MUTED, lineHeight: 1.5, marginTop: 4 }}>
-              {isMe ? (
-                <>
-                  Counted off your own sessions — a class you taught or assisted once its session had ended, and a class you were <b style={{ color: SUB }}>checked in</b> to. A booking nobody marked is not a session danced, so it is not counted here.
-                  {stats.firstSession ? ` Your record runs from ${monthWords(stats.firstSession)} to ${monthWords(stats.lastSession)}.` : " Nothing has happened yet — your first session will start it."}
-                </>
-              ) : isPerson ? (
-                <>
-                  Counted off sessions that have <b style={{ color: SUB }}>ended</b> — taught, assisted, or danced and checked in to. {sessionsNote}
-                  {stats.firstSession ? ` This record runs from ${monthWords(stats.firstSession)} to ${monthWords(stats.lastSession)}.` : ""}
-                </>
-              ) : isStudioSubject ? (
-                <>
-                  Counted off the classes {name} has <b style={{ color: SUB }}>held</b> — a published class once its session had ended. People on the floor are the ones checked in at the door. {sessionsNote}
-                </>
-              ) : (
-                <>Counted off sessions that have ended and registers that were run. {sessionsNote}</>
-              )}
-            </div>
             </SectionCard>
 
             {/* WHAT YOU DANCE MOST (10077): the way a library shows the artists you play most */}
@@ -764,18 +759,21 @@ export function StatsScreen({
                 </div>
 
                 {/* group by, and order by (10325) */}
-                <div style={{ display: "flex", gap: 6, marginBottom: 8, overflowX: "auto", scrollbarWidth: "none" }}>
-                  {/* the grouping wears the app's one column look (11 Oct 2026) —
-                      the same Style · Artist · Studio switch the team, student
-                      and routine pages draw */}
-                  <span role="group" aria-label="Group classes by" style={{ ...columnTrack(), display: "inline-flex", flex: "0 0 auto" }}>
-                    {DIMS.map(([k, l]) => (
-                      <button type="button" key={k} aria-label={`Group by ${l}`} aria-pressed={dim === k} onClick={() => setDim(k)} style={{ ...BTN_RESET, ...({ ...columnTab(dim === k), padding: "7px 12px", flex: "0 0 auto" }) }}>
-                        {l}
-                      </button>
-                    ))}
-                  </span>
-                  <span style={{ marginLeft: "auto", display: "inline-flex", gap: 4, flexShrink: 0 }}>
+                {/* ⚠ TWO ROWS (29 Oct 2026, the user: "fix the session and hours
+                    pill the whole record section") — the grouping switch and the
+                    sort shared one line and the sort pills were pushed off the
+                    edge on a phone. The grouping is the full-width column switch;
+                    the sort is a small segmented track of its own under it. */}
+                <div role="group" aria-label="Group classes by" style={{ ...columnTrack(), marginBottom: 8 }}>
+                  {DIMS.map(([k, l]) => (
+                    <button type="button" key={k} aria-label={`Group by ${l}`} aria-pressed={dim === k} onClick={() => setDim(k)} style={{ ...BTN_RESET, ...columnTab(dim === k) }}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                  <span style={{ ...micro, color: MUTED }}>SORT</span>
+                  <span style={{ marginLeft: "auto", display: "inline-flex", gap: 2, background: LINE, borderRadius: 999, padding: 2, flexShrink: 0 }}>
                     {(
                       [
                         ["sessions", "sessions"],
@@ -794,7 +792,7 @@ export function StatsScreen({
                             setAsc(false);
                           }
                         }}
-                        style={{ ...BTN_RESET, ...({ padding: "6px 10px", borderRadius: 999, cursor: "pointer", fontSize: 10.5, fontWeight: 800, whiteSpace: "nowrap", background: sortKey === k ? LINE : "transparent", color: sortKey === k ? INK : MUTED }) }}
+                        style={{ ...BTN_RESET, ...({ padding: "5px 11px", borderRadius: 999, cursor: "pointer", fontSize: 10.5, fontWeight: 900, whiteSpace: "nowrap", textTransform: "capitalize", transition: "background .18s ease, color .18s ease", background: sortKey === k ? INK : "transparent", color: sortKey === k ? LILAC : SUB }) }}
                       >
                         {l}
                         {sortKey === k ? (asc ? " ↑" : " ↓") : ""}
@@ -813,10 +811,20 @@ export function StatsScreen({
                           <span style={{ width: 16, fontSize: 10, fontWeight: 800, color: MUTED, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{i + 1}</span>
                           {dim === "style" ? <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: 5, background: c, flexShrink: 0 }} /> : null}
                           <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.key}</span>
-                          <span style={{ fontSize: 11.5, fontWeight: 900, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>
-                            {r.sessions} <span style={{ fontSize: 9.5, fontWeight: 800, color: MUTED }}>{r.sessions === 1 ? "session" : "sessions"}</span>
-                          </span>
-                          <span style={{ fontSize: 11, fontWeight: 800, color: SUB, fontVariantNumeric: "tabular-nums", flexShrink: 0, width: 38, textAlign: "right" }}>{r.hours}h</span>
+                          {/* two matching pills, the sorted one filled (29 Oct 2026) */}
+                          {(
+                            [
+                              ["sessions", `${r.sessions} ${r.sessions === 1 ? "session" : "sessions"}`],
+                              ["hours", `${r.hours}h`],
+                            ] as Array<[SortKey, string]>
+                          ).map(([k, t]) => {
+                            const lit = sortKey === k || (sortKey === "key" && k === "sessions");
+                            return (
+                              <span key={k} style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 900, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", padding: "3px 9px", borderRadius: 999, minWidth: k === "hours" ? 44 : undefined, textAlign: "center", background: lit ? `${c}22` : "transparent", color: lit ? INK : SUB, border: `1.5px solid ${lit ? `${c}66` : LINE}` }}>
+                                {t}
+                              </span>
+                            );
+                          })}
                         </div>
                         <div style={{ height: 5, borderRadius: 3, background: LINE, marginTop: 6, overflow: "hidden" }}>
                           <div style={{ height: "100%", width: `${Math.round((100 * v) / mx)}%`, background: c, borderRadius: 3 }} />
@@ -893,19 +901,6 @@ export function StatsScreen({
                   not spend its history entry (useCloseOnBack rule 2) */}
               <CitySelect value={city} cities={cities} ariaLabel="City" allowNone noneLabel="Everywhere" placeholder="Everywhere" navigates onChange={(c) => router.replace(chartHref({ city: c }), { scroll: false })} />
             </div>
-            {chartStyles.length > 0 ? (
-              <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 6, marginBottom: 8 }}>
-                {chartStyles.map((st) => {
-                  const on = styleFilter === st;
-                  return (
-                    <Link key={st} href={chartHref({ style: on ? null : st })} replace scroll={false} aria-pressed={on} aria-label={`Only ${st}`} style={{ padding: "6px 12px", borderRadius: 999, fontSize: 11, fontWeight: 800, whiteSpace: "nowrap", flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none", background: on ? INK : LINE, color: on ? LILAC : SUB }}>
-                      <span style={{ width: 9, height: 9, borderRadius: 5, background: dosStyleColor(st) }} />
-                      {st}
-                    </Link>
-                  );
-                })}
-              </div>
-            ) : null}
 
             {/* ⚠⚠ THE RANKINGS SECTION, RE-CUT (27 Sep 2026, the user: *"fix the
                 rankings section properly. make it better"*, and *"remove global
@@ -962,11 +957,13 @@ export function StatsScreen({
                     const tall = r.place === 1 ? 70 : r.place === 2 ? 52 : 40;
                     return (
                       <Link key={`pod-${r.kind}-${r.id}`} href={hrefOf(r)} aria-label={`${r.name} — place ${r.place} of ${r.population}`} style={{ display: "flex", flexDirection: "column", alignItems: "center", textDecoration: "none", color: INK, minWidth: 0 }}>
-                        <span style={{ width: r.place === 1 ? 54 : 44, height: r.place === 1 ? 54 : 44, borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", background: `linear-gradient(135deg,${dosStyleColor(r.style ?? "Hip-Hop")},#7C3AED)`, color: "#fff", fontWeight: 900, fontFamily: DOS_DISPLAY, fontSize: r.place === 1 ? 17 : 14, boxShadow: `0 0 0 3px ${medal}`, marginBottom: 6 }}>
+                        <span style={{ width: r.place === 1 ? 54 : 44, height: r.place === 1 ? 54 : 44, borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg,#7C3AED,#EC4899)", color: "#fff", fontWeight: 900, fontFamily: DOS_DISPLAY, fontSize: r.place === 1 ? 17 : 14, boxShadow: `0 0 0 3px ${medal}`, marginBottom: 6 }}>
                           {initialsOf(r.name)}
                         </span>
                         <span style={{ fontSize: 11.5, fontWeight: 900, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
-                        <span style={{ fontSize: 10, fontWeight: 800, color: MUTED, marginBottom: 5 }}>{valueOf(r)} {unit}</span>
+                        {/* the same details every row carries, shorter (29 Oct 2026) */}
+                        <span style={{ fontSize: 10.5, fontWeight: 900, padding: "2px 8px", borderRadius: 999, background: `${medal}26`, color: INK, marginTop: 3, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{valueOf(r)} {unit}</span>
+                        <span style={{ fontSize: 9, fontWeight: 700, color: MUTED, marginTop: 3, marginBottom: 5, maxWidth: "100%", textAlign: "center", lineHeight: 1.3 }}>{detailOf(r)}</span>
                         <span style={{ width: "100%", height: tall, borderRadius: "12px 12px 4px 4px", background: `linear-gradient(180deg, ${medal}, ${medal}55)`, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 6, color: "#fff", fontFamily: DOS_DISPLAY, fontWeight: 900, fontSize: 20 }}>
                           {r.place}
                         </span>
@@ -977,14 +974,6 @@ export function StatsScreen({
               ) : null}
               {listRows.map((r) => {
                 const href = hrefOf(r);
-                const line =
-                  r.kind === "crew"
-                    ? `${r.conducted} event${r.conducted === 1 ? "" : "s"} entered · ${r.extra} member${r.extra === 1 ? "" : "s"}`
-                    : isStudio
-                      ? `${r.conducted} session${r.conducted === 1 ? "" : "s"} held · ${hoursWords(r.hours)} · ${r.extra} on the floor`
-                      : segment === "artist"
-                        ? `${r.conducted} taught · ${r.assisted} assisted · ${hoursWords(r.hours)}`
-                        : `${r.attended} danced · ${hoursWords(r.hours)}`;
                 const top3 = r.place <= 3;
                 /* ⚠ YOUR OWN ROW, IN THE BOARD (27 Sep 2026) — where the pinned
                    card used to be. A ranking is a list of the people you are
@@ -993,10 +982,14 @@ export function StatsScreen({
                    session has been taking out. */
                 const isYou = peopleBoard && boardPlace != null && r.place === boardPlace.place;
                 return (
-                  <Link key={`${r.kind}-${r.id}`} href={href} aria-label={`${isYou ? "You — " : ""}${r.name} — place ${r.place} of ${r.population}`} style={{ display: "flex", alignItems: "center", gap: 10, background: isYou ? "linear-gradient(120deg,#7C3AED22,#EC489922)" : CARD, border: `1.5px solid ${isYou ? "#7C3AED77" : LINE}`, borderRadius: 14, padding: "10px 12px", marginBottom: 7, color: INK, textDecoration: "none" }}>
-                    {/* top-3 numerals in the charts' own gradient (9693-9694) */}
-                    <span style={{ ...figure, fontSize: top3 ? 24 : 17, fontFamily: DOS_DISPLAY, fontWeight: 900, width: 30, textAlign: "center", flexShrink: 0, background: top3 ? "linear-gradient(120deg,#7C3AED,#EC4899)" : "none", WebkitBackgroundClip: top3 ? "text" : undefined, backgroundClip: top3 ? "text" : undefined, color: top3 ? "transparent" : MUTED }}>{r.place}</span>
-                    <span style={{ width: 38, height: 38, borderRadius: "50%", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", background: `linear-gradient(135deg,${dosStyleColor(r.style ?? "Hip-Hop")},#7C3AED)`, color: "#fff", fontSize: 13, fontWeight: 900, fontFamily: DOS_DISPLAY }}>
+                  /* ⚠ PLACE 4 AND BELOW, RE-CUT (29 Oct 2026, the user: "make the
+                     list which has numbers 4 and below in a better way"): the
+                     place in a rounded badge, the face, the name over ONE short
+                     detail line (no city, no style), the score as a pill, and the
+                     bar against the leader along the row's foot. */
+                  <Link key={`${r.kind}-${r.id}`} href={href} aria-label={`${isYou ? "You — " : ""}${r.name} — place ${r.place} of ${r.population}`} style={{ position: "relative", overflow: "hidden", display: "flex", alignItems: "center", gap: 10, background: isYou ? "linear-gradient(120deg,#7C3AED22,#EC489922)" : CARD, border: `1.5px solid ${isYou ? "#7C3AED77" : LINE}`, borderRadius: 14, padding: "10px 12px 12px", marginBottom: 7, color: INK, textDecoration: "none" }}>
+                    <span style={{ ...figure, width: 28, height: 28, borderRadius: 9, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12.5, fontFamily: DOS_DISPLAY, fontWeight: 900, background: top3 ? "linear-gradient(135deg,#7C3AED,#EC4899)" : LINE, color: top3 ? "#fff" : SUB }}>{r.place}</span>
+                    <span style={{ width: 36, height: 36, borderRadius: "50%", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg,#7C3AED,#EC4899)", color: "#fff", fontSize: 12.5, fontWeight: 900, fontFamily: DOS_DISPLAY }}>
                       {initialsOf(r.name)}
                     </span>
                     <span style={{ flex: 1, minWidth: 0 }}>
@@ -1004,15 +997,11 @@ export function StatsScreen({
                         {r.name}
                         {isYou ? <span style={{ marginLeft: 6, fontSize: 8.5, fontWeight: 900, letterSpacing: 0.6, padding: "2px 6px", borderRadius: 999, background: "#7C3AED", color: "#fff", verticalAlign: "middle" }}>YOU</span> : null}
                       </span>
-                      <span style={{ display: "block", fontSize: 10, color: SUB, marginTop: 1 }}>{[r.city, r.style].filter(Boolean).join(" · ")}</span>
-                      <span style={{ display: "block", fontSize: 9.5, color: MUTED, marginTop: 2 }}>{line}</span>
-                      <span aria-hidden="true" style={{ display: "block", height: 4, borderRadius: 999, background: LINE, marginTop: 5, overflow: "hidden" }}>
-                        <span style={{ display: "block", height: "100%", width: `${Math.max(4, (valueOf(r) / leaderValue) * 100)}%`, borderRadius: 999, background: "linear-gradient(90deg,#7C3AED,#EC4899)" }} />
-                      </span>
+                      <span style={{ display: "block", fontSize: 10, fontWeight: 700, color: MUTED, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{detailOf(r)}</span>
                     </span>
-                    <span style={{ textAlign: "right", flexShrink: 0 }}>
-                      <span style={{ display: "block", ...figure, fontSize: 13 }}>{valueOf(r)}</span>
-                      <span style={{ display: "block", fontSize: 9, fontWeight: 700, color: MUTED }}>{unit}</span>
+                    <span aria-hidden="true" style={{ position: "absolute", left: 0, bottom: 0, height: 3, width: `${Math.max(4, (valueOf(r) / leaderValue) * 100)}%`, background: "linear-gradient(90deg,#7C3AED,#EC4899)" }} />
+                    <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 900, padding: "4px 10px", borderRadius: 999, border: `1.5px solid ${LINE}`, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+                      {valueOf(r)} <span style={{ fontSize: 9, fontWeight: 800, color: MUTED }}>{unit}</span>
                     </span>
                   </Link>
                 );

@@ -1,6 +1,5 @@
 import { StatsScreen } from "@/features/stats/components/StatsScreen";
 import { findDiscoverCities } from "@/repositories/cities";
-import { DOS_STYLE_NAMES } from "@/lib/constants/styles";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { photoUrl } from "@/lib/media/photo";
 import { findChart, findEntityChartRow, findMyHistory, findMyPlace, findMyStats, findPersonHistory, findStudioHistory } from "@/repositories/stats";
@@ -88,7 +87,6 @@ export async function StatsPageBody({ subject, query, basePath }: { subject: Sta
   const cityList = await findDiscoverCities(supabase);
   const city = cityList.some((c) => c.city === query.city) ? (query.city as string) : null;
   const metric = parseChartMetric(query.metric);
-  const styleFilter = (DOS_STYLE_NAMES as readonly string[]).includes(query.style ?? "") ? (query.style as string) : null;
 
   /* the server's clock, once: the record's buckets are cut against it */
   const nowIso = new Date().toISOString();
@@ -106,7 +104,7 @@ export async function StatsPageBody({ subject, query, basePath }: { subject: Sta
         : user && subject.kind === "person"
           ? findPersonHistory(supabase, subject.id)
           : Promise.resolve([]),
-    tab === "charts" && canBrowseBoards && !isCrew ? findChart(supabase, { segment, city, style: styleFilter }) : Promise.resolve([]),
+    tab === "charts" && canBrowseBoards && !isCrew ? findChart(supabase, { segment, city, style: null }) : Promise.resolve([]),
     isMe ? findMyPlace(supabase, "dancer", null) : Promise.resolve(null),
     /* where YOU stand on THIS board — a people board only, and only when it is
        your own record (the prototype pins a "you" row on Dancers and Artists) */
@@ -118,9 +116,6 @@ export async function StatsPageBody({ subject, query, basePath }: { subject: Sta
   /* a crew keeps its board row (its record is counted from it) and no standings */
   const standings: Standing[] = isCrew ? [] : [{ scope: "Everywhere", row: everywhere }, ...(subject.city ? [{ scope: `In ${subject.city}`, row: inCity }] : [])];
 
-  /* the styles a board can be narrowed by: the ones its rows carry, plus the
-     one already chosen (so a filter that empties the board can still be cleared) */
-  const chartStyles = [...new Set([...(styleFilter ? [styleFilter] : []), ...chart.map((r) => r.style).filter((s): s is string => Boolean(s))])];
 
   return (
     <StatsScreen
@@ -142,9 +137,7 @@ export async function StatsPageBody({ subject, query, basePath }: { subject: Sta
       segment={segment}
       metric={metric}
       city={city}
-      styleFilter={styleFilter}
       cities={cityList.map((c) => c.city)}
-      chartStyles={chartStyles}
       myPlace={myPlace}
       boardPlace={boardPlace}
       tab={tab}

@@ -328,7 +328,10 @@ const measureRail = (page, selector) =>
     if ((await aCard.count()) === 1) {
       const t = (await aCard.innerText()).replace(/\s+/g, " ");
       check(!t.includes(STYLE), `no dance style on the artist card — its text is "${t.slice(0, 70)}"`);
-      check(t.includes("ARTIST"), "…and it still says ARTIST, so the card itself is intact");
+      /* ⚠ no ARTIST tag since 29 Oct 2026 (the user: "remove artist tag from
+         artist cards on discover") — the tab already says what the card is */
+      check(!t.includes("ARTIST"), "…and no ARTIST tag on the picture");
+      check(t.includes("Disc Art"), "…while the card still carries the name");
     }
 
     /* 5. THE CREW CARD */

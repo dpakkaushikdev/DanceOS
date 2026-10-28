@@ -23,6 +23,7 @@ Keys for all of these are in `.env.local` (gitignored). Any older record below t
 > * **Routine page:** no Artist or Dance style grouping (studios only); **Add Routine has no level** (saved `all`; the column stays).
 > * **Style page:** NOTABLE NAMES is a carousel of the people with their Wikipedia photos (`lib/styles/notablePhotos.ts` — server-read, cached a week, 2.5 s cut-off, initials on any failure, never fails the page), and facts said twice moved to one place.
 > * **Verified:** typecheck 0 · lint 0 · `audit:reads` 0 · build green · proofs `crews` + `enquiries` **2/2**, leftover guard OK · `shoot-practice` **50/50** on `:3100` · the whole e2e suite **51 passed / 3 failed / 2 did not run in 11.1 min** — two reds are `paid-webhook`'s known phone-provider 403, the third a STALE `back-navigation` line (it pressed Studios' "Lowest class price"; Discover opens on Classes now, whose sort is "Cheapest") — re-cut, **4/4** alone. ⚠ Not looked at on a phone.
+> * **✅ PUSHED AND LIVE (`5f9d8c6`)**: Vercel READY, alias `danceos-sigma.vercel.app` confirmed on the sha through the API, `stranger-smoke` **9/9** on the live site.
 
 > ### HOME IS OFF THE BOTTOM BAR — DISCOVER ALONE (28 Oct 2026, latest) — no migration · `AppChrome.tsx` only, plus the harness
 > The user: *"remove home from bottom navbar only keep discover and fix other things"*. Row C183.

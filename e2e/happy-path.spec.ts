@@ -10,8 +10,10 @@ async function goHome(page: Page) {
   await page.context().clearCookies({ name: "dos_profile" });
   await page.goto("/discover");
   await expect(async () => {
-    await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Home", exact: true }).click();
-    /* ⚠ Home IS your own profile page since 28 Oct 2026 (`/person/{you}`) */
+    /* ⚠ HOME LEFT THE BAR ON 28 Oct 2026 (C183) — your own page is the profile
+       switcher's first row, which is how a person gets there now */
+    await page.getByTestId("profile-switcher").click();
+    await page.getByRole("menu", { name: "Your profiles" }).getByRole("menuitem").first().click();
     await page.waitForURL((u) => u.pathname.startsWith("/person/"), { timeout: 4_000 });
   }).toPass({ timeout: 40_000 });
 }

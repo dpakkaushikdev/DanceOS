@@ -8,7 +8,9 @@ async function goHome(page: Page) {
   await page.context().clearCookies({ name: "dos_profile" });
   await page.goto("/discover");
   await expect(async () => {
-    await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Home", exact: true }).click();
+    /* Home left the bar on 28 Oct 2026 — your page is the switcher's first row */
+    await page.getByTestId("profile-switcher").click();
+    await page.getByRole("menu", { name: "Your profiles" }).getByRole("menuitem").first().click();
     await page.waitForURL((u) => u.pathname.startsWith("/person/"), { timeout: 4_000 });
   }).toPass({ timeout: 40_000 });
 }

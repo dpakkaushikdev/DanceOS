@@ -87,12 +87,10 @@ const ICON_STROKE = { fill: "none", strokeWidth: 1.8, strokeLinecap: "round", st
 /* ⚠ `satisfies`, never `: Record<string, …>` — see TAB_SET below for what that
    one word costs when it is the other way round */
 const TAB_ICONS = {
-  Home: (c) => (
-    <svg width="20" height="20" viewBox="0 0 24 24" stroke={c} {...ICON_STROKE}>
-      <path d="M3 10.5 12 3l9 7.5" />
-      <path d="M5.5 9.5V20h13V9.5" />
-    </svg>
-  ),
+  /* ⚠ THE `Home` ICON LEFT WITH ITS TAB (28 Oct 2026, the user: "remove home
+     from bottom navbar only keep discover"). Your own page is the profile
+     switcher's first row now — Home and the public page became one page the
+     same day (C182). */
   Discover: (c) => (
     <svg width="20" height="20" viewBox="0 0 24 24" stroke={c} {...ICON_STROKE}>
       <circle cx="12" cy="12" r="8.5" />
@@ -120,7 +118,6 @@ const TAB_ICONS = {
 /* ⚠ DISCOVER IS BLUE AND HOME IS GREEN (2 Oct 2026, the user's own words) —
    the two had them the other way round */
 const TAB_TINT = {
-  Home: "#22C55E",
   Discover: "#3B82F6",
 } satisfies Record<string, string>;
 
@@ -136,12 +133,10 @@ const TAB_TINT = {
  *  With `satisfies` on the maps and this label typed off them, that tab fails
  *  to compile instead. */
 type TabLabel = keyof typeof TAB_ICONS & keyof typeof TAB_TINT;
-/* ⚠ DISCOVER FIRST, HOME THIRD (2 Oct 2026, the user: "discover should always be
-   the first tab and home the 3rd in navbar") — on the main bar and on a studio's
-   or a crew's own bar alike, so the order never changes under the thumb */
+/* ⚠ DISCOVER ALONE SINCE 28 Oct 2026 (C183, the user: "remove home from bottom
+   navbar only keep discover"). Your own page is the switcher's first row. */
 const TAB_SET: Array<{ label: TabLabel; href: string }> = [
   { label: "Discover", href: "/discover" },
-  { label: "Home", href: "/" },
 ];
 
 /** ONE ROW OF THE PROFILE SWITCHER — a home this account can go to. Built by the
@@ -392,9 +387,12 @@ export function AppChrome({
      person who owns the page"). `/` is a redirect to `/person/{you}` now, so the
      bar's Home is that address — the one the switcher's own row carries. */
   const meHref = switcher.find((s) => s.kind === "me")?.href ?? "/";
-  const tabSet = TAB_SET.map((t) => (t.label === "Home" ? { ...t, href: meHref } : t));
+  const tabSet = TAB_SET;
   const activeTab = tabSet.find((t) => t.href === pathname)?.label ?? null;
-  const isTab = activeTab !== null;
+  /* ⚠ THE BAR IS DRAWN ON DISCOVER AND ON YOUR OWN PAGE (28 Oct 2026, C183):
+     Home left it, so your own page is where the bar's one tab is a way out
+     rather than a button to the page you are on */
+  const isTab = activeTab !== null || pathname === meHref;
   /* a studio's or a crew's own pages wear the entity's bar and the mark */
   const entity = entityOf(pathname);
   /* ── AN ENTITY'S BAR CARRIES DISCOVER TOO (19 Sep 2026, the user: "studio and
@@ -419,22 +417,15 @@ export function AppChrome({
      pages are Inbox · Home, and Discover is one press away through the profile
      switcher (your own profile's bar carries it). `entity.as` is still built by
      the layout and simply unused here. */
-  const bar: Array<{ label: TabLabel; href: string }> = entity
-    ? [
-        /* the entity's Inbox tab left on 18 Oct 2026 — Enquiries is a tool now */
-        { label: "Home", href: entity.home },
-        /* ⚠ ENQUIRIES LEFT THIS BAR THE SAME DAY IT JOINED IT (27 Sep 2026, the
-           user: "enquiries should not be on navbar a tab in tools for all"). It
-           is a TILE on this entity's own tool grid now, carrying `?as=` so the
-           desk it opens is scoped to the profile whose grid was pressed. */
-      ]
-    : tabSet;
-  /* ⚠ NO ONE-TAB BAR (28 Oct 2026, Batch 4). A studio's and a crew's own bar
-     has shrunk to Home alone (Discover left it 2 Oct, the Inbox 18 Oct), and a
-     bar holding one tab is a button to the page you are on. The general rule:
-     fewer than two tabs, no bar — and no 80px clearance reserved for it. */
-  const showBar = (isTab || entity !== null) && !adminOnly && bar.length >= 2;
-  const routeLit = entity ? (pathname === entity.home ? "Home" : null) : activeTab;
+  /* ⚠ A STUDIO'S AND A CREW'S OWN PAGES HAVE NO BAR (28 Oct 2026, C183): theirs
+     held Home alone (Discover left it 2 Oct at the user's word, the Inbox 18
+     Oct), and Home is gone from every bar. The profile switcher is the way
+     between profiles. */
+  const bar: Array<{ label: TabLabel; href: string }> = entity ? [] : tabSet;
+  /* ⚠ ONE TAB IS ENOUGH NOW — Discover, on your own page and on Discover — so
+     the Batch 4 "no one-tab bar" rule is narrowed to "no empty bar" */
+  const showBar = isTab && !adminOnly && bar.length >= 1;
+  const routeLit = entity ? null : activeTab;
   /* ⚠ THE TAB MOVES ON THE PRESS, NOT ON THE ARRIVAL (18 Oct 2026, the user:
      "navbar below should have some animation when switching"). The pressed tab
      lights at once and plays its pop while the page is still on its way; keyed
@@ -1265,9 +1256,7 @@ export function AppChrome({
                press never quietly switches you back to yourself */
             const href =
               !entity && hereItem && hereItem.kind !== "me"
-                ? label === "Home"
-                  ? hereItem.href
-                  : `${baseHref}?as=${hereItem.kind === "crew" ? `crew-${hereItem.key}` : hereItem.key}`
+                ? `${baseHref}?as=${hereItem.kind === "crew" ? `crew-${hereItem.key}` : hereItem.key}`
                 : baseHref;
             const on = lit === label;
             const tint = TAB_TINT[label];

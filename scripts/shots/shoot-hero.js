@@ -56,7 +56,9 @@ const goHome = async (page) => {
   await page.context().clearCookies({ name: "dos_profile" });
   await page.goto(`${BASE}/discover`, { waitUntil: "networkidle" });
   for (let i = 0; i < 10; i++) {
-    await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Home", exact: true }).click().catch(() => {});
+    /* Home left the bar on 28 Oct 2026 (C183) — your page is the switcher's first row */
+    await page.getByTestId("profile-switcher").click().catch(() => {});
+    await page.getByRole("menu", { name: "Your profiles" }).getByRole("menuitem").first().click({ timeout: 3000 }).catch(() => {});
     const ok = await page.waitForURL((u) => u.pathname.startsWith("/person/"), { timeout: 3000 }).then(() => true).catch(() => false);
     if (ok) return;
   }
@@ -719,7 +721,7 @@ const enterEdit = async (page) => {
     const bar = owner.getByRole("navigation", { name: "Main" });
     check((await bar.getByRole("link", { name: "Stats" }).count()) === 0 && (await bar.getByRole("link", { name: "Profile" }).count()) === 0, "bar: neither Stats nor Profile is a tab any more");
     check((await bar.getByRole("link", { name: "Public view" }).count()) === 0, "bar: the eye left the bar (19 Sep 2026, the user: 'remove profile tab from navbar')");
-    check((await bar.getByRole("link", { name: "Enquiries" }).count()) === 0 && (await bar.getByRole("link", { name: "Inbox" }).count()) === 0 && (await bar.getByRole("link").count()) === 2, "bar: Discover · Home — two; the Inbox is the Enquiries tool in the drawer (18 Oct 2026)");
+    check((await bar.getByRole("link", { name: "Enquiries" }).count()) === 0 && (await bar.getByRole("link", { name: "Inbox" }).count()) === 0 && (await bar.getByRole("link").count()) === 1 && (await bar.getByRole("link", { name: "Home", exact: true }).count()) === 0, "bar: Discover alone — Home left it on 28 Oct 2026 (C183)");
     /* 19 Sep 2026: the corner is the EYE alone — the pencil went into Settings
        ("all edit profile options to be removed from home and profile pages") and
        the DISC became the door to both picture sections ("should be able to click

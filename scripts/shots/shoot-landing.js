@@ -81,13 +81,17 @@ const check = (ok, what) => {
       check(new URL(page.url()).pathname === "/discover", `open #${i}: a document load of "/" lands on Discover`);
     }
 
-    /* ── 3 · …AND THE BAR'S HOME STILL OPENS HOME ── */
+    /* ── 3 · …THE BAR IS DISCOVER ALONE, AND YOUR PAGE IS THE SWITCHER'S FIRST ROW (28 Oct 2026, C183) ── */
+    const mainBar = page.getByRole("navigation", { name: "Main" });
+    check((await mainBar.getByRole("link").count()) === 1 && (await mainBar.getByRole("link", { name: "Home", exact: true }).count()) === 0, "the bar holds Discover alone — no Home");
     let home = false;
     for (let i = 0; i < 8 && !home; i++) {
-      await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Home", exact: true }).click().catch(() => {});
+      await page.getByTestId("profile-switcher").click().catch(() => {});
+      await page.getByRole("menu", { name: "Your profiles" }).getByRole("menuitem").first().click({ timeout: 3000 }).catch(() => {});
       home = await page.waitForURL((u) => u.pathname.startsWith("/person/"), { timeout: 3000 }).then(() => true).catch(() => false);
     }
-    check(home, "pressing Home in the bar opens Home — a client hop, never sent to Discover");
+    check(home, "the switcher's first row opens your own page — a client hop, never sent to Discover");
+    check((await mainBar.getByRole("link", { name: "Discover" }).count()) === 1, "your own page keeps the bar, so Discover is one press away");
     await page.reload({ waitUntil: "networkidle" });
     /* Home IS /person/{you} since 28 Oct 2026, so a reload stays on your page — only a load of "/" opens Discover */
     check(new URL(page.url()).pathname.startsWith("/person/"), "a reload on your own page stays on it (28 Oct 2026)");

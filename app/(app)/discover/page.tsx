@@ -17,6 +17,7 @@ import { DiscoverFilters } from "@/features/discovery/components/DiscoverFilters
 import { DiscoverTabs } from "@/features/discovery/components/DiscoverTabs";
 import { FollowedShelf, type FollowedTile } from "@/features/discovery/components/FollowedShelf";
 import { PlaceChip } from "@/features/discovery/components/PlaceChip";
+import { TurnOnLocationRow } from "@/features/geo/components/TurnOnLocationRow";
 import { StudioCard } from "@/features/discovery/components/StudioCard";
 import { ArtistI, ClassI, ShelfHead, StudioI } from "@/features/discovery/components/discover-kit";
 import { anyPriceOk, anyStyleOk, filterClasses, filterCrews, filterBusinesses, filterStyleShelf, filtersToParams, parseFilters, priceCeilOf, priceRangeOn, radiusOf, recommendFirst, sortShelf, ALL_CITIES } from "@/features/discovery/filters";
@@ -597,6 +598,9 @@ export default async function DiscoverPage({
         </span>
         <PlaceChip city={city} cities={cities} tab={tab} extra={{ ...filtersToParams(filters), ...(asRaw ? { as: asRaw } : {}) }} near={near !== null} at={atLabel} offerNearMe={wantsBusinesses} />
       </div>
+      {/* the standard "turn on location" row (28 Oct 2026) — only while nothing
+          says where this person is: no cookie from the phone, no point in the address */}
+      {here === null && near === null ? <TurnOnLocationRow /> : null}
 
       {/* the search box and the tabs (Step 23). ⚠ Filters + the quick chips moved
           UNDER THE SHELF'S HEADING (18 Oct 2026, the user: "filters should be

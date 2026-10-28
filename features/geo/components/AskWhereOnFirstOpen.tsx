@@ -2,10 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { FIRST_OPEN_COOKIE, HERE_COOKIE, formatPoint, hereCookie } from "@/lib/geo/here";
+import { FIRST_OPEN_COOKIE, HERE_ANSWER_KEY, HERE_COOKIE, formatPoint, hereCookie } from "@/lib/geo/here";
 
-/** what this phone answered last time: "granted" | "denied" */
-const ANSWER_KEY = "dos.here.answer";
 /** one quiet refresh per app session, not one per page */
 const REFRESHED_KEY = "dos.here.refreshed";
 
@@ -67,7 +65,7 @@ export function AskWhereOnFirstOpen() {
       document.cookie = `${FIRST_OPEN_COOKIE}=; path=/; max-age=0`;
     }
     const inApp = window.matchMedia("(display-mode: standalone)").matches;
-    const refresh = !firstOpen && inApp && get(() => localStorage, ANSWER_KEY) === "granted" && !get(() => sessionStorage, REFRESHED_KEY);
+    const refresh = !firstOpen && inApp && get(() => localStorage, HERE_ANSWER_KEY) === "granted" && !get(() => sessionStorage, REFRESHED_KEY);
     if ((!firstOpen && !refresh) || !("geolocation" in navigator)) {
       return;
     }
@@ -78,7 +76,7 @@ export function AskWhereOnFirstOpen() {
         const p = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         const changed = readCookie(HERE_COOKIE) !== formatPoint(p);
         document.cookie = hereCookie(p, location.protocol === "https:");
-        set(() => localStorage, ANSWER_KEY, "granted");
+        set(() => localStorage, HERE_ANSWER_KEY, "granted");
         /* the server-rendered page under the dialog (Discover, onboarding)
            re-reads the cookie; /login has nothing that uses it, and a refresh
            there costs nothing */
@@ -86,7 +84,7 @@ export function AskWhereOnFirstOpen() {
       },
       (err) => {
         /* a timeout or no fix is not an answer — only a refusal is remembered */
-        if (err.code === err.PERMISSION_DENIED) set(() => localStorage, ANSWER_KEY, "denied");
+        if (err.code === err.PERMISSION_DENIED) set(() => localStorage, HERE_ANSWER_KEY, "denied");
       },
       { enableHighAccuracy: false, timeout: 15000, maximumAge: 10 * 60 * 1000 }
     );

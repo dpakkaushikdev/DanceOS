@@ -16,16 +16,18 @@
 package in.danceos.app;
 
 import android.Manifest;
+import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.StrictMode;
 
 /*
- * ⚠ HAND-EDITED AFTER `bubblewrap update` (1.3.1 → 1.3.3, 28 Oct 2026). `bubblewrap
+ * ⚠ HAND-EDITED AFTER `bubblewrap update` (1.3.1 → 1.3.4, 28 Oct 2026). `bubblewrap
  * update` REGENERATES THIS FILE and wipes the location step below — re-apply it
- * from git after every update (CLAUDE.md, the 1.3.3 block).
+ * from git after every update (CLAUDE.md, the 1.3.4 block).
  *
  * THE LOCATION IS ASKED HERE, NOT BY THE PAGE. In 1.3.0 the page asked and Chrome
  * delegated the question to this app — but by then this activity has finished and
@@ -34,32 +36,49 @@ import android.os.Bundle;
  * from here, over the splash and before Chrome is launched, it is a foreground
  * request — the way a native app like Cult asks.
  *
- * ⚠ ASKED ON EVERY OPEN UNTIL IT IS ALLOWED (1.3.3, the user: "if gps is not on
- * then again at restart it can ask; if user allows then it will directly be on, as
- * app permission is allowed"). No marker of our own any more: 1.3.1 keyed the
- * question to bubblewrap's first-open marker (spent by an install over 1.3.0, so
- * an update never asked) and 1.3.2 to its own (which counted a dialog closed
- * without an answer as asked). Android itself ends the asking — after two Don't
- * allows it answers DENIED at once, with no dialog — so this is one dialog per
- * open for somebody who has not decided, and nothing for somebody who has.
- * "Only this time" lapses when the app is left for a while, so it asks again on
- * the open after that, which is what those words promise.
+ * THE STANDARD SHAPE (1.3.4, the user: "use the standard approach that is most
+ * widely accepted"): the system dialog ONCE, at the first launch, and no automatic
+ * prompt after that — Discover carries a "Turn on location" row that asks again
+ * only when it is pressed, and says where the Settings switch is when Android will
+ * not show the dialog any more. (1.3.3 asked at every open until allowed.)
  *
- * `dos_first_open` on the launch URL now simply says whether the location is
- * allowed: true → the page reads the position (delegation answers without a
- * dialog, the permission is held); false → the page never asks. The name stays
- * because `proxy.ts` reads it.
+ * The "asked" mark is written when the ANSWER arrives, not when the dialog is shown
+ * (1.3.2's mistake): closing the app with the dialog open delivers no result, so
+ * the next open asks once more. Android itself delivers an instant DENIED once it
+ * has stopped showing the dialog, which marks it like any other answer.
+ *
+ * `dos_first_open` on the launch URL says whether the location is allowed, on
+ * every open: true → the page reads the position (delegation answers without a
+ * dialog, the permission is held); false → the page never asks on its own. The
+ * name stays because `proxy.ts` reads it.
  */
 public class LauncherActivity
         extends com.google.androidbrowserhelper.trusted.LauncherActivity {
 
     private static final String PARAM_FIRST_OPEN = "dos_first_open";
+    /* a new key, deliberately: 1.3.2's `dos.location_asked` was written on showing
+       the dialog, so it may say "asked" on a phone that never answered */
+    private static final String KEY_LOCATION_ANSWERED = "dos.location_answered";
     private static final int REQUEST_LOCATION = 4207;
 
     private boolean hasLocation() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true;
         return checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
                 || checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private boolean wasAnswered() {
+        StrictMode.ThreadPolicy originalPolicy = StrictMode.allowThreadDiskReads();
+        try {
+            return getPreferences(MODE_PRIVATE).getBoolean(KEY_LOCATION_ANSWERED, false);
+        } finally {
+            StrictMode.setThreadPolicy(originalPolicy);
+        }
+    }
+
+    private void markAnswered() {
+        SharedPreferences preferences = getPreferences(MODE_PRIVATE);
+        preferences.edit().putBoolean(KEY_LOCATION_ANSWERED, true).apply();
     }
 
     @Override
@@ -77,12 +96,13 @@ public class LauncherActivity
     }
 
     /** Called by the base onCreate just before it would launch Chrome. Without
-     *  the location, hold the launch and ask Android — FINE and COARSE together,
-     *  which is what shows Precise / Approximate (asking FINE alone is ignored on
-     *  Android 12+). The answer, whatever it is, launches the TWA. */
+     *  the location and without an answer on record, hold the launch and ask
+     *  Android — FINE and COARSE together, which is what shows Precise /
+     *  Approximate (asking FINE alone is ignored on Android 12+). The answer,
+     *  whatever it is, launches the TWA. */
     @Override
     protected boolean shouldLaunchImmediately() {
-        if (hasLocation()) {
+        if (hasLocation() || wasAnswered()) {
             return true;
         }
         requestPermissions(new String[] {
@@ -96,6 +116,10 @@ public class LauncherActivity
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_LOCATION) {
+            /* empty arrays mean the request was interrupted, not answered */
+            if (grantResults.length > 0) {
+                markAnswered();
+            }
             launchTwa();
         }
     }

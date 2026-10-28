@@ -35,6 +35,9 @@ export const FIRST_OPEN_COOKIE = "dos_first_open";
 /** long enough to survive the splash, the redirect and a slow first paint */
 export const FIRST_OPEN_MAX_AGE_S = 10 * 60;
 
+/** localStorage: what this phone answered last time — "granted" | "denied" */
+export const HERE_ANSWER_KEY = "dos.here.answer";
+
 /** `?near=centre`: a city picked by hand on Discover — measure from its centre,
  *  even when it is the city the phone is in */
 export const NEAR_CENTRE = "centre";

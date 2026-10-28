@@ -325,6 +325,7 @@ export function NotificationsScreen({
   initialGroup = null,
   variant = "page",
   onRefresh,
+  onRead,
 }: {
   notifications: AppNotification[];
   prefs: NotificationPrefs;
@@ -338,6 +339,9 @@ export function NotificationsScreen({
   /** no longer drawn — the drawer has no close button (18 Oct 2026); kept so callers compile */
   onClose?: () => void;
   onRefresh?: () => void;
+  /** INSTANT (Batch 3): `n` rows were just marked read on screen (negative when a
+   *  refusal puts them back) — the chrome takes the bell's count down at once */
+  onRead?: (n: number) => void;
 }) {
   const nextRouter = useRouter();
   const inDrawer = variant === "drawer";
@@ -396,6 +400,7 @@ export function NotificationsScreen({
     setBusy(false);
     if (out.error) {
       setError(out.error);
+      toast.error(out.error);
       return false;
     }
     if (done) toast(done);
@@ -409,8 +414,39 @@ export function NotificationsScreen({
 
   /* the tap goes at once — marking it read rides behind the navigation rather
      than holding the person on this screen for a round trip */
+  /* ⚠ INSTANT (Batch 3): a row is read ON SCREEN the moment it is opened or
+     swiped — its dot goes and the bell counts down — and the server's word
+     follows; a refusal puts it back with toast.error */
+  const markLocal = (ids: string[]) => {
+    if (ids.length === 0) return;
+    const at = new Date().toISOString();
+    setReadNow((m) => {
+      const next = { ...m };
+      for (const id of ids) next[id] = at;
+      return next;
+    });
+    onRead?.(ids.length);
+  };
+  const unmarkLocal = (ids: string[]) => {
+    if (ids.length === 0) return;
+    setReadNow((m) => {
+      const next = { ...m };
+      for (const id of ids) delete next[id];
+      return next;
+    });
+    onRead?.(-ids.length);
+  };
+
   const openRow = (n: AppNotification) => {
-    if (!n.readAt) void markNotificationsReadAction({ ids: [n.id] });
+    if (!n.readAt) {
+      markLocal([n.id]);
+      void markNotificationsReadAction({ ids: [n.id] }).then((out) => {
+        if (out.error) {
+          unmarkLocal([n.id]);
+          toast.error(out.error);
+        }
+      });
+    }
     if (n.href) {
       router.push(n.href);
     } else {
@@ -419,18 +455,24 @@ export function NotificationsScreen({
   };
 
   const swipeRead = (n: AppNotification) => {
-    setReadNow((m) => ({ ...m, [n.id]: new Date().toISOString() }));
+    markLocal([n.id]);
     void markNotificationsReadAction({ ids: [n.id] }).then((out) => {
       if (out.error) {
         setError(out.error);
-        setReadNow((m) => {
-          const next = { ...m };
-          delete next[n.id];
-          return next;
-        });
+        toast.error(out.error);
+        unmarkLocal([n.id]);
       } else {
         router.refresh();
       }
+    });
+  };
+
+  /* "Read" on a section or on everything — the rows move to History at once */
+  const readMany = (kind: NotificationKind | null, done: string) => {
+    const ids = fresh.filter((n) => kind === null || n.kind === kind).map((n) => n.id);
+    markLocal(ids);
+    void run(() => (kind === null ? markNotificationsReadAction({}) : markNotificationsReadAction({ kind })), done).then((ok) => {
+      if (!ok) unmarkLocal(ids);
     });
   };
 
@@ -590,7 +632,7 @@ export function NotificationsScreen({
             disabled={busy}
             data-testid="notif-read-all"
             aria-label={filterLabel ? `Mark ${filterLabel} read` : "Mark all read"}
-            onClick={() => void run(() => (filter === "all" ? markNotificationsReadAction({}) : markNotificationsReadAction({ kind: filter })), filter === "all" ? "All read" : `${filterLabel} read`)}
+            onClick={() => readMany(filter === "all" ? null : filter, filter === "all" ? "All read" : `${filterLabel} read`)}
             style={smallBtn}
           >
             {filterLabel ? `Mark ${filterLabel} read` : "Mark all read"}
@@ -610,7 +652,7 @@ export function NotificationsScreen({
                 g.label,
                 rows.length,
                 g.tint,
-                <button type="button" disabled={busy} aria-label={`Read every ${g.label} notification`} data-testid={`notif-read-${k}`} onClick={() => void run(() => markNotificationsReadAction({ kind: k }), `${g.label} read`)} style={smallBtn}>
+                <button type="button" disabled={busy} aria-label={`Read every ${g.label} notification`} data-testid={`notif-read-${k}`} onClick={() => readMany(k, `${g.label} read`)} style={smallBtn}>
                   Read
                 </button>,
               )}

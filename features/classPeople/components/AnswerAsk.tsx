@@ -48,25 +48,42 @@ export function AnswerAsk({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  /* ⚠ INSTANT (Batch 3): the answer shows the moment it is pressed; a refusal
+     puts the buttons back with toast.error, and the refresh lands behind it */
+  const [answered, setAnswered] = useState<null | "accepted" | "declined">(null);
 
   const answer = async (accept: boolean) => {
+    if (busy) return;
     setBusy(true);
     setError(null);
+    setAnswered(accept ? "accepted" : "declined");
     const out = await respondToClassAskAction({ classPersonId, accept });
     setBusy(false);
-    if (out.error) setError(out.error);
-    else {
+    if (out.error) {
+      setAnswered(null);
+      setError(out.error);
+      toast.error(out.error);
+    } else {
       toast(accept ? "Accepted — it's on your calendar" : "Declined");
       router.refresh();
     }
   };
+
+  if (answered) {
+    const ok = answered === "accepted";
+    return (
+      <span data-testid="ask-answered" style={{ fontSize: 10, fontWeight: 900, letterSpacing: 0.4, padding: "4px 9px", borderRadius: 999, background: ok ? "#22C55E1f" : "rgba(133,133,133,.14)", color: ok ? "#22C55E" : "#858585", textTransform: "uppercase" }}>
+        {ok ? "Accepted" : "Declined"}
+      </span>
+    );
+  }
 
   return (
     <>
       <span style={{ flexBasis: "100%", fontSize: 10.5, color: SUB, lineHeight: 1.45 }}>{line}</span>
       {/* ⚠ a no is asked first (B17, 11 Oct 2026) */}
       <button type="button" disabled={busy} onClick={() => setConfirmOpen(true)} style={pill(true)}>
-        {busy ? "…" : "Decline"}
+        Decline
       </button>
       {confirmOpen ? (
         <ConfirmDialog
@@ -84,7 +101,7 @@ export function AnswerAsk({
         />
       ) : null}
       <button type="button" disabled={busy} onClick={() => answer(true)} style={{ ...pill(false), background: INK, color: LILAC }}>
-        {busy ? "…" : "Accept"}
+        Accept
       </button>
       {error ? (
         <span role="alert" style={{ flexBasis: "100%", fontSize: 10.5, fontWeight: 700, color: "#F87171" }}>

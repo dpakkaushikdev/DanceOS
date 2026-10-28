@@ -4,6 +4,7 @@ import "./globals.css";
 import { Haptics } from "@/components/ui/Haptics";
 import { AskWhereOnFirstOpen } from "@/features/geo/components/AskWhereOnFirstOpen";
 import { Toaster } from "@/components/ui/Toast";
+import { NavProgress } from "@/components/ui/NavProgress";
 
 const sora = Sora({ subsets: ["latin"], variable: "--font-sora" });
 const interTight = Inter_Tight({ subsets: ["latin"], variable: "--font-inter-tight" });
@@ -82,6 +83,7 @@ export default function RootLayout({
         {/* the installed app's first question, before any sign-up (28 Oct 2026) */}
         <AskWhereOnFirstOpen />
         <Toaster />
+        <NavProgress />
         {children}
       </body>
     </html>

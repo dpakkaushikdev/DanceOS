@@ -305,7 +305,7 @@ export function ReachDesk({
                so until the secret is set this table cannot fill, and a measured
                zero here would be the most misleading figure in the panel. */
             <div style={{ background: "rgba(245,158,11,.12)", border: "1.5px solid rgba(245,158,11,.4)", borderRadius: 14, padding: "12px 13px", marginBottom: 12 }}>
-              <div style={{ fontSize: 12, fontWeight: 900, color: "#F59E0B" }}>The ledger is not recording yet</div>
+              <div style={{ fontSize: 12, fontWeight: 900, color: "#F59E0B" }}>Email delivery is not being recorded yet</div>
               <div style={{ fontSize: 11, color: SUB, marginTop: 3, lineHeight: 1.5 }}>
                 <code style={{ fontFamily: MONO, fontSize: 10.5 }}>RESEND_WEBHOOK_SECRET</code> is not set, so{" "}
                 <code style={{ fontFamily: MONO, fontSize: 10.5 }}>/api/webhooks/resend</code> answers 503 rather

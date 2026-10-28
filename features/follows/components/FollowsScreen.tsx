@@ -7,6 +7,7 @@ import { setCrewFollowAction, setFollowAction, setPersonFollowAction } from "@/f
 import type { FollowEntry, FollowEntryKind, FollowPageData } from "@/features/follows/server/loadFollowPage";
 import { DOS_DISPLAY, DOS_UI, INK, LILAC, LINE, MUTED, SKY, SUB } from "@/lib/design/tokens";
 import { photoUrl } from "@/lib/media/photo";
+import { toast } from "@/components/ui/Toast";
 
 /** ⚠⚠ THE FOLLOW LIST, INSTAGRAM'S, WITH FILTERS (12 Oct 2026, the user:
  *  "follower following list whenever opened from anywhere should open a seprate
@@ -113,6 +114,7 @@ export function FollowsScreen({ data, initialTab, initialShow }: { data: FollowP
     if (out.error || !out.state) {
       setState((s) => ({ ...s, [k]: !on }));
       setErr({ key: r.key, words: out.error ?? "Could not update that follow" });
+      toast.error(out.error ?? "Could not update that follow");
       return;
     }
     setState((s) => ({ ...s, [k]: out.state!.following }));

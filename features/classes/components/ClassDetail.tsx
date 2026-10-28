@@ -348,6 +348,8 @@ export function ClassDetail({
   const [ownerSeg, setOwnerSeg] = useState<"details" | "att" | "money" | "ref">(openOn && register ? "att" : "details");
   /* one register op at a time — the row that is busy shows it */
   const [opPending, setOpPending] = useState<string | null>(null);
+  /* walk-ins taken off the register and held behind the toast's Undo (28 Oct 2026) */
+  const [hiddenWalkIns, setHiddenWalkIns] = useState<Set<string>>(() => new Set());
   /* the register's own scanner (28 Sep 2026) — see `scanCheckIn`; opened at once
      when the Running now card asked for it (11 Oct 2026) */
   const [scanOpen, setScanOpen] = useState(openOn === "scan" && Boolean(register) && sessionPhase !== "ended");
@@ -670,13 +672,33 @@ export function ClassDetail({
     router.refresh();
   };
 
-  const removeWalkIn = async (classBookingId: string, name: string) => {
+  /* ⚠ "REMOVED · UNDO" (28 Oct 2026, batch 3): the row goes on the press and
+     `remove_class_walk_in` runs when the undo window closes; a refusal puts the
+     row back and says why. */
+  const hideWalkIn = (id: string, on: boolean) =>
+    setHiddenWalkIns((cur) => {
+      const next = new Set(cur);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  const removeWalkIn = (classBookingId: string, name: string) => {
     if (opPending) return;
-    setOpPending(classBookingId);
-    const out = await removeWalkInAction({ classBookingId });
-    setOpPending(null);
-    toast.result(out.error, `${name} removed`);
-    router.refresh();
+    hideWalkIn(classBookingId, true);
+    toast.undo(
+      `${name} removed`,
+      () => {
+        void removeWalkInAction({ classBookingId }).then((out) => {
+          if (out.error) {
+            hideWalkIn(classBookingId, false);
+            toast.error(out.error);
+            return;
+          }
+          router.refresh();
+        });
+      },
+      () => hideWalkIn(classBookingId, false),
+    );
   };
 
   const runRegisterOp = async (
@@ -1771,7 +1793,7 @@ export function ClassDetail({
                   }}
                 />
               </div>
-              {register.rows.map((r, i) => {
+              {register.rows.filter((r) => !hiddenWalkIns.has(r.classBookingId)).map((r, i) => {
                 /* ⚠⚠ A WALK-IN HAS NO PAGE TO OPEN (29 Sep 2026, shape 2).
                    `href={`/person/${r.userId}`}` renders `/person/null` for one,
                    and NOTHING TYPED CAN SEE IT — a template literal swallows a
@@ -1940,7 +1962,7 @@ export function ClassDetail({
                       tabIndex={0}
                       onKeyDown={dosKey}
                       aria-label={`Remove ${r.learnerName} from the register`}
-                      onClick={() => void removeWalkIn(r.classBookingId, r.learnerName)}
+                      onClick={() => removeWalkIn(r.classBookingId, r.learnerName)}
                       style={{ fontSize: 10, fontWeight: 800, padding: "6px 10px", borderRadius: 999, cursor: "pointer", flexShrink: 0, background: "var(--el)", color: "var(--sub)", opacity: opPending === r.classBookingId ? 0.5 : 1 }}
                     >
                       ✕

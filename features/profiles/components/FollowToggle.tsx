@@ -79,10 +79,18 @@ export function FollowToggle({
     if (busy) return;
     setBusy(true);
     setError(null);
-    const out = await send(target, !following);
+    /* ⚠ INSTANT (Batch 3): the state and the count flip on the press; the
+       server's answer then replaces both, and a refusal puts them back */
+    const before = { following, followers };
+    const next = !following;
+    setFollowing(next);
+    if (followers != null) setFollowers(Math.max(0, followers + (next ? 1 : -1)));
+    const out = await send(target, next);
     setBusy(false);
     if (out.error || !out.state) {
       const msg = plainError(out.error ?? "Could not update that follow");
+      setFollowing(before.following);
+      setFollowers(before.followers);
       setError(msg);
       toast.error(msg);
       return;

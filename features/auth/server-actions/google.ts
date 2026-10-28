@@ -1,5 +1,6 @@
 "use server";
 
+import { plainError } from "@/lib/errors";
 import { fetchGooglePicture } from "@/lib/auth/googleAvatar";
 import { googleAvatarUrl } from "@/lib/auth/googleIdentity";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -39,7 +40,7 @@ export async function adoptGooglePictureAction(): Promise<{ path: string | null;
   } catch (error: unknown) {
     return {
       path: null,
-      error: error instanceof Error ? error.message : "Could not use your Google picture — add your own",
+      error: error instanceof Error ? plainError(error.message) : "Could not use your Google picture — add your own",
     };
   }
 }

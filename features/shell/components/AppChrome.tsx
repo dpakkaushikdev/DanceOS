@@ -16,7 +16,7 @@ import type { Business } from "@/types/business";
 import { setToolOrderAction } from "@/features/home/server-actions/toolOrder";
 import { toolsLayoutKey } from "@/features/home/toolOrder";
 import { DrawerTools } from "@/features/shell/components/DrawerTools";
-import { loadMyNotificationsAction, markNotificationsReadAction } from "@/features/notifications/server-actions/notifications";
+import { loadMyNotificationsAction, markNotificationsReadAction, myUnreadCountAction } from "@/features/notifications/server-actions/notifications";
 import { NotificationsScreen } from "@/features/notifications/components/NotificationsScreen";
 import type { AppNotification, NotificationPrefs } from "@/types/notification";
 import { viewKey, viewToolOf, type ViewMode, type ViewTool } from "@/features/shell/viewMode";
@@ -312,7 +312,7 @@ export interface ChromeSettings {
 
 export function AppChrome({
   children,
-  unread = 0,
+  unread: unreadFromServer = 0,
   adminOnly = false,
   signedOut = false,
   switcher = [],
@@ -340,6 +340,33 @@ export function AppChrome({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  /* THE BELL IS LIVE (Batch 3, 28 Oct 2026): re-asked every 30 s and when the
+     app comes back into view. A fresh server render always wins — the live
+     answer is kept only while it was asked on top of the count it replaces,
+     so this needs no effect that writes state from a prop. */
+  const [liveUnread, setLiveUnread] = useState<{ n: number; base: number } | null>(null);
+  const unread = liveUnread && liveUnread.base === unreadFromServer ? liveUnread.n : unreadFromServer;
+  useEffect(() => {
+    if (adminOnly || signedOut) return;
+    let alive = true;
+    const ask = () => {
+      if (document.visibilityState !== "visible") return;
+      void myUnreadCountAction()
+        .then((n) => {
+          if (alive) setLiveUnread({ n, base: unreadFromServer });
+        })
+        .catch(() => {});
+    };
+    const every = setInterval(ask, 30000);
+    document.addEventListener("visibilitychange", ask);
+    window.addEventListener("focus", ask);
+    return () => {
+      alive = false;
+      clearInterval(every);
+      document.removeEventListener("visibilitychange", ask);
+      window.removeEventListener("focus", ask);
+    };
+  }, [adminOnly, signedOut, unreadFromServer]);
   /* CARD OR LIST, PER TOOL (12 Oct 2026) — `features/shell/viewMode.ts` says why
      the chrome owns it. A press shows the change at once and saves it behind;
      the stored choice is read again on the next render of the layout. */
@@ -758,7 +785,16 @@ export function AppChrome({
           </button>
           )}
         </span>
-        <span
+        {/* THE BRAND IS A DOOR TO DISCOVER (28 Oct 2026, the user: "clicking on
+            dance os logo and name on top bar takes to discover"). It keeps the
+            profile you are in, exactly as the bottom bar's Discover does. */}
+        <Link
+          href={
+            hereItem && hereItem.kind !== "me"
+              ? `/discover?as=${hereItem.kind === "crew" ? `crew-${hereItem.key}` : hereItem.key}`
+              : "/discover"
+          }
+          aria-label="DanceOS — open Discover"
           data-testid="brand"
           style={{
             position: "absolute",
@@ -769,8 +805,9 @@ export function AppChrome({
             display: "flex",
             alignItems: "center",
             columnGap: 6,
-            pointerEvents: "none",
             whiteSpace: "nowrap",
+            textDecoration: "none",
+            color: "inherit",
           }}
         >
           {/* ⚠⚠ NO BACK CHIP, ON ANY SCREEN (18 Oct 2026, the user: "remove back
@@ -807,7 +844,7 @@ export function AppChrome({
             <span aria-hidden="true">Dance</span>
             <span aria-hidden="true" style={{ fontWeight: 500, letterSpacing: -0.4, marginLeft: 1 }}>OS</span>
           </span>
-        </span>
+        </Link>
         <span style={{ display: "flex", gap: 7, flexShrink: 0 }}>
           {/* ⚠ THE THEME CHIP AND THE GEAR LEFT THE BAR (12 Oct 2026, the user:
               "dark and light mode like toggle on top of this section with settings
@@ -915,6 +952,12 @@ export function AppChrome({
                   nowIso={notifData.nowIso}
                   onClose={() => setNotifFor(null)}
                   onRefresh={() => void loadNotes()}
+                  onRead={(k) =>
+                    setLiveUnread((prev) => {
+                      const cur = prev && prev.base === unreadFromServer ? prev.n : unreadFromServer;
+                      return { n: Math.max(0, cur - k), base: unreadFromServer };
+                    })
+                  }
                 />
               ) : (
                 <div data-testid="notif-loading" style={{ padding: "40px 10px", textAlign: "center", fontSize: 13, color: notifError ? "#F87171" : "var(--muted)" }}>

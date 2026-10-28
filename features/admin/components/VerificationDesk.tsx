@@ -309,7 +309,7 @@ export function VerificationDesk({
                     ) : null}
                     <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                       <button type="button" disabled={pending} onClick={() => answer(r, false, note.trim())} style={{ ...pill, background: "#EF4444", color: "#fff" }}>
-                        {pending ? "Saving…" : "Reject"}
+                        {pending ? "Saving…" : "Decline"}
                       </button>
                       <button type="button" disabled={pending} onClick={() => { setRejecting(null); setNote(""); }} style={{ ...pill, background: EL, color: INK }}>
                         Cancel
@@ -321,8 +321,8 @@ export function VerificationDesk({
                     <button type="button" disabled={pending || s.socials.length === 0} aria-label={`Approve ${s.name}`} onClick={() => answer(r, true)} style={{ ...pill, background: s.socials.length ? "#22C55E" : EL, color: s.socials.length ? "#fff" : MUTED }}>
                       {pending ? "Saving…" : "Approve"}
                     </button>
-                    <button type="button" disabled={pending} aria-label={`Reject ${s.name}`} onClick={() => setRejecting(s.id)} style={{ ...pill, background: EL, color: INK }}>
-                      Reject…
+                    <button type="button" disabled={pending} aria-label={`Decline ${s.name}`} onClick={() => setRejecting(s.id)} style={{ ...pill, background: EL, color: INK }}>
+                      Decline…
                     </button>
                   </div>
                 )}

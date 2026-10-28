@@ -180,7 +180,7 @@ export function JoinInvite({ code, preview }: { code: string; preview: InvitePre
               cursor: "pointer",
             }}
           >
-            {busy ? "…" : "Yes, I’m in"}
+            {busy ? "Saving…" : "Yes, I’m in"}
           </span>
         </div>
       </div>

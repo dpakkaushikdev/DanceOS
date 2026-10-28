@@ -341,7 +341,7 @@ export function ScanSheet({
                   aria-label={`${confirmLabel} ${found.fullName}`}
                   style={{ flex: 1, padding: 13, borderRadius: 999, background: "var(--text)", color: "var(--solid)", fontWeight: 900, fontSize: 13.5, cursor: busy || working ? "not-allowed" : "pointer", border: "none", fontFamily: "inherit", opacity: busy || working ? 0.6 : 1 }}
                 >
-                  {busy || working ? "Working…" : confirmLabel}
+                  {busy || working ? "Saving…" : confirmLabel}
                 </button>
               </div>
               <button type="button" onClick={onClose} style={{ marginTop: 10, textAlign: "center", padding: 11, borderRadius: 999, background: "transparent", color: "var(--sub)", fontWeight: 800, fontSize: 12, cursor: "pointer", border: "none", fontFamily: "inherit", width: "100%" }}>

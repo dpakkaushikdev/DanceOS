@@ -8,7 +8,7 @@ import { PhotoLightbox } from "@/features/media/components/PhotoLightbox";
 import { photoUrl } from "@/lib/media/photo";
 import { DeskBody, DeskTop } from "@/components/ui/DeskSections";
 import { ToolActions, ToolBody, ToolCard, ToolFacts, ToolHead, toolBtn } from "@/components/ui/ToolCard";
-import { DeleteIconButton } from "@/components/ui/DeleteIconButton";
+import { DeleteIcon } from "@/components/ui/DeleteIconButton";
 import { removeAssetAction } from "@/features/assets/server-actions/assets";
 import { DOS_TOOLS, DeskHero } from "@/features/businesses/components/biz-kit";
 import { toast } from "@/components/ui/Toast";
@@ -56,23 +56,42 @@ const TINT = DOS_TOOLS.assets.c;
 export function AssetsDesk({ businessId, assets }: { businessId: string; businessName?: string; assets: Asset[] }) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const fire = (m: string) => toast(m);
+  /* ⚠ "REMOVED · UNDO" (28 Oct 2026, batch 3): the card goes on the press and
+     the real delete runs when the undo window closes; a refusal puts it back.
+     (It asked in a dialog from 4 Oct.) An id stays hidden after a successful
+     delete — the server's next list no longer carries it anyway. */
+  const [hidden, setHidden] = useState<Set<string>>(() => new Set());
+  const hide = (id: string, on: boolean) =>
+    setHidden((cur) => {
+      const next = new Set(cur);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  const shown = assets.filter((a) => !hidden.has(a.id));
 
-  const total = assets.reduce((n, a) => n + a.valueInr, 0);
-  const pieces = assets.reduce((n, a) => n + a.quantity, 0);
+  const total = shown.reduce((n, a) => n + a.valueInr, 0);
+  const pieces = shown.reduce((n, a) => n + a.quantity, 0);
 
-  /* ⚠ REMOVING ASKS FIRST (4 Oct 2026, the user: "should confirm before removing
-     asset") — one press used to soft-delete the row */
   const [viewing, setViewing] = useState<Asset | null>(null);
   const viewSrc = viewing ? photoUrl(viewing.photoPath) : null;
 
-  /* an error stays inside the dialog; success closes it and says so */
-  const drop = async (a: Asset): Promise<string | null> => {
-    const out = await removeAssetAction({ assetId: a.id, businessId });
-    if (out.error) return out.error;
-    fire(`${a.name} deleted`);
-    start(() => router.refresh());
-    return null;
+  const drop = (a: Asset) => {
+    hide(a.id, true);
+    toast.undo(
+      "Asset removed",
+      () => {
+        void removeAssetAction({ assetId: a.id, businessId }).then((out) => {
+          if (out.error) {
+            hide(a.id, false);
+            toast.error(out.error);
+            return;
+          }
+          start(() => router.refresh());
+        });
+      },
+      () => hide(a.id, false),
+    );
   };
 
   return (
@@ -90,7 +109,7 @@ export function AssetsDesk({ businessId, assets }: { businessId: string; busines
           tint={TINT}
           style={{ marginTop: 12 }}
           items={[
-            { label: assets.length === 1 ? "Asset" : "Assets", value: assets.length, testId: "assets-count" },
+            { label: shown.length === 1 ? "Asset" : "Assets", value: shown.length, testId: "assets-count" },
             { label: pieces === 1 ? "Item" : "Items", value: pieces, testId: "assets-items" },
             { label: "Total value", value: rupees(total), testId: "assets-total" },
           ]}
@@ -99,7 +118,7 @@ export function AssetsDesk({ businessId, assets }: { businessId: string; busines
 
       {/* ⚠ THE LOWER SECTION — a card per asset, its picture as the card's face */}
       <DeskBody head={<FigureHead margin="0 0 8px" title={<span style={eyebrow}>INVENTORY</span>} />}>
-        {assets.map((a) => (
+        {shown.map((a) => (
           /* the app's one card: the picture in its squircle and the name at a
              profile's size, its type over it; how many and what it is worth as
              figures; Edit and Remove on a bar of their own */
@@ -137,19 +156,12 @@ export function AssetsDesk({ businessId, assets }: { businessId: string; busines
               </Link>
               {/* ⚠ THE APP'S ONE DELETE (18 Oct 2026): last on the bar, asking in
                   the shared dialog — it was the one card that asked in a sheet */}
-              <DeleteIconButton
-                label={`Remove ${a.name}`}
-                title="Remove this asset?"
-                body={`${a.name}${a.quantity > 1 ? ` × ${a.quantity}` : ""} · ${valueWords(a.valueInr)} — it comes off the inventory and the total.`}
-                goWord="Delete"
-                disabled={pending}
-                onConfirm={() => drop(a)}
-              />
+              <DeleteIcon label={`Remove ${a.name}`} disabled={pending} onClick={() => drop(a)} />
             </ToolActions>
           </ToolCard>
         ))}
 
-        {assets.length === 0 ? (
+        {shown.length === 0 ? (
           <div style={{ ...card, textAlign: "center", fontSize: 12, color: SUB, border: "1.5px dashed var(--el)", lineHeight: 1.5 }}>
             Nothing on the inventory yet. Put ₹0 on something you already had.
           </div>

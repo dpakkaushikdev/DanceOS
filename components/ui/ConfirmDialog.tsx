@@ -7,7 +7,7 @@ import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
 import { SUB } from "@/lib/design/tokens";
 /** what the go button says while it works — "Deleting…", "Removing…" */
 const BUSY: Record<string, string> = { Delete: "Deleting…", "Use membership": "Booking…", Remove: "Removing…", "Return it": "Returning…", "Call it off": "Calling off…", Withdraw: "Withdrawing…", Leave: "Leaving…", Decline: "Declining…" };
-const busyWordOf = (go: string) => BUSY[go] ?? "Working…";
+const busyWordOf = (go: string) => BUSY[go] ?? "Saving…";
 
 /** ARE YOU SURE? — one centred question before something is taken off (4 Oct
  *  2026, the user: "should confirm before deleting a routine … confirm before

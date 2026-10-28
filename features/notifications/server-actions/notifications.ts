@@ -4,8 +4,22 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { clearNotifications, findMyNotificationPrefs, findMyNotifications, markNotificationsRead, setNotificationPrefs } from "@/repositories/notifications";
+import { clearNotifications, findMyNotificationPrefs, findMyNotifications, findMyUnreadCount, markNotificationsRead, setNotificationPrefs } from "@/repositories/notifications";
 import { DEFAULT_PREFS, type AppNotification, type NotificationKind, type NotificationPrefs } from "@/types/notification";
+
+/** THE BELL'S LIVE COUNT (Batch 3, 28 Oct 2026). The count was read once per
+ *  page render, so a booking or an invite that arrived while somebody sat on a
+ *  screen stayed invisible until they moved. The chrome asks this every 30 s
+ *  and when the app comes back into view. The caller's own count only —
+ *  `my_unread_notifications` is scoped to `auth.uid()` inside. Signed out → 0. */
+export async function myUnreadCountAction(): Promise<number> {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return 0;
+  return findMyUnreadCount(supabase).catch(() => 0);
+}
 
 /** THE DRAWER'S READ (18 Oct 2026) — the bell opens notifications from the left
  *  in place, so the list is fetched on the press rather than by a page. Both

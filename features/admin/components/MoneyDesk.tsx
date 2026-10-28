@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { dateWords } from "@/features/settings/components/settings-kit";
 import { DOS_DISPLAY, INK, SUB } from "@/lib/design/tokens";
+import { methodWord } from "@/lib/format/money";
 import type { AdminMoneySummary, AdminPayment, AdminPayout, AdminRefund } from "@/repositories/adminPanel";
 import { agoWords } from "@/types/notification";
 import { DeskNeedsMigration } from "./DeskNeedsMigration";
@@ -202,7 +203,7 @@ export function MoneyDesk({
                       {p.payerName}
                       {p.payerEmail ? ` · ${p.payerEmail}` : ""}
                       {p.businessName ? ` · to ${p.businessName}` : ""}
-                      {p.method ? ` · ${p.method}` : ""}
+                      {p.method ? ` · ${methodWord(p.method)}` : ""}
                       {` · ${agoWords(p.createdAt, nowIso)}`}
                     </div>
                     {p.providerPaymentId ? (

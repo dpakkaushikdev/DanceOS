@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { plainError } from "@/lib/errors";
 import { INSTAGRAM_PICTURE_COOKIE, isInstagramPicture } from "@/lib/instagram/oauth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { disconnectInstagram } from "@/repositories/instagram";
@@ -24,7 +25,7 @@ export async function disconnectInstagramAction(): Promise<{ error: string | nul
     revalidatePath(`/person/${user.id}`);
     return { error: null };
   } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "Could not disconnect Instagram" };
+    return { error: error instanceof Error ? plainError(error.message) : "Could not disconnect Instagram" };
   }
 }
 
@@ -48,7 +49,7 @@ export async function adoptInstagramPhotoAction(): Promise<{ error: string | nul
     revalidatePath(`/person/${user.id}`);
     return { error: null };
   } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "Could not use the Instagram picture" };
+    return { error: error instanceof Error ? plainError(error.message) : "Could not use the Instagram picture" };
   }
 }
 

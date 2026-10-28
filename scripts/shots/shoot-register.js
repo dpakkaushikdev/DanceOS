@@ -360,7 +360,12 @@ const valueOf = (page, label) => page.getByLabel(label).inputValue();
     /* ⚠ AND IT CAN BE TAKEN BACK OFF, which a real learner's seat cannot be:
        they cancel their own, and a walk-in has no account to do it. */
     await page.getByRole("button", { name: `Remove ${walkName} from the register` }).click();
-    await page.getByText("removed", { exact: false }).first().waitFor({ timeout: 20000 });
+    /* ⚠ "Removed · Undo" (28 Oct 2026, batch 3): the row goes at once and the
+       real delete runs when the 5 s undo window closes — wait it out before
+       reading the database */
+    await page.getByTestId("toast-undo").waitFor({ timeout: 20000 });
+    await page.getByTestId("toast-undo").waitFor({ state: "hidden", timeout: 10000 });
+    await page.waitForTimeout(2500);
     const wGone = await rows(
       owner.h,
       `class_bookings?id=eq.${wRow[0].id}&deleted_at=is.null&select=id`

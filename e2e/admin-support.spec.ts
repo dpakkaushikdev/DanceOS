@@ -340,9 +340,9 @@ test.describe("the admin panel: support, trust, accountability", () => {
     await expect(request).toBeVisible();
     // R16: the links say who they classPerson to be, the photos say there is a floor
     await expect(request.getByText("5 PHOTOS OF THE SPACE")).toBeVisible();
-    await request.getByRole("button", { name: `Reject ${studioName}` }).click();
+    await request.getByRole("button", { name: `Decline ${studioName}` }).click();
     await admin.getByRole("textbox").last().fill("Your Instagram has three posts and no classes — show us the studio.");
-    await admin.getByRole("button", { name: /^Reject/ }).last().click();
+    await admin.getByRole("button", { name: /^Decline/ }).last().click();
     await expect(admin.getByText(/not approved|Ask again|rejected/i).first()).toBeVisible({ timeout: 15_000 });
 
     // the owner reads the reason under the studio, in the admin's own words,

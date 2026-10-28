@@ -49,28 +49,36 @@ export function AnswerButtons({ title, classPersonId, venueClassId }: { title: s
   const [err, setErr] = useState<string | null>(null);
   /* ⚠ B17 (11 Oct 2026): a no cannot be taken back, so it asks first */
   const [declining, setDeclining] = useState(false);
+  /* ⚠ INSTANT (Batch 3): the answer is drawn the moment it is pressed, and the
+     server's word decides — a refusal puts the buttons back with toast.error. */
+  const [answered, setAnswered] = useState<null | "accepted" | "declined">(null);
   const answer = async (accept: boolean) => {
     if (busy) return;
     setBusy(true);
     setErr(null);
+    setDeclining(false);
+    setAnswered(accept ? "accepted" : "declined");
     const out = venueClassId
       ? await respondToVenueRequestAction({ classId: venueClassId, accept })
       : await respondToClassAskAction({ classPersonId: classPersonId!, accept });
     setBusy(false);
-    if (out.error) setErr(out.error);
-    else {
-      setDeclining(false);
+    if (out.error) {
+      setAnswered(null);
+      setErr(out.error);
+      toast.error(out.error);
+    } else {
       toast(accept ? "Accepted — it's on your calendar" : "Declined");
       router.refresh();
     }
   };
+  if (answered) return <StateChip word={answered === "accepted" ? "Accepted" : "Declined"} tint={answered === "accepted" ? "#22C55E" : "#858585"} />;
   return (
     <>
       <button type="button" disabled={busy} aria-label={`Decline ${title}`} data-testid="card-decline" onClick={() => setDeclining(true)} style={cardBtn(false)}>
         Decline
       </button>
       <button type="button" disabled={busy} aria-label={`Accept ${title}`} data-testid="card-accept" onClick={() => void answer(true)} style={cardBtn(true)}>
-        {busy ? "…" : "Accept"}
+        Accept
       </button>
       <ErrorLine text={declining ? null : err} />
       {declining ? (
@@ -163,7 +171,7 @@ export function WithdrawButton({ title, classPersonId }: { title: string; classP
         }}
         style={cardBtn(false)}
       >
-        {busy ? "…" : "Withdraw"}
+        {busy ? "Withdrawing…" : "Withdraw"}
       </button>
       <ErrorLine text={err} />
     </>

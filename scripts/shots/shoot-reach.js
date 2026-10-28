@@ -149,7 +149,7 @@ const check = (name, pass, detail = "") => {
        empty ledger reads as "nothing bounced" when what it means is "nothing is
        being recorded" — the route answers 503 without its secret. The desk must
        say WHICH of the two it is. */
-    check("an unrecorded ledger says so rather than reading as zero bounces", /The ledger is not recording yet/i.test(mail));
+    check("an unrecorded ledger says so rather than reading as zero bounces", /Email delivery is not being recorded yet/i.test(mail));
     check("and names the secret that is missing", /RESEND_WEBHOOK_SECRET/.test(mail));
     /* ⚠ THE HEADING, AND THE FIELD'S OWN ACCESSIBLE NAME — not the placeholder
        through `innerText`, which is an ATTRIBUTE and never appears in it. The

@@ -128,7 +128,7 @@ export function PushDevice({ onState }: { onState?: (s: PushDeviceState) => void
             onClick={() => void (state === "on" ? turnOff() : turnOn())}
             style={{ flexShrink: 0, padding: "8px 14px", borderRadius: 999, border: "1.5px solid var(--el)", background: state === "on" ? "transparent" : INK, color: state === "on" ? INK : "var(--solid)", fontSize: 11.5, fontWeight: 900, cursor: "pointer", fontFamily: "inherit" }}
           >
-            {busy ? "…" : state === "on" ? "Turn off" : "Turn on"}
+            {busy ? "Saving…" : state === "on" ? "Turn off" : "Turn on"}
           </button>
         ) : null}
       </div>

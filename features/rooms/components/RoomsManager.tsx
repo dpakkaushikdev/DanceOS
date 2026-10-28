@@ -11,7 +11,7 @@ import { DOS_DISPLAY, DOS_UI } from "@/lib/design/tokens";
 import type { Room } from "@/types/room";
 import { DeskAddButton } from "@/features/settings/components/settings-kit";
 import { AmenityChip } from "@/components/ui/AmenityIcon";
-import { DeleteIconButton } from "@/components/ui/DeleteIconButton";
+import { DeleteIcon } from "@/components/ui/DeleteIconButton";
 import { toast } from "@/components/ui/Toast";
 import { splitAddress } from "@/lib/format/address";
 
@@ -132,17 +132,40 @@ export function RoomsManager({
     fire("Room saved");
   };
 
-  const remove = async (r: Room): Promise<string | null> => {
-    if (busy) return null;
-    setBusy(true);
+  /* ⚠ "REMOVED · UNDO" (28 Oct 2026, batch 3): the card goes on the press and
+     the real delete runs when the undo window closes. A server refusal (the
+     studio's last room, a room still holding a class) puts the card back and
+     says why. */
+  const [hidden, setHidden] = useState<Set<string>>(() => new Set());
+  const hide = (id: string, on: boolean) =>
+    setHidden((cur) => {
+      const next = new Set(cur);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  const remove = (r: Room) => {
     setError(null);
-    const out = await deleteRoomAction({ businessId, roomId: r.id });
-    setBusy(false);
-    if (out.error) return out.error;
-    setList((cur) => cur.filter((x) => x.id !== r.id));
-    fire(`${r.name} deleted`);
-    return null;
+    hide(r.id, true);
+    toast.undo(
+      "Room removed",
+      () => {
+        setBusy(true);
+        void deleteRoomAction({ businessId, roomId: r.id }).then((out) => {
+          setBusy(false);
+          if (out.error) {
+            hide(r.id, false);
+            toast.error(out.error);
+            return;
+          }
+          setList((cur) => cur.filter((x) => x.id !== r.id));
+          hide(r.id, false);
+        });
+      },
+      () => hide(r.id, false),
+    );
   };
+  const shown = list.filter((r) => !hidden.has(r.id));
 
   return (
     <div style={{ maxWidth: 430, margin: "0 auto", padding: "0 var(--dos-gutter) 40px", fontFamily: DOS_UI, color: "var(--text)" }}>
@@ -181,7 +204,7 @@ export function RoomsManager({
       </DeskTop>
 
       <DeskBody>
-        {list.map((r) => {
+        {shown.map((r) => {
           const amen = DOS_AMENITIES.filter((a) => r.amenities.includes(a));
           const held = counts[r.id]?.published ?? 0;
           const done = counts[r.id]?.completed ?? 0;
@@ -230,23 +253,16 @@ export function RoomsManager({
                     Edit
                   </button>
                   {/* ⚠ no Remove while a published class is still to run in it */}
-                  {list.length > 1 && held === 0 ? (
-                    /* ⚠ an icon that ASKS FIRST (12 Oct 2026, the user: "ask before deleting always") */
-                    <DeleteIconButton
-                      label={`Remove ${r.name}`}
-                      title="Remove this room?"
-                      body={`${r.name} comes off the studio. Classes already held in it keep their record.`}
-                      goWord="Delete"
-                      disabled={busy}
-                      onConfirm={() => remove(r)}
-                    />
+                  {shown.length > 1 && held === 0 ? (
+                    /* ⚠ removed at once with an Undo (28 Oct 2026, batch 3) */
+                    <DeleteIcon label={`Remove ${r.name}`} disabled={busy} onClick={() => remove(r)} />
                   ) : null}
                 </ToolActions>
               ) : null}
             </ToolCard>
           );
         })}
-        {list.length === 0 ? (
+        {shown.length === 0 ? (
           <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 4 }}>No rooms yet — add the first one above, and your classes can be held in it.</div>
         ) : null}
 

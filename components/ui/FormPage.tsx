@@ -305,13 +305,24 @@ export function FormConfirm({
             {cancelWord}
           </button>
           <button type="button" disabled={busy} onClick={onConfirm} style={{ flex: 1.4, textAlign: "center", padding: 13, borderRadius: 999, background: INK, color: LILAC, fontWeight: 900, fontSize: 13.5, cursor: "pointer", border: "none", fontFamily: "inherit" }}>
-            {busy ? "Working…" : confirmWord}
+            {busy ? busyWordFor(confirmWord) : confirmWord}
           </button>
         </div>
       </div>
     </div>
     </Portal>
   );
+}
+
+/** ONE busy word (Batch 3): "Saving…", or the act's own verb where the press is
+ *  clearly that act — publishing, deleting, sending, paying. */
+export function busyWordFor(word: string): string {
+  const w = word.trim().toLowerCase();
+  if (w.startsWith("publish")) return "Publishing…";
+  if (w.startsWith("delete")) return "Deleting…";
+  if (w.startsWith("send")) return "Sending…";
+  if (w.startsWith("pay")) return "Paying…";
+  return "Saving…";
 }
 
 /** the summary card inside a confirm sheet — a tinted head over a plain body,

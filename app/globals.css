@@ -433,6 +433,23 @@ a:focus-visible:not([data-slot]) {
     animation: none !important;
   }
 }
+/* the thin line at the top while a page loads (NavProgress, Batch 3) */
+@keyframes dosNavProgress {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(260%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-testid="nav-progress"] > div {
+    animation: none !important;
+    width: 100% !important;
+    opacity: 0.6;
+  }
+}
+
 @keyframes dosSheetUp {
   from {
     transform: translateY(100%);

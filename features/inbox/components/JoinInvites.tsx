@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ReactNode } from "react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { toast } from "@/components/ui/Toast";
 import { AnsweredButton, AnsweredSheet, GearButton, HeadCorner, RequestSettingsSheet, SETTING_ICONS, SettingRow } from "@/components/ui/RequestSettingsSheet";
 import { ToolActions, ToolBody, ToolCard, ToolChip, ToolHead, toolBtn } from "@/components/ui/ToolCard";
 import { respondToCrewAskAction } from "@/features/crews/server-actions/crews";
@@ -111,17 +112,23 @@ function InviteCard({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [declining, setDeclining] = useState(false);
+  /* ⚠ INSTANT (Batch 3): the reply is on the card the moment it is pressed; a
+     refusal takes it back with toast.error, and the refresh lands behind it */
+  const [answered, setAnswered] = useState<null | "joined" | "declined">(null);
   const answer = async (accept: boolean) => {
     if (busy) return;
     setBusy(true);
     setErr(null);
+    setDeclining(false);
+    setAnswered(accept ? "joined" : "declined");
     const out = await onAnswer(accept);
     setBusy(false);
     if (out.error) {
+      setAnswered(null);
       setErr(out.error);
+      toast.error(out.error);
       return;
     }
-    setDeclining(false);
     /* ⚠ STAY ON THIS COLUMN, BY ADDRESS (11 Oct 2026). The hub opens on this
        column only while an invitation waits, so a plain refresh after the last
        one flipped the screen to Manage and the studio just joined was out of
@@ -130,6 +137,14 @@ function InviteCard({
     if (`${window.location.pathname}${window.location.search}` === stayOn) router.refresh();
     else router.replace(stayOn, { scroll: false });
   };
+  if (answered) {
+    const r = REPLY[answered];
+    return (
+      <ToolCard testId={testId} dim={answered !== "joined"}>
+        <ToolHead tint={tint} name={name} photoPath={photoPath} eyebrow={eyebrow} sub={sub} right={<ToolChip word={r.word.toUpperCase()} fg={r.colour} bg={`${r.colour}1e`} />} />
+      </ToolCard>
+    );
+  }
   return (
     <ToolCard testId={testId}>
       <ToolHead
@@ -145,7 +160,7 @@ function InviteCard({
           Decline
         </button>
         <button type="button" disabled={busy} aria-label={`Join ${name}`} data-testid={`${testId}-join`} onClick={() => void answer(true)} style={toolBtn("primary", tint, { flex: "1.3 1 0" })}>
-          {busy && !declining ? "…" : joinWord}
+          {joinWord}
         </button>
       </ToolActions>
       {err && !declining ? (

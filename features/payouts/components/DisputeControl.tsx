@@ -235,7 +235,7 @@ function AnswerSheet({ label, d, busy, error, onClose, onAnswer }: { label: stri
         {(
           [
             [true, "Accept"],
-            [false, "Reject"],
+            [false, "Decline"],
           ] as const
         ).map(([v, w]) => (
           <button key={w} type="button" role="radio" aria-checked={accept === v} onClick={() => setAccept(v)} style={{ flex: 1, padding: "9px", borderRadius: 999, fontWeight: 800, fontSize: 12, fontFamily: "inherit", cursor: "pointer", background: accept === v ? "var(--text)" : "var(--card)", color: accept === v ? "var(--solid)" : SUB, border: `1.5px solid ${accept === v ? "var(--text)" : "var(--el)"}` }}>
@@ -271,7 +271,7 @@ function AnswerSheet({ label, d, busy, error, onClose, onAnswer }: { label: stri
       ) : null}
       {footer(
         busy,
-        accept === null ? "Accept or reject" : accept ? (settling ? `Accept · record ${rupees(short)}` : "Accept dispute") : "Reject dispute",
+        accept === null ? "Accept or decline" : accept ? (settling ? `Accept · record ${rupees(short)}` : "Accept dispute") : "Decline dispute",
         accept === null,
         onClose,
         () => onAnswer(Boolean(accept), response.trim() || null, settling ? method : null)

@@ -16,21 +16,41 @@ import { plainError } from "@/lib/errors";
  *
  *  The store owns the timer, so a second toast replaces the first cleanly. */
 
-type Kind = "success" | "error";
+type Kind = "success" | "error" | "undo";
 type Item = { id: number; kind: Kind; msg: string };
+
+/* BATCH 3 (28 Oct 2026): an error STAYS until it is closed — a refusal read
+   in 6 s was a refusal often missed — and a quick delete is "Removed · Undo":
+   the screen hides the thing at once, and the real delete runs only when the
+   undo window closes (5 s), when another toast replaces this one, or when the
+   page is left. Nothing is restored, because nothing was deleted yet. */
+const UNDO_MS = 5000;
 
 let current: Item | null = null;
 let timer: ReturnType<typeof setTimeout> | null = null;
+let pending: { commit: () => void; undo: () => void } | null = null;
 let seq = 0;
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
+/** the delete a pending undo was holding back goes through now */
+function flushPending() {
+  const p = pending;
+  pending = null;
+  if (p) p.commit();
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("pagehide", flushPending);
+}
+
 function show(kind: Kind, msg: string | null | undefined) {
   if (!msg) return;
+  flushPending();
   const text = kind === "error" ? plainError(msg) : msg;
   current = { id: ++seq, kind, msg: text };
   if (timer) clearTimeout(timer);
-  timer = setTimeout(() => dismiss(), kind === "error" ? 6000 : 3000);
+  timer = kind === "error" ? null : setTimeout(() => dismiss(), 3000);
   emit();
 }
 
@@ -38,6 +58,28 @@ function dismiss() {
   if (timer) clearTimeout(timer);
   timer = null;
   current = null;
+  flushPending();
+  emit();
+}
+
+function undoNow() {
+  const p = pending;
+  pending = null;
+  if (timer) clearTimeout(timer);
+  timer = null;
+  current = null;
+  emit();
+  if (p) p.undo();
+}
+
+/** "Removed · Undo". `commit` is the real delete; `undo` puts the item back on
+ *  screen. Exactly one of the two runs. */
+function withUndo(msg: string, commit: () => void, undo: () => void) {
+  flushPending();
+  pending = { commit, undo };
+  current = { id: ++seq, kind: "undo", msg };
+  if (timer) clearTimeout(timer);
+  timer = setTimeout(() => dismiss(), UNDO_MS);
   emit();
 }
 
@@ -45,12 +87,15 @@ type ToastFn = ((msg: string | null | undefined) => void) & {
   error: (msg: string | null | undefined) => void;
   /** an action result: shows the error when there is one, the success otherwise */
   result: (error: string | null | undefined, success: string) => void;
+  /** a quick delete with an Undo — see `withUndo` */
+  undo: (msg: string, commit: () => void, undo: () => void) => void;
   dismiss: () => void;
 };
 
 export const toast: ToastFn = Object.assign((msg: string | null | undefined) => show("success", msg), {
   error: (msg: string | null | undefined) => show("error", msg),
   result: (error: string | null | undefined, success: string) => (error ? show("error", error) : show("success", success)),
+  undo: withUndo,
   dismiss,
 });
 
@@ -93,6 +138,16 @@ export function Toaster() {
       }}
     >
       <span style={{ flex: 1 }}>{item.msg}</span>
+      {item.kind === "undo" && (
+        <button
+          type="button"
+          onClick={undoNow}
+          data-testid="toast-undo"
+          style={{ flexShrink: 0, height: 30, padding: "0 14px", borderRadius: 999, border: "none", background: "var(--text)", color: "var(--solid)", fontSize: 12.5, fontWeight: 900, cursor: "pointer", fontFamily: "inherit" }}
+        >
+          Undo
+        </button>
+      )}
       {err && (
         <button
           type="button"

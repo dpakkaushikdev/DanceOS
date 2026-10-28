@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition, type ReactNode } from "react";
 import { DragList } from "@/components/ui/DragList";
 import { plainError } from "@/lib/errors";
+import { toast } from "@/components/ui/Toast";
 import { ToolGlyph, type Tile } from "@/features/home/components/tool-grid";
 import { setToolOrderAction } from "@/features/home/server-actions/toolOrder";
 import { arrangeTiles, orderOf } from "@/features/home/toolOrder";
@@ -60,6 +61,7 @@ export function DrawerTools({
       if (res.error) {
         setLocal(prev);
         setErr("Could not save that order — try again.");
+        toast.error("Could not save that order — try again.");
       }
     });
   };
@@ -76,7 +78,10 @@ export function DrawerTools({
     setErr(null);
     start(async () => {
       const res = await setToolOrderAction({ key: layoutKey, order: [] });
-      if (res.error) setErr("Could not reset the order — try again.");
+      if (res.error) {
+        setErr("Could not reset the order — try again.");
+        toast.error("Could not reset the order — try again.");
+      }
       else {
         setLocal(null);
         router.refresh();
@@ -177,7 +182,7 @@ export function DrawerTools({
                 fontFamily: "inherit",
               }}
             >
-              Reset to default
+              {pending ? "Saving…" : "Reset to default"}
             </button>
           </div>
         </div>

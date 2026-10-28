@@ -146,6 +146,8 @@ export function StudioCard({ business, followers = 0, shots = [] }: { business: 
             ))}
           </div>
         ) : null}
+        {/* the follower count back on the posters' top-right (29 Oct 2026) */}
+        <FollowerPill n={followers} />
       </div>
 
       {/* THE BOTTOM: the profile picture and the other details (27 Sep 2026) */}
@@ -192,9 +194,6 @@ export function StudioCard({ business, followers = 0, shots = [] }: { business: 
               <DosWhere city={place} km={business.located ? kmLabel(business.distanceKm) : null} />
             </span>
           </span>
-          {/* the follower count is in the card's bottom part, on the right of the
-              name (29 Oct 2026) — it was a pill over the posters */}
-          <FollowerPill n={followers} inline />
         </div>
       </div>
     </Link>

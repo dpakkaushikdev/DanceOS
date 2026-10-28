@@ -57,6 +57,9 @@ export function DosWhere({ city, km, size = 11 }: { city: string; km?: string | 
 /* ⚠ `inline` (29 Oct 2026, the user: "follower count on studio, artist and styles
    should be in the bottom part of the cards"): the pill sits in the card's lower
    section, in the flow, instead of pinned over the picture. */
+/* ⚠ BACK ON THE PICTURE, AND SMALLER (29 Oct 2026, the user: "follower count
+   place it where it was earlier and make it smaller") — the pinned pill is the
+   default again on every Discover card, a step down from the 2 Oct size. */
 export function FollowerPill({ n, inline = false }: { n: number; inline?: boolean }) {
   return (
     <span
@@ -65,17 +68,17 @@ export function FollowerPill({ n, inline = false }: { n: number; inline?: boolea
       aria-label={`${n} ${n === 1 ? "follower" : "followers"}`}
       title={`${fmtF(n)} ${n === 1 ? "follower" : "followers"}`}
       style={{
-        ...(inline ? { position: "relative", flexShrink: 0 } : { position: "absolute", top: 8, right: 8 }),
+        ...(inline ? { position: "relative", flexShrink: 0 } : { position: "absolute", top: 6, right: 6 }),
         zIndex: 1,
         display: "inline-flex",
         alignItems: "center",
-        gap: 4,
-        padding: "3px 8px 3px 7px",
+        gap: 3,
+        padding: "2px 6px 2px 5px",
         borderRadius: 999,
         background: "var(--text)",
         color: "var(--solid)",
-        boxShadow: inline ? "none" : "0 2px 8px rgba(0,0,0,.28)",
-        fontSize: inline ? 10 : 11,
+        boxShadow: inline ? "none" : "0 2px 6px rgba(0,0,0,.28)",
+        fontSize: 9.5,
         fontWeight: 900,
         lineHeight: 1.3,
         fontVariantNumeric: "tabular-nums",
@@ -83,7 +86,7 @@ export function FollowerPill({ n, inline = false }: { n: number; inline?: boolea
         whiteSpace: "nowrap",
       }}
     >
-      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <circle cx="9" cy="8.4" r="3.2" />
         <path d="M3 19.5c.7-3.2 3-4.9 6-4.9s5.3 1.7 6 4.9" />
         <circle cx="17.2" cy="9.4" r="2.4" />

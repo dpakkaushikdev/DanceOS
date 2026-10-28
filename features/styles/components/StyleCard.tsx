@@ -34,18 +34,14 @@ export function StyleCard({ style, followers, small = false }: { style: string; 
           the whole figure inside the square */}
       <div style={{ position: "relative", width: "100%", aspectRatio: "1 / 1", borderRadius: small ? 11 : 14, overflow: "hidden", background: `linear-gradient(150deg, ${color}, ${color}99)`, boxShadow: "0 6px 16px -8px rgba(0,0,0,.6)" }}>
         <StyleArt style={style} frame="page" />
+        {/* the people who dance it or want to learn it (10 Oct 2026), back on the
+            picture's top-right like every Discover card (29 Oct 2026) */}
+        {followers !== undefined ? <FollowerPill n={followers} /> : null}
       </div>
       <div style={{ minWidth: 0, padding: small ? "2px 1px 1px" : "4px 2px 2px", textAlign: "center" }}>
         <div style={{ fontSize: small ? 7.5 : 9, fontWeight: 900, letterSpacing: small ? 0.5 : 0.8, textTransform: "uppercase", color: "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{family}</div>
         {/* one line whatever the name (18 Oct 2026) — a long one steps down, then ellipsises */}
         <div title={style} style={{ fontFamily: DOS_DISPLAY, fontWeight: 900, fontSize: nameSize, letterSpacing: -0.4, lineHeight: 1.2, marginTop: 2, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{style}</div>
-        {/* the people who dance it or want to learn it (10 Oct 2026), in the card's
-            bottom part like an artist card's (29 Oct 2026) */}
-        {followers !== undefined ? (
-          <div style={{ marginTop: small ? 5 : 7, display: "flex", justifyContent: "center" }}>
-            <FollowerPill n={followers} inline />
-          </div>
-        ) : null}
       </div>
     </Link>
   );

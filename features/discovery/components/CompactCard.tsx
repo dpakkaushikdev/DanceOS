@@ -58,6 +58,7 @@ export function CompactCard({
         ) : (
           <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: sm ? 24 : 38, fontWeight: 900, letterSpacing: 1, fontFamily: DOS_DISPLAY, textShadow: "0 3px 14px rgba(0,0,0,.35)" }}>{initialsOf(name)}</span>
         )}
+        <FollowerPill n={followers} />
         {label ? <span style={{ position: "absolute", left: 8, bottom: 8, ...micro, color: "rgba(255,255,255,.92)", padding: "2px 7px", borderRadius: 999, background: "rgba(0,0,0,.36)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}>{label}</span> : null}
       </div>
       {/* ⚠ THE TEXT UNDER THE PICTURE (2 Oct 2026, the user: "artist and crew
@@ -103,12 +104,6 @@ export function CompactCard({
         </div>
         <div style={{ marginTop: sm ? 3 : 5, minWidth: 0, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", display: "flex", justifyContent: "center" }}>
           <DosWhere city={city} km={km ?? null} size={sm ? 9.5 : 11} />
-        </div>
-        {/* the follower count in the bottom part, under the place, pinned to the
-            card's foot so a row of cards lines up whatever the name's length
-            (29 Oct 2026) */}
-        <div style={{ marginTop: "auto", paddingTop: sm ? 5 : 7, display: "flex", justifyContent: "center" }}>
-          <FollowerPill n={followers} inline />
         </div>
       </div>
     </Link>

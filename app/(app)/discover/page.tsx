@@ -708,14 +708,12 @@ export default async function DiscoverPage({
       {/* artists draw the CompactCard, two to a row (4376-4423, 4815) — each one
           a PERSON with a live plan, opening their profile (18 Sep 2026) */}
       {tab === "artists" && artists.length > 0 && (
-        /* three to a row and no ARTIST tag (29 Oct 2026, the user: "remove artist
-           tag from artist cards on discover. reduce size of artist and dance
-           style cards") — the tab already says what every card is */
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
+        /* two to a row again and no ARTIST tag (29 Oct 2026, the user: "artist on
+           discover should be 2 in a row") — the tab already says what every card is */
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           {artists.map((a) => (
             <CompactCard
               key={a.id}
-              size="sm"
               href={`/person/${a.id}`}
               ariaLabel={`Open ${a.name}`}
               name={a.name}

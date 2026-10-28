@@ -32,6 +32,8 @@ export interface CrewPractice {
   /** where, in the crew's own words — a practice is held wherever the crew found
    *  a floor, so this is free text and never a `rooms` reference */
   place: string;
+  /** where, as a link — a map pin (29 Oct 2026); `place` is its name */
+  placeUrl?: string | null;
   note: string | null;
   status: PracticeStatus;
   /** whether the reader leads the crew this belongs to — the register and the

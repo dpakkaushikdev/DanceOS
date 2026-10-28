@@ -69,6 +69,7 @@ export default async function CrewPracticePage({ params }: { params: Promise<{ p
             startsAt={p.startsAt}
             endsAt={p.endsAt}
             place={p.place}
+            placeUrl={p.placeUrl ?? null}
             note={p.note}
             cancelled={p.status === "cancelled"}
             now={now}

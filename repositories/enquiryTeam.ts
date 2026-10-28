@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CalendarPracticeEntry } from "@/types/calendar";
+import { findPracticeLinks } from "@/repositories/crewPractices";
 import { ENQ_PART_WORD, enquiryTypeLabel } from "@/types/enquiry";
 import type {
   EnquiryFile,
@@ -113,11 +114,13 @@ export async function findEnquiryJob(supabase: SupabaseClient, enquiryId: string
       status: r.status === "asked" ? "asked" : "confirmed",
     };
   });
+  const links = await findPracticeLinks(supabase, "job", practices.map((p) => p.id));
   const list: EnquiryPractice[] = practices.map((p) => ({
     id: p.id,
     startsAt: p.starts_at,
     endsAt: p.ends_at,
     place: p.place,
+    placeUrl: links.get(p.id) ?? null,
     note: p.note,
     status: p.status,
     checkedIn: inBy.get(p.id) ?? [],
@@ -138,11 +141,13 @@ export const addEnquiryPerson = (supabase: SupabaseClient, enquiryId: string, us
 
 export const removeEnquiryPerson = (supabase: SupabaseClient, personId: string) => call(supabase, "remove_enquiry_person", { p_person_id: personId });
 
-export const saveEnquiryPractice = (
+/** returns the practice's id — the RPC hands back the saved row — so the action
+ *  can set its map link (29 Oct 2026) */
+export async function saveEnquiryPractice(
   supabase: SupabaseClient,
   input: { enquiryId: string; startsAt: string; endsAt: string; place: string; note: string | null; practiceId: string | null },
-) =>
-  call(supabase, "save_enquiry_practice", {
+): Promise<string> {
+  const { data, error } = await supabase.rpc("save_enquiry_practice", {
     p_enquiry_id: input.enquiryId,
     p_starts_at: input.startsAt,
     p_ends_at: input.endsAt,
@@ -150,6 +155,10 @@ export const saveEnquiryPractice = (
     p_note: input.note,
     p_practice_id: input.practiceId,
   });
+  if (error) throw new Error(isMissingSchema(error) ? NOT_SWITCHED_ON : error.message);
+  const row = (Array.isArray(data) ? data[0] : data) as { id?: string } | null;
+  return row?.id ?? input.practiceId ?? "";
+}
 
 export const cancelEnquiryPractice = (supabase: SupabaseClient, practiceId: string) => call(supabase, "cancel_enquiry_practice", { p_practice_id: practiceId });
 
@@ -235,7 +244,10 @@ const toMyPractice = (r: MyPracticeRow): MyEnquiryPractice => ({
 export async function findMyEnquiryPractices(supabase: SupabaseClient, opts: { from: string; to: string }): Promise<MyEnquiryPractice[]> {
   const { data, error } = await supabase.rpc("my_enquiry_practices", { p_from: opts.from, p_to: opts.to });
   if (error) return [];
-  return ((data ?? []) as MyPracticeRow[]).map(toMyPractice);
+  const list = ((data ?? []) as MyPracticeRow[]).map(toMyPractice);
+  const links = await findPracticeLinks(supabase, "job", list.map((p) => p.id));
+  for (const p of list) p.placeUrl = links.get(p.id) ?? null;
+  return list;
 }
 
 export interface EnquiryPracticeDetail {

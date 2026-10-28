@@ -523,6 +523,11 @@ a:focus-visible:not([data-slot]) {
     opacity: 1;
   }
 }
+/* Discover's tile background: one slow drifting light (29 Oct 2026) */
+@keyframes dosTileDrift {
+  from { transform: translate(0, 0); }
+  to { transform: translate(-26px, 30px); }
+}
 @keyframes dosTileFloat {
   from {
     transform: translate(0, 0);

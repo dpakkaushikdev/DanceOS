@@ -3975,10 +3975,9 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(trainer.getByTestId("routine-class")).toHaveCount(1);
     await trainer.getByTestId("routine-class").locator("summary").click();
     await expect(trainer.getByTestId("routine-class-open")).toHaveText("Class Detail ›");
-    /* the Studio grouping is the old column: one studio, closed again on the switch */
-    await trainer.getByTestId("routine-class-by-studio").click();
-    await expect(trainer.getByTestId("routine-class-group")).toHaveCount(1);
-    await expect(trainer.getByTestId("routine-class")).toHaveCount(0);
+    /* ⚠ NO ARTIST OR DANCE STYLE GROUPING (29 Oct 2026) — studios only, no pill row */
+    await expect(trainer.getByTestId("routine-class-by-studio")).toHaveCount(0);
+    await expect(trainer.getByTestId("routine-class-by-style")).toHaveCount(0);
     /* And Delete is one word on the card's top right, behind a confirm. */
     await expect(trainer.getByRole("button", { name: `Delete ${routineName}` })).toBeVisible();
     await expect(trainer.getByRole("link", { name: `Open the video for ${routineName}` })).toHaveText("Video");

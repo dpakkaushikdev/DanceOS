@@ -33,6 +33,10 @@ const IST_DAY = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", yea
 /** "2026-10-18" in IST */
 export const practiceDayKey = (iso: string): string => IST_DAY.format(new Date(iso));
 
+/** a practice's map link, only if it is a web address — the database's CHECK says
+ *  the same, and an href is the one place a `javascript:` link would bite (11 Sep) */
+export const safeLink = (u: string | null | undefined): string | null => (u && /^https?:\/\/\S+$/i.test(u) ? u : null);
+
 /** THE ONE PRACTICE CARD. A practice is the same shape whatever it is for — who
  *  it is with, when, where, and how full the register was — so the card is drawn
  *  from those facts alone; what a caller knows about its own kind arrives as
@@ -50,6 +54,7 @@ export function PracticeTile({
   startsAt,
   endsAt,
   place,
+  placeUrl = null,
   note,
   cancelled,
   going,
@@ -73,6 +78,8 @@ export function PracticeTile({
   startsAt: string;
   endsAt: string;
   place: string;
+  /** the place's map link, when the organiser gave one */
+  placeUrl?: string | null;
   note: string | null;
   cancelled: boolean;
   /** checked in, of how many on the register */
@@ -110,7 +117,22 @@ export function PracticeTile({
           <div data-testid="practice-time" style={{ fontSize: 15, fontWeight: 900, marginTop: 6, textDecoration: cancelled ? "line-through" : "none" }}>
             {practiceClock(startsAt)} – {practiceClock(endsAt)}
           </div>
-          <div style={{ fontSize: 12, color: SUB, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>📍 {place}</div>
+          {/* ⚠ the place is a LINK when it has one (29 Oct 2026) — a sibling of the
+              card's stretched link, never inside it, so it presses on its own */}
+          {placeUrl ? (
+            <a
+              data-testid="practice-place-link"
+              href={placeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Open ${place} in Maps`}
+              style={{ display: "block", fontSize: 12, color: tint, fontWeight: 800, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "underline", pointerEvents: "auto", position: "relative", zIndex: 2 }}
+            >
+              📍 {place} ↗
+            </a>
+          ) : (
+            <div style={{ fontSize: 12, color: SUB, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>📍 {place}</div>
+          )}
           {note ? <div style={{ fontSize: 11.5, color: MUTED, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{note}</div> : null}
         </div>
       </div>
@@ -166,6 +188,7 @@ export function PracticeCard({
       startsAt={p.startsAt}
       endsAt={p.endsAt}
       place={p.place}
+      placeUrl={safeLink(p.placeUrl)}
       note={p.note}
       cancelled={p.status === "cancelled"}
       going={p.going}

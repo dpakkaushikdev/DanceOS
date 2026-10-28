@@ -39,18 +39,19 @@ export function PracticeForm({ crewId, crewName, practice = null }: { crewId: st
   const [startTime, setStartTime] = useState(from?.time ?? "19:00");
   const [endTime, setEndTime] = useState(to?.time ?? "21:00");
   const [place, setPlace] = useState(practice?.place ?? "");
+  const [placeUrl, setPlaceUrl] = useState(practice?.placeUrl ?? "");
   const [note, setNote] = useState(practice?.note ?? "");
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
 
   /* the one sentence the button says when it cannot be pressed (15568-15578) */
-  const blocker = !date ? "Pick a day" : !startTime || !endTime ? "Pick the hours" : endTime <= startTime ? "It has to end after it starts" : !place.trim() ? "Say where" : null;
+  const blocker = !date ? "Pick a day" : !startTime || !endTime ? "Pick the hours" : endTime <= startTime ? "It has to end after it starts" : !place.trim() ? "Name the place" : placeUrl.trim() && !/^https?:\/\/\S+$/i.test(placeUrl.trim()) ? "The link starts with https://" : null;
 
   const close = () => router.back();
 
   const submit = async () => {
     setBusy(true);
-    const r = await saveCrewPracticeAction({ crewId, practiceId: practice?.id ?? null, date, startTime, endTime, place, note: note.trim() || null });
+    const r = await saveCrewPracticeAction({ crewId, practiceId: practice?.id ?? null, date, startTime, endTime, place, placeUrl: placeUrl.trim() || null, note: note.trim() || null });
     setBusy(false);
     if (r.error) {
       setConfirm(false);
@@ -107,10 +108,17 @@ export function PracticeForm({ crewId, crewName, practice = null }: { crewId: st
         </div>
       </div>
 
+      {/* ⚠ WHERE IS A NAME AND A LINK (29 Oct 2026, the user: "where in add
+          practice form should be a link and there should be an option to name it
+          as well"). The name is required; the link — a map pin — is optional. */}
       <label style={{ ...FORM_LABEL, marginTop: 14 }} htmlFor="practice-place">
-        Where
+        Where · place name
       </label>
       <input id="practice-place" value={place} onChange={(e) => setPlace(e.target.value)} placeholder="Studio 4, Baner" maxLength={120} style={FORM_INPUT} />
+      <label style={{ ...FORM_LABEL, marginTop: 10 }} htmlFor="practice-link">
+        Where · map link
+      </label>
+      <input id="practice-link" type="url" inputMode="url" value={placeUrl} onChange={(e) => setPlaceUrl(e.target.value)} placeholder="https://maps.app.goo.gl/…" maxLength={500} style={FORM_INPUT} />
 
       <label style={{ ...FORM_LABEL, marginTop: 14 }} htmlFor="practice-note">
         Anything to bring
@@ -140,7 +148,7 @@ export function PracticeForm({ crewId, crewName, practice = null }: { crewId: st
             <div>
               {startTime} – {endTime}
             </div>
-            <div>{place}</div>
+            <div>{place}{placeUrl.trim() ? " · map link" : ""}</div>
             {note.trim() ? <div>{note.trim()}</div> : null}
           </FormSummary>
         </FormConfirm>

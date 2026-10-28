@@ -21,7 +21,8 @@ const saveSchema = z.object({
   routineId: z.string().uuid().nullable().optional(),
   title: nameField("Name the routine"),
   style: z.string().trim().min(1, "Pick a dance style").max(40),
-  level: z.enum(LEVELS),
+  /* no level on the form since 29 Oct 2026 — a routine is saved "all" */
+  level: z.enum(LEVELS).default("all"),
   songTitle: z.string().trim().max(120).nullable(),
   songUrl: link,
   songIsFile: z.boolean(),

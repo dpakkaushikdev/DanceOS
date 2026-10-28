@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { PracticeTile, practiceWhenShort } from "@/features/crews/components/practice-card";
+import { PracticeTile, practiceWhenShort, safeLink } from "@/features/crews/components/practice-card";
 import { ENQ_PART_WORD, enquiryTypeLabel, type MyEnquiryPractice } from "@/types/enquiry";
 
 /** AN ENQUIRY JOB'S PRACTICE, ON THE ONE PRACTICE CARD (18 Oct 2026, the user:
@@ -46,6 +46,7 @@ export function EnquiryPracticeCard({
       startsAt={p.startsAt}
       endsAt={p.endsAt}
       place={p.place}
+      placeUrl={safeLink(p.placeUrl)}
       note={p.note}
       cancelled={p.status === "cancelled"}
       going={p.checkedIn}

@@ -13,7 +13,16 @@ Keys for all of these are in `.env.local` (gitignored). Any older record below t
 
 **Checked 27 Oct 2026 (this machine):** git remotes now match the table — `origin` = `dpakkaushikdev/DanceOS` (and `main` tracks `origin/main`), the old repo is `old-origin` and is never pushed to; `credential.https://github.com.username` is set locally to `dpakkaushikdev`. `.env.local` names `gfpxbmanxkmhmrzfbqqw`. The old host `dancestudio-orcin.vercel.app` was removed from `.env.local.example` and from `scripts/qr-proof.js`, `stranger-smoke.ps1`, `webpush-proof.mjs`, `vercel-set-google-keys.js`; `android/` already named the new host. No file outside this log mentions the old account any more. ⚠ Still open with the user: re-register the Cashfree webhook on `https://danceos-sigma.vercel.app/api/webhooks/cashfree` (it was registered on the old host). The TWA APK was rebuilt on the keystore PC later the same day — 1.2.0, versionCode 3, same key, see the top block — but has not been installed on a phone yet.
 
-## LAST SESSION (17–28 Oct 2026) — replaced on every push (Rule 13)
+## LAST SESSION (17–29 Oct 2026) — replaced on every push (Rule 13)
+
+> ### DISCOVER OPENS ON CLASSES, QUIETER TILES, SHARE ON THE POSTER, A PRACTICE HAS A LINK, A LEANER ROUTINE, AND A STYLE PAGE WITH FACES (29 Oct 2026, latest) — ✅ `20261102090000_a_practice_has_a_link` APPLIED
+> The user: *"make sure discover always open on classes not studios. make classes, studios, artists and styles better keep minimum animation on the background should not be on the title … class detail share button should be on the top right besides the poster and inside button which says send it to somebody should say share. where in add practice form should be a link and there should be an option to name it as well. routine detail page should not have dance style and artist column and remove level from add routine form. style details page can be better and notable names should be carousel with pics of actual person with name and items being repeated on the page should be in the right section"*, then *"apply and push all to live"* once the migration's list was in front of them. The chat that built it died on "Prompt is too long" at that word; the next one applied and pushed.
+> * **Discover opens on Classes** again (reverses 28 Oct's Studios default at the same person's word; `?tab=studios` still opens Studios). **The four tiles** carry one slow drifting light behind them (`dosTileDrift`) and nothing animates on the title.
+> * **Class page:** the share button is a 38px chip on the poster's top-right corner (scrim paint), and the sheet's "Send it to somebody" reads **Share**.
+> * **A practice's Where is a NAME and a LINK** — `place` stays the name; `place_url` (http(s), ≤500, CHECK) on `crew_practices` and `enquiry_practices`, set by one new door `set_practice_link(kind, id, url)` (a crew's leader; an enquiry's owners/managers). No existing function re-typed; setting a link tells nobody. Dry run **10/10**, live read-back **5/5**, PostgREST reloaded.
+> * **Routine page:** no Artist or Dance style grouping (studios only); **Add Routine has no level** (saved `all`; the column stays).
+> * **Style page:** NOTABLE NAMES is a carousel of the people with their Wikipedia photos (`lib/styles/notablePhotos.ts` — server-read, cached a week, 2.5 s cut-off, initials on any failure, never fails the page), and facts said twice moved to one place.
+> * **Verified:** typecheck 0 · lint 0 · `audit:reads` 0 · build green · proofs `crews` + `enquiries` **2/2**, leftover guard OK · `shoot-practice` **50/50** on `:3100` · the whole e2e suite **51 passed / 3 failed / 2 did not run in 11.1 min** — two reds are `paid-webhook`'s known phone-provider 403, the third a STALE `back-navigation` line (it pressed Studios' "Lowest class price"; Discover opens on Classes now, whose sort is "Cheapest") — re-cut, **4/4** alone. ⚠ Not looked at on a phone.
 
 > ### HOME IS OFF THE BOTTOM BAR — DISCOVER ALONE (28 Oct 2026, latest) — no migration · `AppChrome.tsx` only, plus the harness
 > The user: *"remove home from bottom navbar only keep discover and fix other things"*. Row C183.
@@ -14063,6 +14072,7 @@ for the database schema. **The UI is not redesigned** — see Rule 2.
 
 ### Progress tracker — update after EVERY push (Rule 11)
 
+- **DISCOVER OPENS ON CLASSES, SHARE ON THE POSTER, A PRACTICE HAS A LINK, A STYLE PAGE WITH FACES — 29 Oct 2026, no step number — `20261102090000` APPLIED.** Detail at the top.
 - **HOME OFF THE BOTTOM BAR — DISCOVER ALONE — 28 Oct 2026, no step number — no migration.** Row C183. Detail at the top.
 - **HOME AND THE PUBLIC PAGE ARE ONE PAGE, TODAY'S SCHEDULE PUT AWAY — 28 Oct 2026, no step number — no migration.** Row C182. Detail at the top.
 

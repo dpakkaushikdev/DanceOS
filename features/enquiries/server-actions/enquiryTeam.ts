@@ -13,6 +13,7 @@ import {
   respondToEnquiryJob,
   saveEnquiryPractice,
 } from "@/repositories/enquiryTeam";
+import { setPracticeLink } from "@/repositories/crewPractices";
 
 /** AN ENQUIRY'S TEAM AND PRACTICES (18 Oct 2026). Shape only — every rule (who
  *  works the enquiry, who counts as team, a closed enquiry takes nobody, the
@@ -93,7 +94,15 @@ const practiceSchema = z
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date"),
     start: z.string().regex(/^\d{2}:\d{2}$/, "Pick a start time"),
     end: z.string().regex(/^\d{2}:\d{2}$/, "Pick an end time"),
-    place: z.string().trim().min(1, "Say where").max(120),
+    place: z.string().trim().min(1, "Name the place").max(120),
+    /* the place as a link — a map pin (29 Oct 2026); optional, http(s) only */
+    placeUrl: z
+      .string()
+      .trim()
+      .max(500)
+      .refine((v) => v === "" || /^https?:\/\/\S+$/i.test(v), "A link starts with http:// or https://")
+      .nullable()
+      .optional(),
     note: z.string().trim().max(280).nullable(),
   })
   .refine((v) => v.end > v.start, { message: "It ends after it starts", path: ["end"] });
@@ -104,16 +113,18 @@ export async function saveEnquiryPracticeAction(input: z.input<typeof practiceSc
   const supabase = await signedIn();
   if (!supabase) return { error: "Sign in first" };
   const d = parsed.data;
-  const r = await guarded(() =>
-    saveEnquiryPractice(supabase, {
+  const r = await guarded(async () => {
+    const id = await saveEnquiryPractice(supabase, {
       enquiryId: d.enquiryId,
       practiceId: d.practiceId,
       startsAt: `${d.date}T${d.start}:00+05:30`,
       endsAt: `${d.date}T${d.end}:00+05:30`,
       place: d.place,
       note: d.note || null,
-    }),
-  );
+    });
+    /* a new practice with no link needs no second call; an edit always sends it */
+    if (id && (d.placeUrl || d.practiceId)) await setPracticeLink(supabase, "job", id, d.placeUrl || null);
+  });
   if (!r.error) revalidate(d.enquiryId);
   return r;
 }

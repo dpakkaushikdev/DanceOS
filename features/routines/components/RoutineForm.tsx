@@ -17,7 +17,7 @@ import {
 import { toast } from "@/components/ui/Toast";
 import { UPLOAD_ERROR } from "@/lib/errors";
 import { saveRoutineAction } from "@/features/routines/server-actions/routines";
-import { DOS_LEVELS, DOS_LEVEL_LABEL, dosStyleColor } from "@/lib/constants/styles";
+import { dosStyleColor } from "@/lib/constants/styles";
 import { INK, LILAC, SUB } from "@/lib/design/tokens";
 import { AUDIO_MAX_WORDS, MEDIA_BUCKET, routineAudioPath, whyNotATrack } from "@/lib/media/photo";
 /* loaded on the press, not with the page (5 Oct 2026 — see lazyClient.ts) */
@@ -130,20 +130,8 @@ export function RoutineForm({ userId, sheet = false }: { userId: string; sheet?:
           <div style={FORM_LABEL}>DANCE STYLE</div>
           <DosStylePicker value={f.style} onChange={(s) => setF((x) => ({ ...x, style: s }))} />
 
-          <div style={FORM_LABEL}>LEVEL</div>
-          <div style={{ display: "flex", gap: 7 }}>
-            {DOS_LEVELS.map(([code, label]) => (
-              <button
-                key={code}
-                type="button"
-                onClick={() => setF((x) => ({ ...x, level: code as ClassLevel }))}
-                aria-pressed={f.level === code}
-                style={{ flex: 1, padding: "10px 2px", borderRadius: 10, cursor: "pointer", fontSize: 11.5, fontWeight: 800, fontFamily: "inherit", border: "none", background: f.level === code ? INK : EL, color: f.level === code ? LILAC : SUB }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          {/* ⚠ NO LEVEL (29 Oct 2026, the user: "remove level from add routine
+              form"). The column stays; every new routine is saved "all". */}
 
           <div style={FORM_LABEL}>SONG · required</div>
           <div style={{ display: "flex", gap: 7, marginBottom: 8 }}>
@@ -205,7 +193,7 @@ export function RoutineForm({ userId, sheet = false }: { userId: string; sheet?:
         >
           <FormSummary
             tint={dosStyleColor(f.style)}
-            head={<span style={{ fontSize: 11.5, fontWeight: 800 }}>🎭 {f.style} · {DOS_LEVEL_LABEL[f.level] ?? f.level}</span>}
+            head={<span style={{ fontSize: 11.5, fontWeight: 800 }}>🎭 {f.style}</span>}
           >
             <b style={{ fontSize: 15 }}>{f.title.trim()}</b>
             <div style={{ fontSize: 12, color: SUB, marginTop: 4 }}>🎵 {f.songSrc === "file" ? "MP3 attached" : "Song linked"} · 🎬 Video linked</div>

@@ -7,9 +7,12 @@
  *  studios, artists, styles with their titles and icon being animated with
  *  background and using full tile space". So each scene now stands on a MOVING
  *  backdrop — a wide multi-colour gradient sliding under the picture and soft
- *  coloured lights drifting across it (`Backdrop`) — and the tile's title band
- *  carries an animated icon (`DiscoverTileIcon`) beside a word whose letters lift
- *  one after another (DiscoverTabs.tsx).
+ *  coloured lights drifting across it (`Backdrop`).
+ *
+ *  ⚠ SINCE 29 Oct 2026 THE TILES DO NOT DRAW THESE SCENES (the user: "keep minimum
+ *  animation on the background should not be on the title"): DiscoverTabs.tsx
+ *  draws a still glyph and name over one slow light; `DiscoverTileIcon` is gone.
+ *  What is left here is kept for whoever wants a scene back.
  *
  *  Each is a little lit SCENE that fills the whole tile — no outlines, so it
  *  reads as a picture and not a sticker: a class under the studio lights with
@@ -296,52 +299,6 @@ export function DiscoverScene({ k }: { k: string }) {
             style={{ transformOrigin: `${x + 4}px 120px`, animation: `dosSceneEq ${0.7 + (i % 3) * 0.18}s ease-in-out ${i * 0.09}s infinite alternate` }}
           />
         ))}
-      </svg>
-    );
-  }
-  return null;
-}
-
-/** the little icon that rides beside the tile's title, each with its own loop:
- *  a calendar whose tick draws, a studio whose door glows, a star that spins, a
- *  note that bounces. Decorative — the tile's own `aria-label` names it. */
-export function DiscoverTileIcon({ k, size = 14 }: { k: string; size?: number }) {
-  const box = { width: size, height: size, viewBox: "0 0 24 24", "aria-hidden": true, style: { flexShrink: 0, overflow: "visible" as const, filter: "drop-shadow(0 1px 1.5px rgba(0,0,0,.55))" } };
-  const stroke = { fill: "none", stroke: "#fff", strokeWidth: 2.4, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
-  if (k === "classes") {
-    return (
-      <svg {...box} style={{ ...box.style, animation: "dosLogoBounce 1.4s ease-in-out infinite" }}>
-        <rect x="3" y="5" width="18" height="16" rx="3" fill="#FB7185" stroke="#fff" strokeWidth="2" />
-        <path d="M3 10h18M8 3v4M16 3v4" {...stroke} strokeWidth={2} />
-        <path d="M8.5 15l2.4 2.4 4.6-4.6" {...stroke} strokeWidth={2.2} strokeDasharray="18" style={{ animation: "dosLogoDraw 2.4s ease-in-out infinite" }} />
-      </svg>
-    );
-  }
-  if (k === "studios") {
-    return (
-      <svg {...box} style={{ ...box.style, transformOrigin: "50% 100%", animation: "dosTileIconPulse 1.8s ease-in-out infinite" }}>
-        <path d="M3 21V9l9-6 9 6v12z" fill="#60A5FA" stroke="#fff" strokeWidth="2" strokeLinejoin="round" />
-        <rect x="9.5" y="13" width="5" height="8" rx="1" fill="#FDE047" style={{ animation: "dosLogoBlink 1.6s ease-in-out infinite" }} />
-      </svg>
-    );
-  }
-  if (k === "artists") {
-    return (
-      <svg {...box} style={{ ...box.style, transformOrigin: "50% 50%", animation: "dosSceneRays 3.2s linear infinite" }}>
-        <path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z" fill="#FDE047" stroke="#fff" strokeWidth="1.6" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-  if (k === "styles") {
-    return (
-      /* a dancer mid-move in a swirling skirt — "styles" is ways of dancing, not
-         music (18 Oct 2026, the user: "should not be a music symbol") */
-      <svg {...box} style={{ ...box.style, transformOrigin: "50% 95%", animation: "dosTileIconWiggle 1.2s ease-in-out infinite" }}>
-        <path d="M12 9.5 L6.5 19.5 Q12 22 17.5 19.5 Z" fill="#F472B6" stroke="#fff" strokeWidth="1.6" strokeLinejoin="round" />
-        <path d="M12 7.5v4" {...stroke} strokeWidth={2.2} />
-        <path d="M12 9 L5.5 5.5 M12 9 L18.5 4" {...stroke} strokeWidth={2.2} />
-        <path d="M10 20.5 L8.5 23 M14 20.5 L16.5 22.5" {...stroke} strokeWidth={2} />
-        <circle cx="12" cy="4.6" r="2.6" fill="#FDE047" stroke="#fff" strokeWidth="1.6" />
       </svg>
     );
   }

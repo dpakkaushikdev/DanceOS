@@ -110,6 +110,7 @@ export async function JobPracticeRoute({ practiceId, scope = null }: { practiceI
             startsAt={p.startsAt}
             endsAt={p.endsAt}
             place={p.place}
+            placeUrl={p.placeUrl ?? null}
             note={p.note}
             cancelled={p.status === "cancelled"}
             now={now}

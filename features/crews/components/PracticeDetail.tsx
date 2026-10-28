@@ -52,6 +52,7 @@ export function PracticeDetail({
   startsAt,
   endsAt,
   place,
+  placeUrl = null,
   note,
   cancelled,
   now,
@@ -71,6 +72,8 @@ export function PracticeDetail({
   startsAt: string;
   endsAt: string;
   place: string;
+  /** the place's map link (29 Oct 2026) */
+  placeUrl?: string | null;
   note: string | null;
   cancelled: boolean;
   now: number;
@@ -80,6 +83,8 @@ export function PracticeDetail({
 }) {
   const look = PRACTICE_KIND_LOOK[kind];
   const tint = look.tint;
+  /* only a web address becomes an href — the CHECK says the same (29 Oct 2026) */
+  const link = placeUrl && /^https?:\/\/\S+$/i.test(placeUrl) ? placeUrl : null;
   const startMs = new Date(startsAt).getTime();
   const past = new Date(endsAt).getTime() < now;
   const today = !past && practiceDayKey(startsAt) === practiceDayKey(new Date(now).toISOString());
@@ -135,6 +140,11 @@ export function PracticeDetail({
             </svg>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 800, overflowWrap: "anywhere" }}>{place}</div>
+              {link ? (
+                <a data-testid="practice-place-link" href={link} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginTop: 6, fontSize: 12, fontWeight: 900, color: tint, textDecoration: "none", padding: "5px 11px", borderRadius: 999, border: `1.5px solid ${tint}66` }}>
+                  Open in Maps ↗
+                </a>
+              ) : null}
               {note ? <div style={{ fontSize: 11.5, color: SUB, marginTop: 3, lineHeight: 1.45, overflowWrap: "anywhere" }}>{note}</div> : null}
             </div>
           </div>

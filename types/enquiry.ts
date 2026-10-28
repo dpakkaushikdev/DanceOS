@@ -436,6 +436,7 @@ export interface MyEnquiryPractice {
   startsAt: string;
   endsAt: string;
   place: string;
+  placeUrl?: string | null;
   note: string | null;
   status: "scheduled" | "cancelled";
   hostName: string;
@@ -461,6 +462,8 @@ export interface EnquiryPractice {
   startsAt: string;
   endsAt: string;
   place: string;
+  /** where, as a link — a map pin (29 Oct 2026); `place` is its name */
+  placeUrl?: string | null;
   note: string | null;
   status: "scheduled" | "cancelled";
   /** the user ids checked in (live rows) */

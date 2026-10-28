@@ -3,10 +3,9 @@
 import { useState, type CSSProperties } from "react";
 
 import { ClassDetailButton } from "@/components/ui/ClassDetailButton";
-import { columnTab, columnTrack } from "@/components/ui/ColumnTabs";
 import { FigureHead } from "@/components/ui/FigureHead";
 import { ToolChip, ToolFace } from "@/components/ui/ToolCard";
-import { FIRST_FOUR_EMPTY, StyleBadge } from "@/features/staff/components/TeamClassesPanel";
+import { FIRST_FOUR_EMPTY } from "@/features/staff/components/TeamClassesPanel";
 import { DOS_LEVEL_LABEL } from "@/lib/constants/styles";
 import { INK, MUTED, SUB } from "@/lib/design/tokens";
 import type { RoutineClass, RoutineClassFacts, RoutineStudio } from "@/repositories/routines";
@@ -29,12 +28,10 @@ export type RoutineClassAt = RoutineClass & {
  *  learned it there (checked in — Step 25's rule), and the next or last date and
  *  time. The Studios column this replaces is the Studio grouping here. */
 
-type GroupBy = "artist" | "studio" | "style";
-const GROUPS: ReadonlyArray<readonly [GroupBy, string]> = [
-  ["artist", "Artist"],
-  ["studio", "Studio"],
-  ["style", "Dance style"],
-];
+/* ⚠ NO ARTIST OR DANCE STYLE GROUPING (29 Oct 2026, the user: "routine detail
+   page should not have dance style and artist column"). A routine is one style,
+   so that grouping was always one group, and the artist is a box on every class.
+   The classes are grouped by STUDIO alone, with no pill row above them. */
 
 const panel: CSSProperties = { background: "var(--card)", border: "1.5px solid var(--el)", borderRadius: 18, padding: "13px 14px", marginBottom: 12 };
 const head: CSSProperties = { fontSize: 10, fontWeight: 900, letterSpacing: 1, color: MUTED };
@@ -67,8 +64,7 @@ function TaughtBar({ c, tint }: { c: RoutineClassAt; tint: string }) {
 }
 
 export function RoutineClassesPanel({ classes, tint }: { classes: RoutineClassAt[]; tint: string }) {
-  const [by, setBy] = useState<GroupBy>("artist");
-  /* the groups OPENED — every group starts closed, and so does a new grouping */
+  /* the groups OPENED — every group starts closed */
   const [opened, setOpened] = useState<Set<string>>(() => new Set());
   const toggle = (key: string) =>
     setOpened((prev) => {
@@ -87,52 +83,21 @@ export function RoutineClassesPanel({ classes, tint }: { classes: RoutineClassAt
   }
 
   const where = (c: RoutineClassAt) => c.studio?.name ?? c.businessName;
-  const keyOf = (c: RoutineClassAt) => (by === "artist" ? c.artist?.userId ?? "none" : by === "studio" ? c.studio?.id ?? `name:${c.businessName}` : c.style);
+  const keyOf = (c: RoutineClassAt) => c.studio?.id ?? `name:${c.businessName}`;
   const groups = new Map<string, RoutineClassAt[]>();
   for (const c of classes) groups.set(keyOf(c), [...(groups.get(keyOf(c)) ?? []), c]);
-  /* most taught first; "no artist on record" last */
+  /* most taught first */
   const taughtOf = (l: RoutineClassAt[]) => l.reduce((n, c) => n + c.sessions, 0);
-  const ordered = [...groups.entries()].sort(
-    (a, b) => Number(a[0] === "none") - Number(b[0] === "none") || taughtOf(b[1]) - taughtOf(a[1]) || a[0].localeCompare(b[0]),
-  );
+  const ordered = [...groups.entries()].sort((a, b) => taughtOf(b[1]) - taughtOf(a[1]) || a[0].localeCompare(b[0]));
 
   return (
     <div data-testid="routine-class-list">
-      {/* THE WAY IN — three pills, the one pressed solid */}
-      <div role="group" aria-label="Group classes by" style={{ ...columnTrack(), margin: "0 0 12px" }}>
-        {GROUPS.map(([k, word]) => {
-          const on = by === k;
-          return (
-            <button
-              key={k}
-              type="button"
-              aria-pressed={on}
-              data-testid={`routine-class-by-${k}`}
-              onClick={() => {
-                setBy(k);
-                setOpened(new Set());
-              }}
-              style={columnTab(on)}
-            >
-              {word}
-            </button>
-          );
-        })}
-      </div>
-
       {ordered.map(([key, list]) => {
         const lead = list[0];
-        const title = by === "artist" ? lead.artist?.name ?? "No artist on record" : by === "studio" ? where(lead) : lead.style;
+        const title = where(lead);
         const taught = taughtOf(list);
         const open = opened.has(key);
-        const face =
-          by === "artist" ? (
-            <ToolFace name={title} photoPath={lead.artist?.photoPath} tint={tint} size={30} />
-          ) : by === "studio" ? (
-            <ToolFace name={title} photoPath={lead.studio?.photoPath} tint={tint} size={30} />
-          ) : (
-            <StyleBadge style={lead.style} size={30} />
-          );
+        const face = <ToolFace name={title} photoPath={lead.studio?.photoPath} tint={tint} size={30} />;
         return (
           <div key={key} data-testid="routine-class-group" style={panel}>
             <button

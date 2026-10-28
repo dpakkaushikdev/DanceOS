@@ -789,11 +789,18 @@ export function ClassDetail({
           finished class would refund every paid seat for a class that already
           happened ("cancel / refund class should not be possible if class is
           over"). The register's row no longer carries it. ── */}
-      {runs && !done ? (
+      {/* ⚠ SHARE SITS HERE TOO, TOP RIGHT BESIDE THE POSTER (29 Oct 2026, the user:
+          "class detail share button should be on the top right besides the
+          poster") — published only, for the reason on `shareLink`; the owner's
+          Delete beside it. */}
+      {!isDraft || (runs && !done) ? (
         /* ⚠ inside the poster's squircle, clear of the top bar's curved edge (12
            Oct 2026, the user: "delete button also getting cut") */
-        <div style={{ position: "absolute", top: 20, right: 24, zIndex: 3 }}>
-          <ClassDeleteChip classId={c.id} businessId={c.businessId} title={c.title} isDraft={isDraft} enrolled={filled} priceInr={c.priceInr} paidSeats={paidUserIds.length} />
+        <div style={{ position: "absolute", top: 20, right: 24, zIndex: 3, display: "flex", alignItems: "center", gap: 8 }}>
+          {!isDraft ? <ClassShareButtons link={shareLink} title={c.title} col={col} fire={fire} /> : null}
+          {runs && !done ? (
+            <ClassDeleteChip classId={c.id} businessId={c.businessId} title={c.title} isDraft={isDraft} enrolled={filled} priceInr={c.priceInr} paidSeats={paidUserIds.length} />
+          ) : null}
         </div>
       ) : null}
 
@@ -1017,10 +1024,8 @@ export function ClassDetail({
           </div>
         </div>
 
-        {/* ── COPY LINK · SHARE CLASS, under the card (18 Oct 2026) — the foot's
-            SHARE block is gone; the code lives in Share class's sheet. Published
-            only, for the reason on `shareLink`. ── */}
-        {!isDraft && <ClassShareButtons link={shareLink} title={c.title} col={col} fire={fire} />}
+        {/* ⚠ SHARE MOVED TO THE TOP RIGHT, beside the poster (29 Oct 2026) — see
+            the corner row under the sleeve. ── */}
 
         {/* ── Details / Attendance belongs to the card, not the page under it
             (prototype 11961-11970) ── */}

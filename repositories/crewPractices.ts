@@ -82,8 +82,36 @@ export async function findMyCrewPractices(
     const { data: crews } = await supabase.from("crews").select("id, photo").in("id", crewIds);
     const photo = new Map(((crews ?? []) as Array<{ id: string; photo: string | null }>).map((c) => [c.id, c.photo]));
     for (const p of practices) p.crewPhotoPath = photo.get(p.crewId) ?? null;
+    const links = await findPracticeLinks(supabase, "crew", practices.map((p) => p.id));
+    for (const p of practices) p.placeUrl = links.get(p.id) ?? null;
   }
   return practices;
+}
+
+/** THE PLACE'S LINK (29 Oct 2026, `20261102090000`). Read straight off the table
+ *  under the SELECT policy it already carries, so no RPC's RETURNS TABLE had to
+ *  be re-typed for it. ⚠ DEGRADES: before the migration the column does not
+ *  exist and this answers an empty map, so every practice reads "no link". */
+export async function findPracticeLinks(supabase: SupabaseClient, kind: "crew" | "job", ids: string[]): Promise<Map<string, string>> {
+  const unique = [...new Set(ids)].slice(0, 500);
+  if (unique.length === 0) return new Map();
+  const { data, error } = await supabase
+    .from(kind === "crew" ? "crew_practices" : "enquiry_practices")
+    .select("id, place_url")
+    .in("id", unique)
+    .not("place_url", "is", null);
+  if (error) return new Map();
+  return new Map(((data ?? []) as Array<{ id: string; place_url: string | null }>).filter((r) => r.place_url).map((r) => [r.id, r.place_url as string]));
+}
+
+/** Sets or clears the link — the one door, `set_practice_link`, which re-checks
+ *  the same authority as the save. ⚠ An EMPTY link against a database without the
+ *  function is not an error (nothing to set); a link is, said in words. */
+export async function setPracticeLink(supabase: SupabaseClient, kind: "crew" | "job", practiceId: string, url: string | null): Promise<void> {
+  const { error } = await supabase.rpc("set_practice_link", { p_kind: kind, p_practice_id: practiceId, p_url: url ?? "" });
+  if (!error) return;
+  if (error.code === "PGRST202" && !url) return;
+  throw new Error(error.code === "PGRST202" ? "The practice was saved — its map link could not be added yet" : error.message);
 }
 
 /** One crew's, off the same read — the desk narrows rather than asking a second

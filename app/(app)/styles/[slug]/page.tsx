@@ -21,6 +21,8 @@ import type { PublicClassListing } from "@/types/class";
 import type { ChartRow, ChartSegment } from "@/types/stats";
 import { resolveActingAs } from "@/repositories/actingAs";
 import { canBookClass, noBookingWords } from "@/types/profile";
+import { findNotablePeople, type NotablePerson } from "@/lib/styles/notablePhotos";
+import Image from "next/image";
 
 /** A DANCE STYLE'S OWN PAGE (2 Oct 2026, the user: "page opens dance style —
  *  column 1: Photos, info, History, country, and Notable names — max 5 names,
@@ -71,12 +73,14 @@ export default async function StylePage({
      should be the first section"). Every published class of this style still to
      come, in every city, read in the SAME round as the boards; a class nobody is
      confirmed to teach is left off, which is Discover's own rule (18 Sep 2026). */
-  const [boardsList, styleClassesRaw, mine] = await Promise.all([
+  const [boardsList, styleClassesRaw, mine, notable] = await Promise.all([
     user
       ? Promise.all(SEGS.map(async (s) => [s, await findChart(supabase, { segment: s, style, limit: 20 }).catch(() => [] as ChartRow[])] as const))
       : Promise.resolve(null),
     findPublishedClasses(supabase, 120, null, style).catch(() => [] as PublicClassListing[]),
     user ? findMyEnrolledSessionIds(supabase).catch(() => new Map<string, { id: string; status: ClassBookingStatus }>()) : Promise.resolve(new Map<string, { id: string; status: ClassBookingStatus }>()),
+    /* the notable dancers' own photos (29 Oct 2026) — never fails, at worst initials */
+    findNotablePeople(info.notable.slice(0, 5)).catch(() => info.notable.slice(0, 5).map((name) => ({ name, photo: null, page: null }) as NotablePerson)),
   ]);
   const boards = boardsList ? (Object.fromEntries(boardsList) as Partial<Record<ChartSegment, ChartRow[]>>) : null;
   const ids = styleClassesRaw.map((c) => c.id);
@@ -125,12 +129,10 @@ export default async function StylePage({
       {/* INFO — the four facts (9508-9513), tiles inside one card now; the 3px
           coloured top edge went the way the tool cards' left edge went (4 Oct) */}
       <SectionCard icon={mark(<path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-4M12 8h.01" />)} label="THE FACTS" col={color}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <div data-testid="style-facts" style={{ display: "grid", gap: 8 }}>
           {[
-            ["FAMILY", info.family],
-            ["COUNTRY", info.country],
-            ["ORIGIN", info.origin],
-            ["ERA", info.era],
+            ["WHERE IT BEGAN", info.origin],
+            ["WHEN", info.era],
           ].map(([k, v]) => (
             <div key={k} style={{ background: `${color}10`, border: `1.5px solid ${color}33`, borderRadius: 12, padding: "10px 11px" }}>
               <div style={{ fontSize: 8.5, fontWeight: 900, letterSpacing: 0.6, color: "var(--muted)" }}>{k}</div>
@@ -150,22 +152,53 @@ export default async function StylePage({
         ))}
       </SectionCard>
 
-      {/* NOTABLE NAMES — at most five (9514-9521, "Founders & pioneers") */}
-      <SectionCard icon={mark(<path d="M12 3l2.4 5 5.6.8-4 3.9.9 5.6L12 15.8 7.1 18.3l.9-5.6-4-3.9 5.6-.8z" />)} label="NOTABLE NAMES" col={color}>
-        {info.notable.length === 0 ? (
-          <div style={{ fontSize: 12.5, color: SUB }}>{style} is carried by its dancers rather than by a few famous names.</div>
-        ) : (
-          info.notable.slice(0, 5).map((n, i, all) => (
-            <div key={n} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: i === all.length - 1 ? "none" : "1.5px solid var(--el)" }}>
-              <span aria-hidden="true" style={{ width: 30, height: 30, borderRadius: 10, flexShrink: 0, background: `linear-gradient(135deg, ${color}, #7C3AED)`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 900 }}>
-                {n.replace(/[^A-Za-z ]/g, "").split(" ").filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase()}
-              </span>
-              <span style={{ fontSize: 13, fontWeight: 700 }}>{n}</span>
-            </div>
-          ))
-        )}
-      </SectionCard>
     </div>
+  );
+
+  /* NOTABLE NAMES (9514-9521, "Founders & pioneers") — at most five, as a
+     sideways carousel of the people themselves (29 Oct 2026, the user: "notable
+     names should be carousel with pics of actual person with name"). Each photo
+     is the person's own from Wikipedia and opens their page; a name with no photo
+     wears its initials. Scroll-snap, no script. */
+  const initials = (n: string) => n.replace(/[^A-Za-z ]/g, "").split(" ").filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+  const notableCard = (
+    <SectionCard icon={mark(<path d="M12 3l2.4 5 5.6.8-4 3.9.9 5.6L12 15.8 7.1 18.3l.9-5.6-4-3.9 5.6-.8z" />)} label="NOTABLE NAMES" col={color}>
+      {notable.length === 0 ? (
+        <div style={{ fontSize: 12.5, color: SUB }}>{style} is carried by its dancers rather than by a few famous names.</div>
+      ) : (
+        <>
+          <div data-testid="notable-carousel" style={{ display: "flex", gap: 10, overflowX: "auto", scrollSnapType: "x mandatory", margin: "0 -4px", padding: "2px 4px 6px", scrollbarWidth: "none" }}>
+            {notable.map((p) => {
+              const face = (
+                <>
+                  <div style={{ position: "relative", width: 128, height: 156, borderRadius: 16, overflow: "hidden", background: `linear-gradient(150deg, ${color}, ${color}77)` }}>
+                    {p.photo ? (
+                      <Image src={p.photo} alt={p.name} fill unoptimized sizes="128px" style={{ objectFit: "cover", objectPosition: "50% 22%" }} />
+                    ) : (
+                      <span aria-hidden="true" style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "#fff", fontSize: 30, fontWeight: 900, letterSpacing: -0.5 }}>
+                        {initials(p.name)}
+                      </span>
+                    )}
+                    <span aria-hidden="true" style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 44, background: "linear-gradient(transparent, rgba(0,0,0,.45))" }} />
+                  </div>
+                  <div style={{ fontSize: 12.5, fontWeight: 900, marginTop: 7, lineHeight: 1.25, color: INK, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{p.name}</div>
+                </>
+              );
+              return p.page ? (
+                <a key={p.name} data-testid="notable-person" href={p.page} target="_blank" rel="noopener noreferrer" aria-label={`${p.name} — on Wikipedia`} style={{ flex: "0 0 128px", scrollSnapAlign: "start", textDecoration: "none" }}>
+                  {face}
+                </a>
+              ) : (
+                <div key={p.name} data-testid="notable-person" style={{ flex: "0 0 128px", scrollSnapAlign: "start" }}>
+                  {face}
+                </div>
+              );
+            })}
+          </div>
+          {notable.some((p) => p.photo) ? <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 4 }}>Photos: Wikipedia</div> : null}
+        </>
+      )}
+    </SectionCard>
   );
 
   /* THE CLASSES COLUMN — the app's one class card, exactly as Discover's Classes
@@ -247,8 +280,16 @@ export default async function StylePage({
             <>
               <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1.2, color: SUB }}>DANCE STYLE</div>
               <h1 data-testid="style-title" style={{ ...TAB_TITLE, color: INK, marginTop: 4 }}><BeatText text={style} /></h1>
-              <div style={{ fontSize: 13, fontWeight: 800, color: INK, marginTop: 6 }}>{info.origin}</div>
-              <div style={{ fontSize: 12, color: SUB, marginTop: 2 }}>{info.country}</div>
+              {/* ⚠ the top says WHAT it is in two chips; the long facts (where it
+                  began, when) are THE FACTS card's alone — they were said in both
+                  places (29 Oct 2026, the user: "items being repeated on the page") */}
+              <div data-testid="style-chips" style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+                {[info.country, info.family].filter(Boolean).map((t) => (
+                  <span key={t} style={{ fontSize: 11, fontWeight: 900, padding: "5px 10px", borderRadius: 999, background: `${color}1f`, color: INK, border: `1.5px solid ${color}55` }}>
+                    {t}
+                  </span>
+                ))}
+              </div>
             </>
           }
           segments={[
@@ -258,7 +299,15 @@ export default async function StylePage({
           ]}
           panels={[
             { key: "classes", node: classesPanel },
-            { key: "details", node: details },
+            {
+              key: "details",
+              node: (
+                <div>
+                  {details}
+                  {notableCard}
+                </div>
+              ),
+            },
             { key: "rankings", node: rankings },
           ]}
         />

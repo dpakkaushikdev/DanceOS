@@ -183,8 +183,12 @@ const tomorrowIst = () => {
     await leader.locator("#practice-date").fill(tomorrowIst());
     await leader.locator("#practice-from").fill("19:00");
     await leader.locator("#practice-to").fill("21:00");
-    check(await leader.getByRole("button", { name: "Say where" }).isVisible().catch(() => false), "…and the next one, once the hours are in");
+    check(await leader.getByRole("button", { name: "Name the place" }).isVisible().catch(() => false), "…and the next one, once the hours are in");
     await leader.locator("#practice-place").fill("Studio 4, Baner");
+    /* the place's map link (29 Oct 2026) — a bad one names itself, a good one saves */
+    await leader.locator("#practice-link").fill("maps.app/xyz");
+    check(await leader.getByRole("button", { name: "The link starts with https://" }).isVisible().catch(() => false), "a link that is not a web address is refused by name");
+    await leader.locator("#practice-link").fill("https://maps.app.goo.gl/baner4");
     await leader.locator("#practice-note").fill("Knee pads");
     await leader.getByRole("button", { name: "Arrange it", exact: true }).first().click();
     await leader.getByRole("dialog", { name: "Arrange this practice?" }).getByRole("button", { name: "Arrange it", exact: true }).click();

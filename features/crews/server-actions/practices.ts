@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { cancelCrewPractice, checkInPractice, saveCrewPractice, undoPracticeCheckIn } from "@/repositories/crewPractices";
+import { cancelCrewPractice, checkInPractice, saveCrewPractice, setPracticeLink, undoPracticeCheckIn } from "@/repositories/crewPractices";
 
 /** THE PRACTICE WRITES (27 Sep 2026). Every rule is in the database — only the
  *  leader arranges or cancels or runs the register, a practice ends after it
@@ -55,7 +55,15 @@ const saveInput = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date"),
   startTime: z.string().regex(/^\d{2}:\d{2}$/, "Pick a start time"),
   endTime: z.string().regex(/^\d{2}:\d{2}$/, "Pick an end time"),
-  place: z.string().trim().min(1, "Say where").max(120, "That is too long for one line"),
+  place: z.string().trim().min(1, "Name the place").max(120, "That is too long for one line"),
+  /* the place as a link — a map pin (29 Oct 2026); optional, http(s) only */
+  placeUrl: z
+    .string()
+    .trim()
+    .max(500)
+    .refine((v) => v === "" || /^https?:\/\/\S+$/i.test(v), "A link starts with http:// or https://")
+    .nullable()
+    .optional(),
   note: z.string().trim().max(280, "Keep the note under 280 characters").nullable().optional(),
 });
 
@@ -70,7 +78,7 @@ export async function saveCrewPracticeAction(raw: unknown): Promise<PracticeActi
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Check the form" };
   }
-  const { crewId, practiceId, date, startTime, endTime, place, note } = parsed.data;
+  const { crewId, practiceId, date, startTime, endTime, place, placeUrl, note } = parsed.data;
   const supabase = await requireUser();
   try {
     const id = await saveCrewPractice(supabase, {
@@ -81,7 +89,11 @@ export async function saveCrewPracticeAction(raw: unknown): Promise<PracticeActi
       note: note && note.length ? note : null,
       practiceId: practiceId ?? null,
     });
+    /* a new practice with no link needs no second call; an edit always sends it,
+       so clearing the box clears the link */
+    if (id && (placeUrl || practiceId)) await setPracticeLink(supabase, "crew", id, placeUrl || null);
     revalidatePractice(crewId);
+    revalidatePath(`/practice/crew/${id}`);
     return { error: null, practiceId: id };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "That could not be saved" };

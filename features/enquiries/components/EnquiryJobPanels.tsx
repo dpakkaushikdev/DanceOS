@@ -275,18 +275,19 @@ export function EnquiryPracticesPanel({
 }) {
   const router = useRouter();
   const { busy, error, run } = useRun();
-  const [form, setForm] = useState<null | { practiceId: string | null; date: string; start: string; end: string; place: string; note: string }>(null);
+  const [form, setForm] = useState<null | { practiceId: string | null; date: string; start: string; end: string; place: string; placeUrl: string; note: string }>(null);
   if (!job.available) return <Off />;
 
   const coming = job.practices.filter((p) => p.endsAt >= nowIso);
   const past = job.practices.filter((p) => p.endsAt < nowIso);
 
+  const linkBad = (u: string) => Boolean(u.trim()) && !/^https?:\/\/\S+$/i.test(u.trim());
   const save = async () => {
-    if (!form || !form.place.trim() || form.end <= form.start) return;
+    if (!form || !form.place.trim() || form.end <= form.start || linkBad(form.placeUrl)) return;
     /* ⚠ close FIRST, refresh after: the sheet spends its history entry on close,
        and a `back()` racing a refresh is the 19 Sep race (the forms' own 600 ms) */
     const ok = await run(
-      () => saveEnquiryPracticeAction({ enquiryId, practiceId: form.practiceId, date: form.date, start: form.start, end: form.end, place: form.place, note: form.note.trim() || null }),
+      () => saveEnquiryPracticeAction({ enquiryId, practiceId: form.practiceId, date: form.date, start: form.start, end: form.end, place: form.place, placeUrl: form.placeUrl.trim() || null, note: form.note.trim() || null }),
       { refreshAfter: 600 },
     );
     if (ok) setForm(null);
@@ -312,6 +313,7 @@ export function EnquiryPracticesPanel({
             startsAt: p.startsAt,
             endsAt: p.endsAt,
             place: p.place,
+            placeUrl: p.placeUrl ?? null,
             note: p.note,
             status: p.status,
             hostName,
@@ -333,6 +335,7 @@ export function EnquiryPracticesPanel({
                   start: new Date(new Date(p.startsAt).getTime() + 330 * 60_000).toISOString().slice(11, 16),
                   end: new Date(new Date(p.endsAt).getTime() + 330 * 60_000).toISOString().slice(11, 16),
                   place: p.place,
+                  placeUrl: p.placeUrl ?? "",
                   note: p.note ?? "",
                 })
               }
@@ -365,7 +368,7 @@ export function EnquiryPracticesPanel({
   return (
     <div data-testid="enquiry-practices">
       {canWork && !closed ? (
-        <button type="button" onClick={() => setForm({ practiceId: null, date: istDayKey(nowIso), start: "18:00", end: "19:00", place: "", note: "" })} style={{ ...pill, width: "100%", padding: 12, marginBottom: 10 }}>
+        <button type="button" onClick={() => setForm({ practiceId: null, date: istDayKey(nowIso), start: "18:00", end: "19:00", place: "", placeUrl: "", note: "" })} style={{ ...pill, width: "100%", padding: 12, marginBottom: 10 }}>
           + Add practice
         </button>
       ) : null}
@@ -392,9 +395,13 @@ export function EnquiryPracticesPanel({
             </div>
           </div>
           <label style={{ ...FORM_LABEL, display: "block" }} htmlFor="ep-place">
-            WHERE
+            WHERE · PLACE NAME
           </label>
           <input id="ep-place" value={form.place} maxLength={120} onChange={(ev) => setForm({ ...form, place: ev.target.value })} placeholder="Studio A" style={FORM_INPUT} />
+          <label style={{ ...FORM_LABEL, display: "block" }} htmlFor="ep-link">
+            WHERE · MAP LINK
+          </label>
+          <input id="ep-link" type="url" inputMode="url" value={form.placeUrl} maxLength={500} onChange={(ev) => setForm({ ...form, placeUrl: ev.target.value })} placeholder="https://maps.app.goo.gl/…" style={FORM_INPUT} />
           <label style={{ ...FORM_LABEL, display: "block" }} htmlFor="ep-note">
             NOTE
           </label>
@@ -404,8 +411,8 @@ export function EnquiryPracticesPanel({
             <button type="button" onClick={() => setForm(null)} style={formSecondary}>
               Cancel
             </button>
-            <button type="button" disabled={busy} onClick={() => void save()} style={formPrimary(Boolean(form.place.trim()) && form.end > form.start)}>
-              {!form.place.trim() ? "Say where" : form.end <= form.start ? "End after the start" : form.practiceId ? "Save" : "Add practice"}
+            <button type="button" disabled={busy} onClick={() => void save()} style={formPrimary(Boolean(form.place.trim()) && form.end > form.start && !linkBad(form.placeUrl))}>
+              {!form.place.trim() ? "Name the place" : form.end <= form.start ? "End after the start" : linkBad(form.placeUrl) ? "The link starts with https://" : form.practiceId ? "Save" : "Add practice"}
             </button>
           </FormBar>
         </EnquiryFormSheet>

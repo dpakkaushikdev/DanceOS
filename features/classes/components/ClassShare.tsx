@@ -61,24 +61,27 @@ function scannableSize(link: string): number {
 /** ⚠ ONE SHARE ICON (28 Oct 2026, batch 5 design pass): the two pills under
  *  the card became one round share button; Copy link lives inside the sheet,
  *  beside the code and the phone's own share. */
-export function ClassShareButtons({ link, title, col, fire }: { link: string; title: string; col: string; fire?: (msg: string) => void }) {
+export function ClassShareButtons({ link, title, fire }: { link: string; title: string; col?: string; fire?: (msg: string) => void }) {
   const [open, setOpen] = useState(false);
   useCloseOnBack(() => setOpen(false), open);
   return (
     <>
-      <div data-testid="class-share-buttons" style={{ display: "flex", justifyContent: "flex-end", margin: "8px 0 2px" }}>
         <button
           type="button"
+          data-testid="class-share-buttons"
           onClick={() => setOpen(true)}
           aria-label="Share class"
           title="Share class"
           style={{
-            width: 44,
-            height: 44,
+            /* on the poster's corner now (29 Oct 2026), so the scrim paint every
+               chip over a picture wears */
+            width: 38,
+            height: 38,
             borderRadius: 999,
-            border: `1.5px solid ${col}66`,
-            background: `${col}14`,
-            color: "var(--text)",
+            border: "1.5px solid rgba(255,255,255,.5)",
+            background: "rgba(10,10,10,.55)",
+            color: "#fff",
+            boxShadow: "0 4px 12px rgba(0,0,0,.35)",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
@@ -93,7 +96,6 @@ export function ClassShareButtons({ link, title, col, fire }: { link: string; ti
             <path d="M8.3 10.8 15.7 6.4M8.3 13.2l7.4 4.4" />
           </svg>
         </button>
-      </div>
       {/* ⚠ PORTALLED (18 Oct 2026): drawn in place, the scrim sat inside the
           class card's stacking context and the room tile below painted over
           its Done button — the 16 Sep lesson. A modal belongs at the root. */}
@@ -192,7 +194,7 @@ export function ClassShare({
             {done ? "Copied ✓" : "Copy link"}
           </button>
           <button type="button" onClick={() => void share()} aria-label="Share the booking link" style={{ ...btn(false), flex: "1 1 0" }}>
-            Send it to somebody
+            Share
           </button>
         </div>
       </div>

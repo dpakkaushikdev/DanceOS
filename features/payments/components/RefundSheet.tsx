@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { dosKey } from "@/features/classes/components/ShareSheet";
 import { cancelBookingAction } from "@/features/payments/server-actions/payments";
 import { DOS_DISPLAY, DOS_UI } from "@/lib/design/tokens";
 import { refundPolicySentence, refundSideNow, windowWords } from "@/lib/format/refundPolicy";
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
 import { plainError } from "@/lib/errors";
 import { rupees } from "@/lib/format/money";
+import { BTN_RESET, BTN_RESET_BLOCK } from "@/components/ui/buttonReset";
 
 /** Cancelling is two things, and only one of them is about money — lifted from
  *  prototype DanceOSApp.jsx:6269-6327. The seat goes back the instant you
@@ -135,14 +135,11 @@ export function RefundSheet({
           WHY ARE YOU CANCELLING?
         </div>
         {REASONS.map((r) => (
-          <div
-            role="button"
-            tabIndex={0}
-            onKeyDown={dosKey}
+          <button type="button"
             key={r}
             aria-disabled={busy}
             onClick={() => void file(r)}
-            style={{
+            style={{ ...BTN_RESET_BLOCK, ...({
               display: "flex",
               alignItems: "center",
               gap: 9,
@@ -155,7 +152,7 @@ export function RefundSheet({
               fontWeight: 800,
               fontSize: 12.5,
               opacity: busy ? 0.6 : 1,
-            }}
+            }) }}
           >
             {r}
             {paidWith === "money" && amountInr > 0 ? (
@@ -163,15 +160,12 @@ export function RefundSheet({
                 {rupees(amountInr)}
               </span>
             ) : null}
-          </div>
+          </button>
         ))}
         {!own ? (
-          <div
-            role="button"
-            tabIndex={0}
-            onKeyDown={dosKey}
+          <button type="button"
             onClick={() => setOwn(true)}
-            style={{
+            style={{ ...BTN_RESET_BLOCK, ...({
               display: "flex",
               alignItems: "center",
               gap: 9,
@@ -184,10 +178,10 @@ export function RefundSheet({
               fontWeight: 800,
               fontSize: 12.5,
               color: "var(--sub)",
-            }}
+            }) }}
           >
             Something else — write it<span style={{ marginLeft: "auto", fontSize: 14 }}>›</span>
-          </div>
+          </button>
         ) : (
           <div style={{ marginBottom: 8 }}>
             <textarea
@@ -213,16 +207,13 @@ export function RefundSheet({
             />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6, gap: 8 }}>
               <span style={{ fontSize: 10, color: "var(--muted)" }}>{why.trim().length}/300</span>
-              <span
-                role="button"
-                tabIndex={0}
-                onKeyDown={dosKey}
+              <button type="button"
                 aria-disabled={!why.trim() || busy}
                 onClick={() => {
                   if (!why.trim() || busy) return;
                   void file(why.trim().slice(0, 300));
                 }}
-                style={{
+                style={{ ...BTN_RESET, ...({
                   padding: "9px 18px",
                   borderRadius: 999,
                   fontWeight: 900,
@@ -230,22 +221,19 @@ export function RefundSheet({
                   cursor: "pointer",
                   background: why.trim() ? "var(--text)" : "var(--el)",
                   color: why.trim() ? "var(--solid)" : "var(--muted)",
-                }}
+                }) }}
               >
                 {busy ? "Sending…" : "Send request"}
-              </span>
+              </button>
             </div>
           </div>
         )}
         {error && (
           <div role="alert" style={{ fontSize: 10.5, color: "#F87171", fontWeight: 700, marginBottom: 8, textAlign: "center" }}>{error}</div>
         )}
-        <div
-          role="button"
-          tabIndex={0}
-          onKeyDown={dosKey}
+        <button type="button"
           onClick={busy ? undefined : onClose}
-          style={{
+          style={{ ...BTN_RESET_BLOCK, ...({
             marginTop: 4,
             textAlign: "center",
             padding: "12px",
@@ -255,10 +243,10 @@ export function RefundSheet({
             fontWeight: 800,
             fontSize: 12.5,
             cursor: "pointer",
-          }}
+          }) }}
         >
           Keep my spot
-        </div>
+        </button>
       </div>
     </div>
   );

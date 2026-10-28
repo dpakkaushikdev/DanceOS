@@ -10,7 +10,8 @@ import { FORM_TITLE } from "@/components/ui/formTitle";
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
 import { enquiryTypesFor, type EnquiryField, type EnquiryType, type SendableEnquiryTypeKey } from "@/types/enquiry";
 import type { BusinessType } from "@/types/business";
-import { EnqIcon, initialsOf, pressKey } from "@/features/inbox/components/inbox-kit";
+import { EnqIcon, initialsOf } from "@/features/inbox/components/inbox-kit";
+import { BTN_RESET, BTN_RESET_BLOCK } from "@/components/ui/buttonReset";
 
 /** The sender's sheet, lifted from the prototype's EnquirySheet (5051-5193):
  *  pick what it is for — only the kinds that make sense for who it is going TO
@@ -399,14 +400,11 @@ export function EnquirySheet({
                 at 18px, its line beneath. */}
             <div style={{ display: "grid", gap: 10 }}>
               {allowed.map((x) => (
-                <div
+                <button type="button"
                   key={x.k}
-                  role="button"
-                  tabIndex={0}
                   data-testid="enquiry-kind-tile"
-                  onKeyDown={pressKey(() => pickType(x))}
                   onClick={() => pickType(x)}
-                  style={{ display: "flex", alignItems: "center", gap: 14, background: "var(--card)", border: `1.5px solid ${x.c}66`, borderRadius: 18, padding: "16px 16px", cursor: "pointer" }}
+                  style={{ ...BTN_RESET_BLOCK, ...({ display: "flex", alignItems: "center", gap: 14, background: "var(--card)", border: `1.5px solid ${x.c}66`, borderRadius: 18, padding: "16px 16px", cursor: "pointer" }) }}
                 >
                   <span style={{ width: 56, height: 56, flexShrink: 0, borderRadius: 16, display: "inline-flex", alignItems: "center", justifyContent: "center", background: `${x.c}1f` }}>
                     <EnqIcon k={x.k} size={32} color={x.c} sw={1.8} />
@@ -416,7 +414,7 @@ export function EnquirySheet({
                     <DotLine text={x.sub} style={{ fontSize: 12.5, fontWeight: 700, color: "var(--sub)", marginTop: 4, lineHeight: 1.45 }} />
                   </div>
                   <span aria-hidden style={{ fontSize: 22, fontWeight: 700, color: "var(--muted)", flexShrink: 0 }}>›</span>
-                </div>
+                </button>
               ))}
             </div>
             {allowed.length === 0 ? <div style={{ fontSize: 11.5, color: "var(--sub)", padding: "10px 2px" }}>They aren&apos;t taking enquiries right now.</div> : null}
@@ -459,15 +457,12 @@ export function EnquirySheet({
                 ) : null}
               </div>
             ))}
-            <div
-              role="button"
-              tabIndex={0}
-              onKeyDown={pressKey(() => setDates((a) => [...a, ""]))}
+            <button type="button"
               onClick={() => setDates((a) => [...a, ""])}
-              style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 800, color: type.c, cursor: "pointer" }}
+              style={{ ...BTN_RESET, ...({ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 800, color: type.c, cursor: "pointer" }) }}
             >
               ＋ Another date
-            </div>
+            </button>
 
             {type.fields.map((f) => (
               <div key={f.k}>

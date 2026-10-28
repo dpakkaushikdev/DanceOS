@@ -1,8 +1,7 @@
 "use client";
-
-import { dosKey } from "@/features/classes/components/ShareSheet";
 import { DOS_DISPLAY, DOS_UI } from "@/lib/design/tokens";
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
+import { BTN_RESET } from "@/components/ui/buttonReset";
 
 /** Invoice — lifted from prototype DanceOSApp.jsx:6230-6255. The rows are real
  *  now: amount and method come off the captured payment. The prototype's
@@ -113,12 +112,9 @@ export function InvoiceSheet({ title, whenText, whereText, classBookingId, amoun
           </b>
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-          <div
-            role="button"
-            tabIndex={0}
-            onKeyDown={dosKey}
+          <button type="button"
             onClick={onClose}
-            style={{
+            style={{ ...BTN_RESET, ...({
               flex: 1,
               textAlign: "center",
               padding: "12px",
@@ -128,10 +124,10 @@ export function InvoiceSheet({ title, whenText, whereText, classBookingId, amoun
               fontWeight: 800,
               fontSize: 12.5,
               cursor: "pointer",
-            }}
+            }) }}
           >
             Close
-          </div>
+          </button>
         </div>
       </div>
     </div>

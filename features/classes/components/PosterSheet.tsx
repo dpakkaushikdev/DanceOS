@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
 import { DOS_DISPLAY, DOS_UI } from "@/lib/design/tokens";
 import { PosterBlock, type PosterItem } from "./poster";
-import { dosKey } from "./ShareSheet";
+import { BTN_RESET_BLOCK } from "@/components/ui/buttonReset";
 
 /** THE POSTER, OPENED — and nothing else on it (29 Sep 2026, the user: "when
  *  clicking on the poster right now we get poster and a qr code for the class
@@ -111,12 +111,9 @@ export function PosterSheet({
             {levelWord}
           </div>
         )}
-        <div
-          role="button"
-          tabIndex={0}
-          onKeyDown={dosKey}
+        <button type="button"
           onClick={onClose}
-          style={{
+          style={{ ...BTN_RESET_BLOCK, ...({
             marginTop: 18,
             textAlign: "center",
             padding: "12px",
@@ -126,10 +123,10 @@ export function PosterSheet({
             fontWeight: 900,
             fontSize: 12.5,
             cursor: "pointer",
-          }}
+          }) }}
         >
           Done
-        </div>
+        </button>
       </div>
     </div>
   );

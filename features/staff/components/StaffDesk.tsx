@@ -8,7 +8,6 @@ import Link from "next/link";
 import { FigureHead } from "@/components/ui/FigureHead";
 import { QRBlock } from "@/components/ui/QRBlock";
 import { CENTER_CARD, CENTER_SCRIM } from "@/components/ui/centerModal";
-import { dosKey } from "@/features/classes/components/ShareSheet";
 import { bizCard } from "@/features/crews/components/crew-kit";
 import { toast } from "@/components/ui/Toast";
 import { plainError } from "@/lib/errors";
@@ -44,6 +43,7 @@ import {
   type InvitableRole,
   type BusinessInvite,
 } from "@/types/staff";
+import { BTN_RESET, BTN_RESET_BLOCK } from "@/components/ui/buttonReset";
 
 /** Staff & permissions — lifted from the prototype's settings segment
  *  (DanceOSApp.jsx:18427-18435): one card per person with the level badge on the
@@ -682,14 +682,11 @@ export function StaffDesk({
               {roles.map(([k, word]) => {
                 const on = form.role === k;
                 return (
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={dosKey}
+                  <button type="button"
                     key={k}
                     aria-pressed={on}
                     onClick={() => setForm({ ...form, role: k })}
-                    style={{
+                    style={{ ...BTN_RESET, ...({
                       fontSize: 11.5,
                       fontWeight: 800,
                       padding: "7px 12px",
@@ -698,10 +695,10 @@ export function StaffDesk({
                       background: on ? "var(--text)" : CARD,
                       color: on ? "var(--solid)" : SUB,
                       border: `1.5px solid ${on ? "var(--text)" : EL}`,
-                    }}
+                    }) }}
                   >
                     {word}
-                  </span>
+                  </button>
                 );
               })}
             </div>
@@ -768,10 +765,7 @@ export function StaffDesk({
                   aria-label="Their email"
                   style={inputStyle}
                 />
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={dosKey}
+                <button type="button"
                   aria-label="Send invite"
                   onClick={async () => {
                     if (!canInvite) return;
@@ -787,7 +781,7 @@ export function StaffDesk({
                     );
                     if (done) setAddOpen(false);
                   }}
-                  style={{
+                  style={{ ...BTN_RESET_BLOCK, ...({
                     marginTop: 14,
                     textAlign: "center",
                     padding: "13px",
@@ -797,10 +791,10 @@ export function StaffDesk({
                     fontWeight: 800,
                     fontSize: 13.5,
                     cursor: canInvite ? "pointer" : "default",
-                  }}
+                  }) }}
                 >
                   {busy ? "Sending…" : "Send invite"}
-                </div>
+                </button>
               </>
             )}
           </div>
@@ -846,10 +840,7 @@ export function StaffDesk({
               cannot join your business.
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              <span
-                role="button"
-                tabIndex={0}
-                onKeyDown={dosKey}
+              <button type="button"
                 aria-label="Copy invite link"
                 onClick={async () => {
                   try {
@@ -859,7 +850,7 @@ export function StaffDesk({
                     toast.error("Could not copy — press and hold the link");
                   }
                 }}
-                style={{
+                style={{ ...BTN_RESET, ...({
                   flex: 1,
                   textAlign: "center",
                   padding: "12px",
@@ -870,16 +861,13 @@ export function StaffDesk({
                   fontSize: 12.5,
                   cursor: "pointer",
                   color: "var(--text)",
-                }}
+                }) }}
               >
                 Copy link
-              </span>
-              <span
-                role="button"
-                tabIndex={0}
-                onKeyDown={dosKey}
+              </button>
+              <button type="button"
                 onClick={() => setShareInvite(null)}
-                style={{
+                style={{ ...BTN_RESET, ...({
                   flex: 1,
                   textAlign: "center",
                   padding: "12px",
@@ -889,10 +877,10 @@ export function StaffDesk({
                   fontWeight: 900,
                   fontSize: 12.5,
                   cursor: "pointer",
-                }}
+                }) }}
               >
                 Done
-              </span>
+              </button>
             </div>
           </div>
         </div>

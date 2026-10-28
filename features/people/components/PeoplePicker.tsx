@@ -7,6 +7,7 @@ import { DOS_UI } from "@/lib/design/tokens";
 import { photoUrl } from "@/lib/media/photo";
 import { KIND_WORD, kindOf, type Profile } from "@/types/profile";
 import { ScanSheet } from "./ScanSheet";
+import { BTN_RESET_BLOCK } from "@/components/ui/buttonReset";
 
 /** SEARCH DANCEOS, THEN ASK THEM — lifted from the crew desk's add panel
  *  (prototype 16413-16447): the eyebrow, the search field with the glass, the
@@ -47,13 +48,6 @@ const hashOf = (s: string) => {
 export const personGradient = (name: string): [string, string] => GRADS[hashOf(name) % GRADS.length];
 export const personInitials = (name: string) => name.split(" ").filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "D";
 
-const pressKey = (fn: () => void) => (e: React.KeyboardEvent) => {
-  if (e.key === "Enter" || e.key === " ") {
-    e.preventDefault();
-    fn();
-  }
-};
-
 /** the face on a row: the profile picture, or the initials on the person's gradient */
 function Face({ name, photo }: { name: string; photo: string | null }) {
   const g = personGradient(name);
@@ -70,14 +64,14 @@ export type PoolHit = Hit & { from?: string };
 function PersonRow({ p, actionWord, actionColor, label, onPick }: { p: PoolHit; actionWord: string; actionColor: string; label: string; onPick: () => void }) {
   const sub = [p.from ?? KIND_WORD[kindOf(p.isArtist)], p.city].filter(Boolean).join(" · ");
   return (
-    <div role="button" tabIndex={0} aria-label={label} onKeyDown={pressKey(onPick)} onClick={onPick} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", cursor: "pointer", borderBottom: "1.5px solid var(--el)" }}>
+    <button type="button" aria-label={label} onClick={onPick} style={{ ...BTN_RESET_BLOCK, ...({ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", cursor: "pointer", borderBottom: "1.5px solid var(--el)" }) }}>
       <Face name={p.fullName} photo={photoUrl(p.avatarPath)} />
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--text)" }}>{p.fullName}</span>
         {sub ? <span style={{ display: "block", fontSize: 9.5, color: "var(--muted)", marginTop: 1 }}>{sub}</span> : null}
       </span>
       <span style={{ fontSize: 9.5, fontWeight: 800, color: actionColor, flexShrink: 0 }}>{actionWord}</span>
-    </div>
+    </button>
   );
 }
 

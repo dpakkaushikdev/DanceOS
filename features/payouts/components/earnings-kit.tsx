@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { CARD, DOS_DISPLAY, DOS_UI, GOLD, GREEN, INK, LINE, MUTED, RED, SUB } from "@/lib/design/tokens";
 import { DOS_TOOLS, dosToolPaint } from "@/features/businesses/components/biz-kit";
+import { BTN_RESET_BLOCK } from "@/components/ui/buttonReset";
 
 /** The earnings screen's atoms, lifted from the prototype's S_earn
  *  (DanceOSApp.jsx:17877-18205): the green hero, the money card with its stacked
@@ -256,17 +257,9 @@ export function LedgerBlock({
         const open = openKey === row.key;
         return (
           <div key={row.key} style={{ marginBottom: i === rows.length - 1 && !open ? 0 : 11 }}>
-            <div
-              role="button"
-              tabIndex={0}
+            <button type="button"
               onClick={() => onToggle(row.key)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onToggle(row.key);
-                }
-              }}
-              style={{ cursor: "pointer" }}
+              style={{ ...BTN_RESET_BLOCK, ...({ cursor: "pointer" }) }}
             >
               <div
                 style={{
@@ -292,7 +285,7 @@ export function LedgerBlock({
                   }}
                 />
               </div>
-            </div>
+            </button>
             {open ? (
               <div style={{ marginTop: 11, paddingTop: 10, borderTop: `1.5px solid ${LINE}` }}>
                 <div

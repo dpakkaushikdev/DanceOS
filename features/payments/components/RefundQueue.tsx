@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { dosKey } from "@/features/classes/components/ShareSheet";
 import {
   decideRefundAction,
   settleRefundOfflineAction,
 } from "@/features/payments/server-actions/refunds";
 import { GREEN, GOLD, RED, SUB } from "@/lib/design/tokens";
 import { REFUND_TONE, REFUND_WORD, type RefundRequest } from "@/types/refund";
+import { BTN_RESET, BTN_RESET_BLOCK } from "@/components/ui/buttonReset";
 
 /** The class's refund queue, lifted from the prototype's REQUESTS section
  *  (DanceOSApp.jsx:12219-12262): the three tiles, the bulk approve when more
@@ -56,13 +56,10 @@ export function RefundQueue({
   const owed = open.reduce((a, r) => a + r.amountInr, 0);
 
   const pill = (label: string, colour: string, onClick: () => void) => (
-    <span
-      role="button"
-      tabIndex={0}
-      onKeyDown={dosKey}
+    <button type="button"
       key={label}
       onClick={onClick}
-      style={{
+      style={{ ...BTN_RESET, ...({
         flex: 1,
         textAlign: "center",
         padding: "7px",
@@ -73,10 +70,10 @@ export function RefundQueue({
         background: `${colour}1a`,
         color: colour,
         border: `1.5px solid ${colour}55`,
-      }}
+      }) }}
     >
       {label}
-    </span>
+    </button>
   );
 
   return (
@@ -110,10 +107,7 @@ export function RefundQueue({
       </div>
 
       {open.length > 1 && (
-        <div
-          role="button"
-          tabIndex={0}
-          onKeyDown={dosKey}
+        <button type="button"
           onClick={async () => {
             if (busy) return;
             setBusy(true);
@@ -127,7 +121,7 @@ export function RefundQueue({
             if (failed) setError(failed);
             else fire(`↩️ ${open.length} refunds approved · ${money(owed)}`);
           }}
-          style={{
+          style={{ ...BTN_RESET_BLOCK, ...({
             marginTop: 10,
             textAlign: "center",
             padding: "11px",
@@ -137,10 +131,10 @@ export function RefundQueue({
             fontWeight: 900,
             fontSize: 12,
             cursor: busy ? "wait" : "pointer",
-          }}
+          }) }}
         >
           Refund all {open.length} · {money(owed)}
-        </div>
+        </button>
       )}
 
       <div

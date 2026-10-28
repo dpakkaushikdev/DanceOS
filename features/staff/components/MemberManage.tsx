@@ -18,6 +18,7 @@ import type { MemberRole, TeamMember } from "@/repositories/businesses";
 import type { BusinessType } from "@/types/business";
 import { KIND_WORD, kindOf } from "@/types/profile";
 import { MEMBER_LABEL, MEMBER_ROLE_WORD, ROLE_CARRIES, TEAM_PERMISSIONS, labelsFor } from "@/types/staff";
+import { BTN_RESET } from "@/components/ui/buttonReset";
 
 const CARD = "var(--card)";
 const EL = "var(--el)";
@@ -125,10 +126,7 @@ export function MemberManage({
                   const on = m.role === k;
                   const c = MEMBER_LABEL[k as MemberRole]?.colour ?? SUB;
                   return (
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={dosKey}
+                    <button type="button"
                       key={k}
                       aria-pressed={on}
                       aria-label={`Make ${m.name} ${word}`}
@@ -140,11 +138,11 @@ export function MemberManage({
                           router.refresh();
                         }
                       }}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 800, padding: "7px 12px", borderRadius: 999, cursor: "pointer", background: on ? `${c}26` : CARD, color: on ? INK : SUB, border: `1.5px solid ${on ? c : EL}` }}
+                      style={{ ...BTN_RESET, ...({ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 800, padding: "7px 12px", borderRadius: 999, cursor: "pointer", background: on ? `${c}26` : CARD, color: on ? INK : SUB, border: `1.5px solid ${on ? c : EL}` }) }}
                     >
                       <span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: 4, background: c, flexShrink: 0 }} />
                       {word}
-                    </span>
+                    </button>
                   );
                 })}
               </div>

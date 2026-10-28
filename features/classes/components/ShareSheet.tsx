@@ -3,6 +3,7 @@
 import { useState, useSyncExternalStore, type KeyboardEvent } from "react";
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
 import { DOS_DISPLAY, DOS_UI, SKY } from "@/lib/design/tokens";
+import { BTN_RESET_BLOCK } from "@/components/ui/buttonReset";
 
 /** Enter/Space activate a role="button" span — the prototype's dosKey. */
 export const dosKey = (e: KeyboardEvent<HTMLElement>) => {
@@ -92,13 +93,10 @@ export function ShareSheet({
         >
           {title}
         </div>
-        <div
-          role="button"
-          tabIndex={0}
-          onKeyDown={dosKey}
+        <button type="button"
           onClick={copy}
           aria-label="Copy the booking link"
-          style={{
+          style={{ ...BTN_RESET_BLOCK, ...({
             display: "flex",
             alignItems: "center",
             gap: 10,
@@ -107,7 +105,7 @@ export function ShareSheet({
             borderRadius: 14,
             padding: "13px 13px",
             cursor: "pointer",
-          }}
+          }) }}
         >
           <span
             style={{
@@ -125,13 +123,10 @@ export function ShareSheet({
           <span style={{ fontSize: 11, fontWeight: 800, color: done ? "#22C55E" : SKY, flexShrink: 0 }}>
             {done ? "Copied ✓" : "Copy"}
           </span>
-        </div>
-        <div
-          role="button"
-          tabIndex={0}
-          onKeyDown={dosKey}
+        </button>
+        <button type="button"
           onClick={onClose}
-          style={{
+          style={{ ...BTN_RESET_BLOCK, ...({
             marginTop: 10,
             textAlign: "center",
             padding: "12px",
@@ -141,10 +136,10 @@ export function ShareSheet({
             fontWeight: 800,
             fontSize: 12.5,
             cursor: "pointer",
-          }}
+          }) }}
         >
           Done
-        </div>
+        </button>
       </div>
     </div>
   );

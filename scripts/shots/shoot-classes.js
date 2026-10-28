@@ -630,9 +630,11 @@ const BOOK_ON_PAGE = /^Book Now$/;
     check((await oPage.getByRole("button", { name: "Mark refunded at the desk", exact: true }).count()) === 1, "…with Mark refunded at the desk still there for money that never went through the rail");
     await sendBtn.click();
     /* the toast lives 2.4 s, so it is WAITED FOR rather than read after a sleep */
+    /* an ERROR toast is role="alert" since Batch 3 (28 Oct 2026) — red, and it stays */
     const refusedInWords = await oPage
-      .getByRole("status")
+      .locator('[role="status"], [role="alert"]')
       .filter({ hasText: /did not take the refund/ })
+      .first()
       .waitFor({ timeout: 15000 })
       .then(() => true)
       .catch(() => false);
@@ -753,7 +755,7 @@ const BOOK_ON_PAGE = /^Book Now$/;
     } catch (e) {
       fixedWhy = e.message;
     }
-    check(/A published class can't be changed/.test(fixedWhy), `⚠⚠ a PUBLISHED class's price cannot be changed — delete it and add a new one (${fixedWhy.slice(0, 110)})`);
+    check(/A published class can(?:'|no)t be/.test(fixedWhy), `⚠⚠ a PUBLISHED class's price cannot be changed — delete it and add a new one (${fixedWhy.slice(0, 110)})`);
 
     const reconfirm = await draftClass(owner.h, studio.id, roomA[0].id, "Bollywood", atIst(20, 18), atIst(20, 18) + 60);
     const rcAsk = await rpc(owner.h, "ask_class_person", { p_class_id: reconfirm, p_user_id: learner.id, p_kind: "artist" });

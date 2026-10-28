@@ -9,7 +9,6 @@ import { StudioVerificationStrip } from "@/features/businesses/components/Studio
 import type { StudioVerificationState } from "@/repositories/studioVerification";
 import { DeskAddButton, VerifiedTick } from "@/features/settings/components/settings-kit";
 import { DeskBody, DeskTop } from "@/components/ui/DeskSections";
-import { dosKey } from "@/features/classes/components/ShareSheet";
 import { CityPicker } from "@/features/geo/components/CityPicker";
 import { LocationPicker } from "@/features/geo/components/LocationPicker";
 import { createBusinessAction, type BusinessActionState } from "@/features/businesses/server-actions/businesses";
@@ -27,6 +26,7 @@ import { priceWords, type PlanCatalogRow } from "@/repositories/plans";
 import type { StudioSubscriptionState } from "@/repositories/subscriptions";
 import type { MyMembership } from "@/repositories/businesses";
 import { DOS_TOOLS, SHEET_ANIMATION } from "./biz-kit";
+import { BTN_RESET, BTN_RESET_BLOCK } from "@/components/ui/buttonReset";
 
 /* Icons lifted from the prototype (DanceOSApp.jsx:3136-3142). */
 const STROKE = { fill: "none", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round" } as const;
@@ -654,25 +654,19 @@ export function BusinessHub({
                         style={{ ...inp, flex: 1, minWidth: 0 }}
                       />
                       {rooms.length > 1 && (
-                        <span
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={dosKey}
+                        <button type="button"
                           aria-label={`Remove room ${i + 1}`}
                           onClick={() => setRooms((rs) => rs.filter((_, j) => j !== i))}
-                          style={{ fontSize: 14, color: SUB, cursor: "pointer", padding: "0 2px" }}
+                          style={{ ...BTN_RESET, ...({ fontSize: 14, color: SUB, cursor: "pointer", padding: "0 2px" }) }}
                         >
                           ✕
-                        </span>
+                        </button>
                       )}
                     </div>
                   ))}
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={dosKey}
+                  <button type="button"
                     onClick={() => setRooms((rs) => [...rs, { name: `Room ${rs.length + 1}`, capacity: "20" }])}
-                    style={{
+                    style={{ ...BTN_RESET_BLOCK, ...({
                       textAlign: "center",
                       padding: "10px",
                       borderRadius: 12,
@@ -681,10 +675,10 @@ export function BusinessHub({
                       fontWeight: 800,
                       fontSize: 12,
                       cursor: "pointer",
-                    }}
+                    }) }}
                   >
                     ＋ Add room
-                  </div>
+                  </button>
                 </>
               )}
 

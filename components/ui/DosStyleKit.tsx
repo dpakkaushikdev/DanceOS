@@ -4,6 +4,7 @@ import { useState } from "react";
 import { DOS_STYLE_REG, dosStyleColor } from "@/lib/constants/styles";
 import { DOS_DISPLAY } from "@/lib/design/tokens";
 import { dosToolPaint } from "@/lib/format/styleInk";
+import { BTN_RESET_BLOCK } from "@/components/ui/buttonReset";
 
 /* ── the coin (prototype DosStyleCoin 3400): a style's colour as a disc with its
    initials on it — the one glyph a style wears when there is no room for a tile ── */
@@ -46,13 +47,6 @@ export function DosStyleCoin({ label, color, size = 30, active = false }: { labe
  *  restriction, so it sits above the list rather than in it, marked as a
  *  category, and it is exclusive both ways. */
 export const DOS_ALL_STYLES = "All styles";
-
-const pressKey = (fn: () => void) => (e: React.KeyboardEvent) => {
-  if (e.key === "Enter" || e.key === " ") {
-    e.preventDefault();
-    fn();
-  }
-};
 
 const StarGlyph = ({ size = 16 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -127,15 +121,12 @@ export function DosStylePicker({
           })}
         </div>
       ) : null}
-      <div
-        role="button"
-        tabIndex={0}
+      <button type="button"
         aria-label={ariaLabel}
         aria-expanded={open}
         aria-haspopup="listbox"
-        onKeyDown={pressKey(() => setOpen((o) => !o))}
         onClick={() => setOpen((o) => !o)}
-        style={{ display: "flex", alignItems: "center", gap: 9, background: "var(--card)", border: `1.5px solid ${open ? "var(--text)" : "var(--el)"}`, borderRadius: 14, padding: "8px 14px 8px 8px", cursor: "pointer" }}
+        style={{ ...BTN_RESET_BLOCK, ...({ display: "flex", alignItems: "center", gap: 9, background: "var(--card)", border: `1.5px solid ${open ? "var(--text)" : "var(--el)"}`, borderRadius: 14, padding: "8px 14px 8px 8px", cursor: "pointer" }) }}
       >
         {isAll ? (
           <span style={{ width: 30, height: 30, borderRadius: 15, flexShrink: 0, background: "var(--text)", color: "var(--solid)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
@@ -150,7 +141,7 @@ export function DosStylePicker({
           {value || placeholder}
         </b>
         <span aria-hidden="true" style={{ color: "var(--sub)", fontSize: 12, transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>▾</span>
-      </div>
+      </button>
 
       {open ? (
         <StyleListPanel ariaLabel={ariaLabel} q={q} setQ={setQ} all={all} isAll={isAll} isOn={(n) => value === n} onPick={pick} hits={hits} />
@@ -218,14 +209,11 @@ function StyleListPanel({
       ) : null}
       <div style={{ maxHeight: 250, overflowY: "auto" }}>
         {all && !q.trim() ? (
-          <div
-            role="button"
-            tabIndex={0}
+          <button type="button"
             aria-pressed={isAll}
             aria-label={DOS_ALL_STYLES}
-            onKeyDown={pressKey(() => onPick(DOS_ALL_STYLES))}
             onClick={() => onPick(DOS_ALL_STYLES)}
-            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", cursor: "pointer", borderBottom: "1.5px solid var(--el)", background: isAll ? "var(--el)" : "transparent" }}
+            style={{ ...BTN_RESET_BLOCK, ...({ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", cursor: "pointer", borderBottom: "1.5px solid var(--el)", background: isAll ? "var(--el)" : "transparent" }) }}
           >
             <span style={{ width: 28, height: 28, borderRadius: 14, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", background: isAll ? "var(--text)" : "var(--el)", color: isAll ? "var(--solid)" : "var(--sub)" }}>
               <StarGlyph size={15} />
@@ -235,27 +223,24 @@ function StyleListPanel({
               <span style={{ display: "block", fontSize: 10, color: "var(--muted)", marginTop: 1 }}>Open to every style — not a style itself</span>
             </span>
             {isAll ? <span style={{ fontSize: 12, color: "var(--sub)" }}>✓</span> : null}
-          </div>
+          </button>
         ) : null}
         {hits.map(([n]) => {
           const on = isOn(n);
           const off = !on && Boolean(blocked?.(n));
           return (
-            <div
+            <button type="button"
               key={n}
-              role="button"
-              tabIndex={off ? -1 : 0}
               aria-pressed={on}
               aria-disabled={off || undefined}
               aria-label={n}
-              onKeyDown={pressKey(() => (off ? undefined : onPick(n)))}
               onClick={() => (off ? undefined : onPick(n))}
-              style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", cursor: off ? "default" : "pointer", background: on ? "var(--el)" : "transparent", opacity: off ? 0.4 : 1 }}
+              style={{ ...BTN_RESET_BLOCK, ...({ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", cursor: off ? "default" : "pointer", background: on ? "var(--el)" : "transparent", opacity: off ? 0.4 : 1 }) }}
             >
               <DosStyleCoin label={n} size={28} active={on} />
               <span style={{ fontSize: 13.5, fontWeight: on ? 800 : 600, color: "var(--text)" }}>{n}</span>
               {on ? <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--sub)" }}>✓</span> : null}
-            </div>
+            </button>
           );
         })}
         {hits.length === 0 ? <div style={{ padding: "14px 12px", fontSize: 12.5, color: "var(--muted)", textAlign: "center" }}>No style by that name.</div> : null}
@@ -375,22 +360,19 @@ export function DosStyleMultiPicker({
         </div>
       ) : null}
 
-      <div
-        role="button"
-        tabIndex={0}
+      <button type="button"
         aria-label={ariaLabel}
         aria-expanded={open}
         aria-haspopup="listbox"
-        onKeyDown={pressKey(() => (open ? close() : setOpen(true)))}
         onClick={() => (open ? close() : setOpen(true))}
-        style={{ display: "flex", alignItems: "center", gap: 9, background: "transparent", border: `1.5px dashed ${open ? "var(--text)" : "var(--el)"}`, borderRadius: 14, padding: "8px 14px 8px 8px", cursor: "pointer" }}
+        style={{ ...BTN_RESET_BLOCK, ...({ display: "flex", alignItems: "center", gap: 9, background: "transparent", border: `1.5px dashed ${open ? "var(--text)" : "var(--el)"}`, borderRadius: 14, padding: "8px 14px 8px 8px", cursor: "pointer" }) }}
       >
         <span style={{ width: 30, height: 30, borderRadius: 15, flexShrink: 0, background: "var(--el)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--sub)", fontSize: 15 }}>＋</span>
         <b style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: full ? "var(--muted)" : "var(--sub)", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {full ? capWords : value.length ? "Add another style" : "Add a dance style"}
         </b>
         <span aria-hidden="true" style={{ color: "var(--sub)", fontSize: 12, transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>▾</span>
-      </div>
+      </button>
       {value.length > 1 ? <div style={{ fontSize: 10.5, color: "var(--muted)", marginTop: 5 }}>The first is the main style — ★ moves one to the front.</div> : null}
 
       {open ? (
@@ -406,16 +388,13 @@ export function DosStyleMultiPicker({
           blocked={() => full}
           notice={full ? capWords : null}
           footer={
-            <div
-              role="button"
-              tabIndex={0}
+            <button type="button"
               aria-label="Done picking styles"
-              onKeyDown={pressKey(close)}
               onClick={close}
-              style={{ textAlign: "center", padding: "10px", borderTop: "1.5px solid var(--el)", fontSize: 12.5, fontWeight: 800, cursor: "pointer", color: "var(--text)" }}
+              style={{ ...BTN_RESET_BLOCK, ...({ textAlign: "center", padding: "10px", borderTop: "1.5px solid var(--el)", fontSize: 12.5, fontWeight: 800, cursor: "pointer", color: "var(--text)" }) }}
             >
               Done{real.length ? ` · ${real.length} picked` : ""}
-            </div>
+            </button>
           }
         />
       ) : null}

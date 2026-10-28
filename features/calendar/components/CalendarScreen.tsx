@@ -25,6 +25,7 @@ import { practiceKindOf, tileClassOf, type CalendarEntry, type CalendarMonth, ty
 import { PRACTICE_WORD, practiceWhen } from "@/types/crewPractice";
 import { CalendarSync } from "./CalendarSync";
 import { MonthGrid, TimeGrid, useSwipe, type GridItem, type MonthChip } from "./calendar-grid";
+import { BTN_RESET_BLOCK } from "@/components/ui/buttonReset";
 
 /** The calendar, lifted from prototype S_profiletab in its `calendarOnly` dress
  *  (`CalTab=()=><S_profiletab calendarOnly/>` 19146, `StudioCalPage` 19143):
@@ -180,13 +181,6 @@ const VIEW_ICON: Record<View, React.ReactNode> = {
       <path d="M3 9h18M3 14h18M9 9v12M15 9v12" />
     </>
   ),
-};
-
-const pressKey = (fn: () => void) => (e: React.KeyboardEvent) => {
-  if (e.key === "Enter" || e.key === " ") {
-    e.preventDefault();
-    fn();
-  }
 };
 
 /** Scroll a row to just under whatever is pinned over it (prototype 1517):
@@ -631,14 +625,11 @@ export function CalendarScreen({ mode, months, todayKey, entries, practices = []
     const ev = agendaOf(dayKey);
     const d = dayNumberOf(dayKey);
     return (
-      <div
+      <button type="button"
         key={dayKey}
-        role="button"
-        tabIndex={0}
-        onKeyDown={pressKey(() => jumpTo(dayKey))}
         onClick={() => jumpTo(dayKey)}
         aria-label={`${d} ${months[idx(monthOfDay(dayKey))].monthName}, ${ev.length} session${ev.length === 1 ? "" : "s"}`}
-        style={{ textAlign: "center", padding: "2px 0 4px", cursor: "pointer" }}
+        style={{ ...BTN_RESET_BLOCK, ...({ textAlign: "center", padding: "2px 0 4px", cursor: "pointer" }) }}
       >
         {showLetter ? (
           <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.4, color: i > 4 ? LINE : MUTED }}>
@@ -677,7 +668,7 @@ export function CalendarScreen({ mode, months, todayKey, entries, practices = []
             />
           ))}
         </div>
-      </div>
+      </button>
     );
   };
 
@@ -958,14 +949,11 @@ export function CalendarScreen({ mode, months, todayKey, entries, practices = []
         {isPublic && roomFilter ? (
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
             <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
-              <div
-                role="button"
-                tabIndex={0}
+              <button type="button"
                 aria-expanded={ddOpen}
                 aria-label="Filter by room"
-                onKeyDown={pressKey(() => setDdOpen((d) => !d))}
                 onClick={() => setDdOpen((d) => !d)}
-                style={{
+                style={{ ...BTN_RESET_BLOCK, ...({
                   display: "flex",
                   alignItems: "center",
                   gap: 7,
@@ -974,7 +962,7 @@ export function CalendarScreen({ mode, months, todayKey, entries, practices = []
                   borderRadius: 12,
                   padding: "9px 11px",
                   cursor: "pointer",
-                }}
+                }) }}
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="4" y="5" width="16" height="15" rx="2.5" />
@@ -984,7 +972,7 @@ export function CalendarScreen({ mode, months, todayKey, entries, practices = []
                   {room ?? "All rooms"}
                 </span>
                 <span style={{ fontSize: 10, color: SUB }}>▾</span>
-              </div>
+              </button>
               {ddOpen ? (
                 <div
                   style={{
@@ -1007,23 +995,20 @@ export function CalendarScreen({ mode, months, todayKey, entries, practices = []
                       setDdOpen(false);
                     };
                     return (
-                      <div
+                      <button type="button"
                         key={o}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={pressKey(pick)}
                         onClick={pick}
-                        style={{
+                        style={{ ...BTN_RESET_BLOCK, ...({
                           padding: "8px 9px",
                           borderRadius: 9,
                           cursor: "pointer",
                           fontSize: 11.5,
                           fontWeight: cur ? 900 : 600,
                           background: cur ? LINE : "transparent",
-                        }}
+                        }) }}
                       >
                         {o}
-                      </div>
+                      </button>
                     );
                   })}
                 </div>

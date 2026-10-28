@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PosterBlock } from "@/features/classes/components/poster";
-import { dosKey } from "@/features/classes/components/ShareSheet";
 import {
   enrollAction,
   type EnrollActionState,
@@ -20,6 +19,7 @@ import { PayOption, PAY_LABEL } from "@/features/payments/components/PayOption";
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
 import { PAYMENT_ERROR, plainError } from "@/lib/errors";
 import { rupees } from "@/lib/format/money";
+import { BTN_RESET } from "@/components/ui/buttonReset";
 
 /** HOW YOU ARE PAYING — the two-step booking flow lifted from prototype S_class
  *  (DanceOSApp.jsx:12456-12573): choose how you're paying, then see exactly what
@@ -347,15 +347,12 @@ export function PayFlow({
           </div>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <div
-            role="button"
-            tabIndex={0}
-            onKeyDown={dosKey}
+          <button type="button"
             onClick={() => {
               if (busy) return;
               onClose();
             }}
-            style={{
+            style={{ ...BTN_RESET, ...({
               flex: 1,
               textAlign: "center",
               padding: "13px",
@@ -366,21 +363,18 @@ export function PayFlow({
               fontSize: 13.5,
               cursor: "pointer",
               opacity: busy ? 0.5 : 1,
-            }}
+            }) }}
           >
             Back
-          </div>
-          <div
-            role="button"
-            tabIndex={0}
-            onKeyDown={dosKey}
+          </button>
+          <button type="button"
             aria-disabled={busy}
             onClick={() => {
               if (busy) return;
               if (isFree) void confirmFree();
               else void startPaid();
             }}
-            style={{
+            style={{ ...BTN_RESET, ...({
               flex: 1.3,
               textAlign: "center",
               padding: "13px",
@@ -391,10 +385,10 @@ export function PayFlow({
               fontSize: 13.5,
               cursor: "pointer",
               opacity: busy ? 0.6 : 1,
-            }}
+            }) }}
           >
             {busy ? "One moment…" : isFree ? "Confirm booking" : `Pay ${priceText}`}
-          </div>
+          </button>
         </div>
         {/* ⚠ THE WAY OUT OF A WINDOW THAT NEVER REPORTS BACK (2 Oct 2026). On a
             phone the checkout can hand off to a UPI app and never resolve, which

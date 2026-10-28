@@ -21,7 +21,7 @@ import { toast } from "@/components/ui/Toast";
 import { dosStyleColor } from "@/lib/constants/styles";
 import { SUB } from "@/lib/design/tokens";
 import type { Profile } from "@/types/profile";
-import { pressKey } from "./crew-kit";
+import { BTN_RESET, BTN_RESET_BLOCK } from "@/components/ui/buttonReset";
 
 /** Create your crew — the prototype's `crewFormOnly` (9545-9611) wearing the
  *  ADD CLASS anatomy (21 Sep 2026, the user: *"Create Crew form in crews should
@@ -127,24 +127,21 @@ export function CrewForm({ defaultCity, sheet = false }: { defaultCity: string |
               const g = personGradient(m.fullName);
               return (
                 <div key={m.id} style={{ textAlign: "center", width: 58, flexShrink: 0 }}>
-                  <div
-                    role="button"
-                    tabIndex={0}
+                  <button type="button"
                     aria-label={`Remove ${m.fullName} from the list`}
-                    onKeyDown={pressKey(() => setMembers((ms) => ms.filter((x) => x.id !== m.id)))}
                     onClick={() => setMembers((ms) => ms.filter((x) => x.id !== m.id))}
-                    style={{ width: 44, height: 44, borderRadius: 22, margin: "0 auto", background: `linear-gradient(135deg,${g[0]},${g[1]})`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 14, fontWeight: 900, cursor: "pointer" }}
+                    style={{ ...BTN_RESET_BLOCK, ...({ width: 44, height: 44, borderRadius: 22, margin: "0 auto", background: `linear-gradient(135deg,${g[0]},${g[1]})`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 14, fontWeight: 900, cursor: "pointer" }) }}
                   >
                     {personInitials(m.fullName)}
-                  </div>
+                  </button>
                   <div style={{ fontSize: 9, color: SUB, marginTop: 3, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.fullName.split(" ")[0]}</div>
                 </div>
               );
             })}
-            <div role="button" tabIndex={0} aria-label="Add a member" onKeyDown={pressKey(() => setPick((v) => !v))} onClick={() => setPick((v) => !v)} style={{ textAlign: "center", width: 58, flexShrink: 0, cursor: "pointer" }}>
+            <button type="button" aria-label="Add a member" onClick={() => setPick((v) => !v)} style={{ ...BTN_RESET, ...({ textAlign: "center", width: 58, flexShrink: 0, cursor: "pointer" }) }}>
               <div style={{ width: 44, height: 44, borderRadius: 22, border: `2px dashed ${EL}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 800, color: SUB, margin: "0 auto" }}>＋</div>
               <div style={{ fontSize: 9, color: SUB, marginTop: 3, fontWeight: 700 }}>Add</div>
-            </div>
+            </button>
           </div>
           {pick ? (
             <div style={{ marginTop: 10 }}>

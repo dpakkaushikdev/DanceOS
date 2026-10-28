@@ -15,6 +15,7 @@ import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
 import type { SearchHit, SearchKind } from "@/repositories/search";
 import { ALL_CITIES, SORTS_FOR, filtersOnCount, filtersToParams, isPricedTab, type DiscoverFilters, type Dist, type Dur, type SortBy, type When } from "../filters";
 import { PriceRange } from "./PriceRange";
+import { BTN_RESET, BTN_RESET_BLOCK } from "@/components/ui/buttonReset";
 
 /** Step 23's controls, lifted from prototype S_discover: the one search box
  *  ("Search" — "the placeholder listed the same five things a third time",
@@ -214,9 +215,9 @@ export function DiscoverFilters({ tab, city, filters, styleOrder, tabs, as = nul
   /* the sheet's chips apply live (4844-4849); "Show results" only closes it (4874) */
   const pick =<T extends string>(opts: Array<[T, string]>, val: T, set: (v: T) => void) =>
     opts.map(([v, l]) => (
-      <div role="button" tabIndex={0} onKeyDown={pressKey(() => set(v))} key={v} aria-pressed={val === v} aria-label={l} onClick={() => set(v)} style={chip(val === v)}>
+      <button type="button" key={v} aria-pressed={val === v} aria-label={l} onClick={() => set(v)} style={{ ...BTN_RESET, ...(chip(val === v)) }}>
         {l}
-      </div>
+      </button>
     ));
   /* `aria` names a chip apart from a same-worded one elsewhere in the sheet —
      "Bollywood" is a FAMILY and a STYLE, and two controls may not answer to one
@@ -226,9 +227,9 @@ export function DiscoverFilters({ tab, city, filters, styleOrder, tabs, as = nul
       const on = val.includes(v);
       const flip = () => set(on ? val.filter((x) => x !== v) : [...val, v]);
       return (
-        <div role="button" tabIndex={0} onKeyDown={pressKey(flip)} key={v} aria-pressed={on} aria-label={aria ? aria(l) : l} onClick={flip} style={chip(on)}>
+        <button type="button" key={v} aria-pressed={on} aria-label={aria ? aria(l) : l} onClick={flip} style={{ ...BTN_RESET, ...(chip(on)) }}>
           {l}
-        </div>
+        </button>
       );
     });
 
@@ -250,9 +251,9 @@ export function DiscoverFilters({ tab, city, filters, styleOrder, tabs, as = nul
           style={{ width: "100%", boxSizing: "border-box", background: "var(--card)", border: "1.5px solid var(--el)", borderRadius: 14, padding: "13px 40px 13px 16px", color: "var(--text)", fontSize: 13.5, outline: "none", fontFamily: "inherit" }}
         />
         {q ? (
-          <span role="button" tabIndex={0} aria-label="Clear search" onKeyDown={pressKey(() => setQ(""))} onClick={() => setQ("")} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", color: "var(--sub)", cursor: "pointer", fontWeight: 800, fontSize: 13 }}>
+          <button type="button" aria-label="Clear search" onClick={() => setQ("")} style={{ ...BTN_RESET, ...({ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", color: "var(--sub)", cursor: "pointer", fontWeight: 800, fontSize: 13 }) }}>
             ✕
-          </span>
+          </button>
         ) : null}
         {searchOn && term.length >= 2 ? (
           <div role="listbox" aria-label="Search results" style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 400, background: "var(--solid)", border: "1.5px solid var(--el)", borderRadius: 16, maxHeight: 340, overflowY: "auto", boxShadow: "0 14px 40px rgba(0,0,0,.5)" }}>
@@ -312,43 +313,40 @@ export function DiscoverFilters({ tab, city, filters, styleOrder, tabs, as = nul
       <>
       {/* Filters · N, the quick chips (4655-4696), then whatever is picked */}
       <div data-testid="discover-filter-bar" style={{ display: "flex", gap: 7, alignItems: "center", padding: part === "bar" ? "10px 0 12px" : "10px 0 10px", overflowX: "auto", scrollbarWidth: "none" }}>
-        <div
-          role="button"
-          tabIndex={0}
-          onKeyDown={pressKey(() => setOpen(true))}
+        <button type="button"
           aria-label="All filters"
           onClick={() => setOpen(true)}
-          style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, height: 32, padding: "0 12px", borderRadius: 16, cursor: "pointer", fontWeight: 800, fontSize: 11.5, boxSizing: "border-box", background: onN ? "var(--text)" : "var(--card)", color: onN ? "var(--solid)" : "var(--text)", border: `1.5px solid ${onN ? "var(--text)" : "var(--el)"}` }}
+          style={{ ...BTN_RESET, ...({ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, height: 32, padding: "0 12px", borderRadius: 16, cursor: "pointer", fontWeight: 800, fontSize: 11.5, boxSizing: "border-box", background: onN ? "var(--text)" : "var(--card)", color: onN ? "var(--solid)" : "var(--text)", border: `1.5px solid ${onN ? "var(--text)" : "var(--el)"}` }) }}
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
             <path d="M4 7h16M7 12h10M10 17h4" />
           </svg>
           Filters{onN ? ` · ${onN}` : ""}
-        </div>
+        </button>
         {quick.map(([k, label, on, fn]) => (
-          <div role="button" tabIndex={0} onKeyDown={pressKey(fn)} key={k} aria-label={label} aria-pressed={on} onClick={fn} style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", height: 32, padding: "0 13px", borderRadius: 16, cursor: "pointer", fontWeight: 800, fontSize: 11.5, boxSizing: "border-box", background: on ? "var(--text)" : "transparent", color: on ? "var(--solid)" : "var(--sub)", border: `1.5px solid ${on ? "var(--text)" : "var(--el)"}` }}>
+          <button type="button" key={k} aria-label={label} aria-pressed={on} onClick={fn} style={{ ...BTN_RESET, ...({ flexShrink: 0, display: "inline-flex", alignItems: "center", height: 32, padding: "0 13px", borderRadius: 16, cursor: "pointer", fontWeight: 800, fontSize: 11.5, boxSizing: "border-box", background: on ? "var(--text)" : "transparent", color: on ? "var(--solid)" : "var(--sub)", border: `1.5px solid ${on ? "var(--text)" : "var(--el)"}` }) }}>
             {label}
-          </div>
+          </button>
         ))}
         {quickFams.map(([f, label]) => (
-          <div role="button" tabIndex={0} onKeyDown={pressKey(() => toggleFam(f))} key={`qf-${f}`} aria-label={`${label} styles`} aria-pressed={false} onClick={() => toggleFam(f)} data-testid="quick-family" style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", height: 32, padding: "0 13px", borderRadius: 16, cursor: "pointer", fontWeight: 800, fontSize: 11.5, boxSizing: "border-box", background: "transparent", color: "var(--sub)", border: "1.5px dashed var(--el)", whiteSpace: "nowrap" }}>
+          <button type="button" key={`qf-${f}`} aria-label={`${label} styles`} aria-pressed={false} onClick={() => toggleFam(f)} data-testid="quick-family" style={{ ...BTN_RESET, ...({ flexShrink: 0, display: "inline-flex", alignItems: "center", height: 32, padding: "0 13px", borderRadius: 16, cursor: "pointer", fontWeight: 800, fontSize: 11.5, boxSizing: "border-box", background: "transparent", color: "var(--sub)", border: "1.5px dashed var(--el)", whiteSpace: "nowrap" }) }}>
             {label}
-          </div>
+          </button>
         ))}
         {filters.fams.map((f) => (
-          <div role="button" tabIndex={0} key={`fam-${f}`} onKeyDown={pressKey(() => toggleFam(f))} aria-label={`Remove ${f} family`} onClick={() => toggleFam(f)} data-testid="picked-family" style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 5, height: 32, padding: "0 11px", borderRadius: 16, cursor: "pointer", fontWeight: 800, fontSize: 11.5, boxSizing: "border-box", background: "var(--text)", color: "var(--solid)", border: "1.5px solid var(--text)", whiteSpace: "nowrap" }}>
+          <button type="button" key={`fam-${f}`} aria-label={`Remove ${f} family`} onClick={() => toggleFam(f)} data-testid="picked-family" style={{ ...BTN_RESET, ...({ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 5, height: 32, padding: "0 11px", borderRadius: 16, cursor: "pointer", fontWeight: 800, fontSize: 11.5, boxSizing: "border-box", background: "var(--text)", color: "var(--solid)", border: "1.5px solid var(--text)", whiteSpace: "nowrap" }) }}>
             {f} <span aria-hidden="true">✕</span>
-          </div>
+          </button>
         ))}
         {filters.styles.map((s) => (
-          <div role="button" tabIndex={0} key={`st-${s}`} onKeyDown={pressKey(() => toggleStyle(s))} aria-label={`Remove ${s}`} onClick={() => toggleStyle(s)} data-testid="picked-style" style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 5, height: 32, padding: "0 11px", borderRadius: 16, cursor: "pointer", fontWeight: 800, fontSize: 11.5, boxSizing: "border-box", background: dosStyleColor(s), color: "#fff", border: `1.5px solid ${dosStyleColor(s)}`, whiteSpace: "nowrap" }}>
+          <button type="button" key={`st-${s}`} aria-label={`Remove ${s}`} onClick={() => toggleStyle(s)} data-testid="picked-style" style={{ ...BTN_RESET, ...({ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 5, height: 32, padding: "0 11px", borderRadius: 16, cursor: "pointer", fontWeight: 800, fontSize: 11.5, boxSizing: "border-box", background: dosStyleColor(s), color: "#fff", border: `1.5px solid ${dosStyleColor(s)}`, whiteSpace: "nowrap" }) }}>
             {s} <span aria-hidden="true">✕</span>
-          </div>
+          </button>
         ))}
         {onN ? (
-          <div role="button" tabIndex={0} onKeyDown={pressKey(reset)} aria-label="Clear filters" onClick={reset} style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", height: 32, padding: "0 12px", borderRadius: 16, cursor: "pointer", fontWeight: 800, fontSize: 11.5, background: "transparent", border: "1px dashed var(--el)", color: "var(--muted)" }}>
+          <button type="button" aria-label="Clear filters" onClick={reset} style={{ ...BTN_RESET, ...({ flexShrink: 0, display: "inline-flex", alignItems: "center", height: 32, padding: "0 12px", borderRadius: 16, cursor: "pointer", fontWeight: 800, fontSize: 11.5, background: "transparent", border: "1px dashed var(--el)", color: "var(--muted)" }) }}>
             Clear
-          </div>
+          </button>
         ) : null}
       </div>
 
@@ -364,9 +362,9 @@ export function DiscoverFilters({ tab, city, filters, styleOrder, tabs, as = nul
             <div style={{ width: 40, height: 4, borderRadius: 2, background: "var(--el)", margin: "0 auto 14px" }} />
             <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 16 }}>
               <span style={{ ...shelf, color: "var(--text)" }}>Filters</span>
-              <span role="button" tabIndex={0} aria-label="Reset all" onKeyDown={pressKey(reset)} onClick={reset} style={{ marginLeft: "auto", fontSize: 11.5, fontWeight: 800, color: "var(--sub)", cursor: "pointer" }}>
+              <button type="button" aria-label="Reset all" onClick={reset} style={{ ...BTN_RESET, ...({ marginLeft: "auto", fontSize: 11.5, fontWeight: 800, color: "var(--sub)", cursor: "pointer" }) }}>
                 Reset all
-              </span>
+              </button>
             </div>
             <Row label="FAMILY">
               {multi<string>(STYLE_FAMILIES.map((f) => [f, f]), filters.fams, (v) => {
@@ -412,16 +410,13 @@ export function DiscoverFilters({ tab, city, filters, styleOrder, tabs, as = nul
                 and went with events (29 Sep 2026). The prototype's own rule
                 still holds for the four that are left: a row is offered only
                 where it means something (4827). */}
-            <div
-              role="button"
-              tabIndex={0}
-              onKeyDown={pressKey(() => setOpen(false))}
+            <button type="button"
               aria-label="Show results"
               onClick={() => setOpen(false)}
-              style={{ marginTop: 4, display: "flex", alignItems: "center", justifyContent: "center", height: 48, borderRadius: 14, cursor: "pointer", fontWeight: 900, fontSize: 14, background: "var(--text)", color: "var(--solid)" }}
+              style={{ ...BTN_RESET_BLOCK, ...({ marginTop: 4, display: "flex", alignItems: "center", justifyContent: "center", height: 48, borderRadius: 14, cursor: "pointer", fontWeight: 900, fontSize: 14, background: "var(--text)", color: "var(--solid)" }) }}
             >
               Show results
-            </div>
+            </button>
           </div>
         </div>
       ) : null}

@@ -13,6 +13,7 @@ import { SectionCard } from "@/components/ui/SectionCard";
 import { TopPanel } from "@/components/ui/TopPanel";
 import { CARD, DOS_DISPLAY, DOS_UI, INK, LILAC, LINE, MUTED, SUB } from "@/lib/design/tokens";
 import { CHART_METRICS, CHART_SEGMENTS, CREW_POINT_RULES, POINT_RULES, SEG_WORD, SIDE_TINT, chartRowWords, hoursWords, type ChartMetric, type ChartRow, type ChartSegment, type DanceStats, type HistoryRow, type Side, type Standing } from "@/types/stats";
+import { BTN_RESET, BTN_RESET_BLOCK } from "@/components/ui/buttonReset";
 
 /** Stats — the prototype's Stats is one screen in three dresses, all of
  *  S_profiletab: YOUR RECORD (historyOnly 9862 — "A LIBRARY, NOT A DASHBOARD"),
@@ -44,12 +45,6 @@ const DOS_MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mon
 const micro: React.CSSProperties = { fontSize: 9.5, fontWeight: 900, letterSpacing: 1.2, textTransform: "uppercase" };
 const shelf: React.CSSProperties = { fontSize: 17, fontWeight: 900, letterSpacing: -0.5, fontFamily: DOS_DISPLAY };
 const figure: React.CSSProperties = { fontFamily: DOS_MONO, fontWeight: 700, fontVariantNumeric: "tabular-nums", letterSpacing: -0.3 };
-const pressKey = (fn: () => void) => (e: React.KeyboardEvent) => {
-  if (e.key === "Enter" || e.key === " ") {
-    e.preventDefault();
-    fn();
-  }
-};
 const dayWords = (iso: string) =>
   new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short" }).format(new Date(iso));
 const monthWords = (d: string | null) => (d ? new Intl.DateTimeFormat("en-IN", { timeZone: "UTC", month: "short", year: "numeric" }).format(new Date(`${d}T00:00:00Z`)) : "—");
@@ -622,9 +617,9 @@ export function StatsScreen({
                   return (
                     <div key={g.label} style={{ borderBottom: `1.5px solid ${LINE}` }}>
                       {g.rows ? (
-                        <div role="button" tabIndex={0} aria-label={`${g.label} — ${g.n}, open the list`} onKeyDown={pressKey(() => setOpen(g.label))} onClick={() => setOpen(g.label)} style={{ ...box, cursor: "pointer" }}>
+                        <button type="button" aria-label={`${g.label} — ${g.n}, open the list`} onClick={() => setOpen(g.label)} style={{ ...BTN_RESET_BLOCK, ...({ ...box, cursor: "pointer" }) }}>
                           {inner}
-                        </div>
+                        </button>
                       ) : (
                         <div aria-label={`${g.label} — ${g.n}`} style={box}>
                           {inner}
@@ -717,11 +712,11 @@ export function StatsScreen({
                     const c = SIDE_TINT[k];
                     const n = bySide(k).length;
                     return (
-                      <span key={k} role="button" tabIndex={0} aria-label={`${pastOf(k)} — ${n}`} aria-pressed={on} onKeyDown={pressKey(() => setCvSide(k))} onClick={() => setCvSide(k)} style={{ flex: 1, position: "relative", overflow: "hidden", textAlign: "left", padding: "10px 11px 9px", borderRadius: 14, cursor: "pointer", boxSizing: "border-box", background: on ? `${c}1a` : CARD, border: `1.5px solid ${on ? c : LINE}`, transition: "background .15s" }}>
+                      <button type="button" key={k} aria-label={`${pastOf(k)} — ${n}`} aria-pressed={on} onClick={() => setCvSide(k)} style={{ ...BTN_RESET, ...({ flex: 1, position: "relative", overflow: "hidden", textAlign: "left", padding: "10px 11px 9px", borderRadius: 14, cursor: "pointer", boxSizing: "border-box", background: on ? `${c}1a` : CARD, border: `1.5px solid ${on ? c : LINE}`, transition: "background .15s" }) }}>
                         <span aria-hidden="true" style={{ position: "absolute", left: 0, right: 0, top: 0, height: 3, background: on ? c : "transparent" }} />
                         <span style={{ display: "block", fontSize: 19, fontWeight: 900, lineHeight: 1, letterSpacing: -0.5, fontFamily: DOS_DISPLAY, fontVariantNumeric: "tabular-nums", color: on ? c : INK }}>{n}</span>
                         <span style={{ display: "block", ...micro, color: on ? c : MUTED, marginTop: 4 }}>{pastOf(k)}</span>
-                      </span>
+                      </button>
                     );
                   })}
                 </div>
@@ -738,9 +733,9 @@ export function StatsScreen({
                           ["month", "Month"],
                         ] as Array<[Grain, string]>
                       ).map(([k, l]) => (
-                        <span key={k} role="button" tabIndex={0} aria-label={`By ${k}`} aria-pressed={grain === k} onKeyDown={pressKey(() => setGrain(k))} onClick={() => setGrain(k)} style={{ padding: "5px 11px", borderRadius: 8, cursor: "pointer", fontSize: 10.5, fontWeight: 900, whiteSpace: "nowrap", transition: "background .18s ease, color .18s ease", background: grain === k ? INK : "transparent", color: grain === k ? LILAC : SUB }}>
+                        <button type="button" key={k} aria-label={`By ${k}`} aria-pressed={grain === k} onClick={() => setGrain(k)} style={{ ...BTN_RESET, ...({ padding: "5px 11px", borderRadius: 8, cursor: "pointer", fontSize: 10.5, fontWeight: 900, whiteSpace: "nowrap", transition: "background .18s ease, color .18s ease", background: grain === k ? INK : "transparent", color: grain === k ? LILAC : SUB }) }}>
                           {l}
-                        </span>
+                        </button>
                       ))}
                     </span>
                   </div>
@@ -775,9 +770,9 @@ export function StatsScreen({
                       and routine pages draw */}
                   <span role="group" aria-label="Group classes by" style={{ ...columnTrack(), display: "inline-flex", flex: "0 0 auto" }}>
                     {DIMS.map(([k, l]) => (
-                      <span key={k} role="button" tabIndex={0} aria-label={`Group by ${l}`} aria-pressed={dim === k} onKeyDown={pressKey(() => setDim(k))} onClick={() => setDim(k)} style={{ ...columnTab(dim === k), padding: "7px 12px", flex: "0 0 auto" }}>
+                      <button type="button" key={k} aria-label={`Group by ${l}`} aria-pressed={dim === k} onClick={() => setDim(k)} style={{ ...BTN_RESET, ...({ ...columnTab(dim === k), padding: "7px 12px", flex: "0 0 auto" }) }}>
                         {l}
-                      </span>
+                      </button>
                     ))}
                   </span>
                   <span style={{ marginLeft: "auto", display: "inline-flex", gap: 4, flexShrink: 0 }}>
@@ -788,19 +783,10 @@ export function StatsScreen({
                         ["key", "name"],
                       ] as Array<[SortKey, string]>
                     ).map(([k, l]) => (
-                      <span
+                      <button type="button"
                         key={k}
-                        role="button"
-                        tabIndex={0}
                         aria-label={`Sort by ${l}`}
                         aria-pressed={sortKey === k}
-                        onKeyDown={pressKey(() => {
-                          if (sortKey === k) setAsc(!asc);
-                          else {
-                            setSortKey(k);
-                            setAsc(false);
-                          }
-                        })}
                         onClick={() => {
                           if (sortKey === k) setAsc(!asc);
                           else {
@@ -808,11 +794,11 @@ export function StatsScreen({
                             setAsc(false);
                           }
                         }}
-                        style={{ padding: "6px 10px", borderRadius: 999, cursor: "pointer", fontSize: 10.5, fontWeight: 800, whiteSpace: "nowrap", background: sortKey === k ? LINE : "transparent", color: sortKey === k ? INK : MUTED }}
+                        style={{ ...BTN_RESET, ...({ padding: "6px 10px", borderRadius: 999, cursor: "pointer", fontSize: 10.5, fontWeight: 800, whiteSpace: "nowrap", background: sortKey === k ? LINE : "transparent", color: sortKey === k ? INK : MUTED }) }}
                       >
                         {l}
                         {sortKey === k ? (asc ? " ↑" : " ↓") : ""}
-                      </span>
+                      </button>
                     ))}
                   </span>
                 </div>

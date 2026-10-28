@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { PosterBlock } from "@/features/classes/components/poster";
-import { dosKey } from "@/features/classes/components/ShareSheet";
 import {
   createClassAction,
   searchVenuesAction,
@@ -37,6 +36,7 @@ import type { ClassPerson } from "@/types/classPerson";
 import { MAX_SESSION_MINUTES, type ClassLevel, type DanceClass, type PosterChoice } from "@/types/class";
 import type { Room } from "@/types/room";
 import type { BusinessType } from "@/types/business";
+import { BTN_RESET, BTN_RESET_BLOCK } from "@/components/ui/buttonReset";
 
 const CARD = "var(--card)";
 const EL = "var(--el)";
@@ -127,15 +127,12 @@ function RoomList({ rooms, roomId, onPick, emptyWords }: { rooms: Room[]; roomId
       {rooms.map((r) => {
         const on = roomId === r.id;
         return (
-          <div
-            role="button"
-            tabIndex={0}
-            onKeyDown={dosKey}
+          <button type="button"
             key={r.id}
             aria-label={`Hold it in ${r.name}`}
             aria-pressed={on}
             onClick={() => onPick(on ? null : r.id)}
-            style={{ display: "flex", alignItems: "center", gap: 11, background: on ? EL : CARD, border: `1.5px solid ${on ? INK : EL}`, borderRadius: 14, padding: "11px 13px", marginBottom: 8, cursor: "pointer" }}
+            style={{ ...BTN_RESET_BLOCK, ...({ display: "flex", alignItems: "center", gap: 11, background: on ? EL : CARD, border: `1.5px solid ${on ? INK : EL}`, borderRadius: 14, padding: "11px 13px", marginBottom: 8, cursor: "pointer" }) }}
           >
             <span style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, background: on ? "#3B82F633" : EL, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={on ? "#3B82F6" : SUB} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
@@ -166,7 +163,7 @@ function RoomList({ rooms, roomId, onPick, emptyWords }: { rooms: Room[]; roomId
                 <path d="m5 12.5 4.5 4.5L19 7.5" />
               </svg>
             )}
-          </div>
+          </button>
         );
       })}
     </div>
@@ -583,9 +580,9 @@ export function ClassForm({
             <div style={labelStyle}>3 · LEVEL</div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {DOS_LEVELS.map(([code, word]) => (
-                <span key={code} role="button" tabIndex={0} aria-pressed={level === code} onClick={() => setLevel(code)} onKeyDown={dosKey} style={{ ...chipStyle(level === code), display: "inline-flex", alignItems: "center", gap: 7 }}>
+                <button type="button" key={code} aria-pressed={level === code} onClick={() => setLevel(code)} style={{ ...BTN_RESET, ...({ ...chipStyle(level === code), display: "inline-flex", alignItems: "center", gap: 7 }) }}>
                   <LevelGlyph code={code} /> {word}
-                </span>
+                </button>
               ))}
             </div>
 
@@ -636,13 +633,13 @@ export function ClassForm({
                   <div>
                     <input value={venueQ} onChange={(e) => void searchVenue(e.target.value)} placeholder="Search studios on DanceOS…" aria-label="Search studios" style={inputStyle} />
                     {venueHits.map((h) => (
-                      <div key={h.id} role="button" tabIndex={0} onKeyDown={dosKey} aria-label={`Ask ${h.name} for a room`} onClick={() => void pickVenue(h)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 13, marginTop: 6, cursor: "pointer", background: CARD, border: `1.5px solid ${EL}` }}>
+                      <button type="button" key={h.id} aria-label={`Ask ${h.name} for a room`} onClick={() => void pickVenue(h)} style={{ ...BTN_RESET_BLOCK, ...({ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 13, marginTop: 6, cursor: "pointer", background: CARD, border: `1.5px solid ${EL}` }) }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 12.5, fontWeight: 800 }}>{h.name}</div>
                           <div style={{ fontSize: 10.5, color: "var(--muted)", marginTop: 1 }}>{h.sub}</div>
                         </div>
                         <span style={{ fontSize: 11, fontWeight: 800, color: "#3B82F6" }}>Pick ›</span>
-                      </div>
+                      </button>
                     ))}
                     {venueQ.trim().length >= 2 && venueHits.length === 0 ? <div style={{ fontSize: 11.5, color: SUB, padding: "8px 2px" }}>No studio on DanceOS by that name.</div> : null}
                   </div>
@@ -766,12 +763,12 @@ export function ClassForm({
               {POSTER_DESIGNS.map(([design, word]) => {
                 const on = poster === design;
                 return (
-                  <span role="button" tabIndex={0} onKeyDown={dosKey} key={design} aria-label={`${word} poster`} aria-pressed={on} onClick={() => setPoster(on ? null : design)} style={{ textAlign: "center", cursor: "pointer", lineHeight: 0 }}>
+                  <button type="button" key={design} aria-label={`${word} poster`} aria-pressed={on} onClick={() => setPoster(on ? null : design)} style={{ ...BTN_RESET, ...({ textAlign: "center", cursor: "pointer", lineHeight: 0 }) }}>
                     <span style={{ display: "block", borderRadius: 10, padding: 3, border: `2px solid ${on ? INK : "transparent"}` }}>
                       <PosterBlock item={{ title: style ? dosClassLabel(style, level) : "Class", style, styleColor: dosStyleColor(style) }} design={design} size={56} />
                     </span>
                     <span style={{ display: "block", fontSize: 10.5, fontWeight: 800, color: on ? INK : SUB, marginTop: 5, lineHeight: 1.2 }}>{word}</span>
-                  </span>
+                  </button>
                 );
               })}
             </div>

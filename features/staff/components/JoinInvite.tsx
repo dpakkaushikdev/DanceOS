@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { dosKey } from "@/features/classes/components/ShareSheet";
 import { acceptInviteAction, declineInviteAction } from "@/features/staff/server-actions/staff";
 import { DOS_DISPLAY, DOS_UI, GOLD, INK, LILAC, SUB } from "@/lib/design/tokens";
 import { MEMBER_GRANTS, MEMBER_ROLE_WORD, type InvitePreview } from "@/types/staff";
+import { BTN_RESET, BTN_RESET_BLOCK } from "@/components/ui/buttonReset";
 
 /** The accept screen. Same card the class page uses when somebody is asked onto
  *  a class (prototype 15455) — because it is the same act: a business asks, and
@@ -50,12 +50,9 @@ export function JoinInvite({ code, preview }: { code: string; preview: InvitePre
       >
         <div style={{ fontSize: 15, fontWeight: 900, fontFamily: DOS_DISPLAY }}>{headline}</div>
         <div style={{ fontSize: 11.5, color: SUB, marginTop: 5, lineHeight: 1.55 }}>{body}</div>
-        <div
-          role="button"
-          tabIndex={0}
-          onKeyDown={dosKey}
+        <button type="button"
           onClick={() => router.push("/")}
-          style={{
+          style={{ ...BTN_RESET_BLOCK, ...({
             marginTop: 14,
             padding: "11px",
             borderRadius: 999,
@@ -64,10 +61,10 @@ export function JoinInvite({ code, preview }: { code: string; preview: InvitePre
             fontWeight: 800,
             fontSize: 12.5,
             cursor: "pointer",
-          }}
+          }) }}
         >
           Go home
-        </div>
+        </button>
       </div>
     );
 
@@ -141,13 +138,10 @@ export function JoinInvite({ code, preview }: { code: string; preview: InvitePre
           you can be taken off the team at any time.
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-          <span
-            role="button"
-            tabIndex={0}
-            onKeyDown={dosKey}
+          <button type="button"
             aria-label="Decline this invitation"
             onClick={() => void answer(false)}
-            style={{
+            style={{ ...BTN_RESET, ...({
               flex: 1,
               textAlign: "center",
               padding: "11px",
@@ -158,17 +152,14 @@ export function JoinInvite({ code, preview }: { code: string; preview: InvitePre
               fontSize: 12,
               cursor: "pointer",
               color: "#F87171",
-            }}
+            }) }}
           >
             No thanks
-          </span>
-          <span
-            role="button"
-            tabIndex={0}
-            onKeyDown={dosKey}
+          </button>
+          <button type="button"
             aria-label="Join the team"
             onClick={() => void answer(true)}
-            style={{
+            style={{ ...BTN_RESET, ...({
               flex: 1.3,
               textAlign: "center",
               padding: "11px",
@@ -178,10 +169,10 @@ export function JoinInvite({ code, preview }: { code: string; preview: InvitePre
               fontWeight: 900,
               fontSize: 12,
               cursor: "pointer",
-            }}
+            }) }}
           >
             {busy ? "Saving…" : "Yes, I’m in"}
-          </span>
+          </button>
         </div>
       </div>
 

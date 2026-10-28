@@ -3,6 +3,7 @@
 import { CARD, GOLD, GREEN, LINE, MUTED, SKY, RED, SUB } from "@/lib/design/tokens";
 import type { MonthIncome, BusinessIncome } from "@/types/income";
 import { DOS_MONO, MoneyCard, SectionLabel, bizCard, money } from "./earnings-kit";
+import { BTN_RESET, BTN_RESET_BLOCK } from "@/components/ui/buttonReset";
 
 /** The money-IN half of the studio's earnings screen, lifted from prototype
  *  S_earn: the period chips (17988-17992), the GROSS card with its ▲/▼ badge
@@ -18,13 +19,6 @@ import { DOS_MONO, MoneyCard, SectionLabel, bizCard, money } from "./earnings-ki
 
 /* the prototype's softer red for money going back out (18075) */
 const SOFT_RED = "#F87171";
-
-const pressKey = (fn: () => void) => (e: React.KeyboardEvent) => {
-  if (e.key === "Enter" || e.key === " ") {
-    e.preventDefault();
-    fn();
-  }
-};
 
 /** The rail's method words → the prototype's labels and tints (18130). Cashfree
  *  reports a `payment_group` (upi, credit_card, debit_card, net_banking, wallet,
@@ -79,13 +73,10 @@ export function PeriodChips({
         const on = isNow === (view === "now") && (isNow || openKey === chip.key);
         const pick = () => (chip.key === null ? onNow() : onMonth(chip.key));
         return (
-          <span
+          <button type="button"
             key={chip.label}
-            role="button"
-            tabIndex={0}
-            onKeyDown={pressKey(pick)}
             onClick={pick}
-            style={{
+            style={{ ...BTN_RESET, ...({
               padding: "7px 13px",
               borderRadius: 999,
               cursor: "pointer",
@@ -96,10 +87,10 @@ export function PeriodChips({
               background: on ? "var(--text)" : "var(--card)",
               color: on ? "var(--solid)" : "var(--sub)",
               border: `1.5px solid ${LINE}`,
-            }}
+            }) }}
           >
             {chip.label}
-          </span>
+          </button>
         );
       })}
     </div>
@@ -322,12 +313,9 @@ export function MonthStatements({
         };
         return (
           <div key={m.key} style={{ ...bizCard, borderLeft: `4px solid ${GREEN}` }}>
-            <div
-              role="button"
-              tabIndex={0}
-              onKeyDown={pressKey(toggle)}
+            <button type="button"
               onClick={toggle}
-              style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+              style={{ ...BTN_RESET_BLOCK, ...({ cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }) }}
             >
               <div>
                 <b style={{ fontSize: 13.5 }}>{m.label}</b>
@@ -339,7 +327,7 @@ export function MonthStatements({
                 <b style={{ fontSize: 14, color: GREEN }}>₹{(m.grossInr / 1000).toFixed(1)}k</b>
                 <div style={{ fontSize: 9, color: MUTED }}>{open ? "hide" : "breakup"}</div>
               </div>
-            </div>
+            </button>
             {open ? (
               <div style={{ marginTop: 10, background: LINE, borderRadius: 12, padding: "10px 12px" }}>
                 <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 0.8, color: MUTED, marginBottom: 7 }}>
@@ -406,15 +394,12 @@ export function MonthStatements({
                     <b style={{ color: GREEN }}>{money(m.doorCashInr)}</b>
                   </div>
                 ) : null}
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={pressKey(download)}
+                <button type="button"
                   onClick={download}
-                  style={{ fontSize: 10.5, fontWeight: 800, color: SKY, marginTop: 9, cursor: "pointer" }}
+                  style={{ ...BTN_RESET_BLOCK, ...({ fontSize: 10.5, fontWeight: 800, color: SKY, marginTop: 9, cursor: "pointer" }) }}
                 >
                   Download statement ↓
-                </div>
+                </button>
               </div>
             ) : null}
           </div>

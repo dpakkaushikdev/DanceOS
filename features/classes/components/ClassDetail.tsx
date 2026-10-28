@@ -56,7 +56,7 @@ import { PlusIcon, pictureChipPaint } from "@/features/profiles/components/profi
 import { DancerIcon, Half, SeatBar, WhenTile } from "./ClassTile";
 import { PosterSheet } from "./PosterSheet";
 import { DOS_POSTERS, DOS_SLEEVE, DosPosterSleeve, PosterBlock, dosPosterAuto, useDosFold } from "./poster";
-import { dosKey } from "./ShareSheet";
+import { BTN_RESET } from "@/components/ui/buttonReset";
 
 /** The class detail page, lifted from prototype S_class (DanceOSApp.jsx:11626-12807).
  *  Step-8 brought the poster sleeve, the card opened into a page, AT THE STUDIO, and
@@ -1101,13 +1101,10 @@ export function ClassDetail({
                   : "You would be on the team for this session."}
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-              <span
-                role="button"
-                tabIndex={0}
-                onKeyDown={dosKey}
+              <button type="button"
                 aria-label="Decline this ask"
                 onClick={() => setDeclineOpen(true)}
-                style={{
+                style={{ ...BTN_RESET, ...({
                   flex: 1,
                   textAlign: "center",
                   padding: "10px",
@@ -1118,17 +1115,14 @@ export function ClassDetail({
                   fontSize: 12,
                   cursor: "pointer",
                   color: "#F87171",
-                }}
+                }) }}
               >
                 No thanks
-              </span>
-              <span
-                role="button"
-                tabIndex={0}
-                onKeyDown={dosKey}
+              </button>
+              <button type="button"
                 aria-label="Accept this ask"
                 onClick={() => void answerAsk(myClassPerson.id, true)}
-                style={{
+                style={{ ...BTN_RESET, ...({
                   flex: 1.3,
                   textAlign: "center",
                   padding: "10px",
@@ -1138,10 +1132,10 @@ export function ClassDetail({
                   fontWeight: 900,
                   fontSize: 12,
                   cursor: "pointer",
-                }}
+                }) }}
               >
                 Yes, I&rsquo;m in
-              </span>
+              </button>
             </div>
             {/* ⚠ a no is asked first (B17, 11 Oct 2026) — it cannot be taken back,
                 the studio has to ask again */}
@@ -1219,13 +1213,10 @@ export function ClassDetail({
                 background: "var(--solid)",
               }}
             >
-              <span
-                role="button"
-                tabIndex={0}
-                onKeyDown={dosKey}
+              <button type="button"
                 aria-label="Invoice"
                 onClick={() => setInvoiceOpen(true)}
-                style={{
+                style={{ ...BTN_RESET, ...({
                   flex: 1,
                   display: "inline-flex",
                   alignItems: "center",
@@ -1236,10 +1227,10 @@ export function ClassDetail({
                   fontWeight: 800,
                   cursor: "pointer",
                   color: "var(--text)",
-                }}
+                }) }}
               >
                 Invoice
-              </span>
+              </button>
               <span aria-hidden="true" style={{ width: 1, background: "var(--el)" }} />
               {/* ⚠ A STARTED CLASS IS FINAL (6 Oct 2026, decision 1): once the
                   session is live the seat cannot be handed back, so the half that
@@ -1257,13 +1248,10 @@ export function ClassDetail({
                   Started — no cancelling now
                 </span>
               ) : (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={dosKey}
+                <button type="button"
                   aria-label="Cancel booking"
                   onClick={() => setRefundOpen(true)}
-                  style={{
+                  style={{ ...BTN_RESET, ...({
                     flex: 1,
                     display: "inline-flex",
                     alignItems: "center",
@@ -1274,10 +1262,10 @@ export function ClassDetail({
                     fontWeight: 800,
                     cursor: "pointer",
                     color: "#F87171",
-                  }}
+                  }) }}
                 >
                   Cancel booking
-                </span>
+                </button>
               )}
             </div>
           </div>
@@ -1914,10 +1902,7 @@ export function ClassDetail({
                   {/* PAID, beside Check in — a door seat only, and it can be
                       taken back the same way (a cash slip is easily mis-pressed) */}
                   {doorSeat ? (
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={dosKey}
+                    <button type="button"
                       aria-pressed={r.doorPaidAt !== null}
                       aria-label={r.doorPaidAt ? `Mark ${r.learnerName} not paid` : `Mark ${r.learnerName} paid`}
                       onClick={() =>
@@ -1927,7 +1912,7 @@ export function ClassDetail({
                           r.doorPaidAt ? `${r.learnerName} marked not paid` : `${r.learnerName} paid · ${price}`
                         )
                       }
-                      style={{
+                      style={{ ...BTN_RESET, ...({
                         fontSize: 10,
                         fontWeight: 800,
                         padding: "6px 12px",
@@ -1937,10 +1922,10 @@ export function ClassDetail({
                         background: r.doorPaidAt ? "rgba(34,197,94,.22)" : "rgba(245,158,11,.16)",
                         color: r.doorPaidAt ? "#22C55E" : "#F59E0B",
                         opacity: opPending === r.classBookingId ? 0.5 : 1,
-                      }}
+                      }) }}
                     >
                       {r.doorPaidAt ? "✓ Paid" : "Paid"}
-                    </span>
+                    </button>
                   ) : null}
                   {sessionPhase === "ended" ? (
                     <span
@@ -1957,10 +1942,7 @@ export function ClassDetail({
                       {r.checkedIn ? "✓ In" : "—"}
                     </span>
                   ) : (
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={dosKey}
+                    <button type="button"
                       aria-label={r.checkedIn ? `Check ${r.learnerName} out` : `Check ${r.learnerName} in`}
                       onClick={() =>
                         void runRegisterOp(
@@ -1969,7 +1951,7 @@ export function ClassDetail({
                           r.checkedIn ? `${r.learnerName} checked out` : `${r.learnerName} checked in`
                         )
                       }
-                      style={{
+                      style={{ ...BTN_RESET, ...({
                         fontSize: 10,
                         fontWeight: 800,
                         padding: "6px 12px",
@@ -1979,10 +1961,10 @@ export function ClassDetail({
                         background: r.checkedIn ? "rgba(34,197,94,.22)" : "var(--el)",
                         color: r.checkedIn ? "#22C55E" : "var(--text)",
                         opacity: opPending === r.classBookingId ? 0.5 : 1,
-                      }}
+                      }) }}
                     >
                       {r.checkedIn ? "✓ In" : "Check in"}
-                    </span>
+                    </button>
                   )}
                   {/* ⚠⚠ A WALK-IN IS THE ONE SEAT A STUDIO MAY TAKE BACK OFF.
                       A real learner cancels their own (`cancel_class_booking` is
@@ -1992,16 +1974,13 @@ export function ClassDetail({
                       `remove_class_walk_in` refuses anything with a user_id, so
                       this control cannot reach a real person's booking. */}
                   {r.walkIn && sessionPhase !== "ended" ? (
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={dosKey}
+                    <button type="button"
                       aria-label={`Remove ${r.learnerName} from the register`}
                       onClick={() => removeWalkIn(r.classBookingId, r.learnerName)}
-                      style={{ fontSize: 10, fontWeight: 800, padding: "6px 10px", borderRadius: 999, cursor: "pointer", flexShrink: 0, background: "var(--el)", color: "var(--sub)", opacity: opPending === r.classBookingId ? 0.5 : 1 }}
+                      style={{ ...BTN_RESET, ...({ fontSize: 10, fontWeight: 800, padding: "6px 10px", borderRadius: 999, cursor: "pointer", flexShrink: 0, background: "var(--el)", color: "var(--sub)", opacity: opPending === r.classBookingId ? 0.5 : 1 }) }}
                     >
                       ✕
-                    </span>
+                    </button>
                   ) : null}
                 </div>
                 );
@@ -2105,12 +2084,9 @@ export function ClassDetail({
                 <div style={{ fontSize: 17, fontWeight: 900, letterSpacing: -0.3, lineHeight: 1.15 }}>{price}</div>
               </div>
               {booked ? (
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={dosKey}
+                <button type="button"
                   onClick={() => fire("Already booked — see it on your calendar")}
-                  style={{
+                  style={{ ...BTN_RESET, ...({
                     flex: 1,
                     display: "flex",
                     alignItems: "center",
@@ -2124,22 +2100,19 @@ export function ClassDetail({
                     background: "var(--card)",
                     color: "var(--text)",
                     border: "1.5px solid var(--el)",
-                  }}
+                  }) }}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
                     <path d="m5 12.5 4.5 4.5L19 7.5" />
                   </svg>
                   Booked
-                </div>
+                </button>
               ) : (
                 /* two steps now, in the order a person thinks in (12439): free goes
                    straight to the confirm sheet, paid chooses how it's paying first */
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={dosKey}
+                <button type="button"
                   onClick={() => setFlowOpen(true)}
-                  style={{
+                  style={{ ...BTN_RESET, ...({
                     flex: 1,
                     display: "flex",
                     alignItems: "center",
@@ -2154,7 +2127,7 @@ export function ClassDetail({
                     color: "var(--solid)",
                     boxShadow: "0 5px 16px rgba(0,0,0,.32)",
                     fontFamily: DOS_UI,
-                  }}
+                  }) }}
                 >
                   {/* one word on every booking button (4 Oct 2026); the price and
                       "Free" are already on the bar above it */}
@@ -2162,7 +2135,7 @@ export function ClassDetail({
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                     <path d="M5 12h13M13 6.5 18.5 12 13 17.5" />
                   </svg>
-                </div>
+                </button>
               )}
             </div>
             </>

@@ -88,8 +88,8 @@ export function CitySelect({
   /** keep a "none" row on the list even while a city is picked (Stats' Everywhere) */
   allowNone?: boolean;
   noneLabel?: string;
-  /** a first row that is not a city (Discover's Near me) */
-  lead?: CityLead | null;
+  /** first rows that are not cities (Discover's Near me and Search an address, 28 Oct 2026) */
+  lead?: CityLead | readonly CityLead[] | null;
   /** ⚠ picking NAVIGATES (Discover's place chip, the Stats city both
    *  `router.replace`) — the sheet must not spend its history entry, or the
    *  back() races the router. `PickSheet` says why at length. */
@@ -101,8 +101,10 @@ export function CitySelect({
   /* ⚠ while the lead row is the answer the SELECT stands on it, not on the city
      underneath — so picking the city you are already in is a real change of
      value, which is the only way a native select fires, and the only way back */
-  const selectValue = lead?.active ? lead.value : (value ?? NONE);
-  const shown = lead?.active ? lead.label : (value ?? placeholder);
+  const leads: readonly CityLead[] = lead ? ("value" in lead ? [lead] : lead) : [];
+  const activeLead = leads.find((l) => l.active) ?? null;
+  const selectValue = activeLead ? activeLead.value : (value ?? NONE);
+  const shown = activeLead ? activeLead.label : (value ?? placeholder);
   const [open, setOpen] = useState(false);
 
   /** ⚠⚠ AN IN-APP SHEET, NOT A NATIVE `<select>` (27 Sep 2026, the user: *"fix
@@ -134,13 +136,14 @@ export function CitySelect({
    *  says. */
   const pick = (v: string) => {
     setOpen(false);
-    if (lead && v === lead.value) lead.onPick();
+    const hit = leads.find((l) => l.value === v);
+    if (hit) hit.onPick();
     else if (v === NONE) onChange(null, null);
     else onChange(v, null);
   };
 
   const rows: PickRow[] = [
-    ...(lead ? [{ value: lead.value, label: lead.option }] : []),
+    ...leads.map((l) => ({ value: l.value, label: l.option })),
     ...(allowNone || !value ? [{ value: NONE, label: allowNone ? noneLabel : placeholder }] : []),
     ...options.map((c) => ({ value: c, label: c })),
   ].map((r) => ({ ...r, icon: <DosPinIcon size={13} color={r.value === selectValue ? INK : "var(--sub)"} /> }));
@@ -169,7 +172,7 @@ export function CitySelect({
   if (variant === "chip") {
     /* the lead row inks the chip the way the Near me chip inked itself: a list
        measured from somewhere other than the city on it must say so at a glance */
-    const on = Boolean(lead?.active);
+    const on = activeLead !== null;
     return (
       <span style={{ position: "relative", flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, height: 34, padding: "0 12px", borderRadius: 17, background: on ? "var(--text)" : CARD, border: `1.5px solid ${on ? "var(--text)" : EL}`, fontSize: 12.5, fontWeight: 800, color: on ? "var(--solid)" : INK, cursor: "pointer", maxWidth: 190, boxSizing: "border-box" }}>
         <DosPinIcon size={13} color={on ? "var(--solid)" : "var(--sub)"} />
@@ -187,7 +190,7 @@ export function CitySelect({
       {label ? <div style={{ fontSize: 12, color: SUB, marginBottom: 6 }}>{label}</div> : null}
       <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, background: CARD, border: `1.5px solid ${EL}`, borderRadius: 12, padding: "9px 11px", boxSizing: "border-box", opacity: disabled ? 0.7 : 1 }}>
         <DosPinIcon size={13} color="var(--sub)" />
-        <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 800, color: value || lead?.active ? INK : MUTED, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{shown}</span>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 800, color: value || activeLead ? INK : MUTED, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{shown}</span>
         {source === "address" && value ? <span style={{ flexShrink: 0, fontSize: 10, color: MUTED }}>from the address</span> : null}
         <span aria-hidden="true" style={{ flexShrink: 0, color: MUTED, fontSize: 11 }}>
           ▾

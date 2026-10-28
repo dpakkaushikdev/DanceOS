@@ -1,5 +1,7 @@
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { HERE_COOKIE, NEAR_CENTRE, nearestCity, parsePoint } from "@/lib/geo/here";
 import { amIPlatformAdmin } from "@/repositories/admin";
 import { InvertedPanel } from "@/components/ui/InvertedPanel";
 import { TopPanel } from "@/components/ui/TopPanel";
@@ -92,18 +94,11 @@ const asCity = (v: string | undefined | null): string | null => {
   return s.length > 0 && s.length <= 120 ? s : null;
 };
 
-/** "18.516,73.856" from the address bar, or nothing. Bounded to India, because
- *  a pair of numbers in a URL is the least trustworthy input the app has and a
- *  radius search from the wrong hemisphere is an empty shelf with no
- *  explanation (11 Sep 2026). */
-const parseNear = (raw: string | undefined): { lat: number; lng: number } | null => {
-  const [a, b] = String(raw ?? "").split(",");
-  const lat = Number(a);
-  const lng = Number(b);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    return null;
-  }
-  return lat >= 6 && lat <= 37.5 && lng >= 68 && lng <= 97.5 ? { lat, lng } : null;
+/** the words for a typed address (`?at=`), shown on the place chip — a label,
+ *  never trusted for anything but printing */
+const asAddressLabel = (v: string | undefined): string | null => {
+  const s = String(v ?? "").trim();
+  return s.length > 0 ? s.slice(0, 80) : null;
 };
 
 /** Discover — lifted from the prototype's S_discover (4425-4885): THE TOP OF
@@ -156,8 +151,17 @@ export default async function DiscoverPage({
      card opens agrees with the card that sent you */
   const asRaw = actingAs ? (params.as ?? null) : null;
   const noClass = actingAs && !canBookClass(actingAs) ? noBookingWords(actingAs) : null;
-  /* asked for, else where this person says they are, else wherever is busiest */
-  const city: string = asCity(params.city) ?? asCity(profile?.city) ?? cities[0]?.city ?? "";
+  /* ⚠ WHERE THE PHONE SAYS YOU ARE COMES BEFORE THE PROFILE (28 Oct 2026, the
+     user: "it should show as per users location also user can filter by
+     changing city"). The installed app asks for the location on its first open
+     and keeps it in a cookie (`lib/geo/here.ts`); its nearest served city is
+     where Discover opens, the way Cult opens where you are. The profile's city
+     is never overwritten by it — it is only the fallback when there is no fix,
+     or the fix is further than 75 km from every city DanceOS serves. */
+  const here = parsePoint((await cookies()).get(HERE_COOKIE)?.value);
+  const hereCity = here ? nearestCity(cities, here) : null;
+  /* asked for, else where the phone is, else where this person says they are, else wherever is busiest */
+  const city: string = asCity(params.city) ?? hereCity ?? asCity(profile?.city) ?? cities[0]?.city ?? "";
   /* ⚠ ALL CITIES (2 Oct 2026, the user: "location drop down on discover should
      also have option to view for all cities together called all"). `city` stays
      "all" so every link off this page keeps it; the READS get no city at all,
@@ -170,8 +174,19 @@ export default async function DiscoverPage({
      person has pressed Near me and their own point is in the address — in which
      case the distances on the cards are distances to THEM. A malformed or
      out-of-range pair is ignored rather than argued with: the city centre is
-     always a usable answer, and an empty shelf is not. */
-  const near = parseNear(params.near);
+     always a usable answer, and an empty shelf is not.
+     ⚠ AND THREE WAYS IN NOW (28 Oct 2026): a typed address (`near` + `at`), Near
+     me pressed (`near` alone), or — with nothing in the address — the phone's
+     own point, WHILE THE CITY ON SCREEN IS THE ONE IT IS IN. Picking another
+     city (or All cities) measures from that city's centre, as before; that test
+     is on the city rather than on the URL so a tab link, which carries only the
+     city, keeps the default. A city picked BY HAND carries `near=centre`, so
+     choosing the city you are in still means its centre. */
+  const atLabel = parsePoint(params.near) ? asAddressLabel(params.at) : null;
+  const nearOff = params.near === NEAR_CENTRE;
+  const near = parsePoint(params.near) ?? (!nearOff && here && hereCity && city === hereCity ? here : null);
+  /* what a tab link must carry so the next tab is measured from the same place */
+  const placeQ = atLabel ? `&near=${encodeURIComponent(params.near ?? "")}&at=${encodeURIComponent(atLabel)}` : nearOff ? `&near=${NEAR_CENTRE}` : "";
   /* the city's own centre from the registry; a city nobody has been to yet has
      none, and then the country is the honest place to measure from */
   const centre = near ?? (allCities ? null : centreOf(cities, city)) ?? INDIA_CENTRE;
@@ -492,6 +507,7 @@ export default async function DiscoverPage({
   const pageHref = (n: number): string => {
     const q = new URLSearchParams({ city, tab, ...filtersToParams(filters) });
     if (params.near) q.set("near", params.near);
+    if (atLabel) q.set("at", atLabel);
     if (n > 1) q.set("page", String(n));
     /* ⚠ the acting profile rides every link off this page (27 Sep 2026) —
        dropping it on page 2 would hand back the Book button it removed */
@@ -507,7 +523,9 @@ export default async function DiscoverPage({
       active={tab}
       /* ⚠ the acting profile rides the tab links too (27 Sep 2026) — a tap on
          Classes must not be the way a studio gets its Book button back */
-      tabs={TABS.map(([k, word, Icon]) => ({ key: k, word, href: withAs(`/discover?city=${encodeURIComponent(city)}&tab=${k}`, asRaw), icon: <Icon size={26} /> }))}
+      /* a typed address or a hand-picked city rides the tabs too (28 Oct 2026)
+         — it is where the person said to look, and a tab is no reason to forget it */
+      tabs={TABS.map(([k, word, Icon]) => ({ key: k, word, href: withAs(`/discover?city=${encodeURIComponent(city)}&tab=${k}${placeQ}`, asRaw), icon: <Icon size={26} /> }))}
     />
   );
 
@@ -577,7 +595,7 @@ export default async function DiscoverPage({
         <span data-testid="discover-sub" style={{ ...TAB_SUB, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           Dance First, Think Later!
         </span>
-        <PlaceChip city={city} cities={cities.map((c) => c.city)} tab={tab} extra={{ ...filtersToParams(filters), ...(asRaw ? { as: asRaw } : {}) }} near={near !== null} offerNearMe={wantsBusinesses} />
+        <PlaceChip city={city} cities={cities} tab={tab} extra={{ ...filtersToParams(filters), ...(asRaw ? { as: asRaw } : {}) }} near={near !== null} at={atLabel} offerNearMe={wantsBusinesses} />
       </div>
 
       {/* the search box and the tabs (Step 23). ⚠ Filters + the quick chips moved

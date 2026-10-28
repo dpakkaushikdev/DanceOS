@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter_Tight, Sora } from "next/font/google";
 import "./globals.css";
 import { Haptics } from "@/components/ui/Haptics";
+import { AskWhereOnFirstOpen } from "@/features/geo/components/AskWhereOnFirstOpen";
 
 const sora = Sora({ subsets: ["latin"], variable: "--font-sora" });
 const interTight = Inter_Tight({ subsets: ["latin"], variable: "--font-inter-tight" });
@@ -77,6 +78,8 @@ export default function RootLayout({
         </div>
         <script dangerouslySetInnerHTML={{ __html: BOOT_JS }} />
         <Haptics />
+        {/* the installed app's first question, before any sign-up (28 Oct 2026) */}
+        <AskWhereOnFirstOpen />
         {children}
       </body>
     </html>

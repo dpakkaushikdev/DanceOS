@@ -1,8 +1,25 @@
 import { type NextRequest } from "next/server";
+import { FIRST_OPEN_COOKIE, FIRST_OPEN_MAX_AGE_S, FIRST_OPEN_PARAM } from "@/lib/geo/here";
 import { updateSession } from "@/lib/supabase/middleware";
 
 export async function proxy(request: NextRequest) {
-  return updateSession(request);
+  const response = await updateSession(request);
+  /* THE APP'S FIRST OPEN AFTER INSTALL (28 Oct 2026). The APK launches
+     `/?dos_first_open=true` exactly once — and `/` is a redirect (to /login
+     signed out, to /discover signed in), which drops the query string before
+     any script could read it. So it becomes a short cookie here, on whatever
+     response this is, redirects included; `AskWhereOnFirstOpen` spends it. Not
+     httpOnly: the page has to read it. Nothing is granted by it — the worst a
+     hand-typed `?dos_first_open=true` does is ask its own sender for a location. */
+  if (request.nextUrl.searchParams.get(FIRST_OPEN_PARAM) === "true") {
+    response.cookies.set(FIRST_OPEN_COOKIE, "1", {
+      path: "/",
+      maxAge: FIRST_OPEN_MAX_AGE_S,
+      sameSite: "lax",
+      secure: request.nextUrl.protocol === "https:",
+    });
+  }
+  return response;
 }
 
 /** WHAT THE SESSION REFRESH IS ALLOWED TO COST (11 Sep 2026).

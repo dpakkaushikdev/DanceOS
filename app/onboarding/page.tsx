@@ -5,7 +5,9 @@ import { googleAvatarUrl, googleFullName } from "@/lib/auth/googleIdentity";
 import { ONBOARDING_COOKIE } from "@/lib/auth/onboarding";
 import { NAME_MAX } from "@/lib/constants/names";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { HERE_COOKIE, nearestCity, parsePoint } from "@/lib/geo/here";
 import { amIPlatformAdmin } from "@/repositories/admin";
+import { findDiscoverCities } from "@/repositories/cities";
 import { findProfileById } from "@/repositories/profiles";
 
 /** Onboarding — four screens for a person, five for an organization since R16
@@ -45,6 +47,12 @@ export default async function OnboardingPage() {
      row is made by the first Continue. The form adopts it on that press. */
   const suggestedName = googleFullName(user)?.slice(0, NAME_MAX) ?? null;
   const googlePhotoUrl = googleAvatarUrl(user);
+  /* WHERE THE PHONE SAID IT WAS (28 Oct 2026): the installed app asks for the
+     location before sign-up, so the city can arrive filled in — the nearest
+     city DanceOS serves, editable like everything else on the screen. Read only
+     when the row has no city yet; nothing to look up otherwise. */
+  const here = profile?.city ? null : parsePoint((await cookies()).get(HERE_COOKIE)?.value);
+  const suggestedCity = here ? nearestCity(await findDiscoverCities(supabase), here) : null;
 
   return (
     <OnboardingForm
@@ -52,6 +60,7 @@ export default async function OnboardingPage() {
       existing={profile}
       suggestedName={suggestedName}
       googlePhotoUrl={googlePhotoUrl}
+      suggestedCity={suggestedCity}
     />
   );
 }

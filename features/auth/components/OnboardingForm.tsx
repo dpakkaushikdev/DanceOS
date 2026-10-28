@@ -115,6 +115,7 @@ export function OnboardingForm({
   existing = null,
   suggestedName = null,
   googlePhotoUrl = null,
+  suggestedCity = null,
 }: {
   userId: string;
   existing?: Profile | null;
@@ -122,6 +123,8 @@ export function OnboardingForm({
   suggestedName?: string | null;
   /** Google's picture, shown as the face and adopted by the first Continue */
   googlePhotoUrl?: string | null;
+  /** the served city nearest where the phone says it is (28 Oct 2026) */
+  suggestedCity?: string | null;
 }) {
   /* ⚠ ALWAYS A USER (26 Sep 2026): the server refuses any other word */
   const role: ProfileRole = "user";
@@ -135,7 +138,8 @@ export function OnboardingForm({
      stored always wins, so somebody who changed their name and came back is not
      handed Google's version again (27 Oct 2026) */
   const [name, setName] = useState(existing?.fullName ?? suggestedName ?? "");
-  const [city, setCity] = useState(existing?.city ?? "");
+  /* the same rule for the city: the phone's answer fills a blank, never a stored one */
+  const [city, setCity] = useState(existing?.city ?? suggestedCity ?? "");
   const [avatarPath, setAvatarPath] = useState<string | null>(existing?.avatarPath ?? null);
   const [saved, setSaved] = useState(Boolean(existing));
   /* ⚠ A PHOTO PICKED BEFORE THE ROW EXISTS (2 Oct 2026, the user: "add a photo

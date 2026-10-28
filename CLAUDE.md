@@ -14111,6 +14111,7 @@ for the database schema. **The UI is not redesigned** — see Rule 2.
 
 - **SMALLER ARTIST/STYLE CARDS, A QUIETER RECORD, RANKINGS WITHOUT STYLE — 29 Oct 2026, no step number — no migration.** Row C186. Detail at the top.
 - **A STYLE'S COUNTRY AND FLAG IN ITS FACTS, FOLLOWER COUNTS LOW ON THE CARDS, FACES ON THE BOARDS, A BIGGER WHAT YOU DANCE MOST — 29 Oct 2026, no step number — no migration, PUSHED AND LIVE (`00c9018`).** Row C187. Detail at the top.
+- **ARTISTS TWO TO A ROW, THE FOLLOWER PILL BACK ON THE PICTURE AND SMALLER — 29 Oct 2026, no step number — no migration, PUSHED (`e527cca`).** Row C188.
 - **SMALLER ARTIST AND STYLE CARDS, A QUIETER RECORD, RANKINGS WITHOUT STYLE AND ONE DETAIL LINE — 29 Oct 2026, no step number — no migration, PUSHED AND LIVE (`8b80a76`).** Row C186.
 - **A DISCOVER DOCK, NO DISCOVER IN A STUDIO OR A CREW, ONLY THE SWITCHER SWITCHES, 5·6·7·8 BACK — 29 Oct 2026, no step number — no migration.** Row C185. Detail at the top.
 - **MINIMAL DISCOVER TILES, A PHOTO FOR EVERY NOTABLE NAME, NO ROUTINE LEVEL — 29 Oct 2026, no step number — no migration.** Row C184. Detail at the top.

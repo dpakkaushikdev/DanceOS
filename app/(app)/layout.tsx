@@ -139,7 +139,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     : null;
 
   return (
-    <AppChrome unread={adminOnly ? 0 : unread} adminOnly={adminOnly} switcher={badgeSwitcher(switcher, deskNotes)} settings={settings} views={viewsOf(layout)} initialProfile={(await cookies()).get("dos_profile")?.value ?? null}>
+    <AppChrome unread={adminOnly ? 0 : unread} adminOnly={adminOnly} signedOut={!user} switcher={badgeSwitcher(switcher, deskNotes)} settings={settings} views={viewsOf(layout)} initialProfile={(await cookies()).get("dos_profile")?.value ?? null}>
       {children}
     </AppChrome>
   );

@@ -1,6 +1,7 @@
 import { DosMark } from "@/components/ui/DosMark";
 import { AuthShell } from "@/features/auth/components/AuthShell";
 import { GoogleButton } from "@/features/auth/components/GoogleButton";
+import { SkipToDiscover } from "@/features/auth/components/SkipToDiscover";
 import { leaveIfSignedIn } from "@/lib/auth/leaveIfSignedIn";
 import { safeNext } from "@/lib/auth/safeNext";
 import { DOS_DISPLAY, GOLD, INK, LINE, SKY, SUB } from "@/lib/design/tokens";
@@ -60,6 +61,12 @@ export default async function LoginWelcomePage({
           a display figure rather than a caption, and the headline and its line
           are centred beneath. The slack splits around the block so it sits at
           the optical middle on a tall phone and closes up on a short one. */}
+      {/* SKIP, top right, the way Cult has it (28 Oct 2026): look at Discover
+          first, sign in from the blank picture in the top bar when ready */}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6, animation: "dosRise .5s ease both" }}>
+        <SkipToDiscover />
+      </div>
+
       <div style={{ flex: 1, minHeight: 14 }} />
 
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>

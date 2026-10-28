@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { BROWSE_COOKIE } from "@/lib/auth/browseFirst";
 import { TopPanel } from "@/components/ui/TopPanel";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findProfileById } from "@/repositories/profiles";
@@ -65,7 +66,9 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    /* SKIPPED SIGN-IN (28 Oct 2026): the welcome screen's Skip remembers itself,
+       so a later open of the app goes to the shelf rather than back to the door */
+    redirect((await cookies()).get(BROWSE_COOKIE)?.value === "1" ? "/discover" : "/login");
   }
   const now = new Date();
   const nowIso = now.toISOString();

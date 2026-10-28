@@ -314,11 +314,15 @@ export function AppChrome({
   children,
   unread = 0,
   adminOnly = false,
+  signedOut = false,
   switcher = [],
   settings = null,
   views = {},
   initialProfile = null,
 }: {
+  /** no account at all (28 Oct 2026, the welcome screen's Skip): no bell, and
+   *  the picture is a blank person that opens sign-in */
+  signedOut?: boolean;
   /** the sticky profile's key as the request's cookie had it, so the server
    *  draws the chip the client will (18 Oct 2026) */
   initialProfile?: string | null;
@@ -717,7 +721,7 @@ export function AppChrome({
             holds the bell alone; the back chip rides in the centred brand group,
             immediately before the mark. */}
         <span style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0, flex: 1 }}>
-          {adminOnly ? null : (
+          {adminOnly || signedOut ? null : (
           /* ⚠ NO DOT ON THE BELL'S CORNER (19 Oct 2026, the user: "notification when
              appears the red dot on top left on the bell looks bad find a better
              solution"). With something unread the chip itself becomes a filled pill —
@@ -817,7 +821,24 @@ export function AppChrome({
           {/* THE PROFILE SWITCHER — the picture of the profile you are in, at the
               extreme right beside Settings (2 Oct 2026). Its ring is that kind's
               colour, so it still answers "which profile am I?" without opening. */}
-          {adminOnly ? null : (
+          {adminOnly ? null : signedOut ? (
+            /* NO ACCOUNT (28 Oct 2026, the way Cult has it — the user: "the
+               profile icon shows no user image as sign up is skipped; clicking
+               over blank user image redirects the user to the signup page"): a
+               blank person where the picture would be, and it IS the door to
+               sign-in; `next` brings them back to the page they were looking at */
+            <Link
+              href={`/login?next=${encodeURIComponent(pathname)}`}
+              data-testid="signin-chip"
+              aria-label="Sign in"
+              style={{ ...chipStyle, display: "inline-flex", alignItems: "center", justifyContent: "center", textDecoration: "none", border: "2px solid var(--chip-line)", background: "var(--chip-bg)" }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="8.5" r="3.6" />
+                <path d="M4.5 20a7.5 7.5 0 0 1 15 0" />
+              </svg>
+            </Link>
+          ) : (
             <span style={{ position: "relative", display: "inline-flex", flexShrink: 0 }}>
             <button
               type="button"

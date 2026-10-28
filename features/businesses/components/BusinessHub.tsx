@@ -307,7 +307,7 @@ export function BusinessHub({
        doors on a bar of their own. The whole card still opens the studio's home
        under the name the hub has always given it. */
     return (
-      <ToolCard key={t.id} testId="studio-card" href={`/business/${t.id}`} hrefLabel={`${t.name} — open the studio`}>
+      <ToolCard key={t.id} testId="studio-card" href={`/studio/${t.id}`} hrefLabel={`${t.name} — open the studio`}>
         <ToolHead
           tint={ACCENT}
           name={t.name}
@@ -385,7 +385,8 @@ export function BusinessHub({
         {/* ⚠ "Manage Studio", capital S, in the LIGHT tinted paint (4 Oct 2026, the
             user: "mage studio button with s capital and button hue to be light") */}
         <ToolActions>
-          <Link href={`/business/${t.id}`} style={toolBtn("tinted", ACCENT)}>
+          {/* ⚠ the studio's own page is /studio/{id} since 28 Oct 2026 */}
+          <Link href={`/studio/${t.id}`} style={toolBtn("tinted", ACCENT)}>
             Manage Studio
           </Link>
         </ToolActions>

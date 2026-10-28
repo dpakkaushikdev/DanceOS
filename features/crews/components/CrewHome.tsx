@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { CrewRoster } from "./CrewPublicPage";
 import { WelcomeFromUrl } from "@/components/ui/WelcomeBow";
 import { TopPanel } from "@/components/ui/TopPanel";
@@ -11,7 +10,6 @@ import { FollowingFigure } from "@/features/profiles/components/FollowingFigure"
 import { crewTeamRows } from "@/features/profiles/teamFollowing";
 import { ProfileLink, ProfileShare } from "@/features/profiles/components/ProfileShare";
 import { StatsChip } from "@/features/profiles/components/StatsChip";
-import { EyeIcon, cornerChip } from "@/features/profiles/components/profile-kit";
 import { ActionRow, CallButton, MailButton, MessageButton, whatsappHrefOf } from "@/features/profiles/components/ContactButtons";
 import { ContactEditButton } from "@/features/profiles/components/ContactEditor";
 import { EditDetailsChip, EditModeButton, EditModeProvider } from "@/features/profiles/components/EditMode";
@@ -119,13 +117,12 @@ export function CrewHome({ crew, members, header = [], followers = 0, editOpen =
              Settings' "Edit crew" now, for the studio's reason */
           corner={
             <>
+              {/* ⚠ NO EYE SINCE 28 Oct 2026: this IS the crew's page now (the
+                  leader's version of /crew/{id}), so an eye would open itself */}
               <EditModeButton />
-              <Link href={`/crew/${crew.id}`} aria-label="Public view" style={cornerChip}>
-                <EyeIcon />
-              </Link>
             </>
           }
-          detailsEdit={<EditDetailsChip href={`/crews/${crew.id}/manage?edit=1`} />}
+          detailsEdit={<EditDetailsChip href={`/crew/${crew.id}?edit=1`} />}
         >
           {/* ── THE SAME BAND AS EVERY OTHER PROFILE (20 Sep 2026) — figures under
               the styles, in the one spec `profile-band.tsx` holds. A crew leads

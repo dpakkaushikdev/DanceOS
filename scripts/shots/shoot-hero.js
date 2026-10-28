@@ -57,7 +57,7 @@ const goHome = async (page) => {
   await page.goto(`${BASE}/discover`, { waitUntil: "networkidle" });
   for (let i = 0; i < 10; i++) {
     await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Home", exact: true }).click().catch(() => {});
-    const ok = await page.waitForURL((u) => u.pathname === "/", { timeout: 3000 }).then(() => true).catch(() => false);
+    const ok = await page.waitForURL((u) => u.pathname.startsWith("/person/"), { timeout: 3000 }).then(() => true).catch(() => false);
     if (ok) return;
   }
   throw new Error("could not reach Home through the bar");
@@ -230,7 +230,7 @@ const enterEdit = async (page) => {
     check((await owner.getByText("VERIFIED STUDIO").count()) === 0, "hub: no VERIFIED STUDIO line — the tick beside the name is the whole state");
     check((await card.getByLabel("Verified").count()) === 1, "hub: the verified tick sits beside the studio name");
     check((await owner.getByText("Manage ›").count()) === 0, "hub: no Manage word — the card itself is the door");
-    check((await card.getByRole("link", { name: /open the studio/ }).getAttribute("href")) === `/business/${studioId}`, "hub: the card opens the manage screen");
+    check((await card.getByRole("link", { name: /open the studio/ }).getAttribute("href")) === `/studio/${studioId}`, "hub: the card opens the studio's one page (28 Oct 2026)");
     check((await owner.getByTestId("studio-live").count()) === 1, "hub: LIVE, not PUBLIC + RENEWS");
     check((await owner.getByText("Stop renewing").count()) === 0, "hub: the renewal detail is off the card");
     /* ⚠ "the hub carries no Your-events block" was checked here from 15 Sep 2026
@@ -239,7 +239,7 @@ const enterEdit = async (page) => {
     await shot("hub-one-card");
     /* pressing the card lands on the studio's home */
     await card.getByRole("link", { name: /open the studio/ }).click();
-    await owner.waitForURL(new RegExp(`/business/${studioId}$`));
+    await owner.waitForURL(new RegExp(`/studio/${studioId}$`));
     check(true, "hub: pressing the card opened the studio's home");
     /* ⚠ AND THE CANCEL DOOR SURVIVED ITS SECOND MOVE (20 Sep 2026, the user:
        "remove your conversation with dance os and subscription from just the home
@@ -306,7 +306,7 @@ const enterEdit = async (page) => {
     check((await owner.getByRole("button", { name: "Add a link" }).count()) === 1, "studio home: and ＋ Add link in the band, exactly as on a person's home");
     check((await owner.getByRole("button", { name: "Add a dance style" }).count()) === 1, "studio home: and ＋ on the styles");
     check((await owner.getByRole("button", { name: "Edit contact buttons" }).count()) === 1, "studio home: and the ⊕ that makes and unmakes Call · Mail · Message · Enquiry (26 Sep 2026)");
-    check((await owner.getByRole("link", { name: "Edit details" }).getAttribute("href")) === `/business/${studioId}?edit=1`, "studio home: Edit details lands on the sheet's own address (?edit=1)");
+    check((await owner.getByRole("link", { name: "Edit details" }).getAttribute("href")) === `/studio/${studioId}?edit=1`, "studio home: Edit details lands on the sheet's own address (?edit=1)");
     check((await owner.getByLabel("Add a header picture").count()) === 0, "studio home: no Add tile ON the header itself — the ⊕ opens the grid");
     /* ⚠ 3 Oct 2026, later: "poster if not updated on should leave space on home
        as well" — an empty header KEEPS the banner's space (it drew no rail for a
@@ -384,7 +384,9 @@ const enterEdit = async (page) => {
        every editor rather than opening one form. Settings' tile is gone (driven
        in shoot-tiles). */
     check((await owner.getByRole("button", { name: "Edit studio", exact: true }).count()) === 0, "studio home: no 'Edit studio' button — the corner's pencil is 'Edit profile' and toggles edit mode");
-    check((await owner.getByTestId("hero-corner").locator("a").count()) === 1 && (await owner.getByTestId("hero-corner").getByRole("button", { name: "Edit profile", exact: true }).count()) === 1, "studio home: the corner is the pencil over the eye, like every other profile's (26 Sep 2026)");
+    /* ⚠ RE-CUT 28 Oct 2026: the owner's page IS the public page, so the eye that
+       opened it went; the corner is the pencil alone */
+    check((await owner.getByTestId("hero-corner").locator("a").count()) === 0 && (await owner.getByTestId("hero-corner").getByRole("button", { name: "Edit profile", exact: true }).count()) === 1, "studio home: the corner is the pencil alone — this page is the public one (28 Oct 2026)");
     /* ⚠⚠ THE CORNER OPENS **THIS STUDIO'S** PUBLIC PAGE (21 Sep 2026, the user:
        "studio and crew pages on home tab should have option to view their
        profile pages currently taking to organizations page and user/artist
@@ -396,7 +398,7 @@ const enterEdit = async (page) => {
        corner goes to the public face of the thing you are standing on. Both ends
        asserted, because a check that only looks for what was added lets what it
        replaced live on. */
-    check((await owner.getByRole("link", { name: "Public view", exact: true }).getAttribute("href")) === `/studio/${studioId}`, "studio home: the corner opens THIS studio's public page (21 Sep 2026)");
+    check((await owner.getByRole("link", { name: "Public view", exact: true }).count()) === 0 && new URL(owner.url()).pathname === `/studio/${studioId}`, "studio home: no eye — the owner's page IS /studio/{id} (28 Oct 2026)");
     check((await owner.getByRole("link", { name: "Your profile", exact: true }).count()) === 0, "studio home: and not the organization behind it");
     /* AND THE BUTTONS ABOVE THE SCHEDULE, the row its public page carries */
     check((await owner.getByRole("button", { name: /enquiries come to you here/ }).count()) === 1, "studio home: Enquiry is drawn and disabled with its reason, as on your own page");
@@ -607,8 +609,9 @@ const enterEdit = async (page) => {
          the installed TWA's last URL — lands on the studio's own home rather than
          a 404 (Rule 14). */
       await owner.goto(`${BASE}/business/${studioId}/media`);
-      await owner.waitForURL((u) => u.pathname === `/business/${studioId}`, { timeout: 15000 }).catch(() => {});
-      check(new URL(owner.url()).pathname === `/business/${studioId}`, `the old media address forwards to the studio's own home (${new URL(owner.url()).pathname})`);
+      /* …which forwards on to /studio/{id} since 28 Oct 2026 */
+      await owner.waitForURL((u) => u.pathname === `/studio/${studioId}`, { timeout: 15000 }).catch(() => {});
+      check(new URL(owner.url()).pathname === `/studio/${studioId}`, `the old media address forwards to the studio's own home (${new URL(owner.url()).pathname})`);
 
       /* the public page reads the header through business_header_photos, which
          arrives with migration 20260915090000 — say so on the line when it is
@@ -618,7 +621,8 @@ const enterEdit = async (page) => {
       const rpcNote = rpcProbe.ok ? "" : " (NEEDS migration 20260915090000 — business_header_photos is not on the database)";
       /* to the organization … */
       await owner.goto(`${BASE}/studio/${studioId}`);
-      await owner.getByTestId("public-hero").waitFor();
+      /* ⚠ 28 Oct 2026: the owner's /studio/{id} IS their studio home now */
+      await owner.getByTestId("studio-hero").waitFor();
       check((await railImgs(owner)) === 1, `public studio page (owner): the header picture is there${rpcNote}`);
       check((await discImgs(owner)) === 1, "public studio page (owner): the disc is there");
       /* … and to a stranger with no account at all — the storage policy's whole point */
@@ -729,7 +733,7 @@ const enterEdit = async (page) => {
        a corner pointing at the wrong account would have passed the old line. */
     /* the corner opens this PERSON's own profile (26 Sep 2026: `/person/{id}`, C40) */
     /* ⚠ an EYE named "Public view" since 4 Oct 2026, like a studio's and a crew's */
-    check((await owner.getByRole("link", { name: "Public view", exact: true }).count()) === 1 && (await owner.getByRole("link", { name: "Public view", exact: true }).getAttribute("href")) === `/person/${ownerId}`, "owner home: the corner eye opens this person's own profile (21 Sep 2026; an eye since 4 Oct)");
+    check((await owner.getByRole("link", { name: "Public view", exact: true }).count()) === 0 && new URL(owner.url()).pathname === `/person/${ownerId}`, "owner home: Home IS /person/{you} and carries no eye (28 Oct 2026)");
     /* a plain user's Home carries no Enquiry — they have no artist page for one to land on */
     check((await owner.getByRole("button", { name: /enquiries come to you here/ }).count()) === 0, "owner home: no Enquiry on a plain user's Home — they hold no artist page for one to land on");
     /* INVERTED 26 Sep 2026: the pencil is BACK on the corner, and it toggles
@@ -931,7 +935,7 @@ const enterEdit = async (page) => {
     check((await me.getByLabel("Change your photo").count()) === 0, "user home: NO ＋ on the disc either");
     check(await me.getByText(/^User(-\d{6})?$/).first().isVisible(), "user home: the role word, with the account number against it");
     /* the destination rather than the spelling — see the owner's own corner above */
-    check((await me.getByRole("link", { name: "Public view", exact: true }).count()) === 1 && (await me.getByRole("link", { name: "Public view", exact: true }).getAttribute("href")) === `/person/${userId}`, "user home: the corner eye opens this person's own profile (an eye since 4 Oct 2026)");
+    check((await me.getByRole("link", { name: "Public view", exact: true }).count()) === 0 && new URL(me.url()).pathname === `/person/${userId}`, "user home: Home IS /person/{you} and carries no eye (28 Oct 2026)");
     /* ⚠ A PLAIN USER'S ROW IS NOT DRAWN AT ALL, which is what the public page
        does too ("user — nothing", the 19 Sep list): they have no artist page for
        an enquiry to land on, so a dead Enquiry would be worse than none */
@@ -1096,7 +1100,7 @@ const enterEdit = async (page) => {
       check((await me.getByText(/rank$/).count()) === 0, "profile tab: no rank (19 Sep 2026, the user: 'remove rank from profile tab')");
       /* and no editing at all: the pencil went into Settings and the styles and
          links kept their rows and lost their ＋ (19 Sep 2026) */
-      check((await me.getByRole("button", { name: "Edit profile", exact: true }).count()) === 0, "profile tab: NO pencil — the pencil is HOME's corner, and a profile page has none (26 Sep 2026)");
+      check((await me.getByRole("button", { name: "Edit profile", exact: true }).count()) === 1, "your own page: the pencil — Home and the profile are one page since 28 Oct 2026");
       check((await me.getByRole("button", { name: "Add a dance style" }).count()) === 0 && (await me.getByRole("button", { name: "Add a link" }).count()) === 0, "profile tab: the styles and the links are SHOWN here and changed on Home");
       /* ⚠ AND THE TAB HAS NO CORNER EITHER (21 Sep 2026, on the user's reading
          that the Profile tab and a profile page are the same thing). The check
@@ -1130,7 +1134,7 @@ const enterEdit = async (page) => {
          reads the resolved address rather than the spelling the owner used to
          get. `/stats` is the redirect now, and is checked as one below. */
       check((await me.getByRole("button", { name: "Follow", exact: true }).count()) === 0 && (await me.getByRole("link", { name: "Stats", exact: true }).getAttribute("href")) === `/person/${userId}/stats`, "your own page at /person/{you}: no Follow bell, and the Stats chip opens your own record");
-      check((await me.getByTestId("my-followers").count()) === 1, "your own page at /person/{you}: it is the OWNER's version — the figures open your own lists");
+      check((await me.getByTestId("home-followers").count()) === 1, "your own page at /person/{you}: it is the OWNER's version — the figures open your own lists");
       /* ⚠ NO CORNER ON A PROFILE PAGE (21 Sep 2026, the user: "no top right
          button required on profile pages"). This is the OTHER end of the loop:
          C29 put a "Your profile" door here on 20 Sep, and with Home's eye

@@ -39,7 +39,7 @@ const goHome = async (page) => {
   await page.goto(`${BASE}/discover`, { waitUntil: "networkidle" });
   for (let i = 0; i < 10; i++) {
     await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Home", exact: true }).click().catch(() => {});
-    const ok = await page.waitForURL((u) => u.pathname === "/", { timeout: 3000 }).then(() => true).catch(() => false);
+    const ok = await page.waitForURL((u) => u.pathname.startsWith("/person/"), { timeout: 3000 }).then(() => true).catch(() => false);
     if (ok) return;
   }
   throw new Error("could not reach Home through the bar");
@@ -159,8 +159,9 @@ async function signUp(page, email) {
     await shot("business-hub");
     await page.getByText("EEE App Studio").first().click();
     /* the row opens the studio's own home (14 Sep 2026) — the photo header, today, its tools */
-    await page.waitForURL(/\/business\/[0-9a-f-]+$/);
-    tenantId = page.url().match(/\/business\/([0-9a-f-]+)$/)?.[1] ?? null;
+    /* /studio/{id} since 28 Oct 2026 — the owner's page and the public one are one */
+    await page.waitForURL(/\/studio\/[0-9a-f-]+$/);
+    tenantId = page.url().match(/\/studio\/([0-9a-f-]+)$/)?.[1] ?? null;
     await shot("studio-home");
     await page.goto(`${BASE}/business/${tenantId}/classes`);
     await shot("classes-desk");

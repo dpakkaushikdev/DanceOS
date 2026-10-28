@@ -9,7 +9,7 @@ async function goHome(page: Page) {
   await page.goto("/discover");
   await expect(async () => {
     await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Home", exact: true }).click();
-    await page.waitForURL((u) => u.pathname === "/", { timeout: 4_000 });
+    await page.waitForURL((u) => u.pathname.startsWith("/person/"), { timeout: 4_000 });
   }).toPass({ timeout: 40_000 });
 }
 

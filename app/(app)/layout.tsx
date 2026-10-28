@@ -96,15 +96,17 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     /* each row carries its PICTURE (2 Oct 2026, the user: "profile switcher on
        right side with profile photo at extreme right") — the chip wears the one
        you are in, and initials stand in where there is none */
-    switcher.push({ key: "me", href: "/", label: profile.fullName, sub: plan?.active ? "Artist" : "User", kind: "me", photo: photoUrl(profile.avatarPath ?? undefined), tiles: ordered(tilesFor(personKind, ownPageId), toolsLayoutKey(personKind)) });
+    /* ⚠ every home IS its public address since 28 Oct 2026 (the user: "home and
+       public profile are exactly the same so can combine these pages") */
+    switcher.push({ key: "me", href: `/person/${profile.id}`, label: profile.fullName, sub: plan?.active ? "Artist" : "User", kind: "me", photo: photoUrl(profile.avatarPath ?? undefined), tiles: ordered(tilesFor(personKind, ownPageId), toolsLayoutKey(personKind)) });
     for (const m of runsA) {
       /* ⚠ the organization arm went with organizations (29 Sep 2026) */
       if (m.business.type === "studio") {
-        switcher.push({ key: m.business.id, href: `/business/${m.business.id}`, label: m.business.name, sub: "Studio", kind: "studio", photo: photoUrl(m.business.photoPath ?? undefined), tiles: ordered(studioTilesFor(m.business.id, m.memberRole), toolsLayoutKey("studio", m.business.id)) });
+        switcher.push({ key: m.business.id, href: `/studio/${m.business.id}`, label: m.business.name, sub: "Studio", kind: "studio", photo: photoUrl(m.business.photoPath ?? undefined), tiles: ordered(studioTilesFor(m.business.id, m.memberRole), toolsLayoutKey("studio", m.business.id)) });
       }
     }
     for (const c of ledCrews) {
-      switcher.push({ key: c.id, href: `/crews/${c.id}/manage`, label: c.name, sub: "Crew", kind: "crew", photo: photoUrl(c.photo ?? undefined), tiles: ordered(crewTilesFor(c.id), toolsLayoutKey("crew", c.id)) });
+      switcher.push({ key: c.id, href: `/crew/${c.id}`, label: c.name, sub: "Crew", kind: "crew", photo: photoUrl(c.photo ?? undefined), tiles: ordered(crewTilesFor(c.id), toolsLayoutKey("crew", c.id)) });
     }
   }
 

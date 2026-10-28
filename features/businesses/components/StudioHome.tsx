@@ -1,8 +1,6 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { TopPanel } from "@/components/ui/TopPanel";
 import type { FollowListResult } from "@/features/profiles/server-actions/followLists";
-import { TodayShelf } from "@/features/home/components/TodayShelf";
 import { BusinessEditFromUrl } from "@/features/profiles/components/BusinessEditSheet";
 import type { HeroShot } from "@/features/profiles/components/HeroRail";
 import { HeroDot, HeroFact, HeroId, IdentityHero } from "@/features/profiles/components/hero-kit";
@@ -12,7 +10,7 @@ import { FollowerFigure } from "@/features/profiles/components/FollowerFigure";
 import { FollowingFigure } from "@/features/profiles/components/FollowingFigure";
 import { ProfileLink, ProfileShare } from "@/features/profiles/components/ProfileShare";
 import { StatsChip } from "@/features/profiles/components/StatsChip";
-import { PROFILE_RING, EyeIcon, cornerChip, ScheduleBar } from "@/features/profiles/components/profile-kit";
+import { PROFILE_RING, ScheduleBar } from "@/features/profiles/components/profile-kit";
 import { ActionRow, CallButton, LocationButton, MailButton, MessageButton, mapsPinHref, whatsappHrefOf } from "@/features/profiles/components/ContactButtons";
 import { ContactEditButton } from "@/features/profiles/components/ContactEditor";
 import { EditDetailsChip, EditModeButton, EditModeProvider } from "@/features/profiles/components/EditMode";
@@ -23,7 +21,6 @@ import { StudioStylesRow } from "./StudioStylesRow";
 import { StudioPicturesButton, StudioPostersButton } from "./StudioPictures";
 import { DOS_UI, INK, LILAC } from "@/lib/design/tokens";
 import type { ProofPhoto } from "@/lib/media/proof";
-import type { DeckItem } from "@/types/home";
 import type { PublicBusiness } from "@/types/publicProfile";
 import type { Business } from "@/types/business";
 
@@ -67,7 +64,6 @@ export function StudioHome({
   /** the studio as its Edit sheet reads it — About, Since, the number, the links,
    *  the pin; null for anybody but the owner, and the pencil is not drawn */
   editable = null,
-  deck,
   /** what it teaches, off its PUBLISHED classes — a studio with none says nothing (7419-7421) */
   styles,
   /** how many people follow this studio — the figure every profile leads with
@@ -89,7 +85,6 @@ export function StudioHome({
   header: ProofPhoto[];
   ownerId: string | null;
   editable?: PublicBusiness | null;
-  deck: DeckItem[];
   /** no longer drawn (18 Oct 2026) — kept so the route's call still compiles */
   roomCount?: number;
   styles: string[];
@@ -237,13 +232,12 @@ export function StudioHome({
              the Edit details chip beside the name */
           corner={
             <>
+              {/* ⚠ NO EYE SINCE 28 Oct 2026: this IS the studio's public page now
+                  (the owner's version of /studio/{id}), so an eye would open itself */}
               {canEditAny ? <EditModeButton /> : null}
-              <Link href={`/studio/${business.id}`} aria-label="Public view" style={cornerChip}>
-                <EyeIcon />
-              </Link>
             </>
           }
-          detailsEdit={editable ? <EditDetailsChip href={`/business/${business.id}?edit=1`} /> : null}
+          detailsEdit={editable ? <EditDetailsChip href={`/studio/${business.id}?edit=1`} /> : null}
         >
           {/* ── THE BAND, THE SAME ONE EVERY PROFILE WEARS (20 Sep 2026, the user:
               "check all profile pages look similar according to their Profile
@@ -353,15 +347,14 @@ export function StudioHome({
           ) : null}
         </ActionRow>
         {/* the ⊕ that makes and unmakes those buttons — the owner's, while the pencil is pressed (26 Sep 2026) */}
-        {editable ? <ContactEditButton target={{ kind: "business", business, detailsHref: `/business/${business.id}?edit=1` }} /> : null}
+        {editable ? <ContactEditButton target={{ kind: "business", business, detailsHref: `/studio/${business.id}?edit=1` }} /> : null}
         {/* the schedule bar the public page carries in its top half (12 Oct 2026) */}
         <ScheduleBar href={`/studio/${business.id}/schedule`} />
         </TopPanel>
 
-        {/* ── TODAY, AS THE SCHEDULE IT ACTUALLY IS (7500-7520): every class and
-            event running in THIS studio's rooms today, one card each, in the
-            order the day happens; a studio's doors are its own (7143-7150) ── */}
-        <TodayShelf deck={deck} />
+        {/* ⚠ TODAY'S SCHEDULE LEFT THIS PAGE ON 28 Oct 2026 — kept safe in the
+            repo (TodayShelf, findStudioDeck), the user: "keep it safe will use the
+            whole part later" */}
         {body}
 
         {/* ⚠⚠ WHERE THIS STUDIO STANDS IS IN ITS SETTINGS (21 Sep 2026, the user:

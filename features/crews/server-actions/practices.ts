@@ -43,7 +43,7 @@ function revalidatePractice(crewId?: string) {
   if (crewId) {
     revalidatePath(`/crews/${crewId}/manage/practice`);
     revalidatePath(`/crews/${crewId}/manage/calendar`);
-    revalidatePath(`/crews/${crewId}/manage`);
+    revalidatePath(`/crew/${crewId}`);
   }
 }
 

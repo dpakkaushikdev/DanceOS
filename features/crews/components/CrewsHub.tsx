@@ -50,7 +50,7 @@ export function CrewCard({
     </Link>
   ) : null;
   return (
-    <ToolCard href={own ? `/crews/${crew.id}/manage` : `/crew/${crew.id}`} hrefLabel={`${crew.name} — ${own ? "manage the crew" : "open the profile"}`}>
+    <ToolCard href={`/crew/${crew.id}`} hrefLabel={`${crew.name} — ${own ? "manage the crew" : "open the profile"}`}>
       {/* ⚠ THE FACE AND THE NAME ARE THE DOOR TO THE CREW'S PROFILE (4 Oct 2026,
           the user: "profile pic of crew and name should take to profile page of
           that crew") — so the Public page and Open profile buttons went. On a
@@ -88,7 +88,7 @@ export function CrewCard({
           founded it and handed it over, where "Take {crew} back" still lives. */}
       {own ? (
         <ToolActions>
-          <Link href={`/crews/${crew.id}/manage`} style={toolBtn("tinted", tint)}>
+          <Link href={`/crew/${crew.id}`} style={toolBtn("tinted", tint)}>
             Manage Crew
           </Link>
         </ToolActions>

@@ -148,8 +148,9 @@ const tomorrowIst = () => {
     await leader.getByRole("dialog", { name: "Create this crew?" }).getByRole("button", { name: "Create crew", exact: true }).click();
     /* ⚠ under the welcome bow since 2 Oct 2026 (`?welcome=crew`); the goto to
        the crew's home below leaves it behind */
-    await leader.waitForURL(/\/crews\/[0-9a-f-]+\/manage(\?welcome=crew)?$/, { timeout: 30000 });
-    crewId = leader.url().match(/\/crews\/([0-9a-f-]+)\/manage/)[1];
+    /* ⚠ the crew's one page is /crew/{id} since 28 Oct 2026 */
+    await leader.waitForURL(/\/crew\/[0-9a-f-]+(\?welcome=crew)?$/, { timeout: 30000 });
+    crewId = leader.url().match(/\/crew\/([0-9a-f-]+)/)[1];
 
     /* the member confirms the SEAT from the Crews tab on Home (11 Oct 2026: a crew
        ask is answered there now, not in the Inbox) — only a confirmed member is
@@ -169,8 +170,9 @@ const tomorrowIst = () => {
     check((await drawer.getByRole("link", { name: "Calendar", exact: true }).count()) === 1, "crew home: and a Calendar tile beside it");
     await practiceTile.click();
     await leader.waitForURL(/\/manage\/practice$/, { timeout: 20000 });
-    check(await leader.getByRole("heading", { level: 1, name: "Practice" }).isVisible().catch(() => false), "practice desk: headed Practice — a drill page with its own title, not the path segment");
-    check(await leader.getByText(/Nothing arranged yet/).isVisible().catch(() => false), "practice desk: an empty crew says so rather than drawing an empty list");
+    /* ⚠ waits, not one-shot reads: the URL changes before the desk has drawn */
+    check(await leader.getByRole("heading", { level: 1, name: "Practice" }).first().waitFor({ timeout: 15000 }).then(() => true, () => false), "practice desk: headed Practice — a drill page with its own title, not the path segment");
+    check(await leader.getByText(/Nothing arranged yet/).waitFor({ timeout: 15000 }).then(() => true, () => false), "practice desk: an empty crew says so rather than drawing an empty list");
 
     /* ── 2 · ARRANGE ONE, and the button names each missing answer ── */
     await leader.getByRole("link", { name: "Arrange a practice" }).click();

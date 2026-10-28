@@ -1,37 +1,21 @@
-import { CrewHome } from "@/features/crews/components/CrewHome";
+import { redirect } from "next/navigation";
 import { requireLedCrew } from "@/features/crews/server/requireLedCrew";
-import { findCrewMembers } from "@/repositories/crews";
-import { findCrewFollowerCount } from "@/repositories/follows";
-import { findCrewHeaderPhotos } from "@/repositories/headerPhotos";
 
-/** THE CREW'S HOME (18 Sep 2026) — what a crew you lead opens. It was the
- *  members desk itself (S_crewmanage) until the user asked for a home with
- *  tools; the desk is one tile away at /manage/team, and the URL stays what the
- *  hub, the Inbox and the e2e have always pointed at (Rule 14). The header
- *  pictures (19 Sep 2026) ride in for the hero and for the Edit sheet's grid.
- *  ⚠ The Events tile and its `/manage/events` battle record went with events
- *  on 29 Sep 2026, and `findCrewEntries` with them. */
-export default async function CrewManagePage({ params, searchParams }: { params: Promise<{ crewId: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
+/** /crews/{crewId}/manage — AN ADDRESS NOW, NOT A PAGE (28 Oct 2026).
+ *
+ *  It was the crew's home (18 Sep 2026). The user: *"home and public profile are
+ *  exactly the same so can combine these pages with edit only visible to the
+ *  person who owns the page"* — so the leader's own page is `/crew/{id}`, and this
+ *  forwards there (Rule 14: the hub, the Inbox, notifications and bookmarks all
+ *  named it). `?edit=1` rides along. The desks under `/manage/…` are unchanged.
+ *  ⚠ `requireLedCrew` still runs first, so a member is still sent to the public
+ *  page and a stranger to sign-in — exactly as before. */
+export default async function CrewManageAddress({ params, searchParams }: { params: Promise<{ crewId: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
   const { crewId } = await params;
-  /* `?edit=1` — Settings' "Edit crew" navigates here with it (22 Sep 2026).
-     `requireLedCrew` below is the authority; the query only asks. */
-  const editOpen = (await searchParams).edit === "1";
-  const { supabase, crew } = await requireLedCrew(crewId);
-  /* the follower count joins the batch — a failed read is a 0 on a figure */
-  const [members, header, followers] = await Promise.all([
-    findCrewMembers(supabase, crewId),
-    findCrewHeaderPhotos(supabase, crewId),
-    findCrewFollowerCount(supabase, crewId).catch(() => 0),
-    /* ⚠ the LEADER's following count left this batch on 2 Oct 2026 — a crew's
-       Following is its team now (the user), drawn off `members` above */
-  ]);
-  return (
-    <CrewHome
-      crew={crew}
-      members={members}
-      header={header}
-      followers={followers ?? 0}
-      editOpen={editOpen}
-    />
-  );
+  const sp = await searchParams;
+  await requireLedCrew(crewId);
+  const q = new URLSearchParams();
+  if (sp.edit === "1") q.set("edit", "1");
+  if (sp.welcome) q.set("welcome", sp.welcome);
+  redirect(`/crew/${crewId}${q.size > 0 ? `?${q.toString()}` : ""}`);
 }

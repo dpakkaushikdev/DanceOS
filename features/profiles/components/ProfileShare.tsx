@@ -67,7 +67,9 @@ export function ProfileShare({ path, name, watchCheckIn = false }: { path: strin
       handoff = setTimeout(() => {
         setOpen(false);
         setApproved(null);
-        router.push(`/?checkedin=${Date.now()}`, { scroll: false });
+        /* ⚠ Today's schedule left Home on 28 Oct 2026 (kept for later), so the
+           handoff no longer scrolls to it — the page just re-reads */
+        router.refresh();
       }, 1800);
     };
     const timer = setInterval(() => void tick(), 2500);

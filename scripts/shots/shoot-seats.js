@@ -173,6 +173,9 @@ const DESKS = [...RUN_DESKS, ...OWNER_DESKS];
     const seat = (await rows(owner.h, `business_members?business_id=eq.${studio.id}&user_id=eq.${faculty.id}&deleted_at=is.null&select=member_role`))[0];
     check(seat && seat.member_role === "trainer", `the seat is real, made by the person accepting — ${seat ? seat.member_role : "MISSING"}`);
 
+    /* ⚠ 28 Oct 2026: a runner's studio home is /studio/{id} — /business/{id} forwards there */
+    const inStudio = (path, id) => path.startsWith(`/business/${id}`) || path === `/studio/${id}`;
+
     /* ── 1. THE SWITCHER DOES NOT OFFER THE STUDIO ─────────────────────────── */
     const fRows = await switcherRows(fPage);
     check(!fRows.some((r) => r.includes("Seat Std")), `the faculty seat's switcher does NOT offer the studio — [${fRows.join(" / ") || "own row only"}]`);
@@ -219,7 +222,7 @@ const DESKS = [...RUN_DESKS, ...OWNER_DESKS];
     const opened = [];
     for (const d of DESKS) {
       await oPage.goto(`${BASE}/business/${studio.id}${d}`, { waitUntil: "networkidle" });
-      if (!new URL(oPage.url()).pathname.startsWith(`/business/${studio.id}`)) opened.push(d || "/(home)");
+      if (!inStudio(new URL(oPage.url()).pathname, studio.id)) opened.push(d || "/(home)");
     }
     check(opened.length === 0, `…and every one of the ${DESKS.length} desks still opens for them${opened.length ? ` (BOUNCED: ${opened.join(", ")})` : ""}`);
 
@@ -255,14 +258,14 @@ const DESKS = [...RUN_DESKS, ...OWNER_DESKS];
     const shut = [];
     for (const d of RUN_DESKS) {
       await fPage.goto(`${BASE}/business/${studio.id}${d}`, { waitUntil: "networkidle" });
-      if (!new URL(fPage.url()).pathname.startsWith(`/business/${studio.id}`)) shut.push(d || "/(home)");
+      if (!inStudio(new URL(fPage.url()).pathname, studio.id)) shut.push(d || "/(home)");
     }
     check(shut.length === 0, `…and all ${RUN_DESKS.length} desks a manager runs are open to them${shut.length ? ` (SHUT: ${shut.join(", ")})` : ""}`);
 
     const leaked = [];
     for (const d of OWNER_DESKS) {
       await fPage.goto(`${BASE}/business/${studio.id}${d}`, { waitUntil: "networkidle" });
-      if (new URL(fPage.url()).pathname !== `/business/${studio.id}`) leaked.push(`${d} → ${new URL(fPage.url()).pathname}`);
+      if (new URL(fPage.url()).pathname !== `/studio/${studio.id}`) leaked.push(`${d} → ${new URL(fPage.url()).pathname}`);
     }
     check(leaked.length === 0, `⚠ …and all ${OWNER_DESKS.length} that stay the OWNER's send them back to the home${leaked.length ? ` (LEAKED: ${leaked.join(", ")})` : ""}`);
 
@@ -276,7 +279,8 @@ const DESKS = [...RUN_DESKS, ...OWNER_DESKS];
     await fPage.goto(`${BASE}/business/${studio.id}/payments`, { waitUntil: "networkidle" });
     await fPage.getByText("ACCEPTED FROM STUDENTS").waitFor({ timeout: 20000 });
     await fPage.getByRole("switch", { name: "Bank transfer" }).click();
-    await fPage.getByText("Only the owner changes what the business accepts").waitFor({ timeout: 20000 });
+    /* ⚠ "studio", not "business", since the 28 Oct wording batch */
+    await fPage.getByText("Only the owner changes what the studio accepts").waitFor({ timeout: 20000 });
     check(true, "⚠ a manager reads the Payments desk and is refused its switches IN WORDS — the check the happy path lost when a trainer stopped reaching this desk");
     await fPage.goto(`${BASE}/business/${studio.id}/staff`, { waitUntil: "networkidle" });
     check((await fPage.getByRole("button", { name: /^Manage / }).count()) === 0, "…and the Team desk gives them no seat to hand out");

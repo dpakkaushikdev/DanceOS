@@ -23,7 +23,7 @@ const goHome = async (page) => {
   await page.goto(`${BASE}/discover`, { waitUntil: "networkidle" });
   for (let i = 0; i < 10; i++) {
     await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Home", exact: true }).click().catch(() => {});
-    const ok = await page.waitForURL((u) => u.pathname === "/", { timeout: 3000 }).then(() => true).catch(() => false);
+    const ok = await page.waitForURL((u) => u.pathname.startsWith("/person/"), { timeout: 3000 }).then(() => true).catch(() => false);
     if (ok) return;
   }
   throw new Error("could not reach Home through the bar");
@@ -497,7 +497,7 @@ async function personOpensAStudio(page, who, acc, stamp) {
     const sEdit = p3.getByRole("dialog", { name: "Edit business" });
     await sEdit.waitFor({ state: "visible", timeout: 15_000 });
     check(new URL(p3.url()).searchParams.get("edit") === "1", "studio · Edit details opens the sheet at ?edit=1 on the studio's own home");
-    check(new URL(p3.url()).pathname === `/business/${studio.id}`, "studio · …over THIS studio, not the first one the account owns");
+    check(new URL(p3.url()).pathname === `/studio/${studio.id}`, "studio · …over THIS studio, not the first one the account owns");
     await sEdit.getByRole("button", { name: "Cancel" }).click();
     await sEdit.waitFor({ state: "detached", timeout: 15_000 });
     check(!new URL(p3.url()).searchParams.has("edit"), "studio · and Cancel spends the entry rather than leaving ?edit=1 live under it");

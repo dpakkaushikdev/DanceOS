@@ -11,7 +11,8 @@ async function goHome(page: Page) {
   await page.goto("/discover");
   await expect(async () => {
     await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Home", exact: true }).click();
-    await page.waitForURL((u) => u.pathname === "/", { timeout: 4_000 });
+    /* ⚠ Home IS your own profile page since 28 Oct 2026 (`/person/{you}`) */
+    await page.waitForURL((u) => u.pathname.startsWith("/person/"), { timeout: 4_000 });
   }).toPass({ timeout: 40_000 });
 }
 
@@ -751,8 +752,10 @@ test.describe.serial("DanceOS, end to end", () => {
     // this segment sat on a 15-minute timeout.
     await owner.goto("/business");
     await hubCard.getByRole("link", { name: `${studioName} — open the studio` }).click();
-    await owner.waitForURL(/\/business\/[0-9a-f-]+$/);
-    businessId = owner.url().match(/\/business\/([0-9a-f-]+)$/)?.[1] ?? null;
+    /* the studio's own page is /studio/{id} since 28 Oct 2026 — one address for
+       the owner and the visitor, the edit tools the owner's alone */
+    await owner.waitForURL(/\/studio\/[0-9a-f-]+$/);
+    businessId = owner.url().match(/\/studio\/([0-9a-f-]+)$/)?.[1] ?? null;
     await expect(owner.getByRole("heading", { name: studioName, exact: true })).toBeVisible();
     await expect((await tools(owner)).getByText("Studio Tools")).toBeVisible();
     await closeTools(owner);
@@ -763,7 +766,9 @@ test.describe.serial("DanceOS, end to end", () => {
        person's and an organization's — over a row of pills. One heading now,
        and the absence of the pills is asserted too, because a card that merely
        stopped rendering them would read the same as one that kept them. */
-    await expect(owner.getByText("Nothing On Today’s Schedule")).toBeVisible();
+    /* ⚠ AND SINCE 28 Oct 2026 NO TODAY'S SCHEDULE AT ALL (the user: "remove todays
+       schedule from home and keep it safe") — the card is asserted gone */
+    await expect(owner.getByText("Nothing On Today’s Schedule")).toHaveCount(0);
     await expect(owner.getByRole("link", { name: "See everything you manage" })).toHaveCount(0);
     /* ⚠ THE PICTURES MOVED OFF THE PENCIL (20 Sep 2026, the user: "edit profile
        for studio not consistent with how its done for Artist and users. for
@@ -1685,12 +1690,14 @@ test.describe.serial("DanceOS, end to end", () => {
     await learner.getByRole("dialog", { name: "Create this crew?" }).getByRole("button", { name: "Create crew", exact: true }).click();
     /* the crew's home opens under its welcome bow (2 Oct 2026) — `?welcome=crew`,
        closed by Continue, which drops the param */
-    await learner.waitForURL(/\/crews\/[0-9a-f-]+\/manage\?welcome=crew$/);
-    crewId = learner.url().match(/\/crews\/([0-9a-f-]+)\/manage/)![1];
+    /* ⚠ the crew's own page is /crew/{id} since 28 Oct 2026 (one address for the
+       leader and everybody else; edit only for the leader) */
+    await learner.waitForURL(/\/crew\/[0-9a-f-]+\?welcome=crew$/);
+    crewId = learner.url().match(/\/crew\/([0-9a-f-]+)/)![1];
     const crewBow = learner.getByTestId("welcome-bow");
     await expect(crewBow).toContainText("is ready!", { timeout: 15_000 });
     await crewBow.getByRole("button", { name: "Continue" }).click();
-    await learner.waitForURL(/\/crews\/[0-9a-f-]+\/manage$/);
+    await learner.waitForURL(/\/crew\/[0-9a-f-]+$/);
     // the crew's HOME (18 Sep 2026): the hero, the Team and Events tiles, the crew's own bar
     await expect(learner.getByTestId("crew-hero")).toBeVisible();
     /* ⚠ A CREW HAS NO INBOX (11 Oct 2026, the user: "only enquiries to be handled
@@ -1704,8 +1711,14 @@ test.describe.serial("DanceOS, end to end", () => {
        page"). It pointed at the Profile tab for a few hours this morning, which
        on a crew's home is the PERSON who leads it — true, and nothing to do with
        the crew. Both ends asserted, so the thing it replaced cannot live on. */
-    await expect(learner.getByRole("link", { name: "Public view", exact: true })).toHaveAttribute("href", `/crew/${crewId}`);
-    await expect(learner.getByRole("link", { name: "Your profile", exact: true })).toHaveCount(0);
+    /* ⚠⚠ AND NO EYE SINCE 28 Oct 2026 — this IS the crew's public page now, the
+       leader's version of it, with the pencil; an eye would open itself */
+    await expect(learner.getByRole("link", { name: "Public view", exact: true })).toHaveCount(0);
+    await expect(learner.getByRole("button", { name: "Edit profile", exact: true })).toBeVisible();
+    /* and the old address forwards here (Rule 14) */
+    await learner.goto(`/crews/${crewId}/manage`);
+    await learner.waitForURL(new RegExp(`/crew/${crewId}$`));
+    await expect(learner.getByTestId("crew-hero")).toBeVisible();
     /* ⚠ A CREW TAKES NO ENQUIRIES (4 Oct 2026, the user: "remove enquiries for
        crew") — no Enquiry button on its home, and no Earnings tile, which counted
        its enquiry money and nothing else */
@@ -2343,7 +2356,8 @@ test.describe.serial("DanceOS, end to end", () => {
        post-navigation assertion in this suite has. */
     await trainer.waitForURL(/\/person\/[0-9a-f-]{36}$/, { timeout: 20_000 });
     await expect(trainer.getByText(/^Artist-\d{6}$/).first()).toBeVisible({ timeout: 15_000 });
-    await expect(trainer.getByTestId("my-followers")).toHaveText("0");
+    /* ⚠ `home-followers` since 28 Oct 2026: the Profile tab and Home are one page */
+    await expect(trainer.getByTestId("home-followers")).toBeVisible();
     /* ⚠ AND NO CORNER AT ALL ON THIS PAGE (21 Sep 2026). The pencil went to
        Settings on 19 Sep ("all edit profile options to be removed from home and
        profile pages") and the EYE went today, on the user's own question —
@@ -2354,7 +2368,9 @@ test.describe.serial("DanceOS, end to end", () => {
        and it is the DISC that carries it, saying so in plainer words than the
        glyph did. Removing a door is only safe while the other one is there, so
        both halves are checked. */
-    await expect(trainer.getByRole("button", { name: "Edit profile", exact: true })).toHaveCount(0);
+    /* ⚠ RE-CUT 28 Oct 2026: your own page IS Home now, so its pencil is here —
+       and only here; a stranger's view of the same address draws none */
+    await expect(trainer.getByRole("button", { name: "Edit profile", exact: true })).toBeVisible();
     await expect(trainer.getByRole("link", { name: "Public view" })).toHaveCount(0);
     /* ⚠ RE-CUT 21 Sep 2026 — WRITTEN THIS MORNING AND ALREADY STALE, which is the
        point worth keeping. When the corner's eye came off, this line was added to
@@ -2680,87 +2696,29 @@ test.describe.serial("DanceOS, end to end", () => {
     });
     expect(moved.ok).toBeTruthy();
 
-    // the learner's Home: one card in the rail, saying what the session is to them — and that it is on now
+    /* ⚠⚠ TODAY'S SCHEDULE IS GONE FROM EVERY HOME (28 Oct 2026, the user: "remove
+       todays schedule from home and keep it safe will use the whole part later").
+       The deck's components and reads stay in the repo with no caller; this
+       segment keeps the class ON THE CLOCK and asserts the deck is absent on the
+       learner's, the trainer's and the studio's own page — the three places it
+       used to draw. Putting it back is this segment's history in git. */
     await goHome(learner);
-    /* the head is Discover's ShelfHead since 18 Oct 2026 — no "N today" words — so
-       the deck's own cards are counted */
-    await expect(learner.getByRole("heading", { level: 2, name: "Today’s schedule" })).toBeVisible();
-    await expect(learner.getByTestId("deck-card")).toHaveCount(1);
-    const card = learner.getByTestId("deck-card").first();
-    await expect(card.getByRole("link", { name: `Open ${classTitle}` })).toBeVisible();
-    await expect(card.getByText("Booked", { exact: true })).toBeVisible();
-    /* ⚠ LIVE IS THE CARD'S FRAME NOW (2 Oct 2026, the user: "live on class cards
-       should not be there and instead the border of card should be green with a
-       live button on top left") — a badge on the card's corner, not a chip in
-       its line */
-    await expect(card.getByTestId("live-badge")).toBeVisible();
-    await expect(card.locator('[data-live="yes"]')).toHaveCount(1);
-    /* ⚠ the deck frames every card by where it stands today (2 Oct 2026) — done
-       red, live green, upcoming amber — and a live card wears neither of the other two */
-    await expect(card.locator('[data-deck-state="live"]')).toHaveCount(1);
-    await expect(card.getByTestId("done-badge")).toHaveCount(0);
-    await expect(card.getByTestId("upcoming-badge")).toHaveCount(0);
-    /* ⚠⚠ AND NOTHING UNDER THE CARD (2 Oct 2026, the user: "should not show
-       invoice and cancel booking option on todays schedule tile on home … can
-       also remove you are booked an everything in that section below the bar").
-       Both live on the class page, which the card opens. Asserted at the old
-       place, because a check that only looks at the new place cannot tell you
-       the old one was cleared. */
-    await expect(card.getByText(/You.re booked/)).toHaveCount(0);
-    await expect(card.getByRole("button", { name: "Invoice" })).toHaveCount(0);
-    await expect(card.getByRole("button", { name: /Cancel booking/ })).toHaveCount(0);
-    /* ⚠⚠ THE ENTRY-CODE TICKET IS GONE (29 Sep 2026, the user: "scan this at
-       door text not required as your personal qr code for user or artist
-       profile is being used to enter the classes"). The card drew a 54px QR of
-       `bookingCodeOf(…)` that opened a full-screen pass reading "Scan this at
-       the door." — and **no door in this app has ever read one**: the register's
-       scanner resolves a PERSON's profile link and `can_run_register_for_class`
-       decides. What survives is the string it encoded, which was always a
-       booking REFERENCE rather than a key, printed where it already was. */
-    await expect(learner.getByRole("button", { name: `Show the entry code for ${classTitle}` })).toHaveCount(0);
-    await expect(card.getByText("Your own profile QR is what gets you in.")).toHaveCount(0);
-    // the deck is the one list; the door to all bookings is still named beside it
-    // (the head's own cyan "All bookings" link went on 18 Sep 2026 with every other
-    // blue button; the Classes tile in the grid beneath the shelf is that door now)
-    await expect(learner.getByRole("link", { name: "All bookings", exact: true })).toHaveCount(0);
+    await expect(learner.getByRole("heading", { level: 2, name: "Today’s schedule" })).toHaveCount(0);
+    await expect(learner.getByTestId("deck-card")).toHaveCount(0);
     await expect((await tools(learner)).getByRole("link", { name: "Classes", exact: true })).toHaveAttribute("href", "/my-classes");
     await closeTools(learner);
 
-    // the trainer accepted this class back in segment 1 — a class cannot be
-    // published until they do (18 Sep 2026) — so the session is on their day from
-    // the moment it is on the clock, wearing Teaching: no pass, no invoice, because
-    // it is not a booking
-    // (their name is in the class's artist column, which is what accepting put there;
-    // "You’re on this class" is the toast the accept fires, and that happened in
-    // segment 1, in their Inbox)
-    await trainer.goto(`/c/${shareSlug}`);
-    await expect(trainer.getByRole("link", { name: `Open ${trainerName}` })).toBeVisible();
-    await expect(trainer.getByRole("button", { name: "Accept this ask" })).toHaveCount(0);
     await goHome(trainer);
-    const taught = trainer.getByTestId("deck-card").first();
-    await expect(taught.getByText("Teaching", { exact: true })).toBeVisible();
-    await expect(taught.getByRole("button", { name: "Invoice" })).toHaveCount(0);
+    await expect(trainer.getByTestId("deck-card")).toHaveCount(0);
 
-    // THE OWNER'S HOME ASKS NO STUDIO'S QUESTION (17 Sep 2026, the user:
-    // "organization home tab should not have classes options"; 26 Sep 2026: the
-    // owner is a PERSON, so this is a user's Home — its Studios tile is the door
-    // to every studio they run and nothing on it opens a register or a studio
-    // calendar).
+    // the owner's own page asks no studio's question, and the studio's page draws no deck
     await goHome(owner);
     await expect(owner.getByRole("link", { name: "Classes at this studio" })).toHaveCount(0);
-    await expect(owner.getByRole("link", { name: "Open the studio calendar" })).toHaveCount(0);
-    await expect((await tools(owner)).getByRole("link", { name: "Students", exact: true })).toHaveCount(0);
     await expect((await tools(owner)).getByRole("link", { name: "Studios", exact: true })).toBeVisible();
     await closeTools(owner);
-    // Stats is the chip beside the QR in the hero since 18 Sep 2026, not a tile — still one link called Stats
     await expect(owner.getByRole("link", { name: "Stats", exact: true })).toBeVisible();
-    /* ⚠ the organization's own home carrying its Events tile was checked here
-       until 29 Sep 2026, and it was the line that said where an event belonged
-       once a studio's home stopped offering one (R17, R48). Neither end of that
-       sentence exists now. */
-    // the studio's question — what is running in its rooms — is asked on the STUDIO's own home
-    await owner.goto(`/business/${businessId}`);
-    await expect(owner.getByTestId("deck-card").first().getByText("At your studio", { exact: true })).toBeVisible();
+    await owner.goto(`/studio/${businessId}`);
+    await expect(owner.getByTestId("deck-card")).toHaveCount(0);
     await expect((await tools(owner)).getByRole("link", { name: "Classes", exact: true })).toHaveAttribute("href", `/business/${businessId}/classes`);
     await expect((await tools(owner)).getByRole("link", { name: "Calendar", exact: true })).toHaveAttribute("href", `/business/${businessId}/calendar`);
   });
@@ -2856,7 +2814,9 @@ test.describe.serial("DanceOS, end to end", () => {
     await owner.goto(studioUrl);
     await expect(owner.getByRole("button", { name: "Followers — see who" })).toHaveCount(0);
     /* ⚠ the follow PAGE since 12 Oct 2026, on its Followers tab */
-    await owner.getByTestId("business-followers").click();
+    /* ⚠ 28 Oct 2026: the owner's view of /studio/{id} IS their studio's home
+       now (the pages merged), whose figure is `studio-followers` — same door */
+    await owner.getByTestId("studio-followers").click();
     await owner.waitForURL(/\/follows\/business\/[0-9a-f-]+\?tab=followers/);
     const learnerRow = owner.getByTestId("follows-list").getByRole("link", { name: learnerName });
     await expect(learnerRow).toBeVisible();
@@ -3885,9 +3845,10 @@ test.describe.serial("DanceOS, end to end", () => {
     await goHome(learner);
     await learner.getByRole("button", { name: "Switch profile" }).click();
     await expect(studioRow()).toBeVisible({ timeout: 15_000 });
-    await expect(studioRow()).toHaveAttribute("href", `/business/${businessId}`);
+    /* the switcher opens the studio's one page since 28 Oct 2026 */
+    await expect(studioRow()).toHaveAttribute("href", `/studio/${businessId}`);
     await studioRow().click();
-    await learner.waitForURL(`**/business/${businessId}`, { timeout: 20_000 });
+    await learner.waitForURL(`**/studio/${businessId}`, { timeout: 20_000 });
     await expect(learner.getByRole("heading", { name: studioName })).toBeVisible({ timeout: 15_000 });
 
     /* ⚠ and back to Faculty, because the rest of this segment is written against

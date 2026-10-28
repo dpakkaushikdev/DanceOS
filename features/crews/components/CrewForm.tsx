@@ -93,7 +93,8 @@ export function CrewForm({ defaultCity, sheet = false }: { defaultCity: string |
       /* `?welcome=crew` (2 Oct 2026, the user: "on creation similar welcome
          message for studio and crew profiles as we get on sign up") — the
          crew's home draws the bow over itself and Continue drops it */
-      const to = `/crews/${out.crewId}/manage?welcome=crew`;
+      /* the crew's own page is /crew/{id} since 28 Oct 2026 */
+      const to = `/crew/${out.crewId}?welcome=crew`;
       if (sheet) router.replace(to);
       else router.push(to);
     }, 700);

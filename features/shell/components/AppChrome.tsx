@@ -203,11 +203,13 @@ const writeActiveProfile = (key: string) => {
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 /* ⚠ the studio's `/inbox` is no longer an entity TAB (18 Oct 2026): it is the
    Enquiries tool, a drill page like every other desk */
-const STUDIO_HOME_RE = new RegExp(`^/business/(${UUID})$`, "i");
+/* ⚠ a studio's home is `/studio/{id}` and a crew's `/crew/{id}` since 28 Oct
+   2026 — the old addresses redirect there */
+const STUDIO_HOME_RE = new RegExp(`^/studio/(${UUID})$`, "i");
 /* ⚠ A CREW HAS NO INBOX (11 Oct 2026, the user: "only enquiries to be handled
    from inbox"). A crew takes no enquiries, so its bar is Home alone and
    `/crews/{id}/inbox` forwards to its Team desk (next.config.ts). */
-const CREW_HOME_RE = new RegExp(`^/crews/(${UUID})/manage$`, "i");
+const CREW_HOME_RE = new RegExp(`^/crew/(${UUID})$`, "i");
 /* TOOL PAGES THAT ARE NOT A DRAWER ROW OF THEIR OWN (28 Oct 2026): a studio's
    and a crew's desks under its home, and the settings ledgers */
 const TOOL_PAGE_RE = new RegExp(
@@ -222,9 +224,9 @@ interface Entity {
 }
 const entityOf = (pathname: string): Entity | null => {
   const s = pathname.match(STUDIO_HOME_RE);
-  if (s) return { kind: "studio", home: `/business/${s[1]}`, as: s[1]! };
+  if (s) return { kind: "studio", home: `/studio/${s[1]}`, as: s[1]! };
   const c = pathname.match(CREW_HOME_RE);
-  if (c) return { kind: "crew", home: `/crews/${c[1]}/manage`, as: `crew-${c[1]}` };
+  if (c) return { kind: "crew", home: `/crew/${c[1]}`, as: `crew-${c[1]}` };
   return null;
 };
 
@@ -385,7 +387,13 @@ export function AppChrome({
     void setToolOrderAction({ key: viewKey(viewTool), order: mode === "list" ? ["list"] : [] });
   };
   const search = useSearchParams();
-  const activeTab = TAB_SET.find((t) => t.href === pathname)?.label ?? null;
+  /* ⚠ HOME IS YOUR OWN PAGE (28 Oct 2026, the user: "home and public profile are
+     exactly the same so can combine these pages with edit only visible to the
+     person who owns the page"). `/` is a redirect to `/person/{you}` now, so the
+     bar's Home is that address — the one the switcher's own row carries. */
+  const meHref = switcher.find((s) => s.kind === "me")?.href ?? "/";
+  const tabSet = TAB_SET.map((t) => (t.label === "Home" ? { ...t, href: meHref } : t));
+  const activeTab = tabSet.find((t) => t.href === pathname)?.label ?? null;
   const isTab = activeTab !== null;
   /* a studio's or a crew's own pages wear the entity's bar and the mark */
   const entity = entityOf(pathname);
@@ -420,7 +428,7 @@ export function AppChrome({
            is a TILE on this entity's own tool grid now, carrying `?as=` so the
            desk it opens is scoped to the profile whose grid was pressed. */
       ]
-    : TAB_SET;
+    : tabSet;
   /* ⚠ NO ONE-TAB BAR (28 Oct 2026, Batch 4). A studio's and a crew's own bar
      has shrunk to Home alone (Discover left it 2 Oct, the Inbox 18 Oct), and a
      bar holding one tab is a button to the page you are on. The general rule:
@@ -477,10 +485,16 @@ export function AppChrome({
   const closeOut = useCallback(() => setConfirmOut(false), []);
   /* a crew's home is /crews/{id}/manage, and its desks hang under /crews/{id} —
      all "here" for that crew, so the match is on the crew's root */
+  /* ⚠ 28 Oct 2026: a profile's home IS its public address now — your own
+     `/person/{you}`, a studio's `/studio/{id}`, a crew's `/crew/{id}` — and its
+     desks still hang under `/business/{id}` and `/crews/{id}`, so both roots are
+     "here". Your own row matches its page exactly (its stats are a public page
+     anybody reads, not a place you are "in"). */
   const isHere = (item: SwitcherItem) => {
-    if (item.href === "/") return pathname === "/";
-    const root = item.kind === "crew" ? item.href.replace(/\/manage$/, "") : item.href;
-    return pathname === root || pathname.startsWith(`${root}/`);
+    if (item.kind === "me") return pathname === item.href || pathname === "/";
+    const id = item.href.split("/")[2] ?? "";
+    const roots = item.kind === "crew" ? [`/crew/${id}`, `/crews/${id}`] : [`/studio/${id}`, `/business/${id}`];
+    return roots.some((root) => pathname === root || pathname.startsWith(`${root}/`));
   };
   /* WHICH PROFILE THE CHIP WEARS (21 Sep 2026). On a studio's or a crew's own
      pages it is that one; everywhere else — a tab, a desk, a public page you

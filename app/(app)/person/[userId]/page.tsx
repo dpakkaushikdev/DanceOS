@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
-import { OwnProfileScreen } from "@/features/profiles/components/OwnProfileScreen";
+import { OwnHome } from "@/features/home/components/OwnHome";
 import { PublicPersonPage } from "@/features/profiles/components/PublicPersonPage";
 import { headerMaxFor } from "@/lib/media/photo";
 import { kindOf } from "@/types/profile";
@@ -49,7 +49,7 @@ export async function generateMetadata({ params }: { params: Promise<{ userId: s
  *  ⚠ THE ORGANIZATION BRANCH IS GONE (29 Sep 2026). It sent an organization's
  *  login on to /org/{id} and let a platform admin read the evidence here; both
  *  went with organizations themselves. */
-export default async function PersonPage({ params }: { params: Promise<{ userId: string }> }) {
+export default async function PersonPage({ params, searchParams }: { params: Promise<{ userId: string }>; searchParams: Promise<{ ig?: string; ig_error?: string }> }) {
   const { userId } = await params;
   if (!UUID_RE.test(userId)) {
     notFound();
@@ -104,8 +104,13 @@ export default async function PersonPage({ params }: { params: Promise<{ userId:
      it is a redirect to here, and the owner's version is what renders — so the
      three public-path reads below are not made for you at all, because
      `OwnProfileScreen` asks its own fourteen. */
+  /* ⚠⚠ AND SINCE 28 Oct 2026 THE OWNER'S VERSION IS WHAT USED TO BE HOME (the
+     user: "home and public profile are exactly the same so can combine these
+     pages with edit only visible to the person who owns the page"). `/` is a
+     redirect to here; `OwnHome` is Home's content with the pencil, minus Today's
+     schedule (kept in the repo for later). */
   if (isMe) {
-    return <OwnProfileScreen userId={userId} loaded={person} />;
+    return <OwnHome userId={userId} person={person} searchParams={await searchParams} />;
   }
   /* ⚠ THE VIEWER'S KIND DECIDES NOTHING HERE (20 Sep 2026), so their profile is
      not read for it — one round trip fewer on every person's page. You do not

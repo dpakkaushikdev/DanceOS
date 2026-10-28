@@ -85,11 +85,12 @@ const check = (ok, what) => {
     let home = false;
     for (let i = 0; i < 8 && !home; i++) {
       await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Home", exact: true }).click().catch(() => {});
-      home = await page.waitForURL((u) => u.pathname === "/", { timeout: 3000 }).then(() => true).catch(() => false);
+      home = await page.waitForURL((u) => u.pathname.startsWith("/person/"), { timeout: 3000 }).then(() => true).catch(() => false);
     }
     check(home, "pressing Home in the bar opens Home — a client hop, never sent to Discover");
     await page.reload({ waitUntil: "networkidle" });
-    check(new URL(page.url()).pathname === "/discover", "a reload on Home is a fresh open — Discover");
+    /* Home IS /person/{you} since 28 Oct 2026, so a reload stays on your page — only a load of "/" opens Discover */
+    check(new URL(page.url()).pathname.startsWith("/person/"), "a reload on your own page stays on it (28 Oct 2026)");
 
     /* ── 4 · THE DRAWER: TOOLS, WITH ARRANGE ON ITS HEADING ── */
     await page.getByRole("button", { name: /switch profile/i }).first().click();

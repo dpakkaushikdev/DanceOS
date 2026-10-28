@@ -344,6 +344,16 @@ a:focus-visible:not([data-slot]) {
   }
 }
 
+/* the welcome reel's next clip fading in over the last (28 Oct 2026) */
+@keyframes dosReelIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* a sheet rising from the bottom edge — the prototype declares it per module; the app once */
 /* a CENTRED card — the QR and the scanner (2 Oct 2026, the user: "qr code and
    scan should always come on centre of the screen right now coming from bottom") */

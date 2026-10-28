@@ -1,34 +1,36 @@
+import Link from "next/link";
 import { DosMark } from "@/components/ui/DosMark";
 import { AuthShell } from "@/features/auth/components/AuthShell";
 import { GoogleButton } from "@/features/auth/components/GoogleButton";
 import { SkipToDiscover } from "@/features/auth/components/SkipToDiscover";
+import { WelcomeReel } from "@/features/auth/components/WelcomeReel";
+import { WELCOME_CLIPS } from "@/features/auth/welcomeClips";
 import { leaveIfSignedIn } from "@/lib/auth/leaveIfSignedIn";
 import { safeNext } from "@/lib/auth/safeNext";
-import { DOS_DISPLAY, GOLD, INK, LINE, SKY, SUB } from "@/lib/design/tokens";
+import { INK, LINE, SUB } from "@/lib/design/tokens";
 
-/** Welcome screen, from the prototype (DanceOSApp.jsx:3700-3724) with three
- *  deliberate departures, all logged under "Deliberate deviations from the
- *  prototype" and all consequences of auth being email + password:
+/** Welcome screen — THE REEL (28 Oct 2026, the user, with Cult's sign-up screen
+ *  in hand: "I need my sign up page look exactly like this … 3 videos of 5-7
+ *  seconds which play one after another … logo in top left and skip in top
+ *  right … the signup options at the lower side … at around 60 percent from the
+ *  top the video is smoothly blending with the bottom dark background").
  *
- *  1. THE TWO BUTTONS NOW GO TO DIFFERENT PLACES. In the prototype both called
- *     setStep("signin") — one destination, because its model was passwordless
- *     and joining and returning were the same act. With passwords they are not:
- *     "Start Dancing" creates an account, "Log In" proves an existing one.
- *     ⚠ THE WORDS (18 Sep 2026, the user): "sign in should be called Log In,
- *     because Start Dancing is Sign In technically" — a new account is signing
- *     in for the first time, so "Sign in" on the second button was a second
- *     name for the same thing the first one does. And the D is a capital: both
- *     buttons are titles, so both are title-cased. Deviation row A9.
- *  2. THEY STACK RATHER THAN SIT SIDE BY SIDE. Two 50%-width buttons at the
- *     bottom of a phone read as equal choices; these are not equal — most
- *     people arriving here are new. Full width, primary first.
- *  3. The footer band is a real flex child, not `position:absolute` paired with
- *     a 150px spacer. The prototype's version left a dead void between the
- *     dashes and the band on a tall phone; `flex-1` absorbs the slack and drops
- *     the buttons into thumb reach.
+ *  So the top two thirds are a full-bleed video stage: the three clips in
+ *  `features/auth/welcomeClips.ts` (replaceable files under `public/welcome/`),
+ *  the mark at the top left and Skip at the top right over them, the caption
+ *  and the three progress bars over the clip's lower part, and a gradient that
+ *  is the app's dark by the stage's bottom edge. Under it, within the shell's
+ *  gutters: the one sign-in there is (Google, 27 Oct 2026) and the legal line.
  *
- *  The tagline is the user's, replacing the prototype's longer one.
- */
+ *  WHAT WENT, and why: the centred mark, the wordmark, the 5·6·7·8 count-in,
+ *  the eight dashes and the LEARN · TEACH · CONNECT band (3-18 Oct 2026). They
+ *  were the screen when it had no picture; with a picture they fought it for the
+ *  same space, and the user asked for Cult's screen, which has none of them. The
+ *  taglines live on — "The Stage is yours." and "Dance First, Think Later!" are
+ *  two of the three captions.
+ *
+ *  The earlier departures from the prototype (email + password, two stacked
+ *  buttons, deviation row A9) are history: one button since 27 Oct 2026. */
 export default async function LoginWelcomePage({
   searchParams,
 }: {
@@ -47,122 +49,64 @@ export default async function LoginWelcomePage({
   const failed = typeof sp.error === "string" && sp.error.trim() ? sp.error.slice(0, 300) : null;
   return (
     <AuthShell toast={failed}>
+      {/* the screen's name, for a screen reader — the caption changes with the clip */}
+      <h1 className="sr-only">Welcome to DanceOS</h1>
+
+      {/* THE STAGE: full-bleed, cancelling the shell's 22px gutters and its 24px
+          top pad; two thirds of the screen on a phone, capped on a tall one */}
+      <div
+        data-testid="welcome-stage"
+        style={{
+          position: "relative",
+          marginLeft: -22,
+          marginRight: -22,
+          marginTop: "calc(-1.5rem - var(--dos-safe-top))",
+          height: "min(66svh, 660px)",
+          minHeight: 380,
+          overflow: "hidden",
+          background: "#0A0A0A",
+        }}
+      >
+        <WelcomeReel clips={WELCOME_CLIPS} />
+        {/* the mark top left, Skip top right, over the picture */}
+        <div style={{ position: "absolute", top: "calc(14px + var(--dos-safe-top))", left: 22, right: 22, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ display: "inline-flex", lineHeight: 0, filter: "drop-shadow(0 2px 10px rgba(0,0,0,.5))" }}>
+            <DosMark size={38} />
+          </span>
+          <SkipToDiscover />
+        </div>
+      </div>
+
       {left ? (
-        <div role="status" data-testid="account-closed" style={{ marginTop: 12, padding: "11px 13px", borderRadius: 14, border: `1.5px solid ${LINE}`, background: "var(--card)", fontSize: 12.5, lineHeight: 1.5, color: SUB }}>
+        <div role="status" data-testid="account-closed" style={{ marginTop: 14, padding: "11px 13px", borderRadius: 14, border: `1.5px solid ${LINE}`, background: "var(--card)", fontSize: 12.5, lineHeight: 1.5, color: SUB }}>
           <b style={{ color: INK }}>Your account is closed.</b> DanceOS will erase it and reply to your address — you cannot sign in to it meanwhile.
         </div>
       ) : null}
-      {/* ⚠ THE FIRST PAGE, REVAMPED ABOVE THE BUTTONS (3 Oct 2026, the user:
-          "dance os logo on start screen page in the centre. Dance First, Think
-          Later! also there above start dancing and login revamp the first page
-          above the buttons", then "5678 bigger"). The wordmark used to sit in
-          the top-left corner at 17px over a left-aligned headline; now the MARK
-          is the centre of the screen with the wordmark under it, the count-in is
-          a display figure rather than a caption, and the headline and its line
-          are centred beneath. The slack splits around the block so it sits at
-          the optical middle on a tall phone and closes up on a short one. */}
-      {/* SKIP, top right, the way Cult has it (28 Oct 2026): look at Discover
-          first, sign in from the blank picture in the top bar when ready */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6, animation: "dosRise .5s ease both" }}>
-        <SkipToDiscover />
-      </div>
 
+      {/* ⚠ ONE BUTTON SINCE 27 OCT 2026 (the user: "i need only google signup"):
+          Google decides whether this is a new account or a return, and the app
+          learns the answer from whether a `profiles` row exists when the
+          callback lands. The password screens still answer on their own
+          addresses (Rule 14); nothing in the app links them. */}
+      {/* the slack goes ABOVE the button, so the sign-in sits in the lower part
+          of the screen the way Cult's does, with the legal line under it */}
       <div style={{ flex: 1, minHeight: 14 }} />
 
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-        <div style={{ position: "relative", animation: "dosRise .5s ease both" }}>
-          {/* a soft glow behind the mark, in its own three colours */}
-          <span aria-hidden="true" style={{ position: "absolute", inset: -28, borderRadius: "50%", background: "radial-gradient(circle, rgba(168,85,247,.32), rgba(236,72,153,.14) 45%, transparent 70%)", filter: "blur(6px)" }} />
-          <span style={{ position: "relative", display: "inline-flex" }}>
-            {/* way bigger (10 Oct 2026, twice: "make logo and title bigger", then
-                "way bigger profile pic, app name and 5678") — it scales down on a
-                short or narrow phone so the buttons stay on the first screen */}
-            <DosMark size={150} />
-          </span>
-        </div>
-        <div style={{ marginTop: 18, fontSize: "clamp(42px, 13vw, 54px)", fontWeight: 900, letterSpacing: -1, lineHeight: 1, fontFamily: DOS_DISPLAY, animation: "dosRise .5s .05s ease both" }}>
-          Dance<span style={{ color: SKY }}>OS</span>
-        </div>
-
-        {/* the count-in, BIG (3 Oct 2026, "5678 bigger") — every class starts
-            on it, so it is the screen's beat rather than a caption. Four beats
-            again since 18 Oct 2026 (the user: "remove 9 from 5678") — the
-            17 Oct fifth beat is gone and the 16px gaps come back */}
-        <div aria-hidden="true" style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 18, fontSize: "clamp(36px, 11vw, 52px)", fontWeight: 900, letterSpacing: 0.5, lineHeight: 1, fontFamily: DOS_DISPLAY, fontVariantNumeric: "tabular-nums" }}>
-          {["5", "6", "7", "8"].map((n, i, all) => (
-            <span key={n} style={{ display: "inline-flex", alignItems: "center", gap: 16, animation: `dosBeat 2.4s ease ${i * 0.3}s infinite` }}>
-              {n}
-              {i < all.length - 1 && <span style={{ color: LINE, fontSize: 34 }}>·</span>}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* absorbs the slack on a tall screen instead of leaving a void above the band */}
-      <div style={{ flex: 1.2, minHeight: 24 }} />
-
-      {/* THE TWO LINES OVER THE BUTTONS (10 Oct 2026, the user: "the stage is
-          yours goes above and in same size as Dance first think later … written
-          in a similar way … S should be capital for stage"). One size, one
-          weight, the second half of each in the accent. "The Stage is yours." is
-          still the screen's `<h1>` (28 Sep 2026) — the welcome screen wears no
-          chrome, so it is the only thing naming it. */}
-      <h1 style={{ textAlign: "center", fontSize: 20, fontWeight: 900, letterSpacing: -0.3, lineHeight: 1.3, fontFamily: DOS_DISPLAY, margin: "0 0 2px", animation: "dosRise .6s .2s ease both" }}>
-        The Stage <span style={{ color: SKY }}>is yours.</span>
-      </h1>
-      <div style={{ textAlign: "center", fontSize: 20, fontWeight: 900, letterSpacing: -0.3, lineHeight: 1.3, fontFamily: DOS_DISPLAY, marginBottom: 14, animation: "dosRise .6s .25s ease both" }}>
-        Dance First, <span style={{ color: SKY }}>Think Later!</span>
-      </div>
-
-      {/* ⚠ ONE BUTTON SINCE 27 OCT 2026 (the user: "i need only google signup").
-          "Start Dancing" and "Log In" went to /login/signup and /login/email —
-          two buttons because, with a password, joining and returning are
-          different acts (deviation row A9, above). Google collapses them back
-          into one: it decides which this is, and the app learns the answer from
-          whether a `profiles` row exists when the callback lands. The password
-          screens still answer on their own addresses (Rule 14 — an address
-          handed out is a promise, and the e2e suite and every proof script mint
-          their sessions through them); nothing in the app links them any more. */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, animation: "dosRise .6s .3s ease both" }}>
+      <div style={{ animation: "dosRise .6s .15s ease both" }}>
         <GoogleButton next={next} />
       </div>
 
-      <div style={{ display: "flex", gap: 7, margin: "24px 0 0", animation: "dosRise .6s .4s ease both" }}>
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div
-            key={i}
-            style={{
-              flex: 1,
-              height: 5,
-              borderRadius: 3,
-              background: i === 7 ? GOLD : SKY,
-              animation: `dosDash 2.4s ease ${i * 0.3}s infinite`,
-            }}
-          />
-        ))}
-      </div>
-
-      {/* full-bleed: cancels AuthShell's 22px gutters and its bottom safe-area pad,
-          then re-applies its own so the band reaches the true bottom edge */}
-      <div
-        style={{
-          marginLeft: -22,
-          marginRight: -22,
-          marginTop: 24,
-          marginBottom: "calc(-2.5rem - env(safe-area-inset-bottom))",
-          background: "#0E0A14",
-          padding: "20px 22px calc(22px + env(safe-area-inset-bottom))",
-          color: "#B7AECB",
-          fontSize: 12.5,
-          letterSpacing: 2.6,
-          lineHeight: 2.3,
-          fontWeight: 800,
-        }}
-      >
-        LEARN <span style={{ color: SKY }}>·</span> TEACH <span style={{ color: SKY }}>·</span> CONNECT
-        <br />
-        PERFORM <span style={{ color: SKY }}>·</span> EARN <span style={{ color: SKY }}>·</span> GROW
-      </div>
+      <p style={{ margin: "16px 0 0", textAlign: "center", fontSize: 11, lineHeight: 1.5, color: SUB }}>
+        By continuing you agree to the{" "}
+        <Link href="/legal/terms" style={{ color: INK, fontWeight: 700, textDecoration: "none" }}>
+          Terms
+        </Link>{" "}
+        and{" "}
+        <Link href="/legal/privacy" style={{ color: INK, fontWeight: 700, textDecoration: "none" }}>
+          Privacy Policy
+        </Link>
+        .
+      </p>
     </AuthShell>
   );
 }

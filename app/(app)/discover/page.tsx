@@ -170,7 +170,10 @@ export default async function DiscoverPage({
   const allCities = city === ALL_CITIES;
   const cityQ: string | null = allCities ? null : city || null;
   const placeWord = allCities ? "all cities" : city;
-  const tab = TABS.some(([k]) => k === params.tab) ? (params.tab as string) : "classes";
+  /* STUDIOS FIRST (28 Oct 2026, the user: "by default show studios") — the one
+     shelf measured from where the person is, so an app that just asked for the
+     location opens on what the location changes; Classes was the default before */
+  const tab = TABS.some(([k]) => k === params.tab) ? (params.tab as string) : "studios";
   /* WHERE "NEAR" IS MEASURED FROM (11 Sep 2026). The city's centre, unless the
      person has pressed Near me and their own point is in the address — in which
      case the distances on the cards are distances to THEM. A malformed or

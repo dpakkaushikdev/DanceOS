@@ -40,11 +40,12 @@ const set = (s: () => Storage, k: string, v: string) => {
  *  reinstalling may already be signed in and land on Discover.
  *
  *  * FIRST OPEN AFTER INSTALL (the APK's flag, turned into a cookie by
- *    `proxy.ts`): ask, with no explainer screen before it — the user chose that.
- *    With bubblewrap's location delegation the page's question IS Android's own
- *    dialog ("Allow DanceOS to access this device's location?", Precise /
- *    Approximate). A reinstall is asked again even after a "denied", because
- *    uninstalling reset Android's answer too.
+ *    `proxy.ts`): read the position. ⚠ Since 1.3.1 the APK ASKS ANDROID ITSELF,
+ *    over its splash and before Chrome opens, and sends the flag as `true` only
+ *    when the answer was Allow — so this read is answered through location
+ *    delegation with no dialog at all. (1.3.0 let this call trigger the dialog;
+ *    the library then opened it from the background, which HyperOS blocks
+ *    silently. See `android/.../LauncherActivity.java`.)
  *  * EVERY LATER OPEN OF THE APP, only if the last answer was yes: refresh the
  *    point quietly — Android does not ask again once allowed.
  *  * "DON'T ALLOW" IS FINAL. Nothing here asks again; Discover's Near me stays a

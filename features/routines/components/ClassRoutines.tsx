@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type CSSProperties } from "react";
 import { inkOn, ToolFace } from "@/components/ui/ToolCard";
-import { DOS_LEVEL_LABEL } from "@/lib/constants/styles";
 import { DOS_DISPLAY, INK, SUB } from "@/lib/design/tokens";
 import { photoUrl } from "@/lib/media/photo";
 import { addClassRoutineAction, removeClassRoutineAction } from "@/features/routines/server-actions/routines";
@@ -87,7 +86,7 @@ export function ClassRoutines({
               </span>
               <span style={{ flex: 1, minWidth: 0, display: "block" }}>
                 <span style={{ display: "block", fontSize: 9, fontWeight: 900, letterSpacing: 0.8, color: "var(--muted)", textTransform: "uppercase" }}>
-                  Routine · {DOS_LEVEL_LABEL[r.level]}
+                  Routine
                 </span>
                 <span style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "anywhere", fontFamily: DOS_DISPLAY, fontSize: 16, fontWeight: 800, letterSpacing: -0.3, lineHeight: 1.2, marginTop: 1 }}>{r.title}</span>
                 {/* ⚠ WHOSE WORK IT IS (28 Sep 2026, the user: "routines to have
@@ -139,7 +138,7 @@ export function ClassRoutines({
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ display: "block", fontSize: 12, fontWeight: 800 }}>{r.title}</span>
                     <span style={{ display: "block", fontSize: 10, color: SUB }}>
-                      {r.style} · {DOS_LEVEL_LABEL[r.level]}
+                      {r.style}
                     </span>
                   </span>
                   <span aria-hidden="true" style={{ color: col, fontSize: 11, fontWeight: 900 }}>

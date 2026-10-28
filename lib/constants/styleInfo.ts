@@ -51,7 +51,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "Combines nritta (pure rhythm), nritya (expression) and natya (drama); a first full solo recital is called the arangetram.",
       "Brought from temple and court to the modern stage in the 20th century, largely through Rukmini Devi Arundale's Kalakshetra.",
     ],
-    notable: ["Rukmini Devi Arundale", "T. Balasaraswati", "Alarmel Valli", "Malavika Sarukkai", "Padma Subrahmanyam"],
+    notable: ["Rukmini Devi Arundale", "T. Balasaraswati", "Malavika Sarukkai", "Padma Subrahmanyam", "Leela Samson"],
   },
   Kathak: {
     family: IC, origin: "North India — Uttar Pradesh and Rajasthan", country: "India", era: "Storyteller roots; refined in the Mughal and Rajput courts from the 1500s",
@@ -70,7 +70,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "Performers train for years in eye and facial control; the story is carried by gesture, with singers and drummers alongside.",
       "Kerala Kalamandalam, founded in 1930 by the poet Vallathol Narayana Menon, made it a modern institution.",
     ],
-    notable: ["Kalamandalam Gopi", "Kalamandalam Krishnan Nair", "Kalamandalam Ramankutty Nair", "Vallathol Narayana Menon"],
+    notable: ["Kalamandalam Gopi", "Kalamandalam Ramankutty Nair", "Vallathol Narayana Menon", "Kalamandalam Hyderali", "Kottakkal Chandrasekharan"],
   },
   Kuchipudi: {
     family: IC, origin: "Kuchipudi village, Andhra Pradesh", country: "India", era: "Dance-drama tradition from around the 17th century",
@@ -79,7 +79,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "Mixes fast rhythm with expressive storytelling; a well-known piece is danced on the rim of a brass plate.",
       "Siddhendra Yogi is credited with shaping it; Vempati Chinna Satyam reworked it as a solo stage form in the 20th century.",
     ],
-    notable: ["Vempati Chinna Satyam", "Yamini Krishnamurthy", "Raja and Radha Reddy", "Shobha Naidu", "Swapnasundari"],
+    notable: ["Yamini Krishnamurthy", "Raja and Radha Reddy", "Shobha Naidu", "Uma Rama Rao", "Manju Bhargavi"],
   },
   Manipuri: {
     family: IC, origin: "Manipur", country: "India", era: "Rooted in Lai Haraoba ritual; Ras Lila form from the 18th century",
@@ -88,7 +88,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "The Ras Lila, telling the story of Radha and Krishna, is its best-known form, with its distinctive barrel-shaped skirt.",
       "Rabindranath Tagore brought it to Santiniketan in the 1920s, helping carry it beyond Manipur.",
     ],
-    notable: ["Guru Bipin Singh", "Jhaveri Sisters", "Guru Amubi Singh", "Darshana Jhaveri"],
+    notable: ["Guru Bipin Singh", "Rajkumar Singhajit Singh"],
   },
   Mohiniyattam: {
     family: IC, origin: "Kerala", country: "India", era: "Classical form shaped in the 19th century",
@@ -97,7 +97,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "Swaying, circular movements and graceful expression, traditionally danced by women in white and gold.",
       "Revived in the 20th century at Kerala Kalamandalam after a period of decline.",
     ],
-    notable: ["Kalamandalam Kalyanikutty Amma", "Bharati Shivaji", "Kanak Rele", "Sunanda Nair"],
+    notable: ["Kanak Rele", "Sunanda Nair", "Gopika Varma", "Kalamandalam Kshemavathy", "Neena Prasad"],
   },
   Odissi: {
     family: IC, origin: "Odisha", country: "India", era: "Temple roots over 2,000 years old; reconstructed in the 1950s",
@@ -106,7 +106,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "Built on tribhangi — the body bent in three places — and the square chauka stance.",
       "Reconstructed by gurus in the 1950s from temple traditions (maharis) and boy dancers (gotipuas).",
     ],
-    notable: ["Kelucharan Mohapatra", "Sanjukta Panigrahi", "Sonal Mansingh", "Protima Bedi", "Madhavi Mudgal"],
+    notable: ["Kelucharan Mohapatra", "Sonal Mansingh", "Madhavi Mudgal", "Sujata Mohapatra", "Ileana Citaristi"],
   },
   Sattriya: {
     family: IC, origin: "Assam — the Vaishnava monasteries (sattras)", country: "India", era: "Founded in the 15th–16th century; recognised as classical in 2000",
@@ -115,7 +115,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "For centuries it was danced by monks in the sattras; it moved onto public stages in the 20th century.",
       "Recognised by the Sangeet Natak Akademi as one of India's classical dances in 2000.",
     ],
-    notable: ["Srimanta Sankardev", "Jatin Goswami", "Sharodi Saikia", "Anwesa Mahanta"],
+    notable: ["Srimanta Sankardev", "Jatin Goswami", "Ghanakanta Bora", "Indira P. P. Bora", "Anita Sharma"],
   },
   "Semi-classical": {
     family: IC, origin: "Across India", country: "India", era: "20th century onward",
@@ -142,7 +142,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "The circle stands for the cycle of life; clapping and turning steps repeat in rising tempo.",
       "Now danced across India and the diaspora, in huge Navratri gatherings.",
     ],
-    notable: ["Falguni Pathak", "Atul Purohit", "Kirtidan Gadhvi"],
+    notable: ["Falguni Pathak", "Kirtidan Gadhvi"],
   },
   "Dandiya Raas": {
     family: IF, origin: "Gujarat and Rajasthan", country: "India", era: "Navratri tradition",
@@ -151,7 +151,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "Often linked with the playful dance of Krishna and the gopis in Vrindavan.",
       "Usually danced alongside garba during Navratri, in pairs that rotate around a circle.",
     ],
-    notable: ["Falguni Pathak", "Preeti Pinky"],
+    notable: ["Falguni Pathak"],
   },
   Ghoomar: {
     family: IF, origin: "Rajasthan", country: "India", era: "Traditional, linked with the Bhil community and the Rajput courts",
@@ -234,7 +234,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "One of four original elements of hip-hop culture: DJing, MCing, graffiti and breaking.",
       "Foundations include grooves, bounce, rock and isolations, danced freestyle in a cypher or set to choreography.",
     ],
-    notable: ["DJ Kool Herc", "Afrika Bambaataa", "Buddha Stretch", "Marjory Smarth"],
+    notable: ["DJ Kool Herc", "Afrika Bambaataa", "Grandmaster Flash", "Rennie Harris", "Les Twins"],
   },
   Breaking: {
     family: ST, origin: "The Bronx, New York City", country: "United States", era: "1970s",
@@ -243,7 +243,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "Built on four parts: toprock, footwork, power moves and freezes.",
       "Judged in battles and cyphers; it made its Olympic debut at Paris 2024.",
     ],
-    notable: ["Crazy Legs", "Ken Swift", "Frosty Freeze", "Bboy Lilou", "Bgirl Ami"],
+    notable: ["Bboy Lilou", "Bgirl Ami", "Roxrite", "Phil Wizard"],
   },
   Popping: {
     family: ST, origin: "Fresno and Oakland, California", country: "United States", era: "Late 1970s",
@@ -252,7 +252,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "Grew from Boogaloo in Oakland and was popularised by the Electric Boogaloos from Fresno.",
       "Includes related techniques such as waving, ticking and robotting.",
     ],
-    notable: ["Boogaloo Sam", "Popin' Pete", "Mr. Wiggles", "Poppin' John"],
+    notable: ["Popin' Pete", "Mr. Wiggles", "Robert Muraine"],
   },
   Locking: {
     family: ST, origin: "Los Angeles", country: "United States", era: "Late 1960s – early 1970s",
@@ -261,7 +261,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "Playful and theatrical: points, wrist rolls, skeeter rabbits and big smiles.",
       "Spread through the TV show Soul Train and the group The Lockers.",
     ],
-    notable: ["Don Campbell", "Shabba-Doo", "Skeeter Rabbit", "Greg 'Campbellock Jr.' Pope"],
+    notable: ["Fred 'Rerun' Berry", "Toni Basil"],
   },
   House: {
     family: ST, origin: "Chicago and New York clubs", country: "United States", era: "1980s",
@@ -270,7 +270,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "Mixes jacking (a rolling upper-body groove), footwork and lofting, which takes the dance to the floor.",
       "Shaped by influences from tap, salsa, capoeira and African dance.",
     ],
-    notable: ["Marjory Smarth", "Ejoe Wilson", "Brian 'Footwork' Green", "Caleaf Sellers"],
+    notable: ["Frankie Knuckles"],
   },
   Waacking: {
     family: ST, origin: "Los Angeles gay clubs", country: "United States", era: "1970s, disco era",
@@ -279,7 +279,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "Created in LA's gay clubs, where it was first called punking.",
       "Seen by millions on Soul Train, and revived worldwide from the 2000s.",
     ],
-    notable: ["Tyrone Proctor", "Jeffrey Daniel", "Princess Lockerooo"],
+    notable: ["Jody Watley"],
   },
   Krump: {
     family: ST, origin: "South Central Los Angeles", country: "United States", era: "Early 2000s",
@@ -288,7 +288,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "Raw, energetic and expressive: chest pops, stomps and arm swings.",
       "Brought to wide audiences by the 2005 documentary Rize.",
     ],
-    notable: ["Tight Eyez", "Big Mijo", "Miss Prissy", "Tommy the Clown"],
+    notable: [],
   },
   Dancehall: {
     family: GS, origin: "Kingston", country: "Jamaica", era: "Late 1970s – 1980s",
@@ -297,7 +297,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "Every move has a name, often created by a dancer and spread through a song.",
       "Known for its grounded bounce, sharp knees and humour.",
     ],
-    notable: ["Bogle", "Ding Dong", "John Hype", "Shelly Belly"],
+    notable: ["Elephant Man", "Beenie Man"],
   },
   Afrobeats: {
     family: GS, origin: "Lagos and Accra", country: "Nigeria / Ghana", era: "2000s onward",
@@ -306,7 +306,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "Draws on traditional West African movement and spreads through viral dance trends.",
       "Moves like Azonto, Shaku Shaku and Zanku were each named and popularised by a song.",
     ],
-    notable: ["Poco Lee", "Kaffy", "Dancegod Lloyd"],
+    notable: ["Kaffy", "Wizkid", "Davido", "Burna Boy"],
   },
   Reggaeton: {
     family: GS, origin: "Puerto Rico and Panama", country: "Puerto Rico / Panama", era: "1990s",
@@ -324,7 +324,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "Mixes hip-hop, jazz and pop styles with signature 'point' moves for each song.",
       "Cover-dance groups now learn and perform it on stages and streets around the world.",
     ],
-    notable: ["Lia Kim", "Rie Hata", "BTS's choreographer Son Sung-deuk"],
+    notable: ["Bada Lee", "Honey J", "Leejung Lee", "Taemin"],
   },
   Salsa: {
     family: LA, origin: "Caribbean roots, shaped in New York City", country: "Cuba / Puerto Rico / United States", era: "1960s–70s",
@@ -333,7 +333,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "Danced 'on 1' (LA style) or 'on 2' (New York style); Cuban casino is danced in a circle.",
       "A lead-and-follow partner dance, the centre of India's social-dance nights.",
     ],
-    notable: ["Eddie Torres", "Frankie Martinez", "Johnny Vazquez", "Celia Cruz"],
+    notable: ["Celia Cruz", "Tito Puente", "Johnny Pacheco", "Alex Da Silva"],
   },
   Bachata: {
     family: LA, origin: "Dominican Republic", country: "Dominican Republic", era: "1960s",
@@ -342,7 +342,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "A basic of four beats — three steps and a tap — with hip movement.",
       "Sensual bachata, a modern partner style developed in Spain, spread worldwide from the 2000s.",
     ],
-    notable: ["Juan Luis Guerra", "Romeo Santos", "Korke and Judith"],
+    notable: ["Juan Luis Guerra", "Romeo Santos", "Prince Royce"],
   },
   Samba: {
     family: LA, origin: "Rio de Janeiro and Bahia", country: "Brazil", era: "Late 19th – early 20th century",
@@ -351,7 +351,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "Samba no pé is the fast solo footwork seen at Rio's carnival parades.",
       "There is also a ballroom version, one of the five dances of international Latin.",
     ],
-    notable: ["Carmen Miranda", "Valéria Valenssa"],
+    notable: ["Carmen Miranda", "Vilma Nascimento", "Sabrina Sato"],
   },
   Ballroom: {
     family: BR, origin: "European courts and dance halls", country: "United Kingdom (standardised)", era: "Standardised in the early 20th century",
@@ -360,7 +360,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "Standard includes the waltz, quickstep, foxtrot, tango and Viennese waltz.",
       "Judged on posture, timing, footwork and partnering at competitions around the world.",
     ],
-    notable: ["Victor Silvester", "Marcus and Karen Hilton", "Arunas Bizokas"],
+    notable: ["Victor Silvester", "Len Goodman", "Anton Du Beke", "Joanna Leunis"],
   },
   Tango: {
     family: BR, origin: "Buenos Aires and Montevideo", country: "Argentina / Uruguay", era: "Late 19th century",
@@ -387,7 +387,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "Each pioneer built a technique: Graham's contraction and release, Humphrey's fall and recovery.",
       "Uday Shankar fused Indian dance with modern ideas, taking it to world stages in the 1930s.",
     ],
-    notable: ["Isadora Duncan", "Martha Graham", "Doris Humphrey", "José Limón", "Uday Shankar"],
+    notable: ["Isadora Duncan", "Martha Graham", "Ruth St. Denis", "José Limón", "Uday Shankar"],
   },
   Jazz: {
     family: SD, origin: "African-American communities in the United States", country: "United States", era: "Late 19th – early 20th century",
@@ -396,7 +396,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "Shaped for stage and screen by Broadway and Hollywood choreographers.",
       "Known for isolations, kicks, turns and high energy.",
     ],
-    notable: ["Jack Cole", "Bob Fosse", "Katherine Dunham", "Luigi", "Gus Giordano"],
+    notable: ["Jack Cole", "Bob Fosse", "Katherine Dunham", "Gwen Verdon", "Jerome Robbins"],
   },
   "Jazz Funk": {
     family: SD, origin: "Los Angeles studios", country: "United States", era: "2000s",
@@ -405,7 +405,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "Built for pop music and music-video choreography, often with strong character and style.",
       "Popular in commercial dance classes across studios worldwide.",
     ],
-    notable: ["Brian Friedman", "Tricia Miranda", "Laurieann Gibson"],
+    notable: ["Laurieann Gibson"],
   },
   Ballet: {
     family: SD, origin: "Italian Renaissance courts, developed in France", country: "Italy / France", era: "15th–17th century",
@@ -432,7 +432,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "Flowing movement, leaps and turns, with emotion at the centre.",
       "Grew through competition dance and studio training.",
     ],
-    notable: ["Mia Michaels", "Travis Wall", "Sonya Tayeh"],
+    notable: ["Mia Michaels", "Travis Wall", "Stacey Tookey"],
   },
   Commercial: {
     family: SD, origin: "Music videos, tours and TV", country: "Global", era: "1980s onward",
@@ -450,7 +450,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "Focuses on confidence, balance, lines and attitude.",
       "Spread widely through pop music videos and studio classes.",
     ],
-    notable: ["Yanis Marshall", "Brinn Nicole"],
+    notable: [],
   },
   Flamenco: {
     family: WO, origin: "Andalusia", country: "Spain", era: "18th–19th century",
@@ -468,7 +468,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "Isolations of the hips, chest and arms, with shimmies and undulations.",
       "Its stage style was shaped in 20th-century Cairo nightclubs and films.",
     ],
-    notable: ["Samia Gamal", "Tahia Carioca", "Nagwa Fouad", "Dina"],
+    notable: ["Samia Gamal", "Tahia Carioca", "Nagwa Fouad", "Fifi Abdou"],
   },
   Zumba: {
     family: FO, origin: "Cali", country: "Colombia", era: "1990s",
@@ -477,7 +477,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
       "Combines dance moves from salsa, merengue, reggaeton and more into a workout.",
       "Now taught in gyms worldwide, in Zumba-licensed classes.",
     ],
-    notable: ["Alberto 'Beto' Pérez"],
+    notable: ["Beto Pérez"],
   },
   Freestyle: {
     family: FO, origin: "Street and club culture", country: "Global", era: "Ongoing",

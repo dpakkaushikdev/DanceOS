@@ -1,51 +1,28 @@
 /** A NOTABLE DANCER'S PHOTO, FROM WIKIPEDIA (29 Oct 2026, the user: "notable
- *  names should be carousel with pics of actual person with name").
+ *  names should be carousel with pics of actual person with name", then "there
+ *  should not be a single one without a pic").
  *
- *  The pictures are the people themselves, so they come from the one place that
- *  keeps a free, credited photo of each: Wikipedia's page summary
- *  (`/api/rest_v1/page/summary/{title}` → `thumbnail.source`). Read on the
- *  server, cached a week, one request per name, all in parallel.
- *
- *  ⚠ IT NEVER FAILS THE PAGE. A name with no article, a disambiguation page, a
- *  slow answer (2.5 s cut-off) or anything off Wikimedia's own image hosts comes
- *  back with no photo, and the card draws initials — a style page is an
- *  encyclopedia entry and must not 500 over a picture. */
+ *  The pictures are the people themselves — each one the free lead image of that
+ *  person's English Wikipedia article — and they are RESOLVED AHEAD OF TIME by
+ *  `node scripts/notable-photos.mjs` into `notablePhotos.data.json`, which exits
+ *  1 if any name in `styleInfo.ts` has no photo. So a style page makes no
+ *  request for them, and a name without a photo cannot reach the page: the
+ *  script refuses it, and this read drops it as a belt to that brace. Never
+ *  initials, never a picture of somebody else. */
+import DATA from "./notablePhotos.data.json";
 
 export interface NotablePerson {
   name: string;
-  photo: string | null;
-  /** the person's Wikipedia page, when there is one — the card's door and its credit */
-  page: string | null;
+  photo: string;
+  /** the person's Wikipedia page — the card's door and its credit */
+  page: string;
 }
 
-const UA = "DanceOS/1.0 (https://danceos-sigma.vercel.app)";
+const MAP = DATA as Record<string, { photo: string; page: string } | null>;
 
-async function one(name: string): Promise<NotablePerson> {
-  const none: NotablePerson = { name, photo: null, page: null };
-  try {
-    const title = encodeURIComponent(name.replace(/ /g, "_"));
-    const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${title}`, {
-      headers: { "User-Agent": UA, "Api-User-Agent": UA, Accept: "application/json" },
-      next: { revalidate: 60 * 60 * 24 * 7 },
-      signal: AbortSignal.timeout(2500),
-    });
-    if (!res.ok) return none;
-    const j = (await res.json()) as {
-      type?: string;
-      thumbnail?: { source?: string };
-      content_urls?: { desktop?: { page?: string } };
-    };
-    if (j.type !== "standard") return none;
-    const src = j.thumbnail?.source ?? null;
-    /* Wikimedia serves thumbnails from two hosts (checked 29 Oct 2026) */
-    const photo = src && ["upload.wikimedia.org", "thumb.wikimedia.org"].includes(new URL(src).hostname) ? src : null;
-    const page = j.content_urls?.desktop?.page ?? null;
-    return { name, photo, page: page && page.startsWith("https://en.wikipedia.org/") ? page : null };
-  } catch {
-    return none;
-  }
-}
-
-export async function findNotablePeople(names: string[]): Promise<NotablePerson[]> {
-  return Promise.all(names.map(one));
+export function findNotablePeople(names: string[]): NotablePerson[] {
+  return names.flatMap((name) => {
+    const hit = MAP[name];
+    return hit ? [{ name, photo: hit.photo, page: hit.page }] : [];
+  });
 }

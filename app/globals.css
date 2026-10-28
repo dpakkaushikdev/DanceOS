@@ -524,9 +524,33 @@ a:focus-visible:not([data-slot]) {
   }
 }
 /* Discover's tile background: one slow drifting light (29 Oct 2026) */
-@keyframes dosTileDrift {
-  from { transform: translate(0, 0); }
-  to { transform: translate(-26px, 30px); }
+/* Discover's tile ICONS move, nothing else does (29 Oct 2026, the user: "a look
+   which is minimalistic but icons should be animated"). Each part that moves is
+   its own fill-box, so it turns or grows about its own centre. */
+.dos-ico-part {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes dosIcoCheck {
+  0%, 12% { stroke-dashoffset: 1; }
+  42%, 82% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 1; }
+}
+@keyframes dosIcoGlow {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+@keyframes dosIcoTwinkle {
+  0%, 100% { transform: scale(0.45) rotate(0deg); opacity: 0.45; }
+  50% { transform: scale(1.15) rotate(90deg); opacity: 1; }
+}
+@keyframes dosIcoSway {
+  0%, 100% { transform: rotate(-8deg); }
+  50% { transform: rotate(8deg); }
+}
+@keyframes dosIcoFlag {
+  0%, 100% { transform: scaleX(1); }
+  50% { transform: scaleX(0.6); }
 }
 @keyframes dosTileFloat {
   from {

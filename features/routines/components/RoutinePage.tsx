@@ -7,7 +7,7 @@ import { ToolActions, ToolBody, ToolCard, ToolChip, ToolFace, ToolFacts, ToolHea
 import { FigureHead } from "@/components/ui/FigureHead";
 import { SegmentedPanels } from "@/features/shell/components/SegmentedNav";
 import { DOS_TOOLS, HueHead } from "@/features/businesses/components/biz-kit";
-import { DOS_LEVEL_LABEL, dosStyleColor } from "@/lib/constants/styles";
+import { dosStyleColor } from "@/lib/constants/styles";
 import { DOS_UI, INK, LILAC, MUTED, SUB } from "@/lib/design/tokens";
 import { photoUrl } from "@/lib/media/photo";
 import { deleteRoutineAction } from "@/features/routines/server-actions/routines";
@@ -116,7 +116,6 @@ export function RoutinePage({
           {/* the routine's name is the page heading above the card (28 Oct 2026) */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             <span style={{ fontSize: 10.5, fontWeight: 900, padding: "4px 10px", borderRadius: 999, background: col, color: inkOn(col) }}>{routine.style}</span>
-            <span style={{ fontSize: 10.5, fontWeight: 800, padding: "4px 10px", borderRadius: 999, background: "var(--el)", color: SUB }}>{DOS_LEVEL_LABEL[routine.level] ?? routine.level}</span>
             {routine.songTitle ? <span style={{ fontSize: 11.5, color: SUB, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>♪ {routine.songTitle}</span> : null}
           </div>
           {/* ⚠ the figures sit directly over the buttons — the sentence that used to

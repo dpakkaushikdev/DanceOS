@@ -3,7 +3,7 @@
 import { useState, type CSSProperties } from "react";
 import { ToolBody, ToolCard, ToolChip, ToolFacts, ToolHead, inkOn, type ToolFact } from "@/components/ui/ToolCard";
 import { RoutineMediaButton } from "./routine-kit";
-import { DOS_LEVEL_LABEL, dosStyleColor } from "@/lib/constants/styles";
+import { dosStyleColor } from "@/lib/constants/styles";
 import { DOS_UI, INK, LILAC, SUB } from "@/lib/design/tokens";
 import { photoUrl } from "@/lib/media/photo";
 import type { LearnedRoutine, RoutineWithUsage } from "@/repositories/routines";
@@ -166,7 +166,6 @@ function RoutineCard({
   testId,
   title,
   style,
-  level,
   status,
   sub,
   song,
@@ -179,7 +178,6 @@ function RoutineCard({
   testId: string;
   title: string;
   style: string;
-  level: string;
   /** a word for the head's right edge — LIVE, DRAFT, LEARNED */
   status: { word: string; strong: boolean };
   /** a line under the routine's name, e.g. the studio it was taught at */
@@ -226,7 +224,6 @@ function RoutineCard({
             <div style={{ fontSize: 19, fontWeight: 900, letterSpacing: -0.35, lineHeight: 1.2, overflowWrap: "anywhere" }}>{title}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
               <span style={{ fontSize: 10, fontWeight: 900, padding: "3px 9px", borderRadius: 999, background: col, color: inkOn(col) }}>{style}</span>
-              <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 9px", borderRadius: 999, background: "var(--el)", color: SUB }}>{DOS_LEVEL_LABEL[level] ?? level}</span>
               {sub ? <span style={{ fontSize: 11, color: SUB, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>at {sub}</span> : null}
             </div>
             {song.title ? (
@@ -264,7 +261,6 @@ function LearnedRow({ r }: { r: LearnedRoutine }) {
       testId="learned-row"
       title={r.title}
       style={r.style}
-      level={r.level}
       sub={r.businessName}
       status={{ word: "LEARNED", strong: false }}
       song={{ href: songHref, short: r.songIsFile ? "MP3" : "Song" }}
@@ -287,7 +283,6 @@ function RoutineRow({ r, me }: { r: RoutineWithUsage; me: Maker }) {
       testId="routine-row"
       title={r.title}
       style={r.style}
-      level={r.level}
       status={r.status === "draft" ? { word: "DRAFT", strong: false } : { word: "LIVE", strong: true }}
       song={{ href: songHref, short: r.songIsFile ? "MP3" : "Song", title: r.songTitle }}
       video={r.videoUrl}

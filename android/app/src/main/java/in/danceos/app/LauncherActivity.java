@@ -16,18 +16,29 @@
 package in.danceos.app;
 
 import android.Manifest;
-import android.content.SharedPreferences;
+import android.content.Intent;
+import android.content.IntentSender;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
+import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.StrictMode;
 
+import androidx.core.location.LocationManagerCompat;
+
+import com.google.android.gms.common.api.ResolvableApiException;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.LocationSettingsRequest;
+import com.google.android.gms.location.Priority;
+
 /*
- * ⚠ HAND-EDITED AFTER `bubblewrap update` (1.3.1 → 1.3.4, 28 Oct 2026). `bubblewrap
- * update` REGENERATES THIS FILE and wipes the location step below — re-apply it
- * from git after every update (CLAUDE.md, the 1.3.4 block).
+ * ⚠ HAND-EDITED AFTER `bubblewrap update` (1.3.1 → 1.3.5, 28 Oct 2026). `bubblewrap
+ * update` REGENERATES THIS FILE and wipes everything below — re-apply it from git
+ * after every update (CLAUDE.md, the 1.3.5 block). `build.gradle` needs nothing:
+ * play-services-location rides in through the locationdelegation library.
  *
  * THE LOCATION IS ASKED HERE, NOT BY THE PAGE. In 1.3.0 the page asked and Chrome
  * delegated the question to this app — but by then this activity has finished and
@@ -37,15 +48,22 @@ import android.os.StrictMode;
  * request — the way a native app like Cult asks.
  *
  * THE STANDARD SHAPE (1.3.4, the user: "use the standard approach that is most
- * widely accepted"): the system dialog ONCE, at the first launch, and no automatic
- * prompt after that — Discover carries a "Turn on location" row that asks again
- * only when it is pressed, and says where the Settings switch is when Android will
- * not show the dialog any more. (1.3.3 asked at every open until allowed.)
+ * widely accepted"): the system dialog at launch while the location is not held
+ * and has not been REFUSED — a refusal is remembered and nothing asks at launch
+ * again (Discover's "Turn on location" row takes over). A grant is NOT
+ * remembered (1.3.5): "Only this time" lapses once the app is left for a while,
+ * and Android's meaning of those words is "ask me again next time", so the next
+ * open asks again. Closing the app with the dialog open delivers no result and
+ * counts as nothing.
  *
- * The "asked" mark is written when the ANSWER arrives, not when the dialog is shown
- * (1.3.2's mistake): closing the app with the dialog open delivers no result, so
- * the next open asks once more. Android itself delivers an instant DENIED once it
- * has stopped showing the dialog, which marks it like any other answer.
+ * THE PERMISSION IS NOT THE SWITCH (1.3.5, the user: "i selected Only this time,
+ * still it hasn't picked my location, neither gps on my device got on"). The
+ * permission lets the app use location; the phone's own Location switch is a
+ * second thing, and with it off every read fails silently. Native apps follow
+ * the permission with Google's one-tap "turn on location?" dialog, so this does
+ * too: permission held + switch off → the dialog, and the launch waits for it. A
+ * Cancel is remembered and not asked again at launch until the switch has been
+ * seen on once more (then off again is a new question).
  *
  * `dos_first_open` on the launch URL says whether the location is allowed, on
  * every open: true → the page reads the position (delegation answers without a
@@ -56,10 +74,12 @@ public class LauncherActivity
         extends com.google.androidbrowserhelper.trusted.LauncherActivity {
 
     private static final String PARAM_FIRST_OPEN = "dos_first_open";
-    /* a new key, deliberately: 1.3.2's `dos.location_asked` was written on showing
-       the dialog, so it may say "asked" on a phone that never answered */
-    private static final String KEY_LOCATION_ANSWERED = "dos.location_answered";
+    /* new keys (1.3.5): 1.3.2's `dos.location_asked` was written on showing the
+       dialog and 1.3.4's `dos.location_answered` on any answer, grants included */
+    private static final String KEY_LOCATION_DENIED = "dos.location_denied";
+    private static final String KEY_SETTINGS_DECLINED = "dos.location_settings_declined";
     private static final int REQUEST_LOCATION = 4207;
+    private static final int REQUEST_LOCATION_SETTINGS = 4208;
 
     private boolean hasLocation() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true;
@@ -67,18 +87,22 @@ public class LauncherActivity
                 || checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
     }
 
-    private boolean wasAnswered() {
+    private boolean isDeviceLocationOn() {
+        LocationManager manager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        return manager != null && LocationManagerCompat.isLocationEnabled(manager);
+    }
+
+    private boolean flag(String key) {
         StrictMode.ThreadPolicy originalPolicy = StrictMode.allowThreadDiskReads();
         try {
-            return getPreferences(MODE_PRIVATE).getBoolean(KEY_LOCATION_ANSWERED, false);
+            return getPreferences(MODE_PRIVATE).getBoolean(key, false);
         } finally {
             StrictMode.setThreadPolicy(originalPolicy);
         }
     }
 
-    private void markAnswered() {
-        SharedPreferences preferences = getPreferences(MODE_PRIVATE);
-        preferences.edit().putBoolean(KEY_LOCATION_ANSWERED, true).apply();
+    private void setFlag(String key, boolean value) {
+        getPreferences(MODE_PRIVATE).edit().putBoolean(key, value).apply();
     }
 
     @Override
@@ -96,29 +120,82 @@ public class LauncherActivity
     }
 
     /** Called by the base onCreate just before it would launch Chrome. Without
-     *  the location and without an answer on record, hold the launch and ask
+     *  the location and without a refusal on record, hold the launch and ask
      *  Android — FINE and COARSE together, which is what shows Precise /
-     *  Approximate (asking FINE alone is ignored on Android 12+). The answer,
-     *  whatever it is, launches the TWA. */
+     *  Approximate (asking FINE alone is ignored on Android 12+). With the
+     *  location but the phone's switch off, hold it for Google's dialog instead. */
     @Override
     protected boolean shouldLaunchImmediately() {
-        if (hasLocation() || wasAnswered()) {
-            return true;
+        if (!hasLocation()) {
+            if (flag(KEY_LOCATION_DENIED)) {
+                return true;
+            }
+            requestPermissions(new String[] {
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+            }, REQUEST_LOCATION);
+            return false;
         }
-        requestPermissions(new String[] {
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-        }, REQUEST_LOCATION);
-        return false;
+        return !askToTurnOnDeviceLocation();
+    }
+
+    /** Permission held but the phone's own Location switch off: Google's one-tap
+     *  "turn on location?" dialog. Returns true while the dialog is on its way —
+     *  the launch then waits for onActivityResult. */
+    private boolean askToTurnOnDeviceLocation() {
+        if (isDeviceLocationOn()) {
+            /* seen on: a later off is a fresh question */
+            if (flag(KEY_SETTINGS_DECLINED)) setFlag(KEY_SETTINGS_DECLINED, false);
+            return false;
+        }
+        if (flag(KEY_SETTINGS_DECLINED)) {
+            return false;
+        }
+        LocationSettingsRequest request = new LocationSettingsRequest.Builder()
+                .addLocationRequest(new LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY, 10000).build())
+                .setAlwaysShow(true)
+                .build();
+        LocationServices.getSettingsClient(this)
+                .checkLocationSettings(request)
+                .addOnSuccessListener(response -> launchTwa())
+                .addOnFailureListener(e -> {
+                    if (e instanceof ResolvableApiException) {
+                        try {
+                            ((ResolvableApiException) e).startResolutionForResult(this, REQUEST_LOCATION_SETTINGS);
+                            return;
+                        } catch (IntentSender.SendIntentException ignored) {
+                            /* no dialog to show — open the site as it is */
+                        }
+                    }
+                    launchTwa();
+                });
+        return true;
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == REQUEST_LOCATION) {
-            /* empty arrays mean the request was interrupted, not answered */
-            if (grantResults.length > 0) {
-                markAnswered();
+        if (requestCode != REQUEST_LOCATION) {
+            return;
+        }
+        boolean granted = hasLocation();
+        /* empty arrays mean the request was interrupted, not answered; only a
+           refusal is remembered — a grant may be "only this time" */
+        if (grantResults.length > 0 && !granted) {
+            setFlag(KEY_LOCATION_DENIED, true);
+        }
+        if (granted && askToTurnOnDeviceLocation()) {
+            return;
+        }
+        launchTwa();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_LOCATION_SETTINGS) {
+            if (resultCode != RESULT_OK) {
+                setFlag(KEY_SETTINGS_DECLINED, true);
             }
             launchTwa();
         }
@@ -130,7 +207,7 @@ public class LauncherActivity
         Uri uri = super.getLaunchingUrl();
 
         /* whether the location is allowed right now — read after the answer, since
-           launchTwa runs only once the dialog has closed */
+           launchTwa runs only once the dialogs have closed */
         uri = uri
                 .buildUpon()
                 .appendQueryParameter(PARAM_FIRST_OPEN, String.valueOf(hasLocation()))

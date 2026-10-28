@@ -38,7 +38,7 @@ export function TurnOnLocationRow() {
     setHint(null);
     const inApp = window.matchMedia("(display-mode: standalone)").matches;
     const off = inApp
-      ? "Location is off for DanceOS. Turn it on in Settings → Apps → DanceOS → Permissions → Location, then open the app again."
+      ? "Location is off. Switch on your phone's Location, and allow it for DanceOS in Settings → Apps → DanceOS → Permissions → Location, then open the app again."
       : "Location is off for this site. Allow it in your browser's site settings, then try again.";
     navigator.geolocation.getCurrentPosition(
       (pos) => {

@@ -199,6 +199,25 @@ async function fillBusinessContact(page: Page, email: string) {
  *  pressed in it navigates, which closes it; `closeTools` is for the checks that
  *  only read it and then carry on with the page underneath. */
 async function tools(page: Page): Promise<Locator> {
+  /* ⚠ ONLY THE SWITCHER SWITCHES (29 Oct 2026, the user: "should not switch
+     profile when in their sections should only happen from profile switcher").
+     Opening a studio's or a crew's page no longer puts you in it, so a test
+     standing on one picks it first — the switcher's own record, the cookie —
+     exactly as a person would before reaching for that profile's tools. */
+  /* let a navigation in flight land first — a reload on top of one is aborted */
+  await page.waitForLoadState("load").catch(() => {});
+  const here = new URL(page.url());
+  const m = here.pathname.match(/^\/(?:business|studio|crews?)\/([0-9a-f-]{36})/);
+  if (m) {
+    const now = (await page.context().cookies()).find((c) => c.name === "dos_profile")?.value;
+    if (now !== m[1]) {
+      await page.context().addCookies([{ name: "dos_profile", value: m[1], url: here.origin }]);
+      await page.goto(page.url()).catch(async () => {
+        await page.waitForLoadState("load").catch(() => {});
+        await page.goto(page.url());
+      });
+    }
+  }
   const drawer = page.getByTestId("profile-drawer");
   await expect(async () => {
     if (!(await drawer.isVisible())) await page.getByTestId("profile-switcher").click();
@@ -421,6 +440,17 @@ test.describe.serial("DanceOS, end to end", () => {
     trainer = await trainerContext.newPage();
     adminContext = await browser.newContext();
     admin = await adminContext.newPage();
+  });
+
+  /* EVERY SEGMENT STARTS AS YOURSELF (29 Oct 2026). No page switches the
+     profile any more — only the switcher does — so a `tools()` call that chose a
+     crew or a studio in one segment would otherwise carry into the next, and
+     /discover refuses a studio or crew profile by redirecting to its page. A
+     segment that needs to be inside a business or a crew says so itself. */
+  test.beforeEach(async () => {
+    for (const ctx of [ownerContext, learnerContext, trainerContext, adminContext]) {
+      await ctx?.clearCookies({ name: "dos_profile" });
+    }
   });
 
   test.afterAll(async () => {

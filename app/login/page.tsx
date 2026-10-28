@@ -7,7 +7,7 @@ import { WelcomeReel } from "@/features/auth/components/WelcomeReel";
 import { WELCOME_CLIPS } from "@/features/auth/welcomeClips";
 import { leaveIfSignedIn } from "@/lib/auth/leaveIfSignedIn";
 import { safeNext } from "@/lib/auth/safeNext";
-import { INK, LINE, SUB } from "@/lib/design/tokens";
+import { DOS_DISPLAY, INK, LINE, SUB } from "@/lib/design/tokens";
 
 /** Welcome screen — THE REEL (28 Oct 2026, the user, with Cult's sign-up screen
  *  in hand: "I need my sign up page look exactly like this … 3 videos of 5-7
@@ -91,6 +91,22 @@ export default async function LoginWelcomePage({
       {/* the slack goes ABOVE the button, so the sign-in sits in the lower part
           of the screen the way Cult's does, with the legal line under it */}
       <div style={{ flex: 1, minHeight: 14 }} />
+
+      {/* THE COUNT-IN IS BACK (29 Oct 2026, the user: "add 5678 back on start page
+          above signin from google") — every class starts on it; the beats lift
+          one after another (`dosBeat`), and reduced motion stills them */}
+      <div
+        aria-hidden="true"
+        data-testid="count-in"
+        style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 14, margin: "0 0 18px", fontSize: "clamp(32px, 10vw, 44px)", fontWeight: 900, letterSpacing: 0.5, lineHeight: 1, fontFamily: DOS_DISPLAY, fontVariantNumeric: "tabular-nums", color: INK, animation: "dosRise .6s .05s ease both" }}
+      >
+        {["5", "6", "7", "8"].map((n, i, all) => (
+          <span key={n} style={{ display: "inline-flex", alignItems: "center", gap: 14, animation: `dosBeat 2.4s ease ${i * 0.3}s infinite` }}>
+            {n}
+            {i < all.length - 1 && <span style={{ color: LINE, fontSize: 30 }}>·</span>}
+          </span>
+        ))}
+      </div>
 
       <div style={{ animation: "dosRise .6s .15s ease both" }}>
         <GoogleButton next={next} />

@@ -424,7 +424,6 @@ export function AppChrome({
   const bar: Array<{ label: TabLabel; href: string }> = entity ? [] : tabSet;
   /* ⚠ ONE TAB IS ENOUGH NOW — Discover, on your own page and on Discover — so
      the Batch 4 "no one-tab bar" rule is narrowed to "no empty bar" */
-  const showBar = isTab && !adminOnly && bar.length >= 1;
   const routeLit = entity ? null : activeTab;
   /* ⚠ THE TAB MOVES ON THE PRESS, NOT ON THE ARRIVAL (18 Oct 2026, the user:
      "navbar below should have some animation when switching"). The pressed tab
@@ -494,11 +493,15 @@ export function AppChrome({
   const pathItem = switcher.find(isHere) ?? null;
   const stickyKey = useSyncExternalStore(subscribeActive, readActiveCookie, () => initialProfile);
   const stickyItem = stickyKey ? (switcher.find((s) => s.key === stickyKey) ?? null) : null;
-  const hereItem = pathItem ?? stickyItem ?? switcher.find((s) => s.kind === "me") ?? switcher[0] ?? null;
-  /* being inside a studio's or a crew's own pages is being in that profile */
-  useEffect(() => {
-    if (pathItem) writeActiveProfile(pathItem.key);
-  }, [pathItem]);
+  /* ⚠⚠ ONLY THE SWITCHER SWITCHES (29 Oct 2026, the user: "should not switch
+     profile when in their sections should only happen from profile switcher").
+     The profile you chose wins over the page you are on; a page only decides
+     when nothing has been chosen yet, and it never writes the choice. */
+  const hereItem = stickyItem ?? pathItem ?? switcher.find((s) => s.kind === "me") ?? switcher[0] ?? null;
+  /* a studio or a crew does not browse Discover (29 Oct 2026) */
+  const inEntityProfile = hereItem !== null && hereItem.kind !== "me";
+  /* the bar's one tab is Discover, so in a studio or a crew there is no bar */
+  const showBar = isTab && !adminOnly && bar.length >= 1 && !inEntityProfile;
   const toolTotal = switcher.reduce((s, i) => s + (i.count ?? 0), 0);
 
   /* ⚠ OPENING A TOOL READS ITS NEWS (18 Oct 2026): the counts are unread
@@ -844,12 +847,10 @@ export function AppChrome({
             dance os logo and name on top bar takes to discover"). It keeps the
             profile you are in, exactly as the bottom bar's Discover does. */}
         <Link
-          href={
-            hereItem && hereItem.kind !== "me"
-              ? `/discover?as=${hereItem.kind === "crew" ? `crew-${hereItem.key}` : hereItem.key}`
-              : "/discover"
-          }
-          aria-label="DanceOS — open Discover"
+          /* ⚠ in a studio or a crew the brand opens that profile's own page —
+             Discover is not theirs to browse (29 Oct 2026) */
+          href={inEntityProfile && hereItem ? hereItem.href : "/discover"}
+          aria-label={inEntityProfile && hereItem ? `DanceOS — open ${hereItem.label}` : "DanceOS — open Discover"}
           data-testid="brand"
           style={{
             position: "absolute",

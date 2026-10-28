@@ -78,8 +78,41 @@ export function DiscoverTabs({
   active: string;
 }) {
   const { shown, go } = useOptimisticNav(active);
+  /* ⚠ ONE DOCK WITH A SLIDING PILL (29 Oct 2026, the user: "still not happy with
+     discover tiles make it better"). Four separate cards read as four buttons
+     competing; this is ONE control: a quiet rounded dock, a pill in the chosen
+     section's colour that SLIDES under the tab you press, and each icon still
+     moving on its own. The chosen tab's icon pops when it lands. */
+  const at = Math.max(0, tabs.findIndex((t) => t.key === shown));
+  const n = Math.max(1, tabs.length);
+  const pillCol = TINT[tabs[at]?.key ?? ""] ?? FALLBACK;
   return (
-    <div style={{ display: "flex", gap: 8, margin: "10px 0 4px" }}>
+    <div
+      data-testid="discover-dock"
+      style={{
+        position: "relative",
+        display: "flex",
+        margin: "10px 0 4px",
+        padding: 5,
+        borderRadius: 22,
+        background: "var(--card)",
+        border: "1.5px solid var(--el)",
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          top: 5,
+          bottom: 5,
+          left: `calc(5px + ${at} * (100% - 10px) / ${n})`,
+          width: `calc((100% - 10px) / ${n})`,
+          borderRadius: 17,
+          background: `linear-gradient(140deg, ${pillCol}, color-mix(in srgb, ${pillCol} 72%, #000))`,
+          boxShadow: `0 8px 20px color-mix(in srgb, ${pillCol} 38%, transparent)`,
+          transition: "left .42s cubic-bezier(.34,1.32,.64,1), background .3s ease, box-shadow .3s ease",
+        }}
+      />
       {tabs.map((t, i) => {
         const on = shown === t.key;
         const col = TINT[t.key] ?? FALLBACK;
@@ -94,32 +127,31 @@ export function DiscoverTabs({
             className="dos-entity-tile"
             onClick={(e) => go(t.key, href, e)}
             style={{
+              position: "relative",
+              zIndex: 1,
               flex: 1,
               minWidth: 0,
-              height: 82,
-              borderRadius: 18,
+              height: 70,
+              borderRadius: 17,
               textDecoration: "none",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              gap: 7,
-              color: "var(--text)",
-              background: on ? `color-mix(in srgb, ${col} 13%, var(--card))` : "var(--card)",
-              border: `1.5px solid ${on ? col : "var(--el)"}`,
+              gap: 6,
+              WebkitTapHighlightColor: "transparent",
             }}
           >
             <span
+              key={on ? "on" : "off"}
               aria-hidden="true"
               style={{
-                width: 40,
-                height: 40,
-                borderRadius: 13,
                 display: "grid",
                 placeItems: "center",
                 color: on ? "#fff" : col,
-                background: on ? col : `color-mix(in srgb, ${col} 14%, transparent)`,
-                transition: "background .2s ease, color .2s ease",
+                transform: "scale(1.15)",
+                animation: on ? "dosTabPop .45s cubic-bezier(.34,1.56,.64,1)" : "none",
+                transition: "color .25s ease",
               }}
             >
               <TabGlyph k={t.key} delay={i * 0.45} />
@@ -128,13 +160,14 @@ export function DiscoverTabs({
               aria-hidden="true"
               style={{
                 maxWidth: "92%",
-                fontSize: 12.5,
-                fontWeight: on ? 800 : 700,
-                letterSpacing: 0.1,
+                fontSize: 12,
+                fontWeight: on ? 900 : 700,
+                letterSpacing: 0.2,
                 whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
-                color: on ? "var(--text)" : "var(--sub)",
+                color: on ? "#fff" : "var(--sub)",
+                transition: "color .25s ease",
               }}
             >
               {t.word}

@@ -148,6 +148,20 @@ export default async function DiscoverPage({
      profile — somebody mid-setup, or a platform admin — is sent where Home would
      send it, rather than landing on a shelf it has no profile to use */
   if (user && !profile) redirect((await amIPlatformAdmin(supabase)) ? "/admin/verifications" : "/onboarding");
+  /* ⚠⚠ A STUDIO OR A CREW DOES NOT DISCOVER (29 Oct 2026, the user: "should not
+     be able to view discover from studio or crew profiles in any way"). The
+     profile you are in is the switcher's cookie (C174); when it — or a `?as=` —
+     names a studio you run or a crew you lead, Discover sends you back to that
+     profile's own page. Switch to your own profile to browse. Both are looked up
+     against what the account really holds, so a stale cookie lets you through. */
+  if (user) {
+    const sticky = (await cookies()).get("dos_profile")?.value ?? "";
+    let inside = actingAs;
+    if (!inside && sticky && sticky !== "me") {
+      inside = (await resolveActingAs(supabase, sticky)) ?? (await resolveActingAs(supabase, `crew-${sticky}`));
+    }
+    if (inside) redirect(inside.kind === "crew" ? `/crew/${inside.id}` : `/studio/${inside.id}`);
+  }
   /* the raw value, kept only to carry onto the cards' own hrefs so the page a
      card opens agrees with the card that sent you */
   const asRaw = actingAs ? (params.as ?? null) : null;

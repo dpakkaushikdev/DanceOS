@@ -122,12 +122,27 @@ const check = (ok, what) => {
     await page.waitForTimeout(300);
     check(page.url().includes(`/business/${studio.id}/practice?tab=past`), `the tab is the studio's own address (${page.url().replace(BASE, "")})`);
 
-    /* the studio's drawer carries the tool */
+    /* the studio's drawer carries the tool — ⚠ once the studio is CHOSEN (29 Oct
+       2026: a page no longer switches you into its profile; only the switcher
+       does, so the switcher's choice is set first) */
+    await page.context().addCookies([{ name: "dos_profile", value: studio.id, url: BASE }]);
     await page.goto(`${BASE}/business/${studio.id}`, { waitUntil: "networkidle" });
     await page.getByRole("button", { name: /switch profile/i }).first().click();
     const tool = page.getByRole("navigation", { name: "Tools" }).getByRole("link", { name: "Practice", exact: true });
     await tool.waitFor({ timeout: 15000 }).catch(() => {});
     check((await tool.getAttribute("href").catch(() => null)) === `/business/${studio.id}/practice`, "the studio's drawer lists Practice, opening its own desk");
+    await page.keyboard.press("Escape");
+
+    /* ── 6 · IN A STUDIO THERE IS NO DISCOVER, AND NO PAGE SWITCHES YOU (29 Oct 2026) ── */
+    check((await page.getByTestId("brand").getAttribute("href")) === `/studio/${studio.id}`, "in the studio, the brand opens the studio's page, not Discover");
+    await page.goto(`${BASE}/discover`, { waitUntil: "networkidle" });
+    check(new URL(page.url()).pathname === `/studio/${studio.id}`, `typing /discover in the studio lands on the studio (${new URL(page.url()).pathname})`);
+    check((await page.getByRole("navigation", { name: "Main" }).count()) === 0, "…and no bottom bar offers Discover");
+    await page.goto(`${BASE}/person/${created.id}`, { waitUntil: "networkidle" });
+    check(/you are in/i.test((await page.getByRole("button", { name: /switch profile/i }).first().getAttribute("aria-label")) ?? "") && ((await page.getByRole("button", { name: /switch profile/i }).first().getAttribute("aria-label")) ?? "").includes(`Land Std ${tag}`), "opening your own page does NOT switch you out of the studio");
+    await page.context().clearCookies({ name: "dos_profile" });
+    await page.goto(`${BASE}/discover`, { waitUntil: "networkidle" });
+    check(new URL(page.url()).pathname === "/discover", "as yourself, Discover opens");
 
     check(errs.length === 0, `no page error (${errs.join(" | ") || "none"})`);
   } catch (e) {

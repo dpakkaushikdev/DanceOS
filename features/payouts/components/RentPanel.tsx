@@ -66,9 +66,34 @@ function PaymentRow({ p, other, onVoid, dispute }: { p: RentPayment; other: stri
  *  paid for yet, Pay rent, and every payment with the classes it covered.
  *  ⚠ NO LUMP SUM (19 Oct 2026, the user: "remove lump sump for studio rent"):
  *  rent is paid per class, so every rupee says which class it was for. */
-export function RentToPay({ payerBusinessId, venues, disputes }: { payerBusinessId: string; venues: RentVenue[]; disputes?: Record<string, PaymentDispute> }) {
+export function RentToPay({
+  payerBusinessId,
+  venues,
+  disputes,
+  openOnLoad = false,
+}: {
+  payerBusinessId: string;
+  venues: RentVenue[];
+  disputes?: Record<string, PaymentDispute>;
+  /** the Other Teams card's "Pay rent" lands here with `pay=1` (28 Oct 2026, the
+   *  team card's Pay → Member Detail precedent, C178): the sheet opens over the
+   *  studio's own Detail page on the first venue with something to pay */
+  openOnLoad?: boolean;
+}) {
   const router = useRouter();
-  const [open, setOpen] = useState<RentVenue | null>(null);
+  const [open, setOpen] = useState<RentVenue | null>(() => (openOnLoad ? (venues.find((v) => v.unpaid.length > 0) ?? null) : null));
+  /* take `pay=1` back off the address once the sheet closes, so a reload does not
+     re-open it — a plain replaceState, never a router hop */
+  const dropPayParam = () => {
+    const u = new URL(window.location.href);
+    if (!u.searchParams.has("pay")) return;
+    u.searchParams.delete("pay");
+    window.history.replaceState(window.history.state, "", `${u.pathname}${u.search}`);
+  };
+  const close = () => {
+    setOpen(null);
+    setTimeout(dropPayParam, 0);
+  };
   /* ⚠ THE APP'S OWN QUESTION, not `window.confirm` (19 Oct 2026) */
   const [asking, setAsking] = useState<{ id: string; words: string; venue: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -172,7 +197,7 @@ export function RentToPay({ payerBusinessId, venues, disputes }: { payerBusiness
           itemsHead="CLASSES IN THEIR ROOMS"
           emptyWords="Every class here is paid for."
           items={open.unpaid.map((s) => ({ id: s.sessionId, kind: "session" as const, title: s.classTitle, sub: sessionDayLabel(s.startsAt) }))}
-          onClose={() => setOpen(null)}
+          onClose={close}
           onSettle={async (lines, meta) => {
             const out = await recordRentPaymentAction({
               payerBusinessId,
@@ -182,7 +207,7 @@ export function RentToPay({ payerBusinessId, venues, disputes }: { payerBusiness
             });
             if (!out.error) {
               toast(`${rupees(lines.reduce((n, l) => n + l.rateInr, 0))} rent recorded for ${open.venueName}`);
-              setOpen(null);
+              close();
               router.refresh();
             }
             return out;

@@ -208,6 +208,12 @@ const STUDIO_HOME_RE = new RegExp(`^/business/(${UUID})$`, "i");
    from inbox"). A crew takes no enquiries, so its bar is Home alone and
    `/crews/{id}/inbox` forwards to its Team desk (next.config.ts). */
 const CREW_HOME_RE = new RegExp(`^/crews/(${UUID})/manage$`, "i");
+/* TOOL PAGES THAT ARE NOT A DRAWER ROW OF THEIR OWN (28 Oct 2026): a studio's
+   and a crew's desks under its home, and the settings ledgers */
+const TOOL_PAGE_RE = new RegExp(
+  `^(/business/${UUID}/.+|/crews/${UUID}/manage/.+|/(payments|invoices|refunds|subscription|earnings|memberships|routines|practice|calendar|my-classes|team|crews|business|assets)(/.*)?)$`,
+  "i"
+);
 interface Entity {
   kind: "studio" | "crew";
   home: string;
@@ -383,7 +389,6 @@ export function AppChrome({
   const isTab = activeTab !== null;
   /* a studio's or a crew's own pages wear the entity's bar and the mark */
   const entity = entityOf(pathname);
-  const showBar = (isTab || entity !== null) && !adminOnly;
   /* ── AN ENTITY'S BAR CARRIES DISCOVER TOO (19 Sep 2026, the user: "studio and
      organizations can have Discover in navbar but should not be able to book any
      class or event"). A studio's own pages had Home · Inbox, so the one thing
@@ -416,6 +421,11 @@ export function AppChrome({
            desk it opens is scoped to the profile whose grid was pressed. */
       ]
     : TAB_SET;
+  /* ⚠ NO ONE-TAB BAR (28 Oct 2026, Batch 4). A studio's and a crew's own bar
+     has shrunk to Home alone (Discover left it 2 Oct, the Inbox 18 Oct), and a
+     bar holding one tab is a button to the page you are on. The general rule:
+     fewer than two tabs, no bar — and no 80px clearance reserved for it. */
+  const showBar = (isTab || entity !== null) && !adminOnly && bar.length >= 2;
   const routeLit = entity ? (pathname === entity.home ? "Home" : null) : activeTab;
   /* ⚠ THE TAB MOVES ON THE PRESS, NOT ON THE ARRIVAL (18 Oct 2026, the user:
      "navbar below should have some animation when switching"). The pressed tab
@@ -504,6 +514,39 @@ export function AppChrome({
     }
     return best;
   })();
+  /* ⚠⚠ A VISIBLE WAY BACK ON A TOOL PAGE (28 Oct 2026, Batch 4). The back chip
+     was taken off every screen on 18 Oct ("remove back button … should not appear
+     at all"), which left a page opened from the drawer with no way back but the
+     phone's gesture. It is back — on TOOL pages only: any page whose address is
+     one of the drawer's tools (the longest-match rule above, over every profile's
+     tiles), a studio's or a crew's desks under its own home, and the settings
+     ledgers. A tab, an entity's own home, a public page and the class page keep
+     the bar as it was. */
+  /* has this tab moved within the app since it loaded? Then back is a real step
+     back; a cold landing (a deep link, a reload) goes to the profile's home. */
+  const navRef = useRef<{ first: string | null; moved: boolean }>({ first: null, moved: false });
+  useEffect(() => {
+    if (navRef.current.first === null) navRef.current.first = pathname;
+    else if (pathname !== navRef.current.first) navRef.current.moved = true;
+  }, [pathname]);
+  const onToolPage =
+    !isTab &&
+    entity === null &&
+    pathname !== "/" &&
+    (TOOL_PAGE_RE.test(pathname) ||
+      switcher.some((i) =>
+        (i.tiles ?? []).some((t) => {
+          const p = t.href.split("?")[0];
+          return p !== "/" && (pathname === p || pathname.startsWith(`${p}/`));
+        })
+      ));
+  const goBack = () => {
+    if (navRef.current.moved || (typeof document !== "undefined" && document.referrer.startsWith(window.location.origin))) {
+      router.back();
+      return;
+    }
+    router.push(hereItem?.href ?? "/");
+  };
   const seenRef = useRef<string>("");
   useEffect(() => {
     /* ⚠ THE LONGEST MATCH, NOT THE FIRST (18 Oct 2026, found auditing the counts):
@@ -748,6 +791,13 @@ export function AppChrome({
             holds the bell alone; the back chip rides in the centred brand group,
             immediately before the mark. */}
         <span style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0, flex: 1 }}>
+          {onToolPage && !adminOnly ? (
+            <button type="button" data-testid="back-chip" aria-label="Go back" onClick={goBack} style={{ ...chipStyle, fontFamily: "inherit" }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M15 5l-7 7 7 7" />
+              </svg>
+            </button>
+          ) : null}
           {adminOnly || signedOut ? null : (
           /* ⚠ NO DOT ON THE BELL'S CORNER (19 Oct 2026, the user: "notification when
              appears the red dot on top left on the bell looks bad find a better

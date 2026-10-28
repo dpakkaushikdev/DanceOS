@@ -328,7 +328,7 @@ async function personOpensAStudio(page, who, acc, stamp) {
        should be seprate tab in home tab not in crew") — pressed here so the new
        tile is DRIVEN rather than skipped: `pressEveryTile` only presses names it
        is given, so a tile left off this list is a tile nothing opens. */
-    await pressEveryTile(p1, "user", ["Classes", "Calendar", "Enquiries", "Crews", "Practice", "Studios", "Routines", "Team", "Memberships", "Earnings"]);
+    await pressEveryTile(p1, "user", ["Classes", "Calendar", "Enquiries", "Crews", "Practice", "Studios", "Routines", "Teams I'm on", "Memberships", "Earnings"]);
     /* the grid is arrangeable, and the arrangement is the account's (22 Sep 2026) */
     await arrangeGrid(p1, "user", `${BASE}/`);
     /* a person opens a studio, runs it from the switcher, takes their own class (26 Sep 2026) */
@@ -583,9 +583,10 @@ async function personOpensAStudio(page, who, acc, stamp) {
       back: [...document.querySelectorAll('[aria-label="Go back"]')].length,
     }));
     check(drill.switcher === 1, `drill page · the switcher is here, once (${drill.switcher})`);
-    /* ⚠ NO BACK CHIP ANYWHERE since 18 Oct 2026 (the user: "remove back button on
-       left of logo should not appear at all") — the system back is the way out */
-    check(drill.back === 0, `drill page · and no back chip beside the logo (${drill.back})`);
+    /* ⚠ A TOOL PAGE CARRIES THE BACK CHIP AGAIN (28 Oct 2026, Batch 4): the
+       18 Oct removal left a page opened from the drawer with no visible way back.
+       Rooms is a studio desk, so it is a tool page and has exactly one. */
+    check(drill.back === 1, `tool page · a back chip in the bar, once (${drill.back})`);
     await openDrawer(p3);
     const menu = p3.getByTestId("profile-drawer");
     await menu.waitFor({ state: "visible", timeout: 15_000 });

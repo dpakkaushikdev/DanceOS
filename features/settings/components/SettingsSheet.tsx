@@ -425,7 +425,7 @@ export function SettingsSheet({
         <div style={head}>MONEY</div>
         <div style={grid}>
           <Tile icon={ICONS.payments("#22C55E")} href={personal ? "/payments" : `${desk}/payments`} onNavigate={go}>
-            {personal ? "Payments" : "Payments & verification"}
+            Payments
           </Tile>
           <Tile icon={ICONS.invoices("#3B82F6")} href={personal ? "/invoices" : `${desk}/invoices`} onNavigate={go}>
             Invoices

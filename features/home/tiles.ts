@@ -46,7 +46,8 @@ export const tilesFor = (kind: HomeKind, pageId: string | null): Tile[] => {
       t.calendar,
       t.enquiries,
       t.memberships,
-      { name: DOS_TOOLS.team.name, href: "/team", k: "team", c: DOS_TOOLS.team.c },
+      // A plain user runs no team — /team is the teams they are ON (28 Oct 2026).
+      { name: "Teams I'm on", href: "/team", k: "team", c: DOS_TOOLS.team.c },
       t.crews,
       t.practice,
       t.studios,

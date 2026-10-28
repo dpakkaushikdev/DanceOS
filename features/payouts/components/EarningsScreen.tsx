@@ -97,6 +97,7 @@ export function EarningsScreen({
   sub,
   basePath,
   noExpenses = false,
+  lead,
   children,
 }: {
   report: EarningsReport;
@@ -107,6 +108,9 @@ export function EarningsScreen({
   basePath: string;
   /** a person employs nobody, so "what is left" IS what came in */
   noExpenses?: boolean;
+  /** drawn first in the lower section — the open disputes row (28 Oct 2026),
+   *  which waits on somebody and so belongs above the figures */
+  lead?: ReactNode;
   children?: ReactNode;
 }) {
   const router = useRouter();
@@ -254,6 +258,7 @@ export function EarningsScreen({
       </DeskMiddle>
 
       <DeskBody>
+        {lead}
         <Section
           title="REVENUE"
           lines={here.revenue}

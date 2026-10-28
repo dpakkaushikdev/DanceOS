@@ -277,7 +277,7 @@ function EarningsPanel({
             return (
               <Link
                 key={p}
-                href={p === "all" ? `${base}?show=earnings` : `${base}?show=earnings&period=${p}`}
+                href={p === "all" ? `${base}?show=money` : `${base}?show=money&period=${p}`}
                 replace
                 scroll={false}
                 aria-current={on ? "true" : undefined}
@@ -393,9 +393,10 @@ function EarningsPanel({
           {work.owedEntries.length === 0 ? (
             <div style={{ fontSize: 11.5, color: SUB }}>Everything is paid.</div>
           ) : (
-            <Link href={`${base}?show=settle`} replace scroll={false} style={{ fontSize: 11.5, fontWeight: 800, color: tint }}>
-              Open To pay ›
-            </Link>
+            /* To pay is the first section of this same column now (28 Oct 2026) */
+            <a href="#member-money-to-pay" style={{ fontSize: 11.5, fontWeight: 800, color: tint }}>
+              Up to To pay ›
+            </a>
           )}
         </Fold>
 
@@ -480,9 +481,19 @@ function StatsPanel({ work, tint }: { work: TeamMemberWork; tint: string }) {
   );
 }
 
-/* ⚠ "earnings" IS THE PAID COLUMN'S KEY — kept, so `?show=earnings&period=…`
-   links and the column's accessible name ("… earns the team") still land */
-export type TeamMemberShow = "settle" | "earnings" | "stats" | "classes" | "rent";
+/* ⚠ THREE COLUMNS — MONEY · CLASSES · STATS (28 Oct 2026, batch 4). Money holds
+   To pay, Paid and Rent as sections of one column, no second tab row; every old
+   `?show=` (settle, earnings, paid, payments, rent) lands on Money in the route. */
+export type TeamMemberShow = "money" | "stats" | "classes";
+
+/** A sub-section head inside the Money column. */
+function MoneyHead({ id, title }: { id: string; title: string }) {
+  return (
+    <h2 id={id} style={{ margin: "14px 2px 8px", fontSize: 11, fontWeight: 900, letterSpacing: ".08em", color: SUB, scrollMarginTop: "calc(var(--dos-top) + 12px)" }}>
+      {title}
+    </h2>
+  );
+}
 
 export function TeamMemberPage({
   businessId,
@@ -578,41 +589,42 @@ export function TeamMemberPage({
         label="Show"
         sections
         top={top}
-        /* TO SETTLE · PAID · CLASSES · STATS (· RENT) — 19 Oct 2026, the user:
-           "handle team detail pages better with everything inside that … under
-           right columns". The page still opens on Paid (the route's default). */
+        /* MONEY · CLASSES · STATS (28 Oct 2026, batch 4) — To pay, Paid and Rent
+           are sections of the Money column, in that order. The page opens on
+           Money (the route's default). */
         segments={[
-          { key: "settle", href: `${base}?show=settle`, label: "To pay", aria: `What ${member.name} has not been paid for` },
-          { key: "earnings", href: `${base}?show=earnings`, label: "Earnings", aria: `What ${member.name} earns the team` },
+          { key: "money", href: `${base}?show=money`, label: "Money", aria: `${member.name}'s money here` },
           { key: "classes", href: `${base}?show=classes`, label: "Classes", aria: `${member.name}'s classes here` },
           { key: "stats", href: `${base}?show=stats`, label: "Stats", aria: `${member.name}'s stats here` },
-          ...(rent.length > 0 ? [{ key: "rent", href: `${base}?show=rent`, label: "Rent", aria: `Rent ${member.name} paid here` }] : []),
         ]}
         panels={[
           {
-            key: "settle",
-            node: <MemberToSettle businessId={businessId} person={{ userId: member.userId, name: member.name, avatarPath: member.avatarPath }} ledger={ledger} tint={tint} />,
-          },
-          { key: "earnings", node: <EarningsPanel history={history} work={work} personName={member.name} businessName={businessName} tint={tint} period={period} base={base} disputes={disputes} /> },
-          {
-            key: "classes",
-            node: <TeamClassesPanel classes={work.classes} tint={tint} memberName={member.name} businessName={businessName} isStudio={businessType === "studio"} />,
-          },
-          { key: "stats", node: <StatsPanel work={work} tint={tint} /> },
-          ...(rent.length > 0
-            ? [
-                {
-                  key: "rent",
-                  node: (
+            key: "money",
+            node: (
+              <div data-testid="member-money">
+                <MoneyHead id="member-money-to-pay" title="TO PAY" />
+                {/* ⚠ mounted first, so `?pay=1` still opens its sheet (C178) */}
+                <MemberToSettle businessId={businessId} person={{ userId: member.userId, name: member.name, avatarPath: member.avatarPath }} ledger={ledger} tint={tint} />
+                <MoneyHead id="member-money-paid" title="PAID" />
+                <EarningsPanel history={history} work={work} personName={member.name} businessName={businessName} tint={tint} period={period} base={base} disputes={disputes} />
+                {rent.length > 0 ? (
+                  <>
+                    <MoneyHead id="member-money-rent" title="RENT" />
                     <div data-testid="member-rent">
                       {rent.map((r) => (
                         <RentReceivedList key={r.payerName} payments={r.payments} payerName={r.payerName} disputes={disputes} classes={r.classes} />
                       ))}
                     </div>
-                  ),
-                },
-              ]
-            : []),
+                  </>
+                ) : null}
+              </div>
+            ),
+          },
+          {
+            key: "classes",
+            node: <TeamClassesPanel classes={work.classes} tint={tint} memberName={member.name} businessName={businessName} isStudio={businessType === "studio"} />,
+          },
+          { key: "stats", node: <StatsPanel work={work} tint={tint} /> },
         ]}
       />
     </div>

@@ -1695,8 +1695,9 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(learner.getByTestId("crew-hero")).toBeVisible();
     /* ⚠ A CREW HAS NO INBOX (11 Oct 2026, the user: "only enquiries to be handled
        from inbox") — a crew takes no enquiries, so its bar is Home alone */
-    await expect(learner.getByRole("navigation", { name: "Crew" }).getByRole("link", { name: "Home", exact: true })).toBeVisible();
-    await expect(learner.getByRole("navigation", { name: "Crew" }).getByRole("link", { name: "Inbox" })).toHaveCount(0);
+    /* ⚠ AND NO BAR AT ALL SINCE 28 Oct 2026 (Batch 4): Home alone is a one-tab
+       bar, and fewer than two tabs draws none */
+    await expect(learner.getByRole("navigation", { name: "Crew" })).toHaveCount(0);
     /* ⚠ AND THE CORNER OPENS **THIS CREW'S** PUBLIC PAGE (21 Sep 2026, the user:
        "studio and crew pages on home tab should have option to view their
        profile pages currently taking to organizations page and user/artist
@@ -2510,10 +2511,13 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(settings.getByText("Enquiry types", { exact: true })).toHaveCount(0);
     await expect(settings.getByText("BUSINESS", { exact: true })).toHaveCount(0);
     // Payments is a real screen now (S_payments 16531): the trainer's goes to their OWN page's desk
-    await settings.getByRole("link", { name: /Payments & verification/ }).click();
+    /* ⚠ "Payments", not "Payments & verification" (28 Oct 2026): the
+       Verification tab left the page — one door, the Settings tile */
+    await settings.getByRole("link", { name: /^Payments/ }).click();
     await expect(trainer).toHaveURL(/\/business\/[0-9a-f-]+\/payments$/);
     expect(trainer.url()).not.toContain(businessId);
-    await expect(trainer.getByRole("heading", { name: "Payments & verification" })).toBeVisible();
+    await expect(trainer.getByRole("heading", { name: "Payments" }).first()).toBeVisible();
+    await expect(trainer.getByRole("button", { name: "Verification", exact: true })).toHaveCount(0);
     await expect(trainer.getByText("ACCEPTED FROM STUDENTS")).toBeVisible();
     /* ⚠ AND THIS IS A DRILL PAGE, WHICH IS THE POINT (21 Sep 2026, the user:
        "make profile switcher constant like settings"). The switcher lived on the
@@ -2562,11 +2566,12 @@ test.describe.serial("DanceOS, end to end", () => {
        migration is what gives it a person again. */
     await owner.goto(`/business/${businessId}/payments`);
     await expect(owner.getByText("ACCEPTED FROM STUDENTS")).toBeVisible();
-    await owner.getByRole("button", { name: "Verification" }).click();
-    /* 14 Sep 2026: the badge is the STUDIO's now, and an admin gave this studio
-       its badge in the first segment — so the tab reads verified, and it would
-       be a bug if it did not */
-    await expect(owner.getByText("Verified studio")).toBeVisible();
+    /* ⚠ NO VERIFICATION TAB ON PAYMENTS (28 Oct 2026, batch 4): one door, the
+       studio's own Verification page. Both ends: the tab is gone, and an old
+       address asking for it lands on that page (Rule 14). */
+    await expect(owner.getByRole("button", { name: "Verification", exact: true })).toHaveCount(0);
+    await owner.goto(`/business/${businessId}/payments?tab=verification`);
+    await expect(owner).toHaveURL(new RegExp(`/business/${businessId}/verification$`), { timeout: 15_000 });
     // Artist tools is the Artist PLAN's switch (8855), and the plan has been live
     // since the trainer got it on day one — so the strip reads PRO ACTIVE, and
     // pressing it ENDS the plan
@@ -3384,7 +3389,10 @@ test.describe.serial("DanceOS, end to end", () => {
        renamed as Earnings … revenue … what was paid to them … still owed …
        whatever left is the Total earnings") — the ₹2,500 salary is money paid to
        them, so it comes off revenue in the statement */
-    await expect(owner.getByRole("link", { name: /earns the team/ })).toHaveCount(1);
+    /* ⚠ MONEY · CLASSES · STATS (28 Oct 2026, batch 4) — To pay, Paid and Rent
+       are sections of the one Money column */
+    await expect(owner.getByRole("link", { name: `${learnerName}'s money here`, exact: true })).toHaveCount(1);
+    await expect(owner.getByRole("link", { name: /earns the team/ })).toHaveCount(0);
     await expect(owner.getByRole("link", { name: /has been paid/ })).toHaveCount(0);
     await expect(owner.getByTestId("team-paid")).toContainText("₹2,500");
     await expect(owner.getByTestId("team-earnings-breakup")).toContainText("EARNED FOR THE TEAM");

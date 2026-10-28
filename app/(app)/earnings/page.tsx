@@ -5,6 +5,8 @@ import { asPeriod } from "@/lib/format/period";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findPersonEarnings } from "@/repositories/earnings";
 import { findMyMemberships } from "@/repositories/businesses";
+import { findMyOpenDisputes } from "@/repositories/disputes";
+import { OpenDisputes } from "@/features/payouts/components/OpenDisputes";
 
 /* the clock is read OUTSIDE the component — `react-hooks/purity` */
 const stampNowIso = (): string => new Date().toISOString();
@@ -34,7 +36,7 @@ export default async function MyEarningsPage({ searchParams }: { searchParams: P
   const owned = (await findMyMemberships(supabase).catch(() => []))
     .filter((m) => m.memberRole === "owner")
     .map((m) => m.business.id);
-  const report = await findPersonEarnings(supabase, user.id, period, now, owned, range);
+  const [report, disputes] = await Promise.all([findPersonEarnings(supabase, user.id, period, now, owned, range), findMyOpenDisputes(supabase, user.id)]);
 
-  return <EarningsScreen report={report} title="Earnings" sub="What studios have paid you" basePath="/earnings" noExpenses />;
+  return <EarningsScreen report={report} title="Earnings" sub="What studios have paid you" basePath="/earnings" noExpenses lead={<OpenDisputes rows={disputes} />} />;
 }

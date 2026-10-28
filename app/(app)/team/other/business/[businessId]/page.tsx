@@ -31,9 +31,9 @@ export default async function OtherBusinessRoute({
   searchParams,
 }: {
   params: Promise<{ businessId: string }>;
-  searchParams: Promise<{ show?: string }>;
+  searchParams: Promise<{ show?: string; pay?: string }>;
 }) {
-  const [{ businessId }, { show: asked }] = await Promise.all([params, searchParams]);
+  const [{ businessId }, { show: asked, pay }] = await Promise.all([params, searchParams]);
   if (!UUID_RE.test(businessId)) {
     notFound();
   }
@@ -125,7 +125,7 @@ export default async function OtherBusinessRoute({
       place={place}
       meName={meName}
       seat={seat}
-      rent={venue && myPage ? <RentToPay payerBusinessId={myPage.id} venues={[venue]} disputes={rentDisputes} /> : undefined}
+      rent={venue && myPage ? <RentToPay payerBusinessId={myPage.id} venues={[venue]} disputes={rentDisputes} openOnLoad={show === "rent" && pay === "1"} /> : undefined}
       show={show}
     />
   );

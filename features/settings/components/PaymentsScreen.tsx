@@ -1,9 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { columnTab, columnTrack } from "@/components/ui/ColumnTabs";
 import { toast } from "@/components/ui/Toast";
 import { methodWord } from "@/lib/format/money";
 import { setRefundWindowAction, updateBusinessProfileAction } from "@/features/settings/server-actions/plans";
@@ -11,8 +9,8 @@ import type { MethodUse } from "@/repositories/invoices";
 import type { AcceptedMethods, Business } from "@/types/business";
 import { BizPage, bizBtn, bizCard, dayWords, eyebrow, rupees } from "./settings-kit";
 
-/** S_payments (16531-16620): "Payments" for a person, "Payments & verification"
- *  for a business — the Payments · Verification switch, YOUR METHODS as a card
+/** S_payments (16531-16620): "Payments" for a person and a business (the
+ *  Verification tab left on 28 Oct 2026 — one door, in Settings), YOUR METHODS as a card
  *  per method with its colour on the edge, the ADD A METHOD tiles (UPI · Card ·
  *  Cash · Netbanking), ACCEPTED FROM STUDENTS as four switches, and the
  *  Verification tab's green card over its checklist.
@@ -57,11 +55,6 @@ function Icon({ k, color }: { k: Kind; color: string }) {
     </svg>
   );
 }
-const Tick = ({ color = "#22C55E", size = 13, w = 3 }: { color?: string; size?: number; w?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="m5 12.5 4.5 4.5L19 7.5" />
-  </svg>
-);
 
 const ACCEPT_ROWS: Array<[keyof AcceptedMethods, string]> = [
   ["upi", "UPI / QR at the studio"],
@@ -85,14 +78,12 @@ export function PaymentsScreen({
   refundWindowHours?: number;
 }) {
   const router = useRouter();
-  const [pv, setPv] = useState<"pay" | "ver">("pay");
   /* ⚠ TEXT-BACKED (C82): an emptied box stays empty while the next digit is typed */
   const [windowText, setWindowText] = useState(String(refundWindowHours));
   const [savedWindow, setSavedWindow] = useState(refundWindowHours);
   const windowValue = Math.min(168, Math.max(0, Number(windowText) || 0));
   const [pending, start] = useTransition();
   const isBiz = side === "business" && business !== null;
-  const verified = Boolean(business?.verifiedAt);
 
   const saveWindow = () => {
     if (!business || !canEdit || windowValue === savedWindow) return;
@@ -119,54 +110,15 @@ export function PaymentsScreen({
 
   return (
     <BizPage
-      title={isBiz ? "Payments & verification" : "Payments"}
-      sub={pv === "pay" ? "Cards · UPI · cash" : "Your green tick"}
+      title="Payments"
+      sub="Cards · UPI · cash"
       grad="linear-gradient(135deg,#22C55E,#3B82F6)"
-      top={
-        /* ⚠ THE SEGMENT IS IN THE TOP SECTION (3 Oct 2026, C116) */
-        /* ⚠ ONE COLUMN STYLE UNDER HOME (11 Oct 2026, `ColumnTabs`) */
-        <div style={columnTrack()}>
-          {([["pay", "Payments"], ...(isBiz ? [["ver", "Verification"]] : [])] as Array<["pay" | "ver", string]>).map(([k, l]) => (
-            <button type="button" key={k} aria-pressed={pv === k} onClick={() => setPv(k)} style={columnTab(pv === k)}>
-              {l}
-            </button>
-          ))}
-        </div>
-      }
     >
-      {pv === "ver" && isBiz ? (
-        <>
-          <div style={{ ...bizCard, borderLeft: `4px solid ${verified ? "#22C55E" : "#F59E0B"}` }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ width: 36, height: 36, borderRadius: 18, background: verified ? "rgba(34,197,94,.16)" : "rgba(245,158,11,.16)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                {verified ? (
-                  <Tick size={18} w={2.4} />
-                ) : (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="8.5" />
-                    <path d="M12 8v4.5" />
-                  </svg>
-                )}
-              </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 900 }}>{verified ? (business.type === "studio" ? "Verified studio" : "Verified artist") : "Not verified yet"}</div>
-                <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 1 }}>{verified ? `Green tick shown on your profile and cards · since ${dayWords(business.verifiedAt as string)}` : "DanceOS checks your details and adds the green tick"}</div>
-              </div>
-            </div>
-          </div>
-          {/* ⚠ THE FAKE CHECKLIST IS GONE (19 Oct 2026): its Upload / View / Start
-              verification buttons only showed a toast. A studio's real request is
-              its own Verification page; an artist's tick is DanceOS's to give. */}
-          {business.type === "studio" ? (
-            <Link href={`/business/${business.id}/verification`} style={{ ...bizBtn, display: "block", textAlign: "center", textDecoration: "none" }}>
-              {verified ? "Open verification" : "Get verified"}
-            </Link>
-          ) : null}
-        </>
-      ) : null}
-
-      {pv === "pay" ? (
-        <>
+      {/* ⚠ NO VERIFICATION TAB (28 Oct 2026, the user: one Verification door).
+          A studio's verification is the Verification tile in its Settings
+          (`/business/{id}/verification`); an old address asking for the tab is
+          sent there by the route. This page is the payments content alone. */}
+      <>
           <div style={eyebrow}>{isBiz ? "HOW STUDENTS PAID" : "YOUR METHODS"} · {methods.length}</div>
           {methods.map((m) => {
             const k = kindOf(m.method);
@@ -249,8 +201,7 @@ export function PaymentsScreen({
               </div>
             </div>
           ) : null}
-        </>
-      ) : null}
+      </>
     </BizPage>
   );
 }

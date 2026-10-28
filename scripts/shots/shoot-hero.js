@@ -422,13 +422,9 @@ const enterEdit = async (page) => {
        as well as the present ones. */
     /* ⚠ AND TWO SINCE 2 Oct 2026 (the user: "discover should not be visible in
        navbar when in crew or studio profile") — Discover is named as absent too */
-    check(
-      (await studioBar.getByRole("link", { name: "Discover" }).count()) === 0 &&
-        (await studioBar.getByRole("link", { name: "Enquiries" }).count()) === 0 &&
-        (await studioBar.getByRole("link", { name: "Inbox" }).count()) === 0 &&
-        (await studioBar.getByRole("link").count()) === 1,
-      "studio bar: Home alone — the Inbox left it for the Enquiries tool (18 Oct 2026)"
-    );
+    /* ⚠ AND NO BAR AT ALL SINCE 28 Oct 2026 (Batch 4): a bar holding one tab is a
+       button to the page you are on, so fewer than two tabs draws none */
+    check((await studioBar.count()) === 0, "studio bar: none — a one-tab bar is not drawn (28 Oct 2026)");
     await shot("studio-initials");
 
     /* ⚠⚠ THE MEMBERSHIPS TILE OPENS A DESK, NOT A SHRUG (21 Sep 2026, the user:

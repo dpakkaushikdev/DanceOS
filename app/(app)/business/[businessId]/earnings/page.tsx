@@ -7,6 +7,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findBusinessEarnings } from "@/repositories/earnings";
 import { findBusinessIncome } from "@/repositories/income";
 import { findMyMemberships, runsTheBusiness } from "@/repositories/businesses";
+import { findOpenDisputesForBusiness } from "@/repositories/disputes";
+import { OpenDisputes } from "@/features/payouts/components/OpenDisputes";
 
 /* the clock lives outside the component — this repo's lint refuses an impure
    call during render (react-hooks/purity), even in a server component */
@@ -54,9 +56,10 @@ export default async function BusinessEarningsPage({
 
   const now = stampNowIso();
   const range = asRange(sp.from, sp.to);
-  const [report, income] = await Promise.all([
+  const [report, income, disputes] = await Promise.all([
     findBusinessEarnings(supabase, [businessId], period, now, range),
     findBusinessIncome(supabase, businessId, now),
+    findOpenDisputesForBusiness(supabase, businessId),
   ]);
 
   /* ⚠ NO "OWED" LINE (18 Oct 2026, the user: "remove both of them from
@@ -70,6 +73,7 @@ export default async function BusinessEarningsPage({
       title="Earnings"
       sub={`${business.name} · ${business.type === "artist_page" ? "Artist" : "Studio"}`}
       basePath={`/business/${businessId}/earnings`}
+      lead={<OpenDisputes rows={disputes} />}
     >
       <EarningsDesk businessName={business.name} income={income} />
     </EarningsScreen>

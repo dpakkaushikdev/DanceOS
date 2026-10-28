@@ -25,6 +25,19 @@ function DetailLink({ href, name, tint }: { href: string; name: string; tint: st
   );
 }
 
+/** PAY RENT, FROM THE CARD (28 Oct 2026, the user's batch 4). Drawn only on a
+ *  studio this person's artist page holds unpaid classes in; it goes INSIDE first
+ *  — the studio's Other Team Detail on its Rent column with the sheet open
+ *  (`?show=rent&pay=1`), the team card's Pay → Member Detail precedent (C178).
+ *  ⚠ No rupees on the card (C177): the button names the act, not the amount. */
+function PayRentLink({ venueId, name, tint }: { venueId: string; name: string; tint: string }) {
+  return (
+    <Link href={`/team/other/business/${venueId}?show=rent&pay=1`} data-testid="other-team-pay-rent" aria-label={`Pay rent to ${name} — open the studio's detail`} style={toolBtn("primary", tint)}>
+      Pay rent
+    </Link>
+  );
+}
+
 /** THE OTHER TEAMS COLUMN (18 Oct 2026, the user: "crew team and studio team
  *  should all be managed within teams in artist teams column and should be
  *  removed from studio and crew sections for easier management of all kinds of
@@ -45,6 +58,8 @@ export function OtherTeams({ data, stayOn, rentVenues = [] }: { data: OtherTeams
   const seatStudios = new Set(studioTeams.map((t) => t.business.id));
   const rentOnly = rentVenues.filter((v) => !seatStudios.has(v.venueBusinessId));
   const rentTint = DOS_TOOLS.rooms.c;
+  /* the studios with a class in their rooms still to pay rent for */
+  const owesRent = new Set(rentVenues.filter((v) => v.unpaid.length > 0).map((v) => v.venueBusinessId));
   const empty = studioInvites.length + artistInvites.length + crewAsks.length + studioTeams.length + artistTeams.length + crews.length + rentOnly.length === 0;
   return (
     <div data-testid="other-teams">
@@ -68,6 +83,7 @@ export function OtherTeams({ data, stayOn, rentVenues = [] }: { data: OtherTeams
                   right={<ToolChip word={t.seatWord} fg={t.seatColour} bg={`${t.seatColour}1f`} />}
                 />
                 <ToolActions>
+                  {owesRent.has(t.business.id) ? <PayRentLink venueId={t.business.id} name={t.business.name} tint={rentTint} /> : null}
                   <DetailLink href={`/team/other/business/${t.business.id}`} name={t.business.name} tint={studioTint} />
                 </ToolActions>
               </ToolCard>
@@ -117,6 +133,7 @@ export function OtherTeams({ data, stayOn, rentVenues = [] }: { data: OtherTeams
                     sub={`${classes} ${classes === 1 ? "class" : "classes"} in its rooms`}
                   />
                   <ToolActions>
+                    {owesRent.has(v.venueBusinessId) ? <PayRentLink venueId={v.venueBusinessId} name={v.venueName} tint={rentTint} /> : null}
                     <DetailLink href={`/team/other/business/${v.venueBusinessId}?show=rent`} name={v.venueName} tint={rentTint} />
                   </ToolActions>
                 </ToolCard>

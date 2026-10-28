@@ -3,7 +3,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findMyMemberships } from "@/repositories/businesses";
 import { findProfileById } from "@/repositories/profiles";
 import { DeskBody, DeskTop } from "@/components/ui/DeskSections";
-import { DeskHero } from "@/features/businesses/components/biz-kit";
+import { DeskHero, DOS_TOOLS, HueHead } from "@/features/businesses/components/biz-kit";
+import { findMyArtistPlan } from "@/repositories/plans";
 import { InviteHeadButtons } from "@/features/inbox/components/JoinInvites";
 import { OtherTeams } from "@/features/staff/components/OtherTeams";
 import { loadOtherTeams } from "@/features/staff/server/loadOtherTeams";
@@ -29,12 +30,16 @@ export default async function TeamPage() {
   /* ⚠ NO "PAID TO YOU" ON THIS LIST (19 Oct 2026, the user: "for users paid to
      you section should be inside the team you are a part of … payments should
      not be visible outside") — each team's Detail page has a Paid column */
-  const data = await loadOtherTeams(supabase, user.id);
+  /* A plain user runs no team, so this page is only the teams they are ON — it
+     reads "Teams I'm on" (28 Oct 2026). An artist whose page is not provisioned
+     yet keeps "Team"; a failed plan read is read as a plain user. */
+  const [data, plan] = await Promise.all([loadOtherTeams(supabase, user.id), findMyArtistPlan(supabase).catch(() => null)]);
+  const isArtist = Boolean(plan?.active);
   return (
     <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "0 var(--dos-gutter) 40px", boxSizing: "border-box" }}>
       <DeskTop style={{ paddingBottom: 4 }}>
         <div style={{ position: "relative", margin: "0 0 12px" }}>
-          <DeskHero tool="team" as="h1" margin="0" toggle={false} />
+          {isArtist ? <DeskHero tool="team" as="h1" margin="0" toggle={false} /> : <HueHead title="Teams I'm on" color={DOS_TOOLS.team.c} as="h1" />}
           <InviteHeadButtons
             answered={data.answered}
             answeredTestId="other-team-answered"

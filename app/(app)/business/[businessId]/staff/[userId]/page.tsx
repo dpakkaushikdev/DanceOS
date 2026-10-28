@@ -97,19 +97,11 @@ export default async function TeamMemberRoute({
     )
   );
 
-  /* ⚠ an old `?show=performance` lands on Stats, which holds it now, and an old
-     `?show=payments` on Paid (whose key is still "earnings"), which holds the
-     payments (4 Oct 2026); `?show=paid` is the column's new name */
-  const show: TeamMemberShow =
-    asked === "stats" || asked === "performance"
-      ? "stats"
-      : asked === "classes"
-        ? "classes"
-        : asked === "settle"
-          ? "settle"
-          : asked === "rent" && rent.length > 0
-            ? "rent"
-            : "earnings";
+  /* MONEY · CLASSES · STATS (28 Oct 2026, batch 4). ⚠ Rule 14: every older
+     `?show=` still lands — performance on Stats; settle, earnings, paid,
+     payments, rent (and anything unknown) on Money, which holds all of them.
+     `?show=settle&pay=1` keeps opening the pay sheet: To pay is in Money. */
+  const show: TeamMemberShow = asked === "stats" || asked === "performance" ? "stats" : asked === "classes" ? "classes" : "money";
   return (
     <TeamMemberPage
       businessId={businessId}

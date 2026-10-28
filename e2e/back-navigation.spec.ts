@@ -76,7 +76,9 @@ test.describe.serial("system back and the sheets", () => {
 
     /* a filter that CHANGES the address — with nothing changed the router has
        nothing to replace, and the entry is an orphan the next test covers */
-    await page.getByRole("dialog", { name: "Filters" }).getByRole("button", { name: "Cheapest" }).click();
+    /* Discover opens on Studios since 28 Oct 2026, whose price sort is
+       "Lowest class price" (still `sort=price`) — "Cheapest" is the Classes tab's */
+    await page.getByRole("dialog", { name: "Filters" }).getByRole("button", { name: "Lowest class price", exact: true }).click();
     await page.locator("text=/Show results/i").first().click();
     await expect(page.locator(DIALOG)).toHaveCount(0);
     await page.waitForURL(/sort=price/);

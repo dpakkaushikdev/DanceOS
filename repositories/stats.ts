@@ -256,6 +256,32 @@ export async function findChart(
   }));
 }
 
+/** THE FACES ON A BOARD (29 Oct 2026, the user: "show profile pic in rankings
+ *  in browse the board"). `dance_chart` hands back aggregates and no picture, so
+ *  the pictures are one plain read per kind on the board — people off
+ *  `profiles`, studios off `businesses`, crews off `crews` — under the reader's
+ *  own RLS (the boards are signed-in only). A failed read leaves initials. */
+export async function withChartPhotos(supabase: SupabaseClient, rows: ChartRow[]): Promise<ChartRow[]> {
+  if (rows.length === 0) return rows;
+  const ids = (k: (r: ChartRow) => boolean) => [...new Set(rows.filter(k).map((r) => r.id))];
+  const people = ids((r) => r.kind === "artist" || r.kind === "dancer");
+  const studios = ids((r) => r.kind === "studio");
+  const crews = ids((r) => r.kind === "crew");
+  const read = async (table: string, col: string, list: string[]): Promise<Array<[string, string | null]>> => {
+    if (list.length === 0) return [];
+    const { data, error } = await supabase.from(table).select(`id, ${col}`).in("id", list);
+    if (error || !data) return [];
+    return (data as unknown as Array<Record<string, string | null>>).map((d) => [d.id as string, d[col] ?? null]);
+  };
+  const [a, b, c] = await Promise.all([
+    read("profiles", "profile_photo_path", people),
+    read("businesses", "profile_photo_path", studios),
+    read("crews", "photo", crews),
+  ]);
+  const face = new Map<string, string | null>([...a, ...b, ...c]);
+  return rows.map((r) => ({ ...r, photoPath: face.get(r.id) ?? null }));
+}
+
 /** ONE BOARD ROW FOR ONE ENTITY (push 2, 19 Sep 2026, the user: "stats page on
  *  any profile should show all stats for that particular profile and rankings
  *  as well"): its figures, its place and the population it is ranked out of —

@@ -2,7 +2,7 @@ import { StatsScreen } from "@/features/stats/components/StatsScreen";
 import { findDiscoverCities } from "@/repositories/cities";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { photoUrl } from "@/lib/media/photo";
-import { findChart, findEntityChartRow, findMyHistory, findMyPlace, findMyStats, findPersonHistory, findStudioHistory } from "@/repositories/stats";
+import { findChart, findEntityChartRow, findMyHistory, findMyPlace, findMyStats, findPersonHistory, findStudioHistory, withChartPhotos } from "@/repositories/stats";
 import { EMPTY_STATS, parseChartMetric, type ChartSegment, type DanceStats, type Standing } from "@/types/stats";
 
 /* ⚠ "history" went on 2 Oct 2026 (the user: "remove history from stats for all
@@ -104,7 +104,7 @@ export async function StatsPageBody({ subject, query, basePath }: { subject: Sta
         : user && subject.kind === "person"
           ? findPersonHistory(supabase, subject.id)
           : Promise.resolve([]),
-    tab === "charts" && canBrowseBoards && !isCrew ? findChart(supabase, { segment, city, style: null }) : Promise.resolve([]),
+    tab === "charts" && canBrowseBoards && !isCrew ? findChart(supabase, { segment, city, style: null }).then((rows) => withChartPhotos(supabase, rows)) : Promise.resolve([]),
     isMe ? findMyPlace(supabase, "dancer", null) : Promise.resolve(null),
     /* where YOU stand on THIS board — a people board only, and only when it is
        your own record (the prototype pins a "you" row on Dancers and Artists) */

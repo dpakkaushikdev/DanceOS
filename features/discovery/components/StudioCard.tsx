@@ -129,7 +129,6 @@ export function StudioCard({ business, followers = 0, shots = [] }: { business: 
             ))
           )}
         </div>
-        <FollowerPill n={followers} />
         {many ? (
           <div aria-hidden="true" style={{ position: "absolute", left: 0, right: 0, bottom: 10, display: "flex", justifyContent: "center", gap: 5 }}>
             {live.map((s, i) => (
@@ -191,9 +190,11 @@ export function StudioCard({ business, followers = 0, shots = [] }: { business: 
                   is asking somebody to travel. Where the point was never chosen the
                   card says the place and stops. */}
               <DosWhere city={place} km={business.located ? kmLabel(business.distanceKm) : null} />
-              {/* the follower count moved up onto the picture as a pill (2 Oct 2026) */}
             </span>
           </span>
+          {/* the follower count is in the card's bottom part, on the right of the
+              name (29 Oct 2026) — it was a pill over the posters */}
+          <FollowerPill n={followers} inline />
         </div>
       </div>
     </Link>

@@ -6,6 +6,7 @@ import { SegmentedPanels } from "@/features/shell/components/SegmentedNav";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { dosStyleColor } from "@/lib/constants/styles";
 import { styleFromSlug, styleInfo } from "@/lib/constants/styleInfo";
+import { countryCodes, flagSrc, isGlobal } from "@/lib/constants/countryFlags";
 import { DOS_UI, INK, SUB, TAB_TITLE } from "@/lib/design/tokens";
 import { BeatText } from "@/components/ui/BeatText";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -131,6 +132,29 @@ export default async function StylePage({
           coloured top edge went the way the tool cards' left edge went (4 Oct) */}
       <SectionCard icon={mark(<path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-4M12 8h.01" />)} label="THE FACTS" col={color}>
         <div data-testid="style-facts" style={{ display: "grid", gap: 8 }}>
+          {/* COUNTRY and FAMILY are facts too (29 Oct 2026, the user: "facts should
+              also include country and family in it not on top, country flag should
+              also be there") — they were two chips under the title */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            {(["COUNTRY", "FAMILY"] as const).map((k) => (
+              <div key={k} data-testid={`style-fact-${k.toLowerCase()}`} style={{ background: `${color}10`, border: `1.5px solid ${color}33`, borderRadius: 12, padding: "10px 11px", minWidth: 0 }}>
+                <div style={{ fontSize: 8.5, fontWeight: 900, letterSpacing: 0.6, color: "var(--muted)" }}>{k}</div>
+                {k === "COUNTRY" ? (
+                  <div data-testid="style-flags" aria-hidden="true" style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 6 }}>
+                    {isGlobal(info.country) ? (
+                      <span style={{ fontSize: 18, lineHeight: 1 }}>🌍</span>
+                    ) : (
+                      countryCodes(info.country).map((c) => (
+                        // eslint-disable-next-line @next/next/no-img-element -- a 40px static flag; next/image would need a remote host entry for nothing
+                        <img key={c} src={flagSrc(c)} alt="" width={26} height={18} style={{ width: 26, height: 18, objectFit: "cover", borderRadius: 3, boxShadow: "0 0 0 1px rgba(0,0,0,.12)" }} />
+                      ))
+                    )}
+                  </div>
+                ) : null}
+                <div style={{ fontSize: 12, fontWeight: 800, marginTop: 5, lineHeight: 1.35 }}>{k === "COUNTRY" ? info.country : info.family}</div>
+              </div>
+            ))}
+          </div>
           {[
             ["WHERE IT BEGAN", info.origin],
             ["WHEN", info.era],
@@ -262,16 +286,7 @@ export default async function StylePage({
             <>
               <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1.2, color: SUB }}>DANCE STYLE</div>
               <h1 data-testid="style-title" style={{ ...TAB_TITLE, color: INK, marginTop: 4 }}><BeatText text={style} /></h1>
-              {/* ⚠ the top says WHAT it is in two chips; the long facts (where it
-                  began, when) are THE FACTS card's alone — they were said in both
-                  places (29 Oct 2026, the user: "items being repeated on the page") */}
-              <div data-testid="style-chips" style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                {[info.country, info.family].filter(Boolean).map((t) => (
-                  <span key={t} style={{ fontSize: 11, fontWeight: 900, padding: "5px 10px", borderRadius: 999, background: `${color}1f`, color: INK, border: `1.5px solid ${color}55` }}>
-                    {t}
-                  </span>
-                ))}
-              </div>
+              {/* no country / family chips here — they are THE FACTS card's (29 Oct 2026) */}
             </>
           }
           segments={[

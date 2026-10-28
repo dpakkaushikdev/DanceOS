@@ -93,6 +93,9 @@ export interface ChartRow {
   points: number;
   /** how many were ranked — a place is never printed without it */
   population: number;
+  /** the face on the board (29 Oct 2026) — a storage path, filled by
+   *  `withChartPhotos`; null draws initials */
+  photoPath?: string | null;
 }
 
 /** WHERE ONE ENTITY STANDS ON ONE BOARD — a scope ("Everywhere", "In Pune") and

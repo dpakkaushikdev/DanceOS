@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CitySelect } from "@/features/geo/components/CitySelect";
 import { useState } from "react";
-import { DosStyleTile } from "@/features/discovery/components/DiscoverFilters";
 import { dosStyleColor } from "@/lib/constants/styles";
 import { Sheet } from "@/features/profiles/components/profile-kit";
 import { columnTab, columnTrack } from "@/components/ui/ColumnTabs";
@@ -14,6 +13,8 @@ import { TopPanel } from "@/components/ui/TopPanel";
 import { CARD, DOS_DISPLAY, DOS_UI, INK, LILAC, LINE, MUTED, SUB } from "@/lib/design/tokens";
 import { CHART_METRICS, CHART_SEGMENTS, CREW_POINT_RULES, POINT_RULES, SEG_WORD, SIDE_TINT, chartRowWords, hoursWords, type ChartMetric, type ChartRow, type ChartSegment, type DanceStats, type HistoryRow, type Side, type Standing } from "@/types/stats";
 import { BTN_RESET, BTN_RESET_BLOCK } from "@/components/ui/buttonReset";
+import { photoUrl } from "@/lib/media/photo";
+import { StyleArt } from "@/features/styles/components/StyleArt";
 
 /** Stats — the prototype's Stats is one screen in three dresses, all of
  *  S_profiletab: YOUR RECORD (historyOnly 9862 — "A LIBRARY, NOT A DASHBOARD"),
@@ -48,6 +49,35 @@ const figure: React.CSSProperties = { fontFamily: DOS_MONO, fontWeight: 700, fon
 const dayWords = (iso: string) =>
   new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short" }).format(new Date(iso));
 const initialsOf = (name: string) => name.split(" ").filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "D";
+
+/** A face on the board (29 Oct 2026, the user: "show profile pic in rankings in
+ *  browse the board") — the profile's own picture, initials on the gradient
+ *  when there is none. */
+function BoardFace({ row, size, ring }: { row: ChartRow; size: number; ring?: string }) {
+  const src = photoUrl(row.photoPath ?? null);
+  return (
+    <span
+      style={{
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        flexShrink: 0,
+        overflow: "hidden",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "linear-gradient(135deg,#7C3AED,#EC4899)",
+        color: "#fff",
+        fontWeight: 900,
+        fontFamily: DOS_DISPLAY,
+        fontSize: Math.round(size * 0.33),
+        boxShadow: ring ? `0 0 0 3px ${ring}` : undefined,
+      }}
+    >
+      {src ? <Image src={src} alt="" width={size} height={size} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : initialsOf(row.name)}
+    </span>
+  );
+}
 
 /* the section cards' marks (5 Oct 2026) — one stroke family, drawn in the
    section's own colour inside the band's soft square */
@@ -680,19 +710,33 @@ export function StatsScreen({
             {/* WHAT YOU DANCE MOST (10077): the way a library shows the artists you play most */}
             {styleShelf.length > 0 ? (
               <SectionCard icon={ICON.dance} label={isMe ? "WHAT YOU DANCE MOST" : "WHAT IS DANCED MOST"} col={SEC.dance} right={<span style={{ fontSize: 10.5, fontWeight: 800, color: MUTED, flexShrink: 0 }}>{styleShelf.length} styles</span>}>
-                <div style={{ display: "flex", gap: 14, overflowX: "auto", scrollbarWidth: "none", padding: "4px 0 4px" }}>
-                  {styleShelf.map(([st, n], i) => (
-                    <div key={st} aria-label={`${st} — ${n} sessions`} style={{ flexShrink: 0, textAlign: "center", minWidth: 0 }}>
-                      <div style={{ position: "relative", display: "inline-flex" }}>
-                        <DosStyleTile label={st} color={dosStyleColor(st)} />
-                        {i === 0 ? <span style={{ position: "absolute", right: -6, top: -7, fontSize: 8.5, fontWeight: 900, padding: "2px 6px", borderRadius: 999, background: "var(--text)", color: "var(--solid)" }}>TOP</span> : null}
+                {/* ⚠ A BIG DANCER AND A BIG COUNT PER STYLE (29 Oct 2026, the user:
+                    "what you dance most should have count with big dance style icon
+                    this section can be better") — the Styles tab's own dancer on
+                    the style's colour, the session count set like a figure, the
+                    name, and a bar against the most-danced */}
+                <div data-testid="dance-most" style={{ display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", padding: "6px 0 4px", scrollSnapType: "x mandatory" }}>
+                  {styleShelf.map(([st, n], i) => {
+                    const col = dosStyleColor(st);
+                    return (
+                      <div key={st} data-testid="dance-most-style" aria-label={`${st} — ${n} sessions`} style={{ flex: "0 0 112px", minWidth: 0, scrollSnapAlign: "start", display: "flex", flexDirection: "column", gap: 6, padding: 7, borderRadius: 16, background: "var(--card)", border: "1.5px solid var(--el)" }}>
+                        <div style={{ position: "relative", width: "100%", aspectRatio: "1 / 1", borderRadius: 12, overflow: "hidden", background: `linear-gradient(150deg, ${col}, ${col}99)` }}>
+                          <StyleArt style={st} frame="page" />
+                          {i === 0 ? <span style={{ position: "absolute", left: 6, top: 6, fontSize: 8.5, fontWeight: 900, letterSpacing: 0.6, padding: "2px 7px", borderRadius: 999, background: "var(--text)", color: "var(--solid)" }}>TOP</span> : null}
+                        </div>
+                        <div style={{ textAlign: "center", minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 4 }}>
+                            <span style={{ fontFamily: DOS_DISPLAY, fontWeight: 900, fontSize: 24, letterSpacing: -0.8, lineHeight: 1, color: INK }}>{n}</span>
+                            <span style={{ fontSize: 9.5, fontWeight: 800, color: MUTED }}>session{n === 1 ? "" : "s"}</span>
+                          </div>
+                          <div title={st} style={{ fontSize: 11.5, fontWeight: 900, color: INK, marginTop: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{st}</div>
+                          <div style={{ height: 4, borderRadius: 2, background: LINE, marginTop: 6, overflow: "hidden" }}>
+                            <div style={{ height: 4, borderRadius: 2, width: `${Math.round((100 * n) / (styleShelf[0][1] || 1))}%`, background: col }} />
+                          </div>
+                        </div>
                       </div>
-                      <div style={{ fontSize: 9.5, color: MUTED, marginTop: 1 }}>{n} session{n === 1 ? "" : "s"}</div>
-                      <div style={{ height: 3, borderRadius: 2, background: LINE, marginTop: 5, overflow: "hidden" }}>
-                        <div style={{ height: 3, borderRadius: 2, width: `${Math.round((100 * n) / (styleShelf[0][1] || 1))}%`, background: dosStyleColor(st) }} />
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </SectionCard>
             ) : null}
@@ -957,9 +1001,8 @@ export function StatsScreen({
                     const tall = r.place === 1 ? 70 : r.place === 2 ? 52 : 40;
                     return (
                       <Link key={`pod-${r.kind}-${r.id}`} href={hrefOf(r)} aria-label={`${r.name} — place ${r.place} of ${r.population}`} style={{ display: "flex", flexDirection: "column", alignItems: "center", textDecoration: "none", color: INK, minWidth: 0 }}>
-                        <span style={{ width: r.place === 1 ? 54 : 44, height: r.place === 1 ? 54 : 44, borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg,#7C3AED,#EC4899)", color: "#fff", fontWeight: 900, fontFamily: DOS_DISPLAY, fontSize: r.place === 1 ? 17 : 14, boxShadow: `0 0 0 3px ${medal}`, marginBottom: 6 }}>
-                          {initialsOf(r.name)}
-                        </span>
+                        <BoardFace row={r} size={r.place === 1 ? 54 : 44} ring={medal} />
+                        <span style={{ height: 6 }} />
                         <span style={{ fontSize: 11.5, fontWeight: 900, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
                         {/* the same details every row carries, shorter (29 Oct 2026) */}
                         <span style={{ fontSize: 10.5, fontWeight: 900, padding: "2px 8px", borderRadius: 999, background: `${medal}26`, color: INK, marginTop: 3, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{valueOf(r)} {unit}</span>
@@ -989,9 +1032,7 @@ export function StatsScreen({
                      bar against the leader along the row's foot. */
                   <Link key={`${r.kind}-${r.id}`} href={href} aria-label={`${isYou ? "You — " : ""}${r.name} — place ${r.place} of ${r.population}`} style={{ position: "relative", overflow: "hidden", display: "flex", alignItems: "center", gap: 10, background: isYou ? "linear-gradient(120deg,#7C3AED22,#EC489922)" : CARD, border: `1.5px solid ${isYou ? "#7C3AED77" : LINE}`, borderRadius: 14, padding: "10px 12px 12px", marginBottom: 7, color: INK, textDecoration: "none" }}>
                     <span style={{ ...figure, width: 28, height: 28, borderRadius: 9, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12.5, fontFamily: DOS_DISPLAY, fontWeight: 900, background: top3 ? "linear-gradient(135deg,#7C3AED,#EC4899)" : LINE, color: top3 ? "#fff" : SUB }}>{r.place}</span>
-                    <span style={{ width: 36, height: 36, borderRadius: "50%", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg,#7C3AED,#EC4899)", color: "#fff", fontSize: 12.5, fontWeight: 900, fontFamily: DOS_DISPLAY }}>
-                      {initialsOf(r.name)}
-                    </span>
+                    <BoardFace row={r} size={36} />
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ display: "block", fontSize: 13, fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {r.name}

@@ -54,7 +54,10 @@ export function DosWhere({ city, km, size = 11 }: { city: string; km?: string | 
  *
  *  The caller positions its parent (`position: relative`); the accessible name
  *  is the whole sentence, since a bare "12" means nothing read aloud. */
-export function FollowerPill({ n }: { n: number }) {
+/* ⚠ `inline` (29 Oct 2026, the user: "follower count on studio, artist and styles
+   should be in the bottom part of the cards"): the pill sits in the card's lower
+   section, in the flow, instead of pinned over the picture. */
+export function FollowerPill({ n, inline = false }: { n: number; inline?: boolean }) {
   return (
     <span
       data-testid="follower-pill"
@@ -62,9 +65,7 @@ export function FollowerPill({ n }: { n: number }) {
       aria-label={`${n} ${n === 1 ? "follower" : "followers"}`}
       title={`${fmtF(n)} ${n === 1 ? "follower" : "followers"}`}
       style={{
-        position: "absolute",
-        top: 8,
-        right: 8,
+        ...(inline ? { position: "relative", flexShrink: 0 } : { position: "absolute", top: 8, right: 8 }),
         zIndex: 1,
         display: "inline-flex",
         alignItems: "center",
@@ -73,8 +74,8 @@ export function FollowerPill({ n }: { n: number }) {
         borderRadius: 999,
         background: "var(--text)",
         color: "var(--solid)",
-        boxShadow: "0 2px 8px rgba(0,0,0,.28)",
-        fontSize: 11,
+        boxShadow: inline ? "none" : "0 2px 8px rgba(0,0,0,.28)",
+        fontSize: inline ? 10 : 11,
         fontWeight: 900,
         lineHeight: 1.3,
         fontVariantNumeric: "tabular-nums",

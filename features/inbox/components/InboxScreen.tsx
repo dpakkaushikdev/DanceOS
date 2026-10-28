@@ -77,6 +77,8 @@ const RUNNING = new Set(["ongoing", "advance_paid", "paid", "completing"]);
 
 const chip = (on: boolean, quiet: boolean): React.CSSProperties => ({
   flexShrink: 0,
+  /* a 40px tap target (28 Oct 2026) */
+  minHeight: 40,
   padding: "8px 13px",
   borderRadius: 999,
   cursor: "pointer",
@@ -236,7 +238,10 @@ export function InboxScreen({
 
   return (
     <div style={{ position: "relative", background: LILAC, color: "var(--text)", maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      <TopPanel tint={accent} style={{ margin: "12px 16px 12px" }}>
+      {/* ⚠ DISCOVER'S GUTTER (28 Oct 2026): the side margins are `--dos-gutter`
+          and the top 16, exactly Discover's page padding, so switching tabs
+          does not make the panels jump sideways */}
+      <TopPanel tint={accent} style={{ margin: "16px var(--dos-gutter) 12px" }}>
         <div style={{ position: "relative" }}>
           <h1 data-testid="inbox-title" style={TAB_TITLE}>
             {/* ⚠ "Enquiries", not "Inbox" (18 Oct 2026, the user: "inbox to be renamed as Enquiries") */}
@@ -278,7 +283,7 @@ export function InboxScreen({
         {chips}
       </TopPanel>
 
-      <InvertedPanel ground="page" style={{ flex: 1, margin: "0 16px calc(var(--dos-foot, 96px) + 12px)", borderRadius: 22, padding: "16px 14px 18px" }}>
+      <InvertedPanel ground="page" style={{ flex: 1, margin: "0 var(--dos-gutter) calc(var(--dos-foot, 96px) + 12px)", borderRadius: 22, padding: "16px 14px 18px" }}>
         <div data-testid="inbox-panel" data-tab={tab} style={{ position: "relative" }}>
           {groups.length === 0 ? (
             <div data-testid="enquiries-empty" style={{ textAlign: "center", padding: "30px 18px", color: SUB, border: "1.5px dashed var(--el)", borderRadius: 20, fontSize: 13, lineHeight: 1.5 }}>

@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { setCrewFollowAction, setFollowAction, setPersonFollowAction } from "@/features/follows/server-actions/follows";
 import type { FollowEntry, FollowEntryKind, FollowPageData } from "@/features/follows/server/loadFollowPage";
-import { DOS_DISPLAY, DOS_UI, INK, LILAC, LINE, MUTED, SKY, SUB } from "@/lib/design/tokens";
+import { DOS_UI, INK, LILAC, LINE, MUTED, SKY, SUB } from "@/lib/design/tokens";
+import { HueHead } from "@/features/businesses/components/biz-kit";
+import { DeskTop } from "@/components/ui/DeskSections";
 import { photoUrl } from "@/lib/media/photo";
 import { toast } from "@/components/ui/Toast";
 
@@ -128,13 +130,19 @@ export function FollowsScreen({ data, initialTab, initialShow }: { data: FollowP
 
   return (
     <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "6px var(--dos-gutter) 40px", boxSizing: "border-box" }}>
-      {/* WHOSE LIST — the page's own heading, as Instagram puts the handle on top */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 0 12px" }}>
-        <span style={{ width: 34, height: 34, borderRadius: 17, overflow: "hidden", flexShrink: 0, background: "linear-gradient(135deg,#5AC8FA,#6D28D9)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 12 }}>
-          {face ? <Image src={face} alt="" width={34} height={34} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : initialsOf(data.subject.name)}
-        </span>
-        <h1 style={{ margin: 0, fontFamily: DOS_DISPLAY, fontSize: 19, fontWeight: 900, letterSpacing: -0.3, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{data.subject.name}</h1>
-      </div>
+      {/* WHOSE LIST — the page's own heading (28 Oct 2026: the one heading
+          standard, DeskTop + HueHead with the entity's name), the face on its right */}
+      <DeskTop style={{ margin: "8px 0 12px" }}>
+        <HueHead
+          title={data.subject.name}
+          color={SKY}
+          right={
+            <span style={{ width: 40, height: 40, borderRadius: 20, overflow: "hidden", flexShrink: 0, background: "linear-gradient(135deg,#5AC8FA,#6D28D9)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 12 }}>
+              {face ? <Image src={face} alt="" width={40} height={40} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : initialsOf(data.subject.name)}
+            </span>
+          }
+        />
+      </DeskTop>
 
       {/* THE TWO TABS — equal halves, the one you are on underlined */}
       <div role="tablist" aria-label="Followers and following" style={{ display: "flex", borderBottom: `1px solid ${LINE}` }}>
@@ -179,7 +187,7 @@ export function FollowsScreen({ data, initialTab, initialShow }: { data: FollowP
           style={{ flex: 1, minWidth: 0, background: "none", border: "none", outline: "none", color: INK, fontFamily: "inherit", fontSize: 14, textTransform: "none" }}
         />
         {q ? (
-          <button type="button" aria-label="Clear search" onClick={() => setQ("")} style={{ background: "none", border: "none", color: MUTED, cursor: "pointer", fontSize: 15, padding: 0 }}>
+          <button type="button" aria-label="Clear search" onClick={() => setQ("")} style={{ background: "none", border: "none", color: MUTED, cursor: "pointer", fontSize: 15, padding: 0, minWidth: 40, minHeight: 38, marginRight: -8 }}>
             ✕
           </button>
         ) : null}
@@ -200,6 +208,7 @@ export function FollowsScreen({ data, initialTab, initialShow }: { data: FollowP
               onClick={() => pickShow(s.key)}
               style={{
                 padding: "6px 11px",
+                minHeight: 40,
                 borderRadius: 999,
                 border: `1.5px solid ${on ? "var(--text)" : LINE}`,
                 background: on ? "var(--text)" : "transparent",
@@ -222,7 +231,7 @@ export function FollowsScreen({ data, initialTab, initialShow }: { data: FollowP
           data-testid="follows-sort"
           onClick={() => setSort((s) => NEXT_SORT[s])}
           aria-label={`Sort by ${SORT_WORD[sort]}`}
-          style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", color: INK, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer", padding: 0 }}
+          style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", color: INK, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer", padding: 0, minHeight: 40 }}
         >
           <span style={{ color: MUTED }}>Sort by</span> {SORT_WORD[sort]}
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
@@ -293,6 +302,7 @@ export function FollowsScreen({ data, initialTab, initialShow }: { data: FollowP
                     style={{
                       flexShrink: 0,
                       minWidth: 92,
+                      minHeight: 40,
                       padding: "8px 14px",
                       borderRadius: 10,
                       border: "none",

@@ -6,14 +6,17 @@ import { useState, useTransition } from "react";
 import { endSubscriptionAction } from "@/features/admin/server-actions/subscriptions";
 import { dateWords } from "@/features/settings/components/settings-kit";
 import { toast } from "@/components/ui/Toast";
-import { DOS_DISPLAY, INK, SUB } from "@/lib/design/tokens";
+import { INK, SUB } from "@/lib/design/tokens";
 import type { AdminSubscription, SubscriptionStatus } from "@/repositories/subscriptions";
 import { agoWords } from "@/types/notification";
+import { toolBtn, type ToolBtnKind } from "@/components/ui/ToolCard";
+import { DeskHero } from "./desk-kit";
 
 const CARD = "var(--card)";
 const EL = "var(--el)";
 const MUTED = "var(--muted)";
-const btn: React.CSSProperties = { height: 32, padding: "0 11px", borderRadius: 10, fontSize: 11, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", border: `1.5px solid ${EL}`, background: CARD, color: INK };
+/* the one button standard (28 Oct 2026): `toolBtn`, at least 40px tall, sized to its words */
+const btn = (kind: ToolBtnKind, tint: string): React.CSSProperties => toolBtn(kind, tint, { flex: "0 0 auto", minHeight: 40 });
 
 const STATUS: Record<SubscriptionStatus, { word: string; tone: string }> = {
   pending_auth: { word: "NOT AUTHORISED", tone: "#F59E0B" },
@@ -60,18 +63,12 @@ export function SubscriptionsDesk({ rows, status, nowIso }: { rows: AdminSubscri
 
   return (
     <div style={{ padding: "14px 16px var(--dos-foot, 40px)" }}>
-      <div style={{ borderRadius: 22, padding: "15px 17px 14px", marginBottom: 12, position: "relative", overflow: "hidden", color: "#fff", background: pastDue > 0 ? "linear-gradient(135deg,#9F1239,#F43F5E)" : "linear-gradient(135deg,#166534,#22C55E)" }}>
-        <div style={{ position: "absolute", right: -28, top: -32, width: 130, height: 130, borderRadius: 65, background: "rgba(255,255,255,.13)" }} />
-        {/* the page's own `<h1>` — the chrome no longer prints a drill page's name (28 Sep 2026) */}
-        <h1 style={{ margin: 0, fontSize: 21, fontWeight: 800, letterSpacing: -0.5, position: "relative", fontFamily: DOS_DISPLAY, lineHeight: 1.18 }}>Subscriptions</h1>
-        <div style={{ fontSize: 11, opacity: 0.9, marginTop: 2, position: "relative" }}>
-          {pastDue > 0 ? `${pastDue} renewal${pastDue === 1 ? "" : "s"} failing` : `${rows.length} shown`}
-        </div>
-      </div>
+      {/* the page's own `<h1>`, in the one heading standard (DeskTop + HueHead, 28 Oct 2026) */}
+      <DeskHero title="Subscriptions" sub={pastDue > 0 ? `${pastDue} renewal${pastDue === 1 ? "" : "s"} failing` : `${rows.length} shown`} tint={pastDue > 0 ? "#F43F5E" : "#22C55E"} />
 
       <div style={{ display: "flex", gap: 6, marginBottom: 12, overflowX: "auto", scrollbarWidth: "none" }}>
         {FILTERS.map(([k, label]) => (
-          <Link key={k} href={`/admin/subscriptions?status=${k}`} style={{ flex: "0 0 auto", padding: "6px 11px", borderRadius: 999, fontSize: 11, fontWeight: 800, textDecoration: "none", background: status === k ? "var(--text)" : CARD, color: status === k ? "var(--solid)" : SUB, border: `1.5px solid ${status === k ? "var(--text)" : EL}`, whiteSpace: "nowrap" }}>
+          <Link key={k} href={`/admin/subscriptions?status=${k}`} style={{ flex: "0 0 auto", minHeight: 40, boxSizing: "border-box", display: "inline-flex", alignItems: "center", padding: "6px 13px", borderRadius: 999, fontSize: 11, fontWeight: 800, textDecoration: "none", background: status === k ? "var(--text)" : CARD, color: status === k ? "var(--solid)" : SUB, border: `1.5px solid ${status === k ? "var(--text)" : EL}`, whiteSpace: "nowrap" }}>
             {label}
           </Link>
         ))}
@@ -112,10 +109,10 @@ export function SubscriptionsDesk({ rows, status, nowIso }: { rows: AdminSubscri
                       <label htmlFor={`end-${s.id}`} style={{ display: "block", fontSize: 9.5, fontWeight: 900, letterSpacing: 1, color: MUTED, marginBottom: 5 }}>WHY — THEY READ THIS</label>
                       <textarea id={`end-${s.id}`} value={reason} onChange={(e) => setReason(e.target.value)} rows={2} maxLength={300} placeholder="Why it is ending now, in a sentence." style={{ width: "100%", boxSizing: "border-box", background: "var(--bg)", border: `1.5px solid ${EL}`, borderRadius: 10, padding: "8px 10px", fontSize: 12, color: INK, fontFamily: "inherit", resize: "vertical" }} />
                       <div style={{ display: "flex", gap: 6, marginTop: 7 }}>
-                        <button type="button" disabled={pending || reason.trim().length < 3} onClick={() => end(s)} style={{ ...btn, background: "#EF4444", color: "#fff", border: "none", opacity: reason.trim().length < 3 ? 0.5 : 1 }} aria-label={`Confirm ending ${who}'s subscription`}>
+                        <button type="button" disabled={pending || reason.trim().length < 3} onClick={() => end(s)} style={{ ...btn("primary", "#EF4444"), opacity: reason.trim().length < 3 ? 0.5 : 1 }} aria-label={`Confirm ending ${who}'s subscription`}>
                           {pending ? "Ending…" : "End it now"}
                         </button>
-                        <button type="button" onClick={() => { setEnding(null); setReason(""); }} style={btn}>Cancel</button>
+                        <button type="button" onClick={() => { setEnding(null); setReason(""); }} style={btn("secondary", st.tone)}>Cancel</button>
                       </div>
                       <div style={{ fontSize: 10, color: MUTED, marginTop: 6, lineHeight: 1.45 }}>
                         A sanction: access stops today, not at the period&apos;s end, and the mandate is cancelled so nothing more is charged.
@@ -123,13 +120,13 @@ export function SubscriptionsDesk({ rows, status, nowIso }: { rows: AdminSubscri
                     </div>
                   ) : (
                     <div style={{ display: "flex", gap: 6, marginTop: 9, flexWrap: "wrap" }}>
-                      <button type="button" onClick={() => { setReason(""); setEnding(s.id); }} style={{ ...btn, color: "#B42318" }} aria-label={`End ${who}'s subscription`}>
+                      <button type="button" onClick={() => { setReason(""); setEnding(s.id); }} style={btn("danger", st.tone)} aria-label={`End ${who}'s subscription`}>
                         End now
                       </button>
                       {s.kind === "studio" && s.businessName ? (
-                        <Link href={`/admin/businesses?q=${encodeURIComponent(s.businessName)}`} style={{ ...btn, display: "inline-flex", alignItems: "center", textDecoration: "none" }}>Open in Businesses</Link>
+                        <Link href={`/admin/businesses?q=${encodeURIComponent(s.businessName)}`} style={btn("secondary", st.tone)}>Open in Businesses</Link>
                       ) : (
-                        <Link href={`/admin/accounts?q=${encodeURIComponent(s.userName)}`} style={{ ...btn, display: "inline-flex", alignItems: "center", textDecoration: "none" }}>Open in Accounts</Link>
+                        <Link href={`/admin/accounts?q=${encodeURIComponent(s.userName)}`} style={btn("secondary", st.tone)}>Open in Accounts</Link>
                       )}
                     </div>
                   )

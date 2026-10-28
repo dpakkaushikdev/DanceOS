@@ -8,7 +8,6 @@ import { CENTER_CARD, CENTER_SCRIM } from "@/components/ui/centerModal";
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
 import { SKY } from "@/lib/design/tokens";
 import { qrMatrix } from "@/lib/qr/encode";
-import { dosKey } from "./ShareSheet";
 
 const DOS_MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace';
 
@@ -59,55 +58,40 @@ function scannableSize(link: string): number {
  *  code in a sheet — the square somebody points a camera at, the address, and
  *  the phone's own share sheet one press further. The QR is kept (a door scans
  *  it), it is simply no longer a section of the page. */
+/** ⚠ ONE SHARE ICON (28 Oct 2026, batch 5 design pass): the two pills under
+ *  the card became one round share button; Copy link lives inside the sheet,
+ *  beside the code and the phone's own share. */
 export function ClassShareButtons({ link, title, col, fire }: { link: string; title: string; col: string; fire?: (msg: string) => void }) {
   const [open, setOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
   useCloseOnBack(() => setOpen(false), open);
-  const copy = () => {
-    try {
-      if (navigator.clipboard?.writeText) navigator.clipboard.writeText(link);
-    } catch {
-      /* blocked — the sheet shows the address to copy by hand */
-    }
-    setCopied(true);
-    fire?.("🔗 Link copied");
-    setTimeout(() => setCopied(false), 1800);
-  };
-  const pill = (filled: boolean): React.CSSProperties => ({
-    flex: "1 1 0",
-    minWidth: 0,
-    minHeight: 42,
-    borderRadius: 999,
-    border: filled ? "none" : `1.5px solid ${col}66`,
-    background: filled ? col : `${col}14`,
-    color: filled ? "#fff" : "var(--text)",
-    fontWeight: 900,
-    fontSize: 12.5,
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 7,
-    fontFamily: "inherit",
-  });
   return (
     <>
-      <div data-testid="class-share-buttons" style={{ display: "flex", gap: 8, margin: "10px 0 2px" }}>
-        <button type="button" onClick={copy} aria-label="Copy the booking link" style={pill(false)}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1" />
-            <path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1" />
-          </svg>
-          {copied ? "Copied ✓" : "Copy link"}
-        </button>
-        <button type="button" onClick={() => setOpen(true)} aria-label="Share class" style={pill(true)}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <div data-testid="class-share-buttons" style={{ display: "flex", justifyContent: "flex-end", margin: "8px 0 2px" }}>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label="Share class"
+          title="Share class"
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 999,
+            border: `1.5px solid ${col}66`,
+            background: `${col}14`,
+            color: "var(--text)",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontFamily: "inherit",
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <circle cx="18" cy="5" r="2.6" />
             <circle cx="6" cy="12" r="2.6" />
             <circle cx="18" cy="19" r="2.6" />
             <path d="M8.3 10.8 15.7 6.4M8.3 13.2l7.4 4.4" />
           </svg>
-          Share class
         </button>
       </div>
       {/* ⚠ PORTALLED (18 Oct 2026): drawn in place, the scrim sat inside the
@@ -177,12 +161,15 @@ export function ClassShare({
   const btn = (active: boolean): React.CSSProperties => ({
     textAlign: "center",
     padding: "9px 10px",
+    minHeight: 40,
     borderRadius: 999,
     background: "var(--solid)",
     border: "1.5px solid var(--el)",
     fontWeight: 800,
     fontSize: 12,
-    color: active ? "#22C55E" : SKY,
+    fontFamily: "inherit",
+    /* ink mixed toward the text colour — raw sky/green fails contrast on a light card */
+    color: `color-mix(in srgb, ${active ? "#22C55E" : SKY} 62%, var(--text))`,
     cursor: "pointer",
     whiteSpace: "nowrap",
     display: "flex",
@@ -200,8 +187,13 @@ export function ClassShare({
         <div title={link} style={{ fontFamily: DOS_MONO, fontSize: 11, color: "var(--sub)", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {shown}
         </div>
-        <div role="button" tabIndex={0} onKeyDown={dosKey} onClick={() => void share()} aria-label="Share the booking link" style={{ ...btn(false), width: "100%" }}>
-          Send it to somebody
+        <div style={{ display: "flex", gap: 8, width: "100%" }}>
+          <button type="button" onClick={copy} aria-label="Copy the booking link" style={{ ...btn(done), flex: "1 1 0" }}>
+            {done ? "Copied ✓" : "Copy link"}
+          </button>
+          <button type="button" onClick={() => void share()} aria-label="Share the booking link" style={{ ...btn(false), flex: "1 1 0" }}>
+            Send it to somebody
+          </button>
         </div>
       </div>
     );
@@ -227,10 +219,10 @@ export function ClassShare({
         >
           {shown}
         </div>
-        <div role="button" tabIndex={0} onKeyDown={dosKey} onClick={copy} aria-label="Copy the booking link" style={btn(done)}>
+        <button type="button" onClick={copy} aria-label="Copy the booking link" style={btn(done)}>
           {done ? "Copied ✓" : "Copy link"}
-        </div>
-        <div role="button" tabIndex={0} onKeyDown={dosKey} onClick={() => void share()} aria-label="Share the booking link" style={btn(false)}>
+        </button>
+        <button type="button" onClick={() => void share()} aria-label="Share the booking link" style={btn(false)}>
           {/* the share mark every platform draws: a node joined to two others */}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <circle cx="18" cy="5" r="2.6" />
@@ -239,7 +231,7 @@ export function ClassShare({
             <path d="M8.3 10.8 15.7 6.4M8.3 13.2l7.4 4.4" />
           </svg>
           Share
-        </div>
+        </button>
       </div>
     </div>
   );

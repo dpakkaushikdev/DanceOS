@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { DOS_DISPLAY, SUB } from "@/lib/design/tokens";
+import { SUB } from "@/lib/design/tokens";
+import { DeskHero } from "./desk-kit";
 import type { AuditEntry } from "@/repositories/adminPanel";
 import { agoWords } from "@/types/notification";
 
@@ -47,22 +48,16 @@ export function AuditLog({ entries, nowIso, filter }: { entries: AuditEntry[]; n
   const kinds = [...new Set(entries.map((e) => e.action))].sort();
   return (
     <div style={{ padding: "14px 16px var(--dos-foot, 40px)" }}>
-      <div style={{ borderRadius: 22, padding: "15px 17px 14px", marginBottom: 14, position: "relative", overflow: "hidden", color: "#fff", background: "linear-gradient(135deg,#334155,#64748B)" }}>
-        <div style={{ position: "absolute", right: -28, top: -32, width: 130, height: 130, borderRadius: 65, background: "rgba(255,255,255,.13)" }} />
-        {/* the page's own `<h1>` — the chrome no longer prints a drill page's name (28 Sep 2026) */}
-        <h1 style={{ margin: 0, fontSize: 21, fontWeight: 800, letterSpacing: -0.5, position: "relative", fontFamily: DOS_DISPLAY, lineHeight: 1.18 }}>Audit log</h1>
-        <div style={{ fontSize: 11, opacity: 0.9, marginTop: 2, position: "relative" }}>
-          {entries.length === 0 ? "no decisions recorded yet" : `${entries.length} decision${entries.length === 1 ? "" : "s"}, newest first`}
-        </div>
-      </div>
+      {/* the page's own `<h1>` — the one heading standard (DeskTop + HueHead, 28 Oct 2026) */}
+      <DeskHero title="Audit log" tint="#64748B" sub={entries.length === 0 ? "no decisions recorded yet" : `${entries.length} decision${entries.length === 1 ? "" : "s"}, newest first`} />
 
       {kinds.length > 1 || filter ? (
         <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", marginBottom: 12 }}>
-          <Link href="/admin/audit" style={{ flex: "0 0 auto", padding: "6px 11px", borderRadius: 999, fontSize: 11, fontWeight: 800, textDecoration: "none", background: filter ? CARD : "var(--text)", color: filter ? SUB : "var(--solid)", border: `1.5px solid ${filter ? EL : "var(--text)"}` }}>
+          <Link href="/admin/audit" style={{ flex: "0 0 auto", minHeight: 40, boxSizing: "border-box", display: "inline-flex", alignItems: "center", padding: "6px 13px", borderRadius: 999, fontSize: 11, fontWeight: 800, textDecoration: "none", background: filter ? CARD : "var(--text)", color: filter ? SUB : "var(--solid)", border: `1.5px solid ${filter ? EL : "var(--text)"}` }}>
             Everything
           </Link>
           {kinds.map((k) => (
-            <Link key={k} href={`/admin/audit?action=${encodeURIComponent(k)}`} style={{ flex: "0 0 auto", padding: "6px 11px", borderRadius: 999, fontSize: 11, fontWeight: 800, textDecoration: "none", whiteSpace: "nowrap", background: filter === k ? "var(--text)" : CARD, color: filter === k ? "var(--solid)" : SUB, border: `1.5px solid ${filter === k ? "var(--text)" : EL}` }}>
+            <Link key={k} href={`/admin/audit?action=${encodeURIComponent(k)}`} style={{ flex: "0 0 auto", minHeight: 40, boxSizing: "border-box", display: "inline-flex", alignItems: "center", padding: "6px 13px", borderRadius: 999, fontSize: 11, fontWeight: 800, textDecoration: "none", whiteSpace: "nowrap", background: filter === k ? "var(--text)" : CARD, color: filter === k ? "var(--solid)" : SUB, border: `1.5px solid ${filter === k ? "var(--text)" : EL}` }}>
               {k}
             </Link>
           ))}

@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 
-import { DOS_TOOLS, DeskHero } from "@/features/businesses/components/biz-kit";
+import { DOS_TOOLS, HueHead } from "@/features/businesses/components/biz-kit";
 import { SegmentedPanels } from "@/features/shell/components/SegmentedNav";
 import { ToolBody, ToolCard, ToolChip, ToolFacts, ToolHead } from "@/components/ui/ToolCard";
 import { columnTab, columnTrack } from "@/components/ui/ColumnTabs";
@@ -288,23 +288,19 @@ function EarningsPanel({
             );
           })}
         </div>
+        {/* ⚠ TWO TILES, NOT SIX (28 Oct 2026, the design pass: eight number tiles
+            on one screen cut to the four that matter — the card's Classes and
+            Students, and these two). Earned and Studio keeps are the folds'
+            own figures below; the payment count and the last date are on the
+            Paid fold's lines. */}
         <ToolFacts
           tint={tint}
           items={[
-            { label: "Earned", value: rupees(revenue), testId: "team-revenue" },
             { label: "Paid them", value: rupees(paid), testId: "team-paid" },
             { label: "To pay", value: work.owedEntries.length, tint: work.owedEntries.length > 0 ? "#F59E0B" : undefined, testId: "team-to-settle" },
           ]}
         />
-        <ToolFacts
-          tint={tint}
-          style={{ marginTop: 6 }}
-          items={[
-            { label: "Studio keeps", value: totalWords, tint: totalTint, testId: "team-total-earnings" },
-            { label: history.payouts.length === 1 ? "Payment" : "Payments", value: history.payouts.length },
-            { label: "Last paid", value: last ? dayWords(last).replace(/ \d{4}$/, "") : "—" },
-          ]}
-        />
+        {last ? <div style={{ fontSize: 10.5, color: SUB, marginTop: 6 }}>Last paid {dayWords(last).replace(/ \d{4}$/, "")}</div> : null}
         {/* ⚠ A CAPPED READ SAYS SO (21 Sep 2026) */}
         {!history.complete || !work.complete ? <div style={{ fontSize: 10.5, color: "#F59E0B", marginTop: 8, lineHeight: 1.45 }}>Showing recent payments only — older ones aren&apos;t counted.</div> : null}
         </Fold>
@@ -532,7 +528,9 @@ export function TeamMemberPage({
   const top = (
     <>
       {/* ⚠ NOTHING BETWEEN THE HEADING AND THE CARD (4 Oct 2026, the user) */}
-      <DeskHero tool="team" as="h1" margin="0 0 12px" />
+      {/* the heading is the PERSON's name (28 Oct 2026 — a page about one person
+          is headed by who it is about, in the one heading standard) */}
+      <HueHead title={member.name} color={tint} bottom="12px" />
       {/* no bold line on the left (4 Oct 2026) */}
       <ToolCard testId="team-member">
         <ToolHead

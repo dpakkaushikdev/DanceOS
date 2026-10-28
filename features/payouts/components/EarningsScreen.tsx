@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type CSSProperties, type ReactNode } from "react";
 import { columnTab, columnTrack } from "@/components/ui/ColumnTabs";
-import { FigureHead } from "@/components/ui/FigureHead";
 import { DeskBody, DeskMiddle, DeskTop } from "@/components/ui/DeskSections";
 import { Portal } from "@/components/ui/Portal";
 import { DOS_TOOLS, DeskHero, SHEET_ANIMATION } from "@/features/businesses/components/biz-kit";
@@ -18,7 +17,6 @@ import {
   RED,
   RankBars,
   SplitBar,
-  Trend,
   deltaOf,
   itemsOf,
   methodSplit,
@@ -61,6 +59,9 @@ const chipBtn: CSSProperties = {
   color: INK,
   borderRadius: 999,
   padding: "6px 11px",
+  minHeight: 40,
+  minWidth: 40,
+  justifyContent: "center",
   fontSize: 11,
   fontWeight: 900,
   cursor: "pointer",
@@ -239,20 +240,12 @@ export function EarningsScreen({
         <div style={{ display: "grid", gridTemplateColumns: noExpenses ? "1fr 1fr" : "1fr 1fr 1fr", gap: 7, margin: "10px 0" }}>
           <Kpi label="IN" value={revenue} tone={GREEN} delta={range ? null : deltaOf(revenue, prevRev)} onOpen={() => setDive("revenue")} testId="earn-kpi-in" />
           {noExpenses ? null : <Kpi label="OUT" value={expenses} tone={RED} delta={range ? null : deltaOf(expenses, prevExp)} invert onOpen={() => setDive("expenses")} testId="earn-kpi-out" />}
-          <Kpi label="TAKE-HOME" value={left} tone={left < 0 ? RED : GREEN} delta={range ? null : deltaOf(left, prevLeft)} onOpen={() => setDive("left")} testId="earn-kpi-left" />
+          <Kpi label="TAKE-HOME" value={left} tone={left < 0 ? RED : GREEN} delta={range ? null : deltaOf(left, prevLeft)} onOpen={() => setDive("left")} testId="earn-kpi-left" valueTestId="earn-left" />
         </div>
 
-        {/* WHAT IS LEFT — revenue minus expenses, nothing else is deducted */}
-        <div style={{ ...card, marginBottom: 0, background: left < 0 ? "rgba(248,113,113,.10)" : "rgba(34,197,94,.10)", border: `1.5px solid ${left < 0 ? RED : GREEN}55` }}>
-          <FigureHead
-            title={<span style={{ fontSize: 11, fontWeight: 900, letterSpacing: 0.7, color: "var(--muted)" }}>TAKE-HOME</span>}
-            figure={
-              <b style={{ fontSize: 22, fontWeight: 900, color: left < 0 ? RED : GREEN }} data-testid="earn-left">
-                {money(left)}
-              </b>
-            }
-          />
-        </div>
+        {/* ⚠ WHAT IS LEFT IS SAID ONCE (28 Oct 2026, batch 5): the TAKE-HOME tile
+            above is the figure — a second card repeating it was removed; the tile's
+            value carries `earn-left` */}
 
         {/* ⚠ NO "OWED" OR "STUDIO NEEDS TO PAY" LINES (18 Oct 2026, the user:
             "remove both of them from earnings"): a team payment and rent are in
@@ -285,26 +278,9 @@ export function EarningsScreen({
         )}
 
         {/* REPORTS — every chart is drawn from the rows above */}
+        {/* ⚠ NO TREND CHART HERE (28 Oct 2026, batch 5): it repeated the bar chart
+            at the top over the same buckets */}
         <div style={{ ...eyebrow, margin: "16px 2px 8px" }}>REPORTS</div>
-        <div style={card} data-testid="earn-report-trend">
-          <div style={{ ...eyebrow, marginBottom: 6 }}>TREND</div>
-          <Trend
-            points={buckets.map((b) => ({ revenue: b.revenueInr, expenses: noExpenses ? 0 : b.expensesInr }))}
-            selectedIndex={selIdx}
-            label="Money in and out over this window"
-          />
-          <div style={{ display: "flex", gap: 12, fontSize: 10.5, fontWeight: 800, color: SUB, marginTop: 5 }}>
-            <span>
-              <span style={{ color: GREEN }}>●</span> In {money(buckets.reduce((n, b) => n + b.revenueInr, 0))}
-            </span>
-            {noExpenses ? null : (
-              <span>
-                <span style={{ color: RED }}>●</span> Out {money(buckets.reduce((n, b) => n + b.expensesInr, 0))}
-              </span>
-            )}
-            <span style={{ marginLeft: "auto" }}>{buckets.length} {report.period}s</span>
-          </div>
-        </div>
 
         <div style={card} data-testid="earn-report-sources">
           <div style={{ ...eyebrow, marginBottom: 8 }}>SOURCES</div>
@@ -375,7 +351,7 @@ export function EarningsScreen({
   );
 }
 
-function Kpi({ label, value, tone, delta, invert = false, onOpen, testId }: { label: string; value: number; tone: string; delta: { words: string; tone: string } | null; invert?: boolean; onOpen: () => void; testId: string }) {
+function Kpi({ label, value, tone, delta, invert = false, onOpen, testId, valueTestId }: { label: string; value: number; tone: string; delta: { words: string; tone: string } | null; invert?: boolean; onOpen: () => void; testId: string; valueTestId?: string }) {
   /* for money OUT, up is not good news — the arrow keeps its direction, the colour flips */
   const dTone = delta && invert ? (delta.tone === GREEN ? RED : delta.tone === RED ? GREEN : delta.tone) : delta?.tone;
   return (
@@ -387,7 +363,7 @@ function Kpi({ label, value, tone, delta, invert = false, onOpen, testId }: { la
       style={{ ...card, marginBottom: 0, padding: "9px 10px", textAlign: "left", cursor: "pointer", fontFamily: DOS_UI, color: INK, minWidth: 0 }}
     >
       <div style={eyebrow}>{label}</div>
-      <div style={{ fontSize: 15, fontWeight: 900, color: tone, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{money(value)}</div>
+      <div data-testid={valueTestId} style={{ fontSize: 15, fontWeight: 900, color: tone, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{money(value)}</div>
       <div style={{ fontSize: 9.5, fontWeight: 900, color: dTone ?? "var(--muted)", marginTop: 2 }}>{delta ? `${delta.words} vs before` : " "}</div>
     </button>
   );

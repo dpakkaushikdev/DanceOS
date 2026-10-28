@@ -3,6 +3,7 @@ import { DOS_DISPLAY, INK, SUB } from "@/lib/design/tokens";
 import type { AdminCommunication, AdminNotification } from "@/repositories/adminPanel";
 import { agoWords } from "@/types/notification";
 import { DeskNeedsMigration } from "./DeskNeedsMigration";
+import { DeskHero } from "./desk-kit";
 
 const CARD = "var(--card)";
 const EL = "var(--el)";
@@ -79,19 +80,12 @@ export function CommunicationDesk({
 
   return (
     <div style={{ padding: "14px 16px var(--dos-foot, 40px)" }}>
-      <div style={{ borderRadius: 22, padding: "15px 17px 14px", marginBottom: 12, position: "relative", overflow: "hidden", color: "#fff", background: waiting > 0 ? "linear-gradient(135deg,#B45309,#F59E0B)" : "linear-gradient(135deg,#4C1D95,#7C3AED)" }}>
-        <div style={{ position: "absolute", right: -28, top: -32, width: 130, height: 130, borderRadius: 65, background: "rgba(255,255,255,.13)" }} />
-        <div style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: 1.2, opacity: 0.85, position: "relative" }}>COMMUNICATION</div>
-        {/* the page's own `<h1>` — the chrome no longer prints a drill page's name (28 Sep 2026) */}
-        <h1 style={{ margin: 0, fontSize: 21, fontWeight: 800, letterSpacing: -0.5, position: "relative", fontFamily: DOS_DISPLAY, lineHeight: 1.18, marginTop: 2 }}>
-          {waiting > 0
-            ? `${waiting} conversation${waiting === 1 ? "" : "s"} where the last word is theirs`
-            : "Nobody is waiting on a reply"}
-        </h1>
-        <div style={{ fontSize: 11, opacity: 0.9, marginTop: 2, position: "relative" }}>
-          {pulse.notifications.today} notification{pulse.notifications.today === 1 ? "" : "s"} raised today
-        </div>
-      </div>
+      {/* the page's own `<h1>`, in the one heading standard (DeskTop + HueHead, 28 Oct 2026) */}
+      <DeskHero
+        title={waiting > 0 ? `${waiting} conversation${waiting === 1 ? "" : "s"} where the last word is theirs` : "Nobody is waiting on a reply"}
+        sub={`${pulse.notifications.today} notification${pulse.notifications.today === 1 ? "" : "s"} raised today`}
+        tint={waiting > 0 ? "#F59E0B" : "#7C3AED"}
+      />
 
       {needsMigration ? <DeskNeedsMigration what="The communication desk" /> : null}
 

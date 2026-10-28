@@ -43,6 +43,10 @@ export const stageTint = (s: EnquiryStatus): string =>
           ? "#F59E0B"
           : "#3B82F6";
 
+/** a stage's colour as TEXT — mixed with the theme's ink so amber and green words
+ *  stay readable on a light card (28 Oct 2026, the accessibility pass) */
+export const stageInk = (c: string): string => `color-mix(in srgb, ${c} 62%, var(--text))`;
+
 /** the sentence under a road that ENDED rather than arrived */
 const endedWords: Partial<Record<EnquiryStatus, string>> = {
   declined: "The studio declined this enquiry.",
@@ -120,14 +124,14 @@ export function EnquiryRoad({ stage, compact = false }: { stage: EnquiryStatus; 
       {compact ? null : (
         <div style={{ display: "flex", gap: 3, marginTop: 5 }}>
           {ENQ_ROAD.map((s, i) => (
-            <span key={s} style={{ flex: 1, textAlign: "center", fontSize: 8.5, fontWeight: i === at ? 900 : 700, color: !lost && i === at ? c : "var(--muted)", lineHeight: 1.2 }}>
+            <span key={s} style={{ flex: 1, textAlign: "center", fontSize: 8.5, fontWeight: i === at ? 900 : 700, color: !lost && i === at ? stageInk(c) : "var(--muted)", lineHeight: 1.2 }}>
               {ENQ_STAGE_WORD[s]}
             </span>
           ))}
         </div>
       )}
       {lost && !compact ? (
-        <div style={{ fontSize: 10.5, fontWeight: 800, color: c, marginTop: 6 }}>{endedWords[stage] ?? "This enquiry ended."}</div>
+        <div style={{ fontSize: 10.5, fontWeight: 800, color: stageInk(c), marginTop: 6 }}>{endedWords[stage] ?? "This enquiry ended."}</div>
       ) : null}
     </div>
   );
@@ -158,7 +162,7 @@ export function EnquiryCard({ e, out, nowIso }: { e: Enquiry; out: boolean; nowI
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 13px", background: `${tc}14`, borderBottom: `1.5px solid ${tc}33` }}>
         <EnqIcon k={e.typeKey} size={14} color={tc} sw={2} />
-        <span style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: 0.9, color: tc, textTransform: "uppercase" }}>{label}</span>
+        <span style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: 0.9, color: stageInk(tc), textTransform: "uppercase" }}>{label}</span>
         <span style={{ marginLeft: "auto", fontSize: 9.5, color: "var(--muted)" }}>{agoWords(e.createdAt, nowIso)}</span>
       </div>
       <div style={{ padding: "11px 13px 12px" }}>
@@ -175,14 +179,14 @@ export function EnquiryCard({ e, out, nowIso }: { e: Enquiry; out: boolean; nowI
             </div>
           </div>
           <div style={{ textAlign: "right", flexShrink: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 900, color: value ? c : "var(--muted)" }}>{value ? moneyShort(value) : "—"}</div>
+            <div style={{ fontSize: 15, fontWeight: 900, color: value ? stageInk(c) : "var(--muted)" }}>{value ? moneyShort(value) : "—"}</div>
             <div style={{ fontSize: 9, color: "var(--muted)", marginTop: 1 }}>{quotes ? (quotes > 1 ? `quote #${live?.n ?? quotes}` : "quoted") : "no quote yet"}</div>
           </div>
         </div>
         <div style={{ marginTop: 10 }}>
           <EnquiryRoad stage={stage} compact />
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 6 }}>
-            <span style={{ fontSize: 10.5, fontWeight: 900, color: c, textTransform: "uppercase", letterSpacing: 0.5 }}>
+            <span style={{ fontSize: 10.5, fontWeight: 900, color: stageInk(c), textTransform: "uppercase", letterSpacing: 0.5 }}>
               {revisionAsked(e) ? "Revised quote asked" : ENQ_STAGE_WORD[stage]}
             </span>
             <span style={{ flex: 1, minWidth: 0, fontSize: 10.5, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "right" }}>

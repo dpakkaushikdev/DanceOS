@@ -137,6 +137,22 @@ function Sec({ icon, label, col, children }: { icon: ReactNode; label: string; c
   );
 }
 
+/* ⚠ ONE CARD, THREE PARTS (28 Oct 2026, batch 5 design pass): ROUTINES, CLASS
+   ASSISTANTS and POLICY were three cards; they are sub-parts of one "About this
+   class" card now. Each keeps its old label as a small heading and as `data-sec`
+   on its own wrapper, so anything that found a section by its label still does. */
+function SubPart({ icon, label, first, children }: { icon: ReactNode; label: string; first: boolean; children: ReactNode }) {
+  return (
+    <div data-sec={label} style={first ? undefined : { marginTop: 14, paddingTop: 12, borderTop: "1.5px solid var(--el)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 9 }}>
+        <span aria-hidden="true" style={{ display: "flex" }}>{icon}</span>
+        <h3 style={{ margin: 0, fontFamily: DOS_DISPLAY, fontSize: 11, fontWeight: 900, letterSpacing: 0.6, color: "var(--sub)" }}>{label}</h3>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 /** ⚠ A CLASS YOU CANNOT BOOK STILL SHOWS ITS BUTTON, DISABLED (18 Oct 2026, the
  *  user: "if cant book a class due to permissions and rules book now button should
  *  be visible but disabled"). One shape for every closed door on the bar — a
@@ -1456,9 +1472,25 @@ export function ClassDetail({
             dance — that is the order somebody reads a class in"), and a routine
             is CHOSEN here, never typed: it is a thing you already made, in
             Routines. Drawn whenever there is one, or for whoever may add one. ── */}
-        {(routines.length > 0 || canSetRoutines) && (
+        {(() => {
+          const showRoutines = routines.length > 0 || canSetRoutines;
+          const showTeam = !isDraft || canManage || canAddAssistant;
+          const showPolicy = !done;
+          if (!showRoutines && !showTeam && !showPolicy) return null;
+          return (
           <Sec
             col={col}
+            label="About this class"
+            icon={
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={col} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="8.5" />
+                <path d="M12 11v5.5M12 7.6v.2" />
+              </svg>
+            }
+          >
+        {showRoutines && (
+          <SubPart
+            first
             label="ROUTINES"
             icon={
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={col} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -1468,7 +1500,7 @@ export function ClassDetail({
             }
           >
             <ClassRoutines classId={c.id} shareSlug={c.shareSlug} col={col} routines={routines} mine={myRoutines} canEdit={canSetRoutines} style={c.style} />
-          </Sec>
+          </SubPart>
         )}
 
         {/* ── THE CLASS TEAM (12356-12391) — an assistant is a person with a job
@@ -1476,9 +1508,9 @@ export function ClassDetail({
             whole permission model made visible: "Edit ›" only where you may change
             it, "View ›" everywhere else. Confirmed names only reach a stranger; the
             studio's own people see the asks too. ── */}
-        {(!isDraft || canManage || canAddAssistant) && (
-          <Sec
-            col={col}
+        {showTeam && (
+          <SubPart
+            first={!showRoutines}
             label="CLASS ASSISTANTS"
             icon={
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={col} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -1539,7 +1571,7 @@ export function ClassDetail({
                       </span>
                     </Link>
                     {!controls ? (
-                      <Link href={`/person/${cl.userId}`} aria-label={`View ${cl.personName}`} style={{ fontSize: 11, fontWeight: 800, color: "var(--sub)", flexShrink: 0, textDecoration: "none" }}>
+                      <Link href={`/person/${cl.userId}`} aria-label={`View ${cl.personName}`} style={{ fontSize: 11, fontWeight: 800, color: "var(--sub)", flexShrink: 0, textDecoration: "none", minHeight: 40, display: "flex", alignItems: "center", padding: "0 6px" }}>
                         View ›
                       </Link>
                     ) : null}
@@ -1565,14 +1597,14 @@ export function ClassDetail({
                 You are assisting on this class{canAtt || canRef ? ` — you hold ${[canAtt ? "attendance" : null, canRef ? "refunds" : null].filter(Boolean).join(" and ")}.` : "."}
               </div>
             ) : null}
-          </Sec>
+          </SubPart>
         )}
 
         {/* ── POLICY — what the price does NOT tell you (12399-12402). The
             Memberships row waits for passes to exist (see backlog). ── */}
-        {!done && (
-          <Sec
-            col={col}
+        {showPolicy && (
+          <SubPart
+            first={!showRoutines && !showTeam}
             label="POLICY"
             icon={
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={col} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -1611,8 +1643,11 @@ export function ClassDetail({
                 </div>
               );
             })()}
-          </Sec>
+          </SubPart>
         )}
+          </Sec>
+          );
+        })()}
 
         {/* ⚠ THE SHARE SECTION MOVED UNDER THE CARD (18 Oct 2026) — `ClassShareButtons`. */}
           </>

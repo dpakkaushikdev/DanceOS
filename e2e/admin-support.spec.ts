@@ -273,7 +273,7 @@ test.describe("the admin panel: support, trust, accountability", () => {
     await admin.goto("/");
     await expect(admin).toHaveURL(/\/admin\/verifications|\/admin$/);
     await admin.goto("/admin");
-    await expect(admin.getByText(/thing(s)? need you/)).toBeVisible();
+    await expect(admin.getByText(/thing(s)? need you/).first()).toBeVisible(); // the hue heading also draws it as aria-hidden letters
 
     // the conversation is waiting, and it is unread to the ADMIN
     await adminGoto(admin, `panel-admin-${stamp}@example.com`, "/admin/support");

@@ -1,12 +1,12 @@
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
-import { DOS_TOOLS } from "@/features/businesses/components/biz-kit";
+import { DOS_TOOLS, HueHead } from "@/features/businesses/components/biz-kit";
 import { SegmentedPanels } from "@/features/shell/components/SegmentedNav";
 import { ProgressBar, SpentOn, expiryWords, unitWord } from "@/features/memberships/components/usage-kit";
 import { money as rupees } from "@/features/payouts/components/earnings-kit";
 import { ToolBody, ToolCard, ToolChip, ToolFace, ToolFacts, ToolTitle } from "@/components/ui/ToolCard";
 import { FigureHead } from "@/components/ui/FigureHead";
-import { DOS_DISPLAY, DOS_UI, INK, LILAC, MUTED, SUB } from "@/lib/design/tokens";
+import { DOS_UI, INK, LILAC, MUTED, SUB } from "@/lib/design/tokens";
 import type { StudentRecord } from "@/repositories/studentRecord";
 import { StudentClassesPanel } from "./StudentClassesPanel";
 
@@ -293,6 +293,10 @@ export function StudentRecordScreen({ businessId, businessName, record, show }: 
   const r = record;
   const base = `/business/${businessId}/students/${r.userId}`;
   const top = (
+    <>
+    {/* the page's own `<h1>` is the STUDENT's name (28 Oct 2026, the one heading
+        standard: DeskTop + HueHead, headed by who the page is about) */}
+    <HueHead title={r.name} color={TINT} bottom="10px" />
     <div style={{ display: "flex", alignItems: "center", gap: 13, padding: "4px 2px 12px" }}>
       {/* ⚠ THE PICTURE IS THE DOOR TO THEIR PROFILE (4 Oct 2026, the user:
           "remove profile button besides location as profile pic takes there") */}
@@ -301,11 +305,10 @@ export function StudentRecordScreen({ businessId, businessName, record, show }: 
       </Link>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: 0.8, textTransform: "uppercase", color: TINT, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Student · {businessName}</div>
-        {/* the page's own `<h1>` — the chrome prints no drill page's name (28 Sep) */}
-        <h1 style={{ margin: "2px 0 0", fontFamily: DOS_DISPLAY, fontSize: 22, fontWeight: 800, letterSpacing: -0.5, lineHeight: 1.15, overflowWrap: "anywhere" }}>{r.name}</h1>
         {r.city ? <div style={{ marginTop: 4, fontSize: 11.5, color: SUB }}>{r.city}</div> : null}
       </div>
     </div>
+    </>
   );
   return (
     <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "14px var(--dos-gutter) 40px", boxSizing: "border-box" }}>

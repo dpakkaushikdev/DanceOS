@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 
-import { DOS_TOOLS, DeskHero } from "@/features/businesses/components/biz-kit";
+import { DOS_TOOLS, HueHead } from "@/features/businesses/components/biz-kit";
 import { SegmentedPanels } from "@/features/shell/components/SegmentedNav";
 import { ToolCard, ToolChip, ToolFacts, ToolHead } from "@/components/ui/ToolCard";
 import { FigureHead } from "@/components/ui/FigureHead";
@@ -99,7 +99,8 @@ export function OtherBusinessDetail({
 
   const top = (
     <>
-      <DeskHero tool="team" as="h1" margin="0 0 12px" toggle={false} />
+      {/* headed by the team's own name (28 Oct 2026, the one heading standard) */}
+      <HueHead title={name} color={tint} bottom="12px" />
       <ToolCard testId="other-detail-team">
         <ToolHead
           tint={tint}
@@ -173,30 +174,20 @@ export function OtherBusinessDetail({
             {/* ⚠ No money here — what was paid and what is not settled are the Paid
                 column's, and this column does not say them a second time */}
             <div style={panel}>
+              {/* ⚠ FOUR TILES, NOT SEVEN (28 Oct 2026, the design pass) — the
+                  dates and what is still to come are one quiet line under them */}
               <ToolFacts
                 tint={tint}
-                items={[
-                  { label: "First class", value: work.firstAt ? dateWords(work.firstAt) : "—" },
-                  { label: "Last class", value: work.lastAt ? dateWords(work.lastAt) : "—" },
-                ]}
-              />
-              <ToolFacts
-                tint={tint}
-                style={{ marginTop: 6 }}
                 items={[
                   { label: "Took", value: work.taught },
                   { label: "Assisted", value: work.assisted },
                   { label: "Hours", value: hoursWords(work.minutes) },
-                ]}
-              />
-              <ToolFacts
-                tint={tint}
-                style={{ marginTop: 6 }}
-                items={[
-                  { label: "To come", value: work.upcoming },
                   { label: "Checked in", value: work.dancers, testId: "other-detail-checked-in" },
                 ]}
               />
+              <div style={{ fontSize: 10.5, color: SUB, marginTop: 8, lineHeight: 1.45 }}>
+                {[work.firstAt ? `First class ${dateWords(work.firstAt)}` : null, work.lastAt ? `last ${dateWords(work.lastAt)}` : null, work.upcoming ? `${work.upcoming} to come` : null].filter(Boolean).join(" · ") || "No classes yet."}
+              </div>
               <div style={{ fontSize: 10.5, color: MUTED, marginTop: 8, lineHeight: 1.45 }}>Checked in counts only the classes whose register you can open.</div>
               {!work.complete ? <div style={{ fontSize: 10.5, color: "#F59E0B", marginTop: 4 }}>Counting the latest rows only — the figures may be short.</div> : null}
             </div>
@@ -268,7 +259,7 @@ export function OtherCrewDetail({
 
   const top = (
     <>
-      <DeskHero tool="team" as="h1" margin="0 0 12px" toggle={false} />
+      <HueHead title={crew.name} color={tint} bottom="12px" />
       <ToolCard testId="other-detail-team" href={`/crew/${crew.id}`} hrefLabel={`${crew.name} — their profile page`}>
         <ToolHead
           tint={tint}

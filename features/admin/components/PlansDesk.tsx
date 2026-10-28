@@ -6,11 +6,14 @@ import { setPlanPriceAction } from "@/features/admin/server-actions/subscription
 import { toast } from "@/components/ui/Toast";
 import { DOS_DISPLAY, INK, SUB } from "@/lib/design/tokens";
 import type { PlanCatalogRow } from "@/repositories/plans";
+import { toolBtn, type ToolBtnKind } from "@/components/ui/ToolCard";
+import { DeskHero } from "./desk-kit";
 
 const CARD = "var(--card)";
 const EL = "var(--el)";
 const MUTED = "var(--muted)";
-const btn: React.CSSProperties = { height: 32, padding: "0 11px", borderRadius: 10, fontSize: 11, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", border: `1.5px solid ${EL}`, background: CARD, color: INK };
+/* the one button standard (28 Oct 2026): `toolBtn`, at least 40px tall, sized to its words */
+const btn = (kind: ToolBtnKind, tint: string): React.CSSProperties => toolBtn(kind, tint, { flex: "0 0 auto", minHeight: 40 });
 
 const KIND_WORDS: Record<PlanCatalogRow["kind"], { who: string; what: string; tone: string }> = {
   artist: { who: "a user", what: "unlocks the artist tools and makes their profile public", tone: "#EC4899" },
@@ -63,12 +66,8 @@ export function PlansDesk({ plans }: { plans: PlanCatalogRow[] }) {
 
   return (
     <div style={{ padding: "14px 16px var(--dos-foot, 40px)" }}>
-      <div style={{ borderRadius: 22, padding: "15px 17px 14px", marginBottom: 12, position: "relative", overflow: "hidden", color: "#fff", background: "linear-gradient(135deg,#B45309,#F59E0B)" }}>
-        <div style={{ position: "absolute", right: -28, top: -32, width: 130, height: 130, borderRadius: 65, background: "rgba(255,255,255,.13)" }} />
-        {/* the page's own `<h1>` — the chrome no longer prints a drill page's name (28 Sep 2026) */}
-        <h1 style={{ margin: 0, fontSize: 21, fontWeight: 800, letterSpacing: -0.5, position: "relative", fontFamily: DOS_DISPLAY, lineHeight: 1.18 }}>Plans</h1>
-        <div style={{ fontSize: 11, opacity: 0.9, marginTop: 2, position: "relative" }}>what DanceOS charges, and to whom</div>
-      </div>
+      {/* the page's own `<h1>`, in the one heading standard (DeskTop + HueHead, 28 Oct 2026) */}
+      <DeskHero title="Plans" sub="what DanceOS charges, and to whom" tint="#F59E0B" />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {plans.map((p) => {
@@ -101,10 +100,10 @@ export function PlansDesk({ plans }: { plans: PlanCatalogRow[] }) {
                     style={{ width: "100%", boxSizing: "border-box", background: "var(--bg)", border: `1.5px solid ${EL}`, borderRadius: 10, padding: "9px 10px", fontSize: 15, fontWeight: 800, color: INK, fontFamily: "inherit", fontVariantNumeric: "tabular-nums" }}
                   />
                   <div style={{ display: "flex", gap: 6, marginTop: 7 }}>
-                    <button type="button" disabled={pending} onClick={() => save(p, p.active)} style={{ ...btn, background: "var(--text)", color: "var(--solid)", border: "none" }} aria-label={`Save the price of ${p.label}`}>
+                    <button type="button" disabled={pending} onClick={() => save(p, p.active)} style={btn("primary", words.tone)} aria-label={`Save the price of ${p.label}`}>
                       {pending ? "Saving…" : "Save price"}
                     </button>
-                    <button type="button" onClick={() => setEditing(null)} style={btn}>Cancel</button>
+                    <button type="button" onClick={() => setEditing(null)} style={btn("secondary", words.tone)}>Cancel</button>
                   </div>
                   <div style={{ fontSize: 10, color: MUTED, marginTop: 6, lineHeight: 1.45 }}>
                     Takes effect for the next order. Anyone who already paid keeps the price they paid; a live period is not
@@ -113,10 +112,10 @@ export function PlansDesk({ plans }: { plans: PlanCatalogRow[] }) {
                 </div>
               ) : (
                 <div style={{ display: "flex", gap: 6, marginTop: 9, flexWrap: "wrap" }}>
-                  <button type="button" onClick={() => { setPrice(String(p.priceInr)); setEditing(p.key); }} style={btn} aria-label={`Change the price of ${p.label}`}>
+                  <button type="button" onClick={() => { setPrice(String(p.priceInr)); setEditing(p.key); }} style={btn("tinted", words.tone)} aria-label={`Change the price of ${p.label}`}>
                     Change price
                   </button>
-                  <button type="button" disabled={pending} onClick={() => toggle(p)} style={{ ...btn, color: p.active ? "#B42318" : "#15803D" }} aria-label={p.active ? `Take ${p.label} off offer` : `Put ${p.label} on offer`}>
+                  <button type="button" disabled={pending} onClick={() => toggle(p)} style={p.active ? btn("danger", words.tone) : btn("tinted", "#15803D")} aria-label={p.active ? `Take ${p.label} off offer` : `Put ${p.label} on offer`}>
                     {p.active ? "Take off offer" : "Put on offer"}
                   </button>
                 </div>

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { DOS_DISPLAY, INK, SUB } from "@/lib/design/tokens";
+import { DeskTop } from "@/components/ui/DeskSections";
+import { HueHead } from "@/features/businesses/components/biz-kit";
 
 const CARD = "var(--card)";
 const EL = "var(--el)";
@@ -52,24 +54,27 @@ const qs = (params: Record<string, string | number | null | undefined>): string 
  *  Support · Dashboard and the rest), which is why it is fixed at the hero
  *  rather than ten times over. Nothing moves on screen: `margin: 0` is what a
  *  browser's own `<h1>` margin would otherwise add. */
-export function DeskHero({ eyebrow, title, sub, tint, icon, right }: { eyebrow: string; title: string; sub: string; tint: string; icon?: ReactNode; right?: ReactNode }) {
-  return (
-    <div style={{ borderRadius: 22, padding: "15px 17px 14px", marginBottom: 12, position: "relative", overflow: "hidden", color: "#fff", background: `linear-gradient(135deg, ${tint}cc, ${tint})` }}>
-      <div style={{ position: "absolute", right: -28, top: -32, width: 130, height: 130, borderRadius: 65, background: "rgba(255,255,255,.13)" }} />
-      <div style={{ display: "flex", alignItems: "center", gap: 12, position: "relative" }}>
+/*  ⚠ THE ONE HEADING STANDARD (28 Oct 2026, design pass batch 5): the old
+ *  coloured gradient slab is gone — a desk's heading is a `DeskTop` squircle
+ *  holding `HueHead` (the title in `TAB_TITLE`, the desk's tint washing down),
+ *  exactly as every tool page is headed. The eyebrow prop is still accepted
+ *  and no longer drawn (the title already says what the desk is); the icon rides on the heading's line in a chip tinted with the desk's colour. */
+export function DeskHero({ title, sub, tint, icon, right }: { eyebrow?: string; title: string; sub: string; tint: string; icon?: ReactNode; right?: ReactNode }) {
+  const corner =
+    icon || right ? (
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+        {right}
         {icon ? (
-          <span style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 14, background: "rgba(0,0,0,.28)", border: "1.5px solid rgba(255,255,255,.35)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+          <span aria-hidden="true" style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 13, background: `color-mix(in srgb, ${tint} 16%, transparent)`, border: `1.5px solid color-mix(in srgb, ${tint} 40%, transparent)`, display: "flex", alignItems: "center", justifyContent: "center", color: `color-mix(in srgb, ${tint} 62%, var(--text))` }}>
             {icon}
           </span>
         ) : null}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: 1.2, opacity: 0.85 }}>{eyebrow}</div>
-          <h1 style={{ margin: 0, fontSize: 21, fontWeight: 800, letterSpacing: -0.5, fontFamily: DOS_DISPLAY, lineHeight: 1.18, marginTop: 2 }}>{title}</h1>
-          <div style={{ fontSize: 11, opacity: 0.9, marginTop: 2 }}>{sub}</div>
-        </div>
-        {right}
       </div>
-    </div>
+    ) : undefined;
+  return (
+    <DeskTop style={{ margin: "0 0 12px" }}>
+      <HueHead title={title} color={tint} right={corner} sub={sub} bottom="4px" />
+    </DeskTop>
   );
 }
 
@@ -180,11 +185,11 @@ export function Pager({ base, page, total, size = PAGE_SIZE, keep = {} }: { base
   const to = Math.min(total, page * size);
   const link = (p: number, label: string, enabled: boolean) =>
     enabled ? (
-      <Link href={`${base}${qs({ ...keep, page: p })}`} style={{ height: 34, padding: "0 13px", borderRadius: 10, border: `1.5px solid ${EL}`, background: CARD, color: INK, fontSize: 11.5, fontWeight: 800, display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
+      <Link href={`${base}${qs({ ...keep, page: p })}`} style={{ height: 40, padding: "0 13px", borderRadius: 10, border: `1.5px solid ${EL}`, background: CARD, color: INK, fontSize: 11.5, fontWeight: 800, display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
         {label}
       </Link>
     ) : (
-      <span aria-disabled="true" style={{ height: 34, padding: "0 13px", borderRadius: 10, border: `1.5px solid ${EL}`, background: CARD, color: MUTED, fontSize: 11.5, fontWeight: 800, display: "inline-flex", alignItems: "center", opacity: 0.5 }}>
+      <span aria-disabled="true" style={{ height: 40, padding: "0 13px", borderRadius: 10, border: `1.5px solid ${EL}`, background: CARD, color: MUTED, fontSize: 11.5, fontWeight: 800, display: "inline-flex", alignItems: "center", opacity: 0.5 }}>
         {label}
       </span>
     );

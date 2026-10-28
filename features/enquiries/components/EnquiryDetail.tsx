@@ -17,15 +17,19 @@ import {
   sendQuoteAction,
 } from "@/features/enquiries/server-actions/enquiries";
 import { confirmCheckoutAction, startEnquiryCheckoutAction } from "@/features/payments/server-actions/payments";
-import { EnqFace, EnquiryRoad, stageTint } from "@/features/enquiries/components/enquiry-kit";
+import { EnqFace, EnquiryRoad, stageInk, stageTint } from "@/features/enquiries/components/enquiry-kit";
+import { DeskBody, DeskTop } from "@/components/ui/DeskSections";
+import { SectionCard } from "@/components/ui/SectionCard";
+import { toolBtn } from "@/components/ui/ToolCard";
+import { HueHead } from "@/features/businesses/components/biz-kit";
 import { QuoteComposer, QuoteLines, type ComposerValue } from "@/features/enquiries/components/QuoteComposer";
 import { EnquiryFilesPanel, EnquiryPracticesPanel, EnquiryTeamPanel, type TeamPick } from "@/features/enquiries/components/EnquiryJobPanels";
 import { EnquiryFormSheet } from "@/features/enquiries/components/EnquiryFormSheet";
-import { DosHero, EnqIcon, Eyebrow, Surface, agoWords, dateWords, money } from "@/features/inbox/components/inbox-kit";
+import { EnqIcon, agoWords, dateWords, money } from "@/features/inbox/components/inbox-kit";
 import { DOS_MONO } from "@/features/inbox/components/inbox-kit";
 import { ColumnCount, columnTab, columnTrack } from "@/components/ui/ColumnTabs";
 import { openCashfreeCheckout, preloadCheckout } from "@/lib/cashfree/checkout-client";
-import { DOS_UI, LILAC } from "@/lib/design/tokens";
+import { DOS_UI } from "@/lib/design/tokens";
 import { toast } from "@/components/ui/Toast";
 import { PAYMENT_ERROR, plainError } from "@/lib/errors";
 import { statusWord } from "@/lib/format/money";
@@ -64,21 +68,31 @@ import {
  *  Every rule is the database's (the RPCs). ⚠ Money logic is untouched by the
  *  re-cut — the same actions, the same arguments, only moved. */
 
-const bizBtn: React.CSSProperties = {
-  width: "100%",
-  textAlign: "center",
-  padding: 13,
-  borderRadius: 999,
-  background: "var(--text)",
-  color: "var(--solid)",
-  fontWeight: 900,
-  fontSize: 13.5,
-  cursor: "pointer",
-  border: "none",
-  fontFamily: "inherit",
-};
-const ghostBtn: React.CSSProperties = { ...bizBtn, background: "var(--el)", color: "var(--text)", fontWeight: 800, fontSize: 12.5 };
-const greenBtn: React.CSSProperties = { ...bizBtn, background: "#22C55E", color: "#07240F" };
+/* ⚠ THE APP'S ONE BUTTON (28 Oct 2026, the design pass): every button on this
+   page is `toolBtn` — the page had its own three. Full width by default, a 40px
+   tap target, and a caller's `flex` / `width` still wins where a row splits. */
+const BTN_BASE: React.CSSProperties = { width: "100%", minHeight: 40, fontSize: 12.5, whiteSpace: "normal", lineHeight: 1.25 };
+const ghostBtn: React.CSSProperties = toolBtn("secondary", "#64748B", BTN_BASE);
+const greenBtn: React.CSSProperties = toolBtn("primary", "#22C55E", BTN_BASE);
+const tintBtn = (c: string): React.CSSProperties => toolBtn("primary", c, BTN_BASE);
+/** a colour as TEXT on a card — never a raw pale accent */
+const ink = stageInk;
+
+/** a section of the page — the app's one section card, with a small dot in the
+ *  section's colour when it has no icon of its own */
+function Sec({ label, col, icon, right, testId, children }: { label: string; col: string; icon?: React.ReactNode; right?: React.ReactNode; testId?: string; children: React.ReactNode }) {
+  return (
+    <SectionCard
+      label={label}
+      col={col}
+      right={right}
+      testId={testId}
+      icon={icon ?? <span style={{ width: 10, height: 10, borderRadius: 5, background: col }} />}
+    >
+      {children}
+    </SectionCard>
+  );
+}
 const fieldStyle: React.CSSProperties = {
   width: "100%",
   boxSizing: "border-box",
@@ -443,7 +457,7 @@ export function EnquiryDetail({
                   ["None", 0],
                 ] as Array<[string, number]>
               ).map(([w, v]) => (
-                <button key={w} type="button" aria-pressed={Number(askAmount) === v} onClick={() => setAskAmount(String(v))} style={{ ...ghostBtn, padding: "7px 4px", fontSize: 11, background: Number(askAmount) === v ? "var(--text)" : "var(--el)", color: Number(askAmount) === v ? "var(--solid)" : "var(--sub)" }}>
+                <button key={w} type="button" aria-pressed={Number(askAmount) === v} onClick={() => setAskAmount(String(v))} style={{ ...ghostBtn, padding: "7px 4px", fontSize: 11, background: Number(askAmount) === v ? "var(--text)" : "transparent", color: Number(askAmount) === v ? "var(--solid)" : "var(--sub)" }}>
                   {w}
                 </button>
               ))}
@@ -460,7 +474,7 @@ export function EnquiryDetail({
           <button type="button" onClick={() => setAsk(null)} style={{ ...ghostBtn, flex: 1, color: "var(--sub)" }}>
             Back
           </button>
-          <button type="button" disabled={busy} onClick={() => void submitAsk()} style={{ ...bizBtn, flex: 1.5, background: ask.danger ? "#F87171" : "var(--text)", color: ask.danger ? "#1F0707" : "var(--solid)" }}>
+          <button type="button" disabled={busy} onClick={() => void submitAsk()} style={{ ...(ask.danger ? toolBtn("primary", "#DC2626", BTN_BASE) : tintBtn(tint)), flex: 1.5 }}>
             {ask.confirm}
           </button>
         </div>
@@ -485,22 +499,21 @@ export function EnquiryDetail({
   const shown = live ?? base;
   const mayQuote = mine && acts && ["new", "accepted", "quoted"].includes(e.status);
   const quoteCard = shown ? (
-    <Surface tint={quoteColour(shown, nowIso)}>
-      {/* ⚠ RE-CUT (18 Oct 2026, the user: "better designed … quotes section") —
-          the price large, how it splits as one bar, the lines under it */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={smallLabel}>{quotes.length > 1 ? `QUOTE #${shown.n}` : "THE QUOTE"}</span>
-        {shown.validUntil && shown.status === "sent" ? (
-          <span style={{ fontSize: 10, fontWeight: 800, color: quoteExpired(shown, nowIso) ? "#F87171" : "var(--muted)" }}>· valid until {dateWords(shown.validUntil)}</span>
-        ) : null}
-        <span
-          data-testid="live-quote-state"
-          style={{ marginLeft: "auto", fontSize: 10, fontWeight: 900, padding: "4px 9px", borderRadius: 999, color: quoteColour(shown, nowIso), background: "var(--solid)", border: `1.5px solid ${quoteColour(shown, nowIso)}55` }}
-        >
+    <Sec
+      label={quotes.length > 1 ? `QUOTE #${shown.n}` : "THE QUOTE"}
+      col={quoteColour(shown, nowIso)}
+      right={
+        <span data-testid="live-quote-state" style={{ flexShrink: 0, fontSize: 10, fontWeight: 900, padding: "4px 9px", borderRadius: 999, color: ink(quoteColour(shown, nowIso)), background: "var(--solid)", border: "1.5px solid var(--el)" }}>
           {quoteWord(shown, nowIso)}
         </span>
-      </div>
-      <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: -1, fontFamily: DOS_MONO, marginTop: 6 }}>{money(shown.costInr)}</div>
+      }
+    >
+      {/* ⚠ RE-CUT (18 Oct 2026, the user: "better designed … quotes section") —
+          the price large, how it splits as one bar, the lines under it */}
+      {shown.validUntil && shown.status === "sent" ? (
+        <div style={{ fontSize: 10.5, fontWeight: 800, color: quoteExpired(shown, nowIso) ? ink("#F87171") : "var(--muted)" }}>Valid until {dateWords(shown.validUntil)}</div>
+      ) : null}
+      <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: -1, fontFamily: DOS_MONO, marginTop: 4 }}>{money(shown.costInr)}</div>
       {/* the split: up front, then on completion — one bar, two labels */}
       <div style={{ display: "flex", height: 8, borderRadius: 999, overflow: "hidden", background: "var(--el)", marginTop: 9 }}>
         {shown.advanceInr > 0 ? <div style={{ width: `${Math.max(4, Math.min(100, shown.advancePct))}%`, background: "#8B5CF6" }} /> : null}
@@ -554,50 +567,55 @@ export function EnquiryDetail({
           </>
         )
       ) : null}
-    </Surface>
+    </Sec>
   ) : (
-    <Surface>
+    <Sec label="THE QUOTE" col="#64748B">
       <div style={hint}>{mine ? "No quote yet." : `No quote yet — ${e.businessName} sends one here.`}</div>
-    </Surface>
+    </Sec>
   );
 
   return (
-    <div style={{ background: LILAC, maxWidth: 430, margin: "0 auto", color: "var(--text)", paddingBottom: 40, fontFamily: DOS_UI, minHeight: "100vh" }}>
-      <DosHero
-        tint={tint}
-        label={mine ? type?.label ?? e.typeKey : `${type?.label ?? e.typeKey} · you asked`}
-        title={otherName}
-        right={
-          mayEnd ? (
-            /* ⚠ CALL IT OFF ON THE TOP RIGHT (18 Oct 2026). The accessible name is
-               the old button's, so every locator still finds it */
-            <button
-              type="button"
-              disabled={busy}
-              aria-label={mine ? "Call it off" : "Withdraw enquiry"}
-              data-testid="enquiry-end"
-              onClick={openEnd}
-              style={{ flexShrink: 0, padding: "7px 12px", borderRadius: 999, border: "1.5px solid rgba(255,255,255,.55)", background: "rgba(220,38,38,.92)", color: "#fff", fontWeight: 900, fontSize: 11.5, cursor: "pointer", fontFamily: "inherit" }}
-            >
-              {mine ? "Call off" : "Withdraw"}
-            </button>
-          ) : (
-            <span style={{ width: 38, height: 38, borderRadius: 19, background: "rgba(255,255,255,.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <EnqIcon k={e.typeKey} size={19} color="#fff" sw={2} />
-            </span>
-          )
-        }
-      />
-      <div style={{ padding: "12px var(--dos-gutter) 0" }}>
+    <div style={{ maxWidth: 430, margin: "0 auto", color: "var(--text)", padding: "0 var(--dos-gutter) 40px", boxSizing: "border-box", fontFamily: DOS_UI, minHeight: "100vh" }}>
+      {/* ⚠ THE STANDARD HEAD (28 Oct 2026, the design pass): DeskTop + HueHead
+          in the enquiry kind's hue, the other party's name as the title — the
+          old purple DosHero slab is gone */}
+      <DeskTop tint={tint}>
+        <HueHead
+          title={otherName}
+          color={tint}
+          sub={mine ? type?.label ?? e.typeKey : `${type?.label ?? e.typeKey} · you asked`}
+          right={
+            mayEnd ? (
+              /* ⚠ CALL IT OFF ON THE TOP RIGHT (18 Oct 2026). The accessible name is
+                 the old button's, so every locator still finds it */
+              <button
+                type="button"
+                disabled={busy}
+                aria-label={mine ? "Call it off" : "Withdraw enquiry"}
+                data-testid="enquiry-end"
+                onClick={openEnd}
+                style={toolBtn("danger", "#EF4444", { flex: "none", minHeight: 40, fontSize: 12 })}
+              >
+                {mine ? "Call off" : "Withdraw"}
+              </button>
+            ) : (
+              <span aria-hidden="true" style={{ width: 40, height: 40, borderRadius: 20, background: "var(--card)", border: "1.5px solid var(--el)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <EnqIcon k={e.typeKey} size={19} color={tint} sw={2} />
+              </span>
+            )
+          }
+        />
+      </DeskTop>
+      <DeskBody>
         {ask?.key === "end" ? (
-          <Surface tint="#F87171">
+          <Sec label={mine ? "CALL IT OFF" : "WITHDRAW"} col="#F87171">
             <div style={hint}>{m.paidInr > 0 ? `${money(m.paidInr)} is paid — propose what goes back; ${otherName} accepts, counters or refuses.` : `Nothing is paid, so it ends at once.`}</div>
             {askBox("end")}
-          </Surface>
+          </Sec>
         ) : null}
 
         {/* ── WHO — each face is a door to that profile ── */}
-        <Surface>
+        <Sec label="WHO" col="#64748B">
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <FaceDoor href={fromHref} label={`Open ${e.fromName}'s profile`}>
               <EnqFace path={e.fromPhotoPath} name={e.fromName} size={42} tint={tint} />
@@ -621,7 +639,7 @@ export function EnquiryDetail({
             <a
               href={`tel:${tel}`}
               aria-label={`Call ${otherName}`}
-              style={{ marginTop: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: 11, borderRadius: 999, background: "var(--solid)", border: "1.5px solid var(--el)", fontWeight: 800, fontSize: 13, color: "var(--text)", textDecoration: "none" }}
+              style={toolBtn("secondary", "#22C55E", { marginTop: 11, display: "flex", width: "100%", minHeight: 44, gap: 8, fontSize: 13, textDecoration: "none" })}
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M6.5 3.5h3l1.5 4-2 1.5a11 11 0 0 0 5.5 5.5l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4.5 5.7a2 2 0 0 1 2-2.2z" />
@@ -629,20 +647,18 @@ export function EnquiryDetail({
               Call {mine && e.mobile ? <span style={{ fontFamily: DOS_MONO, fontWeight: 600, color: "var(--sub)" }}>{e.mobile}</span> : null}
             </a>
           ) : null}
-        </Surface>
+        </Sec>
 
         {/* ── WHAT THEY ASKED FOR — first, above where it stands (18 Oct 2026) ── */}
         {/* ⚠ RE-CUT SMALLER (18 Oct 2026, the user: "what they asked for section
             revamp and smaller and better design") — the answers as small tiles,
             two to a row, a long one across both; the message one quiet line */}
-        <Surface tint={tint}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 9 }}>
-            <span aria-hidden="true" style={{ width: 24, height: 24, borderRadius: 8, background: tint, display: "grid", placeItems: "center", flexShrink: 0 }}>
-              <EnqIcon k={e.typeKey} size={13} color="#fff" sw={2.2} />
-            </span>
-            <span style={{ ...smallLabel, color: "var(--text)" }}>{mine ? "WHAT THEY ASKED FOR" : "WHAT YOU ASKED FOR"}</span>
-            <span style={{ marginLeft: "auto", fontSize: 10, fontWeight: 900, color: tint, whiteSpace: "nowrap" }}>{type?.label ?? e.typeKey}</span>
-          </div>
+        <Sec
+          label={mine ? "WHAT THEY ASKED FOR" : "WHAT YOU ASKED FOR"}
+          col={tint}
+          icon={<EnqIcon k={e.typeKey} size={13} color={tint} sw={2.2} />}
+          right={<span style={{ fontSize: 10, fontWeight: 900, color: ink(tint), whiteSpace: "nowrap" }}>{type?.label ?? e.typeKey}</span>}
+        >
           <dl data-testid="enquiry-asked" style={{ margin: 0, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
             {rows.map(([k, v], i) => (
               <div key={`${k}·${i}`} style={{ background: "var(--solid)", borderRadius: 11, padding: "7px 10px", minWidth: 0, gridColumn: v.length > 22 ? "1 / -1" : undefined }}>
@@ -654,16 +670,18 @@ export function EnquiryDetail({
           {/* ⚠ NO MESSAGE LINE UNDER THE TILES (18 Oct 2026, the user: "Remove the
               last line in enquiry detail in what they asked for section") — it was
               mostly the sentence built from the same answers the tiles show */}
-        </Surface>
+        </Sec>
 
         {/* ── WHERE IT STANDS ── */}
-        <Surface tint={stageTint(stage)}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
-            <span style={smallLabel}>WHERE IT STANDS</span>
-            <span data-testid="enquiry-stage" style={{ marginLeft: "auto", fontSize: 13, fontWeight: 900, color: stageTint(stage) }}>
+        <Sec
+          label="WHERE IT STANDS"
+          col={stageTint(stage)}
+          right={
+            <span data-testid="enquiry-stage" style={{ fontSize: 13, fontWeight: 900, color: ink(stageTint(stage)), whiteSpace: "nowrap" }}>
               {ENQ_STAGE_WORD[stage]}
             </span>
-          </div>
+          }
+        >
           <EnquiryRoad stage={stage} />
           {closed ? (
             <div data-testid="enquiry-closed-by" style={{ fontSize: 11.5, color: "var(--sub)", marginTop: 9, lineHeight: 1.5 }}>
@@ -684,7 +702,7 @@ export function EnquiryDetail({
             </div>
           ) : null}
           {mine && !canWork ? <div style={{ ...hint, marginTop: 9 }}>Read only — its owners and managers act on it.</div> : null}
-        </Surface>
+        </Sec>
 
         {/* ── FOUR SECTIONS, BOTH ENDS (18 Oct 2026) ── */}
         <div role="tablist" aria-label="Enquiry sections" style={{ ...columnTrack(), marginBottom: 10 }}>
@@ -742,7 +760,7 @@ export function EnquiryDetail({
                   fontWeight: 800,
                   background: paidBack === "paid" ? "rgba(34,197,94,.14)" : "var(--card)",
                   border: `1.5px solid ${paidBack === "paid" ? "#22C55E" : "var(--el)"}`,
-                  color: paidBack === "paid" ? "#22C55E" : "var(--sub)",
+                  color: paidBack === "paid" ? ink("#22C55E") : "var(--sub)",
                 }}
               >
                 {paidBack === "paid" ? "✓ Payment confirmed" : paidBack === "processing" ? "Payment received — the bank is still confirming it" : paidBack === "refunded" ? "That payment could not be applied — it is on its way back" : "The payment didn't go through — nothing was charged"}
@@ -751,8 +769,7 @@ export function EnquiryDetail({
 
             {/* ── WHAT NEEDS AN ANSWER NOW, above the columns ── */}
             {mine && acts && e.status === "new" ? (
-              <Surface tint="#3B82F6">
-                <Eyebrow tint="#3B82F6">NEW ENQUIRY</Eyebrow>
+              <Sec label="NEW ENQUIRY" col="#3B82F6">
                 <div style={{ display: "flex", gap: 7 }}>
                   <button
                     type="button"
@@ -777,20 +794,19 @@ export function EnquiryDetail({
                   </button>
                 </div>
                 {askBox("decline")}
-              </Surface>
+              </Sec>
             ) : null}
 
             {revisionAsked(e) && live ? (
               <div data-testid="revision-asked" style={{ borderRadius: 14, padding: "11px 13px", marginBottom: 10, fontSize: 12, lineHeight: 1.5, background: "rgba(245,158,11,.12)", border: "1.5px solid #F59E0B" }}>
-                <b style={{ color: "#F59E0B" }}>{mine ? `${e.fromName} asked for a revised quote.` : "You asked for a revised quote."}</b>
+                <b style={{ color: ink("#F59E0B") }}>{mine ? `${e.fromName} asked for a revised quote.` : "You asked for a revised quote."}</b>
                 {live.answerReason ? <div style={{ marginTop: 4 }}>“{live.answerReason}”</div> : null}
               </div>
             ) : null}
 
             {/* ── ENDING IT ── terms after money; at once before it */}
             {ending ? (
-              <Surface tint="#F87171">
-                <Eyebrow tint="#F87171">{ending.outcome === "withdrawn" ? "ENDING IT · WITHDRAWAL" : "ENDING IT · CALLED OFF"}</Eyebrow>
+              <Sec label={ending.outcome === "withdrawn" ? "ENDING IT · WITHDRAWAL" : "ENDING IT · CALLED OFF"} col="#F87171">
                 <div data-testid="ending-terms" style={{ fontSize: 12.5, lineHeight: 1.5 }}>
                   <b>{ending.side === mySide ? "You" : otherName}</b> proposed {money(ending.refundInr)} back of the {money(m.paidInr)} paid.
                   <div style={{ marginTop: 4, color: "var(--sub)" }}>“{ending.reason}”</div>
@@ -861,7 +877,7 @@ export function EnquiryDetail({
                     </>
                   )
                 ) : null}
-              </Surface>
+              </Sec>
             ) : null}
 
             {lastRefused && !ending && !closed ? (
@@ -877,8 +893,7 @@ export function EnquiryDetail({
 
             {/* ── COMPLETION ── either side marks it; the other confirms */}
             {projectOn ? (
-              <Surface tint={e.status === "completing" ? "#22C55E" : undefined}>
-                <Eyebrow>COMPLETION</Eyebrow>
+              <Sec label="COMPLETION" col={e.status === "completing" ? "#22C55E" : "#64748B"}>
                 {e.status === "completing" ? (
                   e.completeAskedSide === mySide ? (
                     <>
@@ -939,7 +954,7 @@ export function EnquiryDetail({
                     ) : null}
                   </>
                 )}
-              </Surface>
+              </Sec>
             ) : null}
 
             {/* ── TWO COLUMNS: EARNINGS · QUOTE (18 Oct 2026) ── */}
@@ -962,7 +977,7 @@ export function EnquiryDetail({
 
             {payCol === "earnings" ? (
               <>
-                <Surface tint="#22C55E">
+                <Sec label="EARNINGS" col="#22C55E">
                   <div data-testid="enquiry-money">
                     <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -975,7 +990,7 @@ export function EnquiryDetail({
                           <div style={{ fontSize: 30, fontWeight: 900, letterSpacing: -1, fontFamily: DOS_MONO, marginTop: 2, color: priced ? "var(--text)" : "var(--muted)" }}>{priced ? money(worthInr) : "—"}</div>
                         )}
                       </div>
-                      <span data-testid="money-standing" style={{ flexShrink: 0, marginTop: 4, fontSize: 10.5, fontWeight: 900, padding: "5px 10px", borderRadius: 999, color: standing.c, background: "var(--solid)", border: "1.5px solid var(--el)" }}>
+                      <span data-testid="money-standing" style={{ flexShrink: 0, marginTop: 4, fontSize: 10.5, fontWeight: 900, padding: "5px 10px", borderRadius: 999, color: ink(standing.c), background: "var(--solid)", border: "1.5px solid var(--el)" }}>
                         {standing.w}
                       </span>
                     </div>
@@ -985,10 +1000,10 @@ export function EnquiryDetail({
                           <div style={{ width: `${paidPct}%`, height: "100%", borderRadius: 999, background: "linear-gradient(90deg, #22C55E, #16A34A)" }} />
                         </div>
                         <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 11, fontWeight: 800 }}>
-                          <span data-testid="money-received" style={{ color: "#22C55E" }}>
+                          <span data-testid="money-received" style={{ color: ink("#22C55E") }}>
                             {money(m.paidInr)} received
                           </span>
-                          <span data-testid="money-due" style={{ color: base && m.outstandingInr ? "#F59E0B" : "var(--muted)" }}>
+                          <span data-testid="money-due" style={{ color: base && m.outstandingInr ? ink("#F59E0B") : "var(--muted)" }}>
                             {base ? (m.outstandingInr ? `${money(m.outstandingInr)} to come` : "nothing to come") : "due once accepted"}
                           </span>
                         </div>
@@ -1002,8 +1017,8 @@ export function EnquiryDetail({
                       {moneyLines.map((l, i) => (
                         <div key={l.k} data-testid={`breakup-${l.k.toLowerCase().replace(/[^a-z]+/g, "-")}`} style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "8px 0", borderBottom: i < moneyLines.length - 1 ? "1px dashed var(--el)" : "none", fontSize: 12.5 }}>
                           <span style={{ color: "var(--sub)", fontWeight: 700 }}>{l.k}</span>
-                          {l.note ? <span style={{ fontSize: 9.5, fontWeight: 900, color: l.c ?? "var(--muted)", textTransform: "uppercase", letterSpacing: 0.5 }}>{l.note}</span> : null}
-                          <b style={{ marginLeft: "auto", fontFamily: DOS_MONO, color: l.note ? undefined : l.c }}>{l.v}</b>
+                          {l.note ? <span style={{ fontSize: 9.5, fontWeight: 900, color: l.c ? ink(l.c) : "var(--muted)", textTransform: "uppercase", letterSpacing: 0.5 }}>{l.note}</span> : null}
+                          <b style={{ marginLeft: "auto", fontFamily: DOS_MONO, color: l.note || !l.c ? undefined : ink(l.c) }}>{l.v}</b>
                         </div>
                       ))}
                     </div>
@@ -1025,13 +1040,13 @@ export function EnquiryDetail({
                                   type="button"
                                   disabled={busy}
                                   onClick={() => void run(() => recordEnquiryPaymentAction({ quoteId: d.quoteId, enquiryId: e.id, part: d.part }), `${d.word} recorded · ${money(d.amount)}`)}
-                                  style={{ ...greenBtn, width: "auto", padding: "8px 12px", fontSize: 11.5 }}
+                                  style={{ ...greenBtn, width: "auto", flex: "none", padding: "8px 12px", fontSize: 11.5 }}
                                 >
                                   Record received
                                 </button>
                               ) : null
                             ) : canPay ? (
-                              <button type="button" disabled={busy} data-testid="enquiry-pay" onClick={() => void pay(d)} style={{ ...greenBtn, width: "auto", padding: "8px 12px", fontSize: 11.5 }}>
+                              <button type="button" disabled={busy} data-testid="enquiry-pay" onClick={() => void pay(d)} style={{ ...greenBtn, width: "auto", flex: "none", padding: "8px 12px", fontSize: 11.5 }}>
                                 Pay {money(d.amount)}
                               </button>
                             ) : null}
@@ -1041,19 +1056,18 @@ export function EnquiryDetail({
                           {mine ? "Record cash or a bank transfer here." : canPay ? "UPI · cards · netbanking, through Cashfree." : ending ? "Payments pause while the ending terms are open." : `Settle with ${e.businessName} directly — they record it here.`}
                         </div>
                         {busy && openOrder ? (
-                          <button type="button" onClick={() => void confirmPay(openOrder)} style={{ display: "block", margin: "8px auto 0", background: "none", border: "none", color: "var(--sub)", fontSize: 11.5, fontWeight: 800, textDecoration: "underline", cursor: "pointer", fontFamily: "inherit" }}>
+                          <button type="button" onClick={() => void confirmPay(openOrder)} style={{ display: "block", margin: "8px auto 0", minHeight: 40, padding: "0 12px", background: "none", border: "none", color: "var(--sub)", fontSize: 11.5, fontWeight: 800, textDecoration: "underline", cursor: "pointer", fontFamily: "inherit" }}>
                             Paid already, or stuck? Check my payment
                           </button>
                         ) : null}
                       </div>
                     </>
                   ) : null}
-                </Surface>
+                </Sec>
 
                 {/* ── ADDITIONS ── */}
                 {adds.length || (mine && acts && projectOn && !ending) ? (
-                  <Surface>
-                    <Eyebrow>{`ADDITIONS${adds.length ? ` · ${adds.length}` : ""}`}</Eyebrow>
+                  <Sec label={`ADDITIONS${adds.length ? ` · ${adds.length}` : ""}`} col="#64748B">
                     <div data-testid="additions">
                       {adds.map((a) => {
                         const revisedBy = adds.find((x) => x.revises === a.id);
@@ -1061,8 +1075,8 @@ export function EnquiryDetail({
                           <div key={a.id} data-testid={`addition-${a.n}`} style={{ padding: "9px 0", borderBottom: "1px solid var(--el)", opacity: a.status === "cancelled" || a.status === "superseded" ? 0.6 : 1 }}>
                             <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}>
                               <span style={{ fontSize: 9.5, fontWeight: 900, color: "var(--muted)", fontFamily: DOS_MONO }}>#{a.n}</span>
-                              <b style={{ fontSize: 14, color: a.costInr < 0 ? "#22C55E" : undefined }}>{a.costInr < 0 ? `${signed(a.costInr)} off` : `+${money(a.costInr)}`}</b>
-                              <span style={{ marginLeft: "auto", fontSize: 10, fontWeight: 900, color: quoteColour(a, nowIso) }}>{quoteWord(a, nowIso)}</span>
+                              <b style={{ fontSize: 14, color: a.costInr < 0 ? ink("#22C55E") : undefined }}>{a.costInr < 0 ? `${signed(a.costInr)} off` : `+${money(a.costInr)}`}</b>
+                              <span style={{ marginLeft: "auto", fontSize: 10, fontWeight: 900, color: ink(quoteColour(a, nowIso)) }}>{quoteWord(a, nowIso)}</span>
                             </div>
                             {a.revises ? <div style={{ fontSize: 10.5, color: "var(--muted)", marginTop: 2 }}>Revised from #{adds.find((x) => x.id === a.revises)?.n ?? "?"}</div> : null}
                             {a.note ? <div style={{ fontSize: 11.5, color: "var(--sub)", marginTop: 3 }}>{a.note}</div> : null}
@@ -1115,17 +1129,17 @@ export function EnquiryDetail({
                     </div>
                     {!adds.length ? <div style={hint}>Nothing added yet.</div> : null}
                     {mine && acts && projectOn && !ending ? (
-                      <button type="button" onClick={() => setComposer({ mode: "addition", revises: null })} style={{ ...bizBtn, marginTop: 10, background: tint, color: "#08060C" }}>
+                      <button type="button" onClick={() => setComposer({ mode: "addition", revises: null })} style={{ ...tintBtn(tint), marginTop: 10 }}>
                         Add to the job
                       </button>
                     ) : null}
-                  </Surface>
+                  </Sec>
                 ) : null}
               </>
             ) : (
               <>
                 {mayQuote ? (
-                  <button type="button" onClick={() => setComposer({ mode: "quote" })} style={{ ...bizBtn, background: tint, color: "#08060C", marginBottom: 10 }}>
+                  <button type="button" onClick={() => setComposer({ mode: "quote" })} style={{ ...tintBtn(tint), marginBottom: 10 }}>
                     {quotes.length ? "Revise the quote" : "Send a quote"}
                   </button>
                 ) : null}
@@ -1133,8 +1147,7 @@ export function EnquiryDetail({
 
                 {/* ── QUOTE HISTORY ── every quote and every reason, oldest first */}
                 {quotes.length ? (
-                  <Surface>
-                    <Eyebrow>{`HISTORY · ${quotes.length}`}</Eyebrow>
+                  <Sec label={`HISTORY · ${quotes.length}`} col="#64748B">
                     <div data-testid="quote-history">
                       {quotes.map((q, i) => {
                         const prev = quotes[i - 1];
@@ -1149,14 +1162,14 @@ export function EnquiryDetail({
                             <div data-testid={`quote-${q.n}`} style={{ flex: 1, minWidth: 0, marginBottom: i < quotes.length - 1 ? 10 : 0, background: "var(--solid)", border: "1.5px solid var(--el)", borderRadius: 12, padding: "9px 11px" }}>
                               <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}>
                                 <span style={{ fontSize: 9.5, fontWeight: 900, color: "var(--muted)", fontFamily: DOS_MONO }}>{i === 0 ? `#${q.n} · FIRST` : `#${q.n} · REVISION ${i}`}</span>
-                                <span data-testid={`quote-${q.n}-state`} style={{ marginLeft: "auto", fontSize: 9.5, fontWeight: 800, color: quoteColour(q, nowIso) }}>
+                                <span data-testid={`quote-${q.n}-state`} style={{ marginLeft: "auto", fontSize: 9.5, fontWeight: 800, color: ink(quoteColour(q, nowIso)) }}>
                                   {quoteWord(q, nowIso)}
                                 </span>
                               </div>
                               <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 3 }}>
                                 <b style={{ fontSize: 16, fontFamily: DOS_MONO, textDecoration: dead ? "line-through" : "none" }}>{money(q.costInr)}</b>
                                 {delta ? (
-                                  <span data-testid={`quote-${q.n}-delta`} style={{ fontSize: 10.5, fontWeight: 900, color: delta < 0 ? "#22C55E" : "#F59E0B" }}>
+                                  <span data-testid={`quote-${q.n}-delta`} style={{ fontSize: 10.5, fontWeight: 900, color: ink(delta < 0 ? "#22C55E" : "#F59E0B") }}>
                                     {delta < 0 ? "▼" : "▲"} {money(Math.abs(delta))}
                                   </span>
                                 ) : prev ? (
@@ -1178,7 +1191,7 @@ export function EnquiryDetail({
                         );
                       })}
                     </div>
-                  </Surface>
+                  </Sec>
                 ) : null}
               </>
             )}
@@ -1186,11 +1199,11 @@ export function EnquiryDetail({
         ) : null}
 
         {error && !ask && !composer ? (
-          <div role="alert" style={{ fontSize: 11.5, color: "#F87171", marginTop: 8 }}>
+          <div role="alert" style={{ fontSize: 11.5, color: ink("#F87171"), marginTop: 8 }}>
             {plainError(error)}
           </div>
         ) : null}
-      </div>
+      </DeskBody>
 
       {/* ── THE QUOTE / ADDITION FORM — a sheet (18 Oct 2026, the user: "quote
           should open like a form when adding or revising") ── */}

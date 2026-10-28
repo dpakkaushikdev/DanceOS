@@ -6,7 +6,7 @@ import { useState, useTransition, type CSSProperties, type ReactNode } from "rea
 import { ToolActions, ToolBody, ToolCard, ToolChip, ToolFace, ToolFacts, ToolHead, inkOn } from "@/components/ui/ToolCard";
 import { FigureHead } from "@/components/ui/FigureHead";
 import { SegmentedPanels } from "@/features/shell/components/SegmentedNav";
-import { DOS_TOOLS } from "@/features/businesses/components/biz-kit";
+import { DOS_TOOLS, HueHead } from "@/features/businesses/components/biz-kit";
 import { DOS_LEVEL_LABEL, dosStyleColor } from "@/lib/constants/styles";
 import { DOS_UI, INK, LILAC, MUTED, SUB } from "@/lib/design/tokens";
 import { photoUrl } from "@/lib/media/photo";
@@ -92,6 +92,9 @@ export function RoutinePage({
   /* ── TOP: THE CARD, OPENED ── */
   const top = (
     <>
+      {/* the page's own `<h1>` is the ROUTINE's name (28 Oct 2026, the one heading
+          standard: DeskTop + HueHead — SegmentedPanels draws the DeskTop) */}
+      <HueHead title={routine.title} color={TOOL} bottom="12px" />
       <ToolCard testId="routine-detail">
         <ToolHead
           tint={TOOL}
@@ -110,10 +113,8 @@ export function RoutinePage({
           }
         />
         <ToolBody>
-          {/* the page's own <h1> — the chrome prints no drill page's name (28 Sep);
-              ⚠ no "ROUTINE" kicker over it any more (4 Oct 2026) */}
-          <h1 style={{ margin: 0, fontSize: 27, fontWeight: 900, letterSpacing: -0.6, lineHeight: 1.15, overflowWrap: "anywhere" }}>{routine.title}</h1>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+          {/* the routine's name is the page heading above the card (28 Oct 2026) */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             <span style={{ fontSize: 10.5, fontWeight: 900, padding: "4px 10px", borderRadius: 999, background: col, color: inkOn(col) }}>{routine.style}</span>
             <span style={{ fontSize: 10.5, fontWeight: 800, padding: "4px 10px", borderRadius: 999, background: "var(--el)", color: SUB }}>{DOS_LEVEL_LABEL[routine.level] ?? routine.level}</span>
             {routine.songTitle ? <span style={{ fontSize: 11.5, color: SUB, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>♪ {routine.songTitle}</span> : null}

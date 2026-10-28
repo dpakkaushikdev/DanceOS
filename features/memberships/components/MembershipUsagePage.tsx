@@ -3,7 +3,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { DOS_LEVEL_LABEL } from "@/lib/constants/styles";
 import { DOS_UI, INK, LILAC, MUTED, SUB } from "@/lib/design/tokens";
 import { money as rupees } from "@/features/payouts/components/earnings-kit";
-import { DOS_TOOLS } from "@/features/businesses/components/biz-kit";
+import { DOS_TOOLS, HueHead } from "@/features/businesses/components/biz-kit";
 import { ToolBody, ToolCard, ToolChip, ToolFacts, ToolHead } from "@/components/ui/ToolCard";
 import { FigureHead } from "@/components/ui/FigureHead";
 import { SegmentedPanels } from "@/features/shell/components/SegmentedNav";
@@ -142,6 +142,11 @@ export function MembershipUsagePage({
 
   /* ── TOP: THE CARD, OPENED ── */
   const top = (
+        <>
+        {/* the page's own `<h1>` is the MEMBERSHIP's name (28 Oct 2026, the one
+            heading standard: DeskTop + HueHead — SegmentedPanels draws the
+            DeskTop). "Membership Details" is the line under it. */}
+        <HueHead title={m.name} color={TINT} bottom="12px" sub="Membership Details" />
         <ToolCard testId="membership-detail">
           <ToolHead
             tint={TINT}
@@ -162,14 +167,10 @@ export function MembershipUsagePage({
             }
           />
           <ToolBody>
-            {/* ⚠ "MEMBERSHIP DETAILS" (3 Oct 2026, the user's own name for this page) */}
-            <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 0.8, color: MUTED, textTransform: "uppercase", marginBottom: 3 }}>Membership Details</div>
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, letterSpacing: -0.4, lineHeight: 1.2, overflowWrap: "anywhere" }}>{m.name}</h1>
             {/* ⚠ PRICE · HOURS · VALIDITY IN BOXES, AND NO "TAKEN" (4 Oct 2026) —
                 the card on the desk reads the same; what came in is the Earnings column */}
             <ToolFacts
               tint={TINT}
-              style={{ marginTop: 12 }}
               items={[
                 { label: "Price", value: m.priceInr === 0 ? "Free" : rupees(m.priceInr) },
                 { label: m.unit === "hours" ? "Hours" : "Classes", value: m.units },
@@ -198,6 +199,7 @@ export function MembershipUsagePage({
               seller's face and name above ARE the door to the page, and back is
               the way to the list */}
         </ToolCard>
+        </>
   );
 
   /* ── COLUMN 2: THE MONEY ── */

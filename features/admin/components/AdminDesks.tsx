@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { AdminDashboard as Pulse } from "@/repositories/adminPanel";
 import { AdminGlyph, DESK_TINT } from "./admin-glyphs";
 import { DESKS, type AdminBadges, type AdminDesk } from "./desks";
+import { DeskHero } from "./desk-kit";
 
 const CARD = "var(--card)";
 const EL = "var(--el)";
@@ -79,25 +80,15 @@ export function AdminDesksScreen({ pulse, badges = {}, nowIso }: { pulse: Pulse;
 
   return (
     <div style={{ padding: "14px 16px var(--dos-foot, 40px)" }}>
-      <div style={{ borderRadius: 22, padding: "15px 17px 14px", marginBottom: 14, position: "relative", overflow: "hidden", color: "#fff", background: todo > 0 ? "linear-gradient(135deg,#B45309,#F59E0B)" : "linear-gradient(135deg,#166534,#22C55E)" }}>
-        <div style={{ position: "absolute", right: -28, top: -32, width: 130, height: 130, borderRadius: 65, background: "rgba(255,255,255,.13)" }} />
-        <div style={{ display: "flex", alignItems: "center", gap: 12, position: "relative" }}>
-          <span style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 14, background: "rgba(0,0,0,.28)", border: "1.5px solid rgba(255,255,255,.35)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
-            <AdminGlyph k="overview" size={22} />
-          </span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: 1.2, opacity: 0.85 }}>DANCEOS · ADMIN</div>
-            {/* ⚠ the page's own `<h1>` (28 Sep 2026): the chrome stopped printing a
-                drill page's name when the wordmark became constant, so this line
-                is the only thing naming the screen. The eyebrow above carries the
-                desk's steady name; this carries what is true right now. */}
-            <h1 style={{ margin: 0, fontSize: 21, fontWeight: 800, letterSpacing: -0.5, fontFamily: DOS_DISPLAY, lineHeight: 1.18, marginTop: 2 }}>
-              {todo > 0 ? `${todo} thing${todo === 1 ? "" : "s"} need you` : "Nothing is waiting"}
-            </h1>
-            <div style={{ fontSize: 11, opacity: 0.9, marginTop: 2 }}>{day}</div>
-          </div>
-        </div>
-      </div>
+      {/* ⚠ the page's own `<h1>` (28 Sep 2026), in the one heading standard
+          (DeskTop + HueHead, 28 Oct 2026): it carries what is true right now,
+          its hue amber while work waits and green when nothing does. */}
+      <DeskHero
+        title={todo > 0 ? `${todo} thing${todo === 1 ? "" : "s"} need you` : "Nothing is waiting"}
+        sub={day}
+        tint={todo > 0 ? "#F59E0B" : "#22C55E"}
+        icon={<AdminGlyph k="overview" size={22} />}
+      />
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         {DESKS.map((d) => (

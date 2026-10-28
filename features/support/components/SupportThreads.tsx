@@ -6,15 +6,20 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { openSupportThreadAction } from "@/features/support/server-actions/support";
 import { toast } from "@/components/ui/Toast";
-import { DOS_DISPLAY, DOS_UI, INK, LILAC, SUB } from "@/lib/design/tokens";
+import { DOS_UI, INK, LILAC, SUB } from "@/lib/design/tokens";
 import { photoUrl } from "@/lib/media/photo";
 import type { SupportThread } from "@/repositories/support";
 import { agoWords } from "@/types/notification";
+import { DeskTop } from "@/components/ui/DeskSections";
+import { toolBtn } from "@/components/ui/ToolCard";
+import { HueHead } from "@/features/businesses/components/biz-kit";
 
 const CARD = "var(--card)";
 const EL = "var(--el)";
 const MUTED = "var(--muted)";
-const initialsOf = (name: string) => name.split(" ").filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
+/** support's own hue for its heading and its buttons */
+const SUPPORT_TINT = "#0EA5E9";
+const initialsOf =(name: string) => name.split(" ").filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
 
 const Head = ({ children }: { children: string }) => (
   <div style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: 1, color: MUTED, margin: "2px 0 8px" }}>{children}</div>
@@ -74,20 +79,21 @@ export function SupportThreads({
   return (
     <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", paddingBottom: "var(--dos-foot, 40px)" }}>
       <div style={{ padding: "14px var(--dos-gutter) 0" }}>
-        <div style={{ borderRadius: 22, padding: "15px 17px 14px", marginBottom: 14, position: "relative", overflow: "hidden", color: "#fff", background: "linear-gradient(135deg,#64748B,#0EA5E9)" }}>
-          <div style={{ position: "absolute", right: -28, top: -32, width: 130, height: 130, borderRadius: 65, background: "rgba(255,255,255,.13)" }} />
-          {/* the page's own `<h1>` — the chrome no longer prints a drill page's name (28 Sep 2026) */}
-          <h1 style={{ margin: 0, fontSize: 21, fontWeight: 800, letterSpacing: -0.5, position: "relative", fontFamily: DOS_DISPLAY, lineHeight: 1.18 }}>
-            {isAdmin ? "Support" : "DanceOS support"}
-          </h1>
-          <div style={{ fontSize: 11, opacity: 0.9, marginTop: 2, position: "relative" }}>
-            {threads.length === 0
-              ? isAdmin ? "nothing waiting on you" : "no conversations yet"
-              : waiting > 0
-                ? `${waiting} waiting on ${isAdmin ? "you" : "your reply"} · ${threads.length} in all`
-                : `${threads.length} conversation${threads.length === 1 ? "" : "s"}`}
-          </div>
-        </div>
+        {/* the page's own `<h1>`, in the one heading standard (DeskTop + HueHead, 28 Oct 2026) */}
+        <DeskTop style={{ margin: "0 0 14px" }}>
+          <HueHead
+            title={isAdmin ? "Support" : "DanceOS support"}
+            color={SUPPORT_TINT}
+            bottom="4px"
+            sub={
+              threads.length === 0
+                ? isAdmin ? "nothing waiting on you" : "no conversations yet"
+                : waiting > 0
+                  ? `${waiting} waiting on ${isAdmin ? "you" : "your reply"} · ${threads.length} in all`
+                  : `${threads.length} conversation${threads.length === 1 ? "" : "s"}`
+            }
+          />
+        </DeskTop>
 
         {!isAdmin && canOpen ? (
           composing ? (
@@ -116,16 +122,16 @@ export function SupportThreads({
                 style={{ width: "100%", boxSizing: "border-box", background: LILAC, border: `1.5px solid ${EL}`, borderRadius: 12, padding: "10px 12px", fontSize: 13, color: INK, fontFamily: "inherit", resize: "vertical", lineHeight: 1.55 }}
               />
               <div style={{ display: "flex", gap: 8, marginTop: 9 }}>
-                <button type="button" disabled={pending || !subject.trim() || !body.trim()} onClick={open} style={{ flex: 1, height: 40, borderRadius: 12, border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 900, fontSize: 12.5, background: subject.trim() && body.trim() ? "var(--text)" : EL, color: subject.trim() && body.trim() ? "var(--solid)" : SUB }}>
+                <button type="button" disabled={pending || !subject.trim() || !body.trim()} onClick={open} style={toolBtn("primary", SUPPORT_TINT, { minHeight: 40, opacity: subject.trim() && body.trim() ? 1 : 0.5 })}>
                   {pending ? "Sending…" : "Send"}
                 </button>
-                <button type="button" onClick={() => setComposing(false)} style={{ height: 40, padding: "0 14px", borderRadius: 12, background: LILAC, border: `1.5px solid ${EL}`, color: SUB, cursor: "pointer", fontFamily: "inherit", fontWeight: 800, fontSize: 12 }}>
+                <button type="button" onClick={() => setComposing(false)} style={toolBtn("secondary", SUPPORT_TINT, { flex: "0 0 auto", minHeight: 40 })}>
                   Cancel
                 </button>
               </div>
             </div>
           ) : (
-            <button type="button" onClick={() => setComposing(true)} style={{ width: "100%", height: 44, borderRadius: 14, background: "var(--text)", color: "var(--solid)", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 900, fontSize: 12.5, marginBottom: 14 }}>
+            <button type="button" onClick={() => setComposing(true)} style={toolBtn("primary", SUPPORT_TINT, { width: "100%", minHeight: 44, marginBottom: 14, flex: "none" })}>
               ＋ Write to DanceOS
             </button>
           )

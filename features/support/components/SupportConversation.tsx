@@ -5,9 +5,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { postSupportMessageAction, setSupportThreadStatusAction } from "@/features/support/server-actions/support";
 import { toast } from "@/components/ui/Toast";
-import { DOS_DISPLAY, DOS_UI, INK, LILAC, SUB } from "@/lib/design/tokens";
+import { DOS_UI, INK, LILAC, SUB } from "@/lib/design/tokens";
 import type { SupportMessage, SupportThread } from "@/repositories/support";
 import { agoWords } from "@/types/notification";
+import { DeskTop } from "@/components/ui/DeskSections";
+import { toolBtn } from "@/components/ui/ToolCard";
+import { HueHead } from "@/features/businesses/components/biz-kit";
 
 const CARD = "var(--card)";
 const EL = "var(--el)";
@@ -72,20 +75,24 @@ export function SupportConversation({
     <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", paddingBottom: "var(--dos-foot, 40px)" }}>
       <div style={{ padding: "14px var(--dos-gutter) 0" }}>
         {/* who this is with, and what it is about */}
-        <div style={{ borderRadius: 22, padding: "15px 17px 14px", marginBottom: 12, position: "relative", overflow: "hidden", color: "#fff", background: "linear-gradient(135deg,#64748B,#0EA5E9)" }}>
-          <div style={{ position: "absolute", right: -28, top: -32, width: 130, height: 130, borderRadius: 65, background: "rgba(255,255,255,.13)" }} />
-          <div style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: 1.2, opacity: 0.85, position: "relative" }}>
-            {isAdmin ? thread.accountName.toUpperCase() : "DANCEOS SUPPORT"}
-          </div>
-          {/* the page's own `<h1>` — the chrome no longer prints a drill page's name
-              (28 Sep 2026). A conversation's name IS its subject, which is why the
-              subject is the heading rather than the word "Conversation". */}
-          <h1 style={{ margin: 0, fontSize: 19, fontWeight: 800, letterSpacing: -0.4, position: "relative", fontFamily: DOS_DISPLAY, lineHeight: 1.2, marginTop: 2 }}>{thread.subject}</h1>
-          <div style={{ fontSize: 11, opacity: 0.9, marginTop: 3, position: "relative" }}>
-            {closed ? "closed" : "open"} · started {agoWords(thread.createdAt, nowIso)}
-            {thread.kind === "verification" ? " · about your verification" : ""}
-          </div>
-        </div>
+        {/* the page's own `<h1>` — the chrome no longer prints a drill page's name
+            (28 Sep 2026). A conversation's name IS its subject, which is why the
+            subject is the heading rather than the word "Conversation". The one
+            heading standard (DeskTop + HueHead, 28 Oct 2026); who it is with
+            leads the line under it. */}
+        <DeskTop style={{ margin: "0 0 12px" }}>
+          <HueHead
+            title={thread.subject}
+            color="#0EA5E9"
+            bottom="4px"
+            sub={
+              <>
+                {isAdmin ? thread.accountName : "DanceOS support"} · {closed ? "closed" : "open"} · started {agoWords(thread.createdAt, nowIso)}
+                {thread.kind === "verification" ? " · about your verification" : ""}
+              </>
+            }
+          />
+        </DeskTop>
 
         {thread.kind === "verification" && thread.requestId ? (
           <Link href={isAdmin ? "/admin/verifications" : "/business"} style={{ display: "block", background: CARD, border: `1.5px solid ${EL}`, borderLeft: "4px solid #F59E0B", borderRadius: 14, padding: "10px 12px", marginBottom: 12, textDecoration: "none", color: INK }}>
@@ -138,7 +145,7 @@ export function SupportConversation({
             type="button"
             disabled={pending || !draft.trim()}
             onClick={send}
-            style={{ flex: 1, minWidth: 130, height: 42, borderRadius: 12, border: "none", cursor: draft.trim() ? "pointer" : "default", fontFamily: "inherit", fontWeight: 900, fontSize: 12.5, background: draft.trim() ? "var(--text)" : EL, color: draft.trim() ? "var(--solid)" : SUB }}
+            style={toolBtn("primary", "#0EA5E9", { minWidth: 130, minHeight: 42, opacity: draft.trim() ? 1 : 0.5, cursor: draft.trim() ? "pointer" : "default" })}
           >
             {pending ? "Sending…" : "Send"}
           </button>
@@ -147,12 +154,12 @@ export function SupportConversation({
               type="button"
               disabled={pending}
               onClick={() => setStatus(closed ? "open" : "closed")}
-              style={{ height: 42, padding: "0 14px", borderRadius: 12, background: CARD, border: `1.5px solid ${EL}`, color: INK, cursor: "pointer", fontFamily: "inherit", fontWeight: 800, fontSize: 12 }}
+              style={toolBtn("secondary", "#0EA5E9", { flex: "0 0 auto", minHeight: 42 })}
             >
               {closed ? "Reopen" : "Close"}
             </button>
           ) : null}
-          <Link href={back} style={{ height: 42, padding: "0 14px", borderRadius: 12, background: CARD, border: `1.5px solid ${EL}`, color: INK, textDecoration: "none", display: "inline-flex", alignItems: "center", fontWeight: 800, fontSize: 12 }}>
+          <Link href={back} style={toolBtn("secondary", "#0EA5E9", { flex: "0 0 auto", minHeight: 42 })}>
             All conversations
           </Link>
         </div>

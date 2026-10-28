@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
-import { DeskHero, DOS_TOOLS } from "@/features/businesses/components/biz-kit";
+import { DOS_TOOLS, HueHead } from "@/features/businesses/components/biz-kit";
+import { DeskBody, DeskTop } from "@/components/ui/DeskSections";
 import { RentReceivedList } from "@/features/staff/components/RentReceivedList";
 import { ToolCard, ToolHead } from "@/components/ui/ToolCard";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -50,7 +51,12 @@ export default async function RenterRoute({ params }: { params: Promise<{ busine
 
   return (
     <div data-testid="renter-detail" style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "14px var(--dos-gutter) 40px", boxSizing: "border-box" }}>
-      <DeskHero tool="rooms" as="h1" margin="0 0 12px" toggle={false} />
+      {/* ⚠ THE HEADING SITS IN ITS DESKTOP (28 Oct 2026). It stood bare on the
+          page, and the hue heading's own -14px margins — written to reach a
+          DeskTop's padding — pushed it past the page's edge. Headed by the
+          renter's name, the one heading standard for a page about one entity. */}
+      <DeskTop style={{ margin: "0 0 12px" }}>
+        <HueHead title={renter?.ownerName ?? payerName} color={DOS_TOOLS.rooms.c} bottom="12px" />
       <ToolCard testId="renter-card">
         <ToolHead
           tint={DOS_TOOLS.rooms.c}
@@ -63,7 +69,10 @@ export default async function RenterRoute({ params }: { params: Promise<{ busine
           size={64}
         />
       </ToolCard>
-      <RentReceivedList payments={payments} payerName={payerName} disputes={disputes} classes={classes} />
+      </DeskTop>
+      <DeskBody>
+        <RentReceivedList payments={payments} payerName={payerName} disputes={disputes} classes={classes} />
+      </DeskBody>
     </div>
   );
 }

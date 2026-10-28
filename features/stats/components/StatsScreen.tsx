@@ -476,15 +476,19 @@ export function StatsScreen({
           block below is the class page's section card (`SectionCard`). */}
       <div style={{ padding: "0 var(--dos-gutter)" }}>
       <TopPanel tint={accent} testId="stats-top" style={{ marginTop: 12 }}>
-        <div style={{ ...micro, letterSpacing: 2.2, color: SUB }}>{tab === "charts" ? "DanceOS · India" : `${eyebrow} · Record`}</div>
-        <div style={{ fontSize: 28, fontWeight: 900, fontFamily: DOS_DISPLAY, letterSpacing: -1.1, lineHeight: 1.05, marginTop: 4 }}>{tab === "charts" ? "Rankings" : "Stats"}</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 13, marginTop: 14 }}>
-          <span style={{ width: 62, height: 62, borderRadius: "50%", flexShrink: 0, overflow: "hidden", display: "inline-flex", alignItems: "center", justifyContent: "center", boxSizing: "border-box", border: `2px solid ${accent}`, background: `linear-gradient(135deg,${accent},#7C3AED)`, color: "#fff", fontSize: 22, fontWeight: 900, letterSpacing: 0.5, fontFamily: DOS_DISPLAY }}>
-            {photo ? <Image src={photo} alt="" width={62} height={62} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : initialsOf(name)}
+        {/* ⚠ THE NAME IS THE HEADING, "STATS" IS THE EYEBROW (28 Oct 2026, batch 5
+            design pass): the word "Stats" was printed larger than the person's
+            name, and the top ran seven rows before any content. It is ONE hero row
+            now — picture, a small eyebrow, the name as the `<h1>`, one line — with
+            the way back as a round chip on its right, then the column pills. */}
+        <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
+          <span style={{ width: 56, height: 56, borderRadius: "50%", flexShrink: 0, overflow: "hidden", display: "inline-flex", alignItems: "center", justifyContent: "center", boxSizing: "border-box", border: `2px solid ${accent}`, background: `linear-gradient(135deg,${accent},#7C3AED)`, color: "#fff", fontSize: 20, fontWeight: 900, letterSpacing: 0.5, fontFamily: DOS_DISPLAY }}>
+            {photo ? <Image src={photo} alt="" width={56} height={56} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : initialsOf(name)}
           </span>
           {/* a DIV, not a span: the heading below is a block element and an
               `<h1>` inside an inline is invalid nesting */}
-          <div style={{ minWidth: 0 }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ ...micro, letterSpacing: 1.6, color: SUB, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tab === "charts" ? "RANKINGS · DanceOS · India" : `STATS · ${eyebrow}`}</div>
             {/* ⚠⚠ THE PAGE'S OWN `<h1>`, AND IT HAD NONE (29 Sep 2026, found by
                 the suite). `StatsScreen` drew the name as a `<span>` and the tab
                 word as a `<div>`, so the screen had NO heading for a screen
@@ -496,12 +500,11 @@ export function StatsScreen({
                 visitor, had one from the start — so folding the rich screen back
                 in would have LOST it. The name is the heading: this page is
                 "{name}'s stats", and the word above it says which column. */}
-            <h1 style={{ margin: 0, display: "block", fontSize: 23, fontWeight: 900, letterSpacing: -0.8, lineHeight: 1.1, fontFamily: DOS_DISPLAY, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</h1>
+            <h1 style={{ margin: "2px 0 0", display: "block", fontSize: 28, fontWeight: 900, letterSpacing: -1, lineHeight: 1.08, fontFamily: DOS_DISPLAY, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</h1>
             <span style={{ display: "block", fontSize: 11, fontWeight: 600, color: SUB, marginTop: 3 }} data-testid="stats-points">
               {heroLine}
             </span>
           </div>
-        </div>
         {/* ⚠ THE WAY BACK, ON EVERY TAB (29 Sep 2026). `EntityStatsPage` carried
             one and this screen never did, because it was only ever reached from
             your own Stats chip — it is reached from anybody's now, and a record
@@ -532,10 +535,12 @@ export function StatsScreen({
             }
           }}
           aria-label={`Back to ${name}`}
-          style={{ display: "inline-block", marginTop: 12, fontSize: 11, fontWeight: 800, color: SUB, textDecoration: "none" }}
+          title="Back to the page"
+          style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 999, border: "1.5px solid var(--el)", background: "var(--card)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 800, color: SUB, textDecoration: "none" }}
         >
-          ‹ Back to the page
+          <span aria-hidden="true">‹</span>
         </Link>
+        </div>
         {/* three dresses, one page — inside the top squircle, the app's one
             column look (`ColumnTabs`, 11 Oct 2026) */}
         <div role="group" aria-label="Show" style={{ ...columnTrack(), marginTop: 12 }}>

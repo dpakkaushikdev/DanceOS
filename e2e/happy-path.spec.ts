@@ -649,7 +649,7 @@ test.describe.serial("DanceOS, end to end", () => {
 
     // ---- the admin reads the STUDIO's link and photos in the queue, and says yes
     await admin.goto("/admin/verifications");
-    await expect(admin.locator("#dos-main").getByText("Verification queue", { exact: true })).toBeVisible();
+    await expect(admin.locator("#dos-main").getByText("Verification queue", { exact: true }).first()).toBeVisible(); // the hue heading also draws it as aria-hidden letters
     const request = admin.getByTestId("verification-request").filter({ hasText: studioName });
     await expect(request).toBeVisible();
     await expect(request.getByRole("link", { name: /^Instagram/ })).toHaveAttribute("href", "https://instagram.com/e2estudio");
@@ -1288,10 +1288,11 @@ test.describe.serial("DanceOS, end to end", () => {
     /* ⚠ 18 Oct 2026: two buttons under the card — Copy link, and Share class,
        which opens the code in a sheet. No SHARE section at the foot any more. */
     await expect(owner.getByText("SHARE", { exact: true })).toHaveCount(0);
-    await owner.getByRole("button", { name: "Copy the booking link" }).click();
-    await expect(owner.getByText("Copied ✓")).toBeVisible();
+    /* ⚠ 28 Oct 2026: ONE share icon under the card; Copy link is inside its sheet. */
     await owner.getByRole("button", { name: "Share class", exact: true }).click();
     const shareSheet = owner.getByRole("dialog", { name: `Share ${classTitle}` });
+    await shareSheet.getByRole("button", { name: "Copy the booking link" }).click();
+    await expect(shareSheet.getByText("Copied ✓")).toBeVisible();
     const shareQr = shareSheet.getByRole("img", { name: `Booking link for ${classTitle}` });
     await expect(shareQr).toBeVisible();
     await expect(shareQr).toHaveAttribute("data-qr-scannable", "yes");
@@ -3351,7 +3352,8 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(memberSheet.getByRole("link", { name: /history|member detail/i })).toHaveCount(0);
     await expect(memberSheet.getByRole("button", { name: /record a payment|^Pay /i })).toHaveCount(0);
     await owner.reload();
-    await expect(owner.getByRole("heading", { name: "Team" })).toBeVisible();
+    /* the page is headed by the PERSON's name (28 Oct 2026), not the tool word */
+    await expect(owner.getByRole("heading", { level: 1, name: learnerName })).toBeVisible();
     await expect(owner.getByText(learnerName).first()).toBeVisible();
     await expect(owner.getByText("₹2,500").first()).toBeVisible();
     /* ⚠ EVERY SECTION IS FOLDED ONTO ITS ENTRIES, CLOSED (4 Oct 2026, the user:

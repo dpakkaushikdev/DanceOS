@@ -80,7 +80,10 @@ const check = (name, pass, detail = "") => {
     ]);
     await page.locator("h1").first().waitFor({ state: "visible", timeout: 20000 });
     check("pressing the block opens the desk", new URL(page.url()).pathname === "/admin/reach", page.url());
-    const h1 = await page.locator("h1").first().textContent();
+    /* what a screen reader reads: the heading is `HueHead` now (28 Oct 2026),
+       whose BeatText draws aria-hidden letters beside a visually-hidden copy, so
+       textContent alone says the word twice */
+    const h1 = await page.locator("h1").first().evaluate((el) => { const c = el.cloneNode(true); c.querySelectorAll('[aria-hidden="true"]').forEach((n) => n.remove()); return c.textContent; });
     check("the desk has its own <h1>", (h1 || "").trim() === "Reach", `"${(h1 || "").trim()}"`);
 
     /* ── SEARCHES ─────────────────────────────────────────────────────────── */

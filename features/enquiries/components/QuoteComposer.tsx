@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { FormBar } from "@/components/ui/FormPage";
 import { DOS_MONO, money } from "@/features/inbox/components/inbox-kit";
+import { toolBtn } from "@/components/ui/ToolCard";
 import type { QuoteItem } from "@/types/enquiry";
 
 /** THE QUOTE COMPOSER — one form for a QUOTE and for an ADDITION (3 Oct 2026, the
@@ -41,7 +42,9 @@ const field: React.CSSProperties = {
   boxSizing: "border-box",
 };
 const label: React.CSSProperties = { fontSize: 9, fontWeight: 900, letterSpacing: 0.7, color: "var(--muted)", marginBottom: 5 };
-const btn: React.CSSProperties = { textAlign: "center", padding: 12, borderRadius: 999, fontWeight: 900, fontSize: 13, cursor: "pointer", border: "none", fontFamily: "inherit" };
+/* the composer's toggle chips — at least a 40px tap target (28 Oct 2026); the
+   two action buttons are the app's `toolBtn` */
+const btn: React.CSSProperties = { textAlign: "center", minHeight: 40, padding: 12, borderRadius: 999, fontWeight: 900, fontSize: 13, cursor: "pointer", border: "none", fontFamily: "inherit" };
 
 /** add n days to a YYYY-MM-DD */
 export const addDays = (key: string, n: number): string => {
@@ -134,7 +137,7 @@ export function QuoteComposer({
 
       {byLines ? (
         <div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 52px 88px 26px", gap: 6, ...label, marginBottom: 4 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 52px 88px 40px", gap: 6, ...label, marginBottom: 4 }}>
             <span>ITEM</span>
             <span>QTY</span>
             <span>PRICE ₹</span>
@@ -145,7 +148,7 @@ export function QuoteComposer({
             const lineTotal = p && Number.isFinite(p.qty * p.unitInr) && p.unitInr ? p.qty * p.unitInr : null;
             return (
               <div key={l.key} style={{ marginBottom: 7 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 52px 88px 26px", gap: 6, alignItems: "center" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 52px 88px 40px", gap: 6, alignItems: "center" }}>
                   <input value={l.name} maxLength={80} onChange={(ev) => setLine(l.key, { name: ev.target.value })} placeholder={i === 0 ? "Choreography" : "Item"} aria-label={`Item ${i + 1} name`} style={field} />
                   <input value={l.qty} inputMode="numeric" onChange={(ev) => setLine(l.key, { qty: ev.target.value.replace(/[^\d]/g, "").slice(0, 4) })} aria-label={`Item ${i + 1} quantity`} style={{ ...field, fontFamily: DOS_MONO, padding: "10px 6px", textAlign: "center" }} />
                   <input
@@ -161,13 +164,13 @@ export function QuoteComposer({
                     disabled={lines.length === 1}
                     aria-label={`Remove item ${i + 1}`}
                     onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))}
-                    style={{ width: 26, height: 26, borderRadius: 13, border: "none", background: "var(--el)", color: "var(--sub)", cursor: lines.length === 1 ? "default" : "pointer", opacity: lines.length === 1 ? 0.35 : 1, fontSize: 14, lineHeight: 1 }}
+                    style={{ width: 40, height: 40, borderRadius: 20, border: "none", background: "var(--el)", color: "var(--sub)", cursor: lines.length === 1 ? "default" : "pointer", opacity: lines.length === 1 ? 0.35 : 1, fontSize: 14, lineHeight: 1 }}
                   >
                     ×
                   </button>
                 </div>
                 {lineTotal != null && p.qty > 1 ? (
-                  <div style={{ fontSize: 10, color: "var(--muted)", textAlign: "right", marginRight: 32, marginTop: 2 }}>
+                  <div style={{ fontSize: 10, color: "var(--muted)", textAlign: "right", marginRight: 46, marginTop: 2 }}>
                     {p.qty} × {money(Math.abs(p.unitInr))} = {lineTotal < 0 ? "−" : ""}
                     {money(Math.abs(lineTotal))}
                   </div>
@@ -254,7 +257,7 @@ export function QuoteComposer({
       {/* ⚠ the composer lives in a FormPage sheet (18 Oct 2026), so its two
           buttons are the sheet's own action bar, stuck to the panel's foot */}
       <FormBar>
-        <button type="button" onClick={onCancel} style={{ ...btn, flex: 1, background: "var(--el)", color: "var(--sub)" }}>
+        <button type="button" onClick={onCancel} style={toolBtn("secondary", tint, { flex: 1, minHeight: 44, fontSize: 13 })}>
           Cancel
         </button>
         <button
@@ -269,7 +272,7 @@ export function QuoteComposer({
               note: note.trim() || null,
             })
           }
-          style={{ ...btn, flex: 1.6, background: "var(--text)", color: "var(--solid)", opacity: ok && !busy ? 1 : 0.5 }}
+          style={toolBtn("primary", tint, { flex: 1.6, minHeight: 44, fontSize: 13, whiteSpace: "normal", lineHeight: 1.25, opacity: ok && !busy ? 1 : 0.5 })}
         >
           {why ?? submitWord}
         </button>

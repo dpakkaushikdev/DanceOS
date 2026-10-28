@@ -7,7 +7,7 @@ import { WelcomeReel } from "@/features/auth/components/WelcomeReel";
 import { WELCOME_CLIPS } from "@/features/auth/welcomeClips";
 import { leaveIfSignedIn } from "@/lib/auth/leaveIfSignedIn";
 import { safeNext } from "@/lib/auth/safeNext";
-import { BTN_STYLE, INK, LINE, SUB } from "@/lib/design/tokens";
+import { INK, LINE, SUB } from "@/lib/design/tokens";
 
 /** Welcome screen — THE REEL (28 Oct 2026, the user, with Cult's sign-up screen
  *  in hand: "I need my sign up page look exactly like this … 3 videos of 5-7
@@ -102,22 +102,26 @@ export default async function LoginWelcomePage({
           link to them, under Google the way Cult puts its other ways in under
           the phone number. /login/email carries `next` like the Google button,
           and links on to Start Dancing (/login/signup) and Forgot password. */}
-      <div aria-hidden="true" style={{ display: "flex", alignItems: "center", gap: 10, margin: "14px 0", color: SUB, fontSize: 11, fontWeight: 800, letterSpacing: 1.5 }}>
-        <span style={{ flex: 1, height: 1, background: LINE }} />
+      {/* Cult's arrangement exactly (the user, with the screenshot: "instead of
+          mobile the current google signup, below that OR and an email icon"):
+          a plain OR, then a square icon tile — one, since email is the only
+          other way in — where Cult has its row of three */}
+      <div aria-hidden="true" style={{ textAlign: "center", margin: "16px 0 14px", color: INK, fontSize: 12, fontWeight: 900, letterSpacing: 1.5 }}>
         OR
-        <span style={{ flex: 1, height: 1, background: LINE }} />
       </div>
-      <Link
-        href={next ? `/login/email?next=${encodeURIComponent(next)}` : "/login/email"}
-        data-testid="email-sign-in"
-        style={{ ...BTN_STYLE, display: "flex", alignItems: "center", justifyContent: "center", gap: 10, background: "var(--card)", color: INK, fontWeight: 800, border: `1.5px solid ${LINE}`, textDecoration: "none", boxSizing: "border-box" }}
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <rect x="3" y="5" width="18" height="14" rx="2.5" />
-          <path d="M3.5 7l8.5 6 8.5-6" />
-        </svg>
-        Continue with email
-      </Link>
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <Link
+          href={next ? `/login/email?next=${encodeURIComponent(next)}` : "/login/email"}
+          data-testid="email-sign-in"
+          aria-label="Continue with email"
+          style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 50, height: 50, borderRadius: 13, background: "var(--card)", border: `1.5px solid ${LINE}`, color: INK, textDecoration: "none" }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="14" rx="2.5" />
+            <path d="M3.5 7l8.5 6 8.5-6" />
+          </svg>
+        </Link>
+      </div>
 
       <p style={{ margin: "16px 0 0", textAlign: "center", fontSize: 11, lineHeight: 1.5, color: SUB }}>
         By continuing you agree to the{" "}

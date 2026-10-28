@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { LIMITS, withinLimit } from "@/lib/rateLimit";
+import { plainError } from "@/lib/errors";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   adminOpenSupportThread,
@@ -57,7 +58,7 @@ export async function postSupportMessageAction(input: unknown): Promise<{ error:
   try {
     await postSupportMessage(supabase, parsed.data.threadId, parsed.data.body);
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "Could not send that" };
+    return { error: e instanceof Error ? plainError(e.message) : "Could not send that" };
   }
   refresh(parsed.data.threadId);
   return { error: null };
@@ -80,7 +81,7 @@ export async function openSupportThreadAction(input: unknown): Promise<{ error: 
     refresh(threadId);
     return { error: null, threadId };
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "Could not start that", threadId: null };
+    return { error: e instanceof Error ? plainError(e.message) : "Could not start that", threadId: null };
   }
 }
 
@@ -96,7 +97,7 @@ export async function adminOpenSupportThreadAction(input: unknown): Promise<{ er
     refresh(threadId);
     return { error: null, threadId };
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "Could not start that", threadId: null };
+    return { error: e instanceof Error ? plainError(e.message) : "Could not start that", threadId: null };
   }
 }
 
@@ -109,7 +110,7 @@ export async function setSupportThreadStatusAction(input: unknown): Promise<{ er
   try {
     await setSupportThreadStatus(supabase, parsed.data.threadId, parsed.data.status);
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "Could not do that" };
+    return { error: e instanceof Error ? plainError(e.message) : "Could not do that" };
   }
   refresh(parsed.data.threadId);
   return { error: null };

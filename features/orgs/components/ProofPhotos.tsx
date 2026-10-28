@@ -7,6 +7,7 @@ import { PhotoLightbox } from "@/features/media/components/PhotoLightbox";
 import { addStudioProofPhotoAction, removeStudioProofPhotoAction } from "@/features/businesses/server-actions/studioVerification";
 import { GOLD, GREEN, INK, MUTED, SUB } from "@/lib/design/tokens";
 import { PHOTO_MAX_WORDS, whyNotAPhoto } from "@/lib/media/photo";
+import { UPLOAD_ERROR, plainError } from "@/lib/errors";
 import { PROOF_BUCKET, PROOF_MAX, PROOF_MIN, proofPath, type ProofPhoto } from "@/lib/media/proof";
 /* loaded on the press, not with the page (5 Oct 2026 — see lazyClient.ts) */
 import { browserSupabase } from "@/lib/supabase/lazyClient";
@@ -122,7 +123,7 @@ export function ProofPhotos({
         const path = proofPath(orgId, file);
         const up = await supabase.storage.from(PROOF_BUCKET).upload(path, file, { contentType: file.type, upsert: false });
         if (up.error) {
-          setError(up.error.message);
+          setError(UPLOAD_ERROR);
           continue;
         }
         const out = await addStudioProofPhotoAction({ businessId, path });
@@ -203,7 +204,7 @@ export function ProofPhotos({
         full={full}
       />
 
-      {error ? <div style={{ fontSize: 10.5, color: "#F87171", marginTop: 8, lineHeight: 1.45 }}>{error}</div> : null}
+      {error ? <div role="alert" style={{ fontSize: 10.5, color: "#F87171", marginTop: 8, lineHeight: 1.45 }}>{plainError(error)}</div> : null}
       {!error && canWrite ? <div style={{ fontSize: 9.5, color: MUTED, marginTop: 8 }}>JPEG, PNG or WebP · up to {PHOTO_MAX_WORDS} each · pick several at once</div> : null}
 
       {lightbox !== null ? (

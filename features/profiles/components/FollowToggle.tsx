@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { setCrewFollowAction, setFollowAction, setPersonFollowAction, type FollowActionResult } from "@/features/follows/server-actions/follows";
+import { toast } from "@/components/ui/Toast";
+import { plainError } from "@/lib/errors";
 import { PROFILE_CHIP } from "./profile-band";
 
 /** FOLLOW · FOLLOWING, ONE CONTROL FOR EVERY PROFILE PAGE (19 Sep 2026, the user:
@@ -80,11 +82,14 @@ export function FollowToggle({
     const out = await send(target, !following);
     setBusy(false);
     if (out.error || !out.state) {
-      setError(out.error ?? "Could not update that follow");
+      const msg = plainError(out.error ?? "Could not update that follow");
+      setError(msg);
+      toast.error(msg);
       return;
     }
     setFollowing(out.state.following);
     setFollowers(out.state.followers);
+    toast(out.state.following ? "You follow them now" : "Unfollowed");
   };
 
   /* ⚠ A PLUS, NOT A BELL (11 Oct 2026, the user: "Bell button for following

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { toast } from "@/components/ui/Toast";
 import {
   askClassPersonAction,
   setClassPersonPowersAction,
@@ -79,6 +80,7 @@ export function AddAssistant({ classId, col, exclude, pool }: { classId: string;
                 const res = await askClassPersonAction({ classId, userId: p.id, kind: "assistant" });
                 if (res.error) setErr(res.error);
                 else {
+                  toast("Request sent");
                   setOpen(false);
                   router.refresh();
                 }
@@ -86,7 +88,7 @@ export function AddAssistant({ classId, col, exclude, pool }: { classId: string;
             }
           />
           <div style={{ fontSize: 10.5, color: "var(--muted)", marginTop: 6, lineHeight: 1.45 }}>
-            {pending ? "Asking…" : "They are asked, and answer in their Classes. Nobody is added by this."}
+            {pending ? "Sending…" : "They'll get a request to accept."}
           </div>
           {err ? <div role="alert" style={{ fontSize: 11.5, color: "#F87171", marginTop: 6 }}>{err}</div> : null}
         </div>
@@ -114,14 +116,14 @@ export function AskNewTeacher({ classId, col, exclude }: { classId: string; col:
         onClick={() => setOpen((v) => !v)}
         style={{ width: "100%", padding: "11px 14px", borderRadius: 999, border: "none", background: "var(--text)", color: "var(--solid)", fontWeight: 900, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}
       >
-        {open ? "Close" : "Ask a new teacher"}
+        {open ? "Close" : "Ask new faculty"}
       </button>
       {open ? (
         <div style={{ marginTop: 8 }}>
           <PeoplePicker
             title="WHO SHOULD TAKE THIS CLASS"
             placeholder="A name or a mobile number…"
-            ariaLabel="Search DanceOS for a new teacher"
+            ariaLabel="Search DanceOS for new faculty"
             actionWord="Ask ›"
             actionColor={col}
             exclude={exclude}
@@ -132,6 +134,7 @@ export function AskNewTeacher({ classId, col, exclude }: { classId: string; col:
                 const res = await askClassPersonAction({ classId, userId: p.id, kind: "artist" });
                 if (res.error) setErr(res.error);
                 else {
+                  toast("Request sent");
                   setOpen(false);
                   router.refresh();
                 }
@@ -139,7 +142,7 @@ export function AskNewTeacher({ classId, col, exclude }: { classId: string; col:
             }
           />
           <div style={{ fontSize: 10.5, color: "var(--muted)", marginTop: 6, lineHeight: 1.45 }}>
-            {pending ? "Asking…" : "Booking opens again when they say yes."}
+            {pending ? "Sending…" : "Booking opens again when they accept."}
           </div>
         </div>
       ) : null}
@@ -158,9 +161,9 @@ export function StepDownButton({ classPersonId, kind, published, title }: { clas
   const body =
     kind === "artist"
       ? published
-        ? "The studio is told, booking pauses until they find a new teacher, and the people booked are told."
-        : "The studio is told, and the class waits for a new teacher."
-      : "The studio and the teacher are told.";
+        ? "The studio is told, booking pauses until they find new faculty, and the people booked are told."
+        : "The studio is told, and the class waits for new faculty."
+      : "The studio and the faculty are told.";
   return (
     <>
       <button

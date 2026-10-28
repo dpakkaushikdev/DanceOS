@@ -613,7 +613,7 @@ const valueOf = (page, label) => page.getByLabel(label).inputValue();
     await attTab.waitFor({ timeout: 20000 });
     check(true, "⚠⚠ and the TEACHER sees the Attendance tab on the class they confirmed — which is the whole of the ask");
     await attTab.click();
-    await sPage.getByText("LIVE REGISTER", { exact: false }).waitFor({ timeout: 20000 });
+    await sPage.getByText("LIVE ATTENDANCE", { exact: false }).waitFor({ timeout: 20000 });
     check(true, "…and the register itself opens for them, not a refusal");
 
     check(errs.length === 0, `no page or console error anywhere${errs.length ? ` — ${errs.slice(0, 3).join(" · ")}` : ""}`);

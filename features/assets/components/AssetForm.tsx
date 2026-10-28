@@ -10,9 +10,10 @@ import {
   FormConfirm,
   FormPage,
   FormSummary,
-  FormToast,
   formPrimary,
 } from "@/components/ui/FormPage";
+import { toast } from "@/components/ui/Toast";
+import { UPLOAD_ERROR } from "@/lib/errors";
 import { Pick } from "@/components/ui/PickSheet";
 import { saveAssetAction } from "@/features/assets/server-actions/assets";
 import { DOS_TOOLS } from "@/features/businesses/components/biz-kit";
@@ -76,7 +77,6 @@ export function AssetForm({ businessId, asset }: { businessId: string; businessN
   const editing = Boolean(asset);
   const [pending, start] = useTransition();
   const [confirm, setConfirm] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
   const [name, setName] = useState(asset?.name ?? "");
   const [category, setCategory] = useState<string>(asset && (ASSET_CATEGORIES as readonly string[]).includes(asset.category) ? asset.category : ASSET_CATEGORIES[0]);
   const [quantity, setQuantity] = useState(String(asset?.quantity ?? 1));
@@ -95,10 +95,8 @@ export function AssetForm({ businessId, asset }: { businessId: string; businessN
     setPreview(URL.createObjectURL(file));
   };
 
-  const fire = (m: string, ms = 2400) => {
-    setToast(m);
-    setTimeout(() => setToast(null), ms);
-  };
+  /* the app's one pop-up — it outlives this sheet, so the sheet need not wait */
+  const fire = (m: string) => toast(m);
 
   /* ⚠ THE VALUE IS ASKED FOR RATHER THAN DEFAULTED. On the desk an empty box
      became `Number(value || 0)` — so leaving it alone quietly filed the asset as
@@ -112,7 +110,7 @@ export function AssetForm({ businessId, asset }: { businessId: string; businessN
   if (!value.trim()) blockers.push("Enter the amount — ₹0 if you already had it");
   const ready = blockers.length === 0;
   const worth = Number(value || 0);
-  const done = editing ? "Asset saved" : "📦 Asset added";
+  const done = editing ? "Asset saved" : "Asset added";
 
   const save = () =>
     start(async () => {
@@ -125,18 +123,17 @@ export function AssetForm({ businessId, asset }: { businessId: string; businessN
         quantity: qty,
       });
       setConfirm(false);
-      if (out.error) return fire(out.error);
+      if (out.error) return toast.error(out.error);
       /* the picture goes up against the row; a refused picture is said and does
          not undo the asset, which is already on the inventory */
       /* ⚠ A REFUSED PICTURE STAYS ON SCREEN (4 Oct 2026). It used to flash for
          0.6 s and leave with the sheet, so an asset added without its picture
          looked like a tap that did nothing on the card afterwards. */
-      let wait = 600;
+      const wait = 300;
       if (photo && out.id) {
         const up = await uploadPhotoFile({ kind: "asset", id: businessId, assetId: out.id }, photo);
         if (up.error) {
-          wait = 3200;
-          fire(`${editing ? "Asset saved" : "Asset added"} — the picture did not save: ${up.error}`, wait);
+          toast.error(`${editing ? "Asset saved" : "Asset added"}, but ${UPLOAD_ERROR.charAt(0).toLowerCase()}${UPLOAD_ERROR.slice(1)}`);
         } else fire(done);
       } else {
         fire(done);
@@ -255,7 +252,6 @@ export function AssetForm({ businessId, asset }: { businessId: string; businessN
         </FormConfirm>
       ) : null}
 
-      <FormToast msg={toast} />
     </FormPage>
   );
 }

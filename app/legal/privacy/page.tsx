@@ -19,10 +19,10 @@ export default function PrivacyPage() {
       <h2>1. What we collect</h2>
       <ul>
         <li>
-          <b>What you give us.</b> Your name, email address and password when you sign up; your city; your dance styles, a short About, your age and your social links if you add them; a phone number if you choose to publish one; your profile picture and header pictures. An organization gives its name, city, logo and GST number; a studio gives its address, its social links and photographs of its space.
+          <b>What you give us.</b> Your name, email address and password when you sign up; your city; your dance styles, a short About, your age and your social links if you add them; a phone number if you choose to publish one; your profile picture and header pictures. A studio gives its address, its social links and photographs of its space.
         </li>
         <li>
-          <b>What you do.</b> Classes and events you book, tickets you hold, crews you lead or join, classes you teach or assist, enquiries you send and quotes you answer, studios and people you follow, reports you make, and messages you send DanceOS.
+          <b>What you do.</b> Classes you book, memberships you hold, crews you lead or join, classes you teach or assist, enquiries you send and quotes you answer, studios and people you follow, reports you make, and messages you send DanceOS.
         </li>
         <li>
           <b>Money.</b> The amount, method and status of each payment, refund and subscription. Card numbers and UPI credentials go to Cashfree and never to us.
@@ -47,7 +47,7 @@ export default function PrivacyPage() {
 
       <h2>4. What is public</h2>
       <ul>
-        <li>A studio&apos;s public page, a crew&apos;s page and a published class or event are visible to anybody, signed in or not, including the studio&apos;s pictures once it is listed.</li>
+        <li>A studio&apos;s public page, a crew&apos;s page and a published class are visible to anybody, signed in or not, including the studio&apos;s pictures once it is on Discover.</li>
         <li>Your profile — name, city, styles, About, links, your record and the number you chose to publish — is visible to signed-in DanceOS users. If you take the Artist plan, your name and picture appear beside the classes you teach.</li>
         <li>What you booked, what you paid, what you were quoted and who follows whom are private to you and to the business on the other side of it.</li>
       </ul>
@@ -69,7 +69,7 @@ export default function PrivacyPage() {
         <li>
           <b>Vercel</b> serves the pages and receives the technical details in section 1.
         </li>
-        <li>The studios, artists, organizations and crews you deal with see what you send them: a booking, an enquiry, an ask, an answer.</li>
+        <li>The studios, artists and crews you deal with see what you send them: a booking, an enquiry, a request, an answer.</li>
       </ul>
 
       <h2>6. How long we keep it</h2>

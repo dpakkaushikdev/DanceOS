@@ -17,6 +17,9 @@ import { DOS_DISPLAY, DOS_UI, SKY } from "@/lib/design/tokens";
 import { PassSummary, UseMembership } from "@/features/memberships/components/UseMembership";
 import type { PassForSession } from "@/repositories/memberships";
 import { PayOption, PAY_LABEL } from "@/features/payments/components/PayOption";
+import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
+import { PAYMENT_ERROR, plainError } from "@/lib/errors";
+import { rupees } from "@/lib/format/money";
 
 /** HOW YOU ARE PAYING — the two-step booking flow lifted from prototype S_class
  *  (DanceOSApp.jsx:12456-12573): choose how you're paying, then see exactly what
@@ -125,11 +128,15 @@ export function PayFlow({
      leaving the sheet on "One moment…" for ever (2 Oct 2026) */
   const [openOrder, setOpenOrder] = useState<string | null>(null);
   const router = useRouter();
+  /* the phone's back gesture closes the sheet — but never while a payment is in flight */
+  useCloseOnBack(() => {
+    if (!busy) onClose();
+  });
   // the SDK starts downloading while the person reads the sheet, not after the press
   useEffect(() => {
     if (!isFree) preloadCheckout();
   }, [isFree]);
-  const priceText = `₹${priceInr.toLocaleString("en-IN")}`;
+  const priceText = rupees(priceInr);
 
   const confirmFree = async () => {
     setBusy(true);
@@ -142,7 +149,7 @@ export function PayFlow({
       setError(out.error);
       return;
     }
-    onDone("🎉 Booked — your place is confirmed");
+    onDone("🎉 Booked — your spot is confirmed");
     router.refresh();
   };
 
@@ -155,14 +162,14 @@ export function PayFlow({
     setBusy(false);
     setOpenOrder(null);
     if (out.error || !out.outcome) {
-      setError(out.error ?? "Could not confirm the payment");
+      setError(plainError(out.error ?? "Could not confirm the payment — check again in a moment."));
       return;
     }
     onDone(
       out.outcome === "booked"
         ? "🎉 Paid — booking confirmed"
         : out.outcome === "processing"
-          ? "Payment received — confirming your seat…"
+          ? "Payment received — confirming your spot…"
           : "The class filled up — your money is on its way back"
     );
     router.refresh();
@@ -174,7 +181,7 @@ export function PayFlow({
     const res = await startCheckoutAction({ sessionId, businessName, description: classLabel });
     if (!res.checkout) {
       setBusy(false);
-      setError(res.error ?? "Could not start the payment");
+      setError(res.error ? plainError(res.error) : PAYMENT_ERROR);
       return;
     }
     const checkout = res.checkout;
@@ -185,7 +192,9 @@ export function PayFlow({
     } catch (openError: unknown) {
       setBusy(false);
       setOpenOrder(null);
-      setError(openError instanceof Error ? openError.message : "Could not open the payment window");
+      /* the SDK's own sentence is not something a dancer can act on */
+      console.error(openError);
+      setError(PAYMENT_ERROR);
       return;
     }
     if (result.redirect) return; // the page is leaving for /pay/return, which confirms it
@@ -295,7 +304,7 @@ export function PayFlow({
               Already paid? Check status
             </button>
           ) : null}
-          {error && <div role="alert" style={{ fontSize: 10.5, color: "#EF4444", fontWeight: 700, marginTop: 10, textAlign: "center" }}>{error}</div>}
+          {error && <div role="alert" style={{ fontSize: 10.5, color: "#F87171", fontWeight: 700, marginTop: 10, textAlign: "center" }}>{error}</div>}
         </div>
       </div>
     );
@@ -401,7 +410,7 @@ export function PayFlow({
           </button>
         ) : null}
         {error && (
-          <div style={{ fontSize: 10.5, color: "#EF4444", fontWeight: 700, marginTop: 10, textAlign: "center" }}>{error}</div>
+          <div role="alert" style={{ fontSize: 10.5, color: "#F87171", fontWeight: 700, marginTop: 10, textAlign: "center" }}>{error}</div>
         )}
       </div>
     </div>

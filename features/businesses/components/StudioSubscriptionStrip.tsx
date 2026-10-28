@@ -42,14 +42,14 @@ export function StudioSubscriptionStrip({
   const live = Boolean(s?.hasAccess);
 
   const standing: Standing = !s || !live
-    ? { word: "NOT LIVE", tone: "#F59E0B", line: state.whyNotPublic ?? "Not on Discover yet." }
+    ? { word: "NOT ON DISCOVER", tone: "#F59E0B", line: state.whyNotPublic ?? "Not on Discover yet." }
     : s.status === "past_due"
       /* ⚠ short, and no dates — they are the card's own boxes (4 Oct 2026) */
-      ? { word: "PAYMENT PROBLEM", tone: "#EF4444", line: "The renewal failed. Cashfree is retrying — it stays on Discover for three days." }
+      ? { word: "PAYMENT PROBLEM", tone: "#EF4444", line: "The renewal payment failed. We'll try again — it stays on Discover for three days." }
       : s.cancelAtPeriodEnd || s.status === "canceled"
         ? { word: "ENDING", tone: "#F59E0B", line: "Cancelled. It stays on Discover until the end date, and nothing more is charged." }
         : s.granted
-          ? { word: "GRANTED", tone: "#22C55E", line: "Given by DanceOS. It does not renew." }
+          ? { word: "FREE FROM DANCEOS", tone: "#22C55E", line: "Given free by DanceOS. It does not renew." }
           : { word: "RENEWS", tone: "#22C55E", line: "Renews on its own. You are told a day before each charge." };
 
   return (

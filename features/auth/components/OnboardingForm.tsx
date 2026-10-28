@@ -11,6 +11,7 @@ import { CityPicker } from "@/features/geo/components/CityPicker";
 import { PhotoPicker, uploadPhotoFile } from "@/features/media/components/PhotoPicker";
 import { setMyLearnStylesAction, updateMyProfileAction } from "@/features/profiles/server-actions/profile";
 import { DragList } from "@/components/ui/DragList";
+import { toast } from "@/components/ui/Toast";
 import { DOS_STYLE_REG, dosStyleColor } from "@/lib/constants/styles";
 import { BTN_STYLE, DOS_DISPLAY, DOS_UI, INK, LINE, SKY, SUB } from "@/lib/design/tokens";
 import { dosToolPaint } from "@/lib/format/styleInk";
@@ -156,12 +157,11 @@ export function OnboardingForm({
   const [ig, setIg] = useState("");
   const [fb, setFb] = useState("");
   const [extras, setExtras] = useState<Array<{ label: string; url: string }>>([]);
-  const [toast, setToast] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
+  /* every message here is a refusal — the app's one toast, as an alert */
   const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2600);
+    toast.error(m);
   };
   const fullName = name.trim();
   const firstWord = fullName.split(" ")[0] ?? "";
@@ -209,7 +209,7 @@ export function OnboardingForm({
   /* ─── PROFILE: who, the name, the city, the photo ─── */
   if (step === "profile") {
     return (
-      <AuthShell toast={toast} progress={[1, total]}>
+      <AuthShell progress={[1, total]}>
         {/* each step is a screen, so each step's title is that screen's `<h1>` —
             only one of the four is ever rendered at a time (28 Sep 2026) */}
         <h1 style={{ fontSize: 24, fontWeight: 800, margin: "14px 0 4px", fontFamily: DOS_DISPLAY, letterSpacing: -0.5 }}>Set up your profile</h1>
@@ -364,7 +364,7 @@ export function OnboardingForm({
     canGo: boolean;
     go: () => void;
   }) => (
-    <AuthShell toast={toast} progress={[o.n, total]}>
+    <AuthShell progress={[o.n, total]}>
       <button type="button" aria-label="Back" onClick={() => setStep(o.back)} style={{ fontSize: 20, cursor: "pointer", background: "none", border: "none", color: INK, padding: 0, fontFamily: "inherit" }}>
         ←
       </button>
@@ -469,7 +469,7 @@ export function OnboardingForm({
   if (step === "socials") {
     const any = Boolean(yt.trim() || ig.trim() || fb.trim() || extras.some((x) => x.url.trim()));
     return (
-      <AuthShell toast={toast} progress={[4, total]}>
+      <AuthShell progress={[4, total]}>
         <button type="button" aria-label="Back" onClick={() => setStep("styles")} style={{ fontSize: 20, cursor: "pointer", background: "none", border: "none", color: INK, padding: 0, fontFamily: "inherit" }}>
           ←
         </button>
@@ -560,7 +560,6 @@ export function OnboardingForm({
       <button type="button" disabled={pending} onClick={leave} style={{ marginTop: 26, padding: 16, borderRadius: 999, background: "#EC4899", color: "#fff", fontWeight: 800, fontSize: 15.5, cursor: "pointer", animation: "dosGlow 2.4s ease infinite", border: "none", width: "100%", fontFamily: "inherit" }}>
         {pending ? "One moment…" : "Open DanceOS →"}
       </button>
-      {toast ? <div role="status" style={{ position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)", background: "#241B33", color: "#fff", padding: "11px 18px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 40 }}>{toast}</div> : null}
     </div>
   );
 }

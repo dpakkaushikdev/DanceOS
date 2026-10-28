@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { Portal } from "@/components/ui/Portal";
 import { Sheet, pictureChipPaint } from "@/features/profiles/components/profile-kit";
 import { reportContentAction } from "@/features/reports/server-actions/reports";
+import { plainError } from "@/lib/errors";
 import { INK, SUB } from "@/lib/design/tokens";
 import type { ReportReason, ReportSubjectKind } from "@/repositories/adminPanel";
 
@@ -36,7 +37,6 @@ const REASONS: Record<ReportSubjectKind, Array<[ReportReason, string]>> = {
     ["other", "Something else"],
   ],
   event: [
-    ["not_a_real_business", "This event is not real"],
     ["unsafe", "Something about it is unsafe"],
     ["stolen_content", "It is using someone else's photos"],
     ["spam", "Spam"],
@@ -190,7 +190,7 @@ export function ReportButton({
                 ) : null}
                 {error ? (
                   <div role="alert" style={{ fontSize: 11.5, color: "#EF4444", marginTop: 9, lineHeight: 1.45 }}>
-                    {error}
+                    {plainError(error)}
                   </div>
                 ) : null}
                 <div style={{ display: "flex", gap: 8, marginTop: 14 }}>

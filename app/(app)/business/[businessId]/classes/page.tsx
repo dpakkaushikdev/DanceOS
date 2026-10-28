@@ -24,7 +24,7 @@ const stampNow = (): number => Date.now();
 const ROLES = [
   { key: "all", word: "All" },
   { key: "yours", word: "Yours" },
-  { key: "guest", word: "Guest artists" },
+  { key: "guest", word: "Visiting Faculty" },
 ];
 
 /** A STUDIO's classes — the same screen as Your classes (11 Oct 2026): To do ·

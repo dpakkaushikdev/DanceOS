@@ -9,7 +9,8 @@ import { PlanRightsList } from "@/features/settings/components/PlanRights";
 import { activateArtistPlanAction } from "@/features/settings/server-actions/plans";
 import { priceWords, type PlanCatalogRow } from "@/repositories/plans";
 import type { Subscription } from "@/repositories/subscriptions";
-import { BizPage, BizToast, dateWords } from "./settings-kit";
+import { BizPage, dateWords } from "./settings-kit";
+import { toast } from "@/components/ui/Toast";
 import { SubscriptionCard } from "./SubscriptionCard";
 import { ToolActions, ToolBody, ToolCard, ToolChip, ToolHead, toolBtn } from "@/components/ui/ToolCard";
 
@@ -40,11 +41,11 @@ const DOS_MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mon
  *  shortter") — the start and end dates are boxes of their own on the card now. */
 export function subscriptionWords(s: Subscription): { title: string; tone: string; line: string } {
   const until = s.currentPeriodEnd ? dateWords(s.currentPeriodEnd) : null;
-  if (s.status === "pending_auth") return { title: "Not set up yet", tone: "#F59E0B", line: "Not authorised yet — finish it below." };
+  if (s.status === "pending_auth") return { title: "Not set up yet", tone: "#F59E0B", line: "Payment setup not finished — finish it below." };
   if (!s.hasAccess) return { title: "Ended", tone: "var(--muted)", line: until ? `Ended on ${until}.` : "Ended." };
-  if (s.status === "past_due") return { title: "Payment problem", tone: "#EF4444", line: "The renewal failed. Cashfree is retrying — you keep access for three days." };
+  if (s.status === "past_due") return { title: "Payment problem", tone: "#EF4444", line: "The renewal payment failed. We'll try again — you keep access for three days." };
   if (s.cancelAtPeriodEnd || s.status === "canceled") return { title: "Active · ending", tone: "#F59E0B", line: "Cancelled. It stays on until the end date, and nothing more is charged." };
-  if (s.granted) return { title: "Active · granted", tone: "#22C55E", line: "Given by DanceOS. It does not renew." };
+  if (s.granted) return { title: "Active · free from DanceOS", tone: "#22C55E", line: "Given free by DanceOS. It does not renew." };
   return { title: "Active · renews", tone: "#22C55E", line: "Renews on its own. You are told a day before each charge." };
 }
 
@@ -63,12 +64,8 @@ export function SubscriptionScreen({
   const offers = catalog.filter((p) => p.kind === "artist" && p.active);
   const [pickKey, setPickKey] = useState<string>(offers[0]?.key ?? "");
   const pick = offers.find((p) => p.key === pickKey) ?? offers[0] ?? null;
-  const [toast, setToast] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2600);
-  };
+  const fire = (m: string) => toast(m);
   /* THE BOW ON BECOMING AN ARTIST (2 Oct 2026, the user: "same should be once
      converted and subscribed for being an artist"). `?welcome=artist` on THIS
      address, set only once the plan is ACTIVE — a paid mandate the server has
@@ -78,8 +75,8 @@ export function SubscriptionScreen({
   const takeFree = (p: PlanCatalogRow) =>
     start(async () => {
       const out = await activateArtistPlanAction({ plan: p.period });
-      if (out.error) return fire(out.error);
-      fire("👩‍🏫 Artist tools on — same profile, now with teaching, classes & earnings");
+      if (out.error) return toast.error(out.error);
+      fire("Artist tools are on");
       router.refresh();
       welcomeArtist();
     });
@@ -162,7 +159,6 @@ export function SubscriptionScreen({
           ) : null}
         </ToolCard>
       )}
-      <BizToast msg={toast} />
       {/* the bow `welcomeArtist` opens (2 Oct 2026) — the tools the plan unlocks
           as its pills, in their own tile colours */}
       <WelcomeFromUrl

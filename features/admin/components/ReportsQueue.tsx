@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { decideReportAction } from "@/features/admin/server-actions/moderation";
+import { toast } from "@/components/ui/Toast";
 import { INK, SUB } from "@/lib/design/tokens";
 import type { AdminReport, ReportCounts, ReportReason } from "@/repositories/adminPanel";
 import { agoWords } from "@/types/notification";
@@ -63,21 +64,18 @@ export function ReportsQueue({
   nowIso: string;
 }) {
   const router = useRouter();
-  const [toast, setToast] = useState<string | null>(null);
   const [answering, setAnswering] = useState<string | null>(null);
   const [actioned, setActioned] = useState(true);
   const [note, setNote] = useState("");
   const [pending, start] = useTransition();
 
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2800);
-  };
+  const fire = (m: string) => toast(m);
+  const oops = (m: string) => void toast.error(m);
 
   const answer = (r: AdminReport) =>
     start(async () => {
       const out = await decideReportAction({ reportId: r.id, actioned, note: note.trim() || null });
-      if (out.error) return fire(out.error);
+      if (out.error) return oops(out.error);
       setAnswering(null);
       setNote("");
       fire(actioned ? "Marked as acted on — the reporter has been told" : "Dismissed — the reporter has been told");
@@ -238,11 +236,6 @@ export function ReportsQueue({
 
       <Pager base={base} page={page} total={total} keep={{ status }} />
 
-      {toast ? (
-        <div role="status" style={{ position: "fixed", left: "50%", transform: "translateX(-50%)", bottom: "calc(28px + var(--dos-safe-bottom, 0px))", zIndex: 500, background: "var(--text)", color: "var(--solid)", borderRadius: 999, padding: "10px 18px", fontSize: 12, fontWeight: 800, width: "min(360px, calc(100vw - 44px))", textAlign: "center", boxSizing: "border-box" }}>
-          {toast}
-        </div>
-      ) : null}
     </div>
   );
 }

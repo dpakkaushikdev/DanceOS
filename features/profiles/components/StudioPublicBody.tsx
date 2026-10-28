@@ -75,7 +75,7 @@ export function StudioPublicBody({
           person's page has. */}
       {total ? (
         <Connections n={total}>
-          {owners.length ? <PeopleGroup title="Owner" n={owners.length}>{owners.map((m) => chip(m, m.isOrg ? "Organization" : "Owner"))}</PeopleGroup> : null}
+          {owners.length ? <PeopleGroup title="Owner" n={owners.length}>{owners.map((m) => chip(m, "Owner"))}</PeopleGroup> : null}
           {faculty.length ? <PeopleGroup title="Faculty" n={faculty.length}>{faculty.map((m) => chip(m, "Faculty"))}</PeopleGroup> : null}
           {visiting.length ? <PeopleGroup title="Visiting faculty" n={visiting.length}>{visiting.map((m) => chip(m, "Visiting faculty"))}</PeopleGroup> : null}
           {assistants.length ? <PeopleGroup title="Assistants" n={assistants.length}>{assistants.map((m) => chip(m, "Assistant"))}</PeopleGroup> : null}

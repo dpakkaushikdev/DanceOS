@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { toast } from "@/components/ui/Toast";
+import { plainError } from "@/lib/errors";
 import { ToolActions, ToolCard, ToolChip, ToolFacts, ToolHead, toolBtn } from "@/components/ui/ToolCard";
 import { respondToEnquiryJobAction } from "@/features/enquiries/server-actions/enquiryTeam";
 import { ENQ_PERSON_WORD, ENQ_TINT, enquiryTypeLabel, type EnquiryJobAsk } from "@/types/enquiry";
@@ -38,6 +40,7 @@ export function EnquiryJobsList({ jobs, bare = false }: { jobs: EnquiryJobAsk[];
       return false;
     }
     setAnswered((a) => ({ ...a, [j.id]: accept ? "joined" : "declined" }));
+    toast(accept ? `Job accepted — ${j.hostName} is told` : "Job declined");
     router.refresh();
     return true;
   };
@@ -47,7 +50,7 @@ export function EnquiryJobsList({ jobs, bare = false }: { jobs: EnquiryJobAsk[];
     return (
       <div data-testid="enquiry-jobs" style={{ background: "var(--card)", border: "1.5px dashed var(--el)", borderRadius: 16, padding: "22px 16px", textAlign: "center" }}>
         <div style={{ fontSize: 12.5, fontWeight: 800 }}>No jobs yet</div>
-        <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 3 }}>When a studio puts you on a booking, it lands here.</div>
+        <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 3 }}>When a studio puts you on a job, it lands here.</div>
       </div>
     );
   }
@@ -112,7 +115,7 @@ export function EnquiryJobsList({ jobs, bare = false }: { jobs: EnquiryJobAsk[];
       })}
       {err && !declining ? (
         <div role="alert" style={{ fontSize: 11.5, color: "#F87171", marginTop: 8 }}>
-          {err}
+          {plainError(err)}
         </div>
       ) : null}
       {declining ? (

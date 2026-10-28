@@ -190,10 +190,10 @@ export function QuoteComposer({
         </div>
       ) : (
         <div style={{ marginBottom: 10 }}>
-          <div style={label}>{mode === "quote" ? "PROJECT TOTAL" : reduction ? "AMOUNT OFF" : "AMOUNT TO ADD"}</div>
+          <div style={label}>{mode === "quote" ? "QUOTE TOTAL" : reduction ? "AMOUNT OFF" : "AMOUNT TO ADD"}</div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <span style={{ fontSize: 15, fontWeight: 900 }}>{reduction ? "−₹" : "₹"}</span>
-            <input value={lump} inputMode="numeric" onChange={(ev) => setLump(ev.target.value.replace(/[^\d]/g, "").slice(0, 9))} placeholder="25000" aria-label={mode === "quote" ? "Project total" : "Amount"} style={{ ...field, flex: 1, fontFamily: DOS_MONO, fontSize: 14 }} />
+            <input value={lump} inputMode="numeric" onChange={(ev) => setLump(ev.target.value.replace(/[^\d]/g, "").slice(0, 9))} placeholder="25000" aria-label={mode === "quote" ? "Quote total" : "Amount"} style={{ ...field, flex: 1, fontFamily: DOS_MONO, fontSize: 14 }} />
           </div>
           {mode === "addition" ? (
             <button type="button" aria-pressed={reduction} onClick={() => setReduction((r) => !r)} style={{ ...btn, marginTop: 8, padding: "7px 12px", fontSize: 11, background: reduction ? "var(--text)" : "var(--el)", color: reduction ? "var(--solid)" : "var(--sub)" }}>

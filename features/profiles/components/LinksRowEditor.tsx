@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import { toast } from "@/components/ui/Toast";
 import { adoptInstagramPhotoAction, disconnectInstagramAction, dismissInstagramPhotoAction } from "@/features/profiles/server-actions/instagram";
 import { PLATFORMS, PLATFORM_TINT, handleOf, isPlatform, safeHref, verifiedInstagram } from "@/lib/constants/socials";
 import { CARD, INK, LINE, SUB } from "@/lib/design/tokens";
@@ -69,39 +70,34 @@ export function LinksRowEditor({
   const [custom, setCustom] = useState({ label: "", url: "" });
   /* BACK FROM INSTAGRAM: the word the return carried is the first toast */
   const returned = instagram?.returned ?? null;
-  const returnedWords = returned ? ("username" in returned ? `✓ Instagram connected — @${returned.username}` : returned.error) : null;
-  const [toast, setToast] = useState<string | null>(returnedWords);
+  const returnedOk = returned && "username" in returned ? `✓ Instagram connected — @${returned.username}` : null;
+  const returnedErr = returned && "error" in returned ? returned.error : null;
   const [pending, start] = useTransition();
   const { editing } = useEditMode();
   const canChange = canEdit && editing;
   const ticked = instagram ? verifiedInstagram(socials, instagram.connected) : null;
 
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2600);
-  };
-
-  /* ...said once: it goes after a few seconds, and the word comes off the
+  /* ...said once, through the global toast, and the word comes off the
      address so a reload does not say it again */
   useEffect(() => {
-    if (!returnedWords) return;
-    const t = setTimeout(() => setToast(null), 4200);
+    if (!returnedOk && !returnedErr) return;
+    if (returnedErr) toast.error(returnedErr);
+    else toast(returnedOk);
     const url = new URL(window.location.href);
     url.searchParams.delete("ig");
     url.searchParams.delete("ig_error");
     window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
-    return () => clearTimeout(t);
-  }, [returnedWords]);
+  }, [returnedOk, returnedErr]);
 
   /* "USE YOUR INSTAGRAM PHOTO?" — asked once, on the return from Instagram */
   const [offer, setOffer] = useState<string | null>(instagram?.photoOffer ?? null);
   const takePhoto = () =>
     start(async () => {
       const out = await adoptInstagramPhotoAction();
-      if (out.error) return fire(out.error);
+      if (out.error) return toast.error(out.error);
       setOffer(null);
       router.refresh();
-      fire("✓ Your Instagram photo is your profile picture");
+      toast("Your Instagram photo is your profile picture");
     });
   const skipPhoto = () => {
     setOffer(null);
@@ -111,22 +107,22 @@ export function LinksRowEditor({
   const disconnect = () =>
     start(async () => {
       const out = await disconnectInstagramAction();
-      if (out.error) return fire(out.error);
+      if (out.error) return toast.error(out.error);
       setEditor(null);
       router.refresh();
-      fire("Instagram disconnected — the link stays, without the tick");
+      toast("Instagram disconnected — the link stays, without the tick");
     });
 
   const commit = (next: SocialLink[], said: string, after?: () => void) =>
     start(async () => {
       const err = await save(next);
       if (err) {
-        fire(err);
+        toast.error(err);
         return;
       }
       adopt({ ...lists, socials: next });
       after?.();
-      fire(said);
+      toast(said);
     });
 
   const move = (i: number, dir: -1 | 1) => {
@@ -138,7 +134,7 @@ export function LinksRowEditor({
   };
 
   const offerInstagram = Boolean(instagram && canEdit && !ticked);
-  if (!socials.length && !canChange && !emptyWords && !offerInstagram && !toast && !offer) return null;
+  if (!socials.length && !canChange && !emptyWords && !offerInstagram && !offer) return null;
 
   return (
     <>
@@ -240,12 +236,12 @@ export function LinksRowEditor({
             <input aria-label="Link URL" value={custom.url} onChange={(e) => setCustom((d) => ({ ...d, url: e.target.value }))} placeholder="https://…" style={{ ...fieldInput, flex: 1, minWidth: 0, padding: "10px 12px", fontSize: 13 }} />
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-            <button type="button" onClick={() => setListOpen(false)} style={sheetBtn(false)}>Done</button>
+            <button type="button" onClick={() => setListOpen(false)} style={sheetBtn(false)}>Close</button>
             <button
               type="button"
               disabled={pending}
               onClick={() => {
-                if (!custom.label.trim() || !custom.url.trim()) return fire("Add a label and URL first");
+                if (!custom.label.trim() || !custom.url.trim()) return toast.error("Add a label and URL first");
                 commit([...socials, { platform: custom.label.trim(), url: custom.url.trim() }], "✓ Link added", () => setCustom({ label: "", url: "" }));
               }}
               style={sheetBtn(true)}
@@ -303,9 +299,9 @@ export function LinksRowEditor({
               disabled={pending}
               onClick={() => {
                 const url = editor.url.trim();
-                if (!url) return fire("Add a URL first");
+                if (!url) return toast.error("Add a URL first");
                 /* the same http(s) rule the database keeps, said before it refuses */
-                if (!/^https?:\/\//i.test(url)) return fire("A link is a web address — it starts with https://");
+                if (!/^https?:\/\//i.test(url)) return toast.error("A link is a web address — it starts with https://");
                 const rest = socials.filter((l) => l.platform !== editor.platform);
                 const at = socials.findIndex((l) => l.platform === editor.platform);
                 const next = at >= 0 ? [...rest.slice(0, at), { platform: editor.platform, url }, ...rest.slice(at)] : [...rest, { platform: editor.platform, url }];
@@ -334,12 +330,6 @@ export function LinksRowEditor({
             </button>
           </div>
         </Sheet>
-      ) : null}
-
-      {toast ? (
-        <div role="status" style={{ position: "fixed", left: "50%", bottom: "calc(90px + var(--dos-safe-bottom, 0px))", transform: "translateX(-50%)", zIndex: 800, background: "var(--solid)", border: "1.5px solid #0EA5E9", borderRadius: 999, padding: "9px 16px", fontSize: 12, fontWeight: 800, color: INK, boxShadow: "0 8px 24px rgba(0,0,0,.35)" }}>
-          {toast}
-        </div>
       ) : null}
     </>
   );

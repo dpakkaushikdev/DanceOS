@@ -3,12 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Portal } from "@/components/ui/Portal";
+import { toast } from "@/components/ui/Toast";
 import { commitHeaderDraft, commitWords, personPorts } from "@/features/media/commitHeaderDraft";
 import { HeaderPictures, headerTiles } from "@/features/media/components/HeaderPictures";
 import { PhotoLightbox } from "@/features/media/components/PhotoLightbox";
 import { PhotoPicker } from "@/features/media/components/PhotoPicker";
 import { useHeaderDraft } from "@/features/media/headerDraft";
-import { MUTED, SUB } from "@/lib/design/tokens";
+import { MUTED, SUB } from "@/lib/design/tokens";
 import { FORM_TITLE } from "@/components/ui/formTitle";
 import type { HeaderPhoto } from "@/repositories/headerPhotos";
 import type { Profile } from "@/types/profile";
@@ -54,7 +55,7 @@ export function ProfilePictureSheet({ profile, onClose }: { profile: Profile; on
           <PhotoPicker owner={{ kind: "avatar", id: profile.id }} hasPhoto={Boolean(profile.avatarPath)} label="Change your photo" />
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
-          <button type="button" onClick={onClose} style={sheetBtn(true)}>Done</button>
+          <button type="button" onClick={onClose} style={sheetBtn(true)}>Close</button>
         </div>
       </Sheet>
     </Portal>
@@ -98,6 +99,7 @@ export function HeaderPicturesSheet({
           router.refresh();
           return;
         }
+        toast("Pictures saved");
       }
       onClose();
       router.refresh();
@@ -128,7 +130,7 @@ export function HeaderPicturesSheet({
         <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
           <button type="button" onClick={onClose} style={sheetBtn(false)}>Cancel</button>
           <button type="button" disabled={pending} onClick={save} style={sheetBtn(true)}>
-            {pending ? "Saving…" : draft.dirty ? `Save · ${draft.changeCount} ${draft.changeCount === 1 ? "picture change" : "picture changes"}` : "Done"}
+            {pending ? "Saving…" : draft.dirty ? `Save · ${draft.changeCount} ${draft.changeCount === 1 ? "picture change" : "picture changes"}` : "Close"}
           </button>
         </div>
       </Sheet>

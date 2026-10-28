@@ -58,7 +58,7 @@ async function runRegisterOp(op: RegisterOp, input: { classBookingId: string }):
     revalidateRegisterSurfaces();
     return { error: null };
   } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "Could not update the register" };
+    return { error: error instanceof Error ? error.message : "Could not update attendance" };
   }
 }
 
@@ -124,8 +124,8 @@ export async function bookAtTheDoorAction(input: {
     await checkIn(supabase, classBookingId);
   } catch (error: unknown) {
     revalidateRegisterSurfaces();
-    const why = error instanceof Error ? error.message : "the register would not take it";
-    return { error: `They have a seat, but the check-in did not go through — ${why}` };
+    console.error(error);
+    return { error: "Couldn't check them in — try again." };
   }
 
   revalidateRegisterSurfaces();
@@ -148,7 +148,7 @@ export async function setDoorPaidAction(input: { classBookingId: string; paid: b
     revalidateRegisterSurfaces();
     return { error: null };
   } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "Could not mark the seat" };
+    return { error: error instanceof Error ? error.message : "Could not mark the spot" };
   }
 }
 

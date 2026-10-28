@@ -235,7 +235,7 @@ const passRow = async (id) => (await call("GET", `/rest/v1/membership_passes?id=
     const rs = bp.getByRole("dialog", { name: "Cancel this booking?" });
     await rs.waitFor({ timeout: 15000 });
     const rsText = (await rs.innerText()).replace(/\s+/g, " ");
-    check(/come back to your pass/i.test(rsText), `the cancel sheet says the hours come back to the pass ("${rsText.match(/YOUR PASS HOURS[^.]*/i)?.[0] ?? rsText.slice(0, 80)}")`);
+    check(/come back to your membership/i.test(rsText), `the cancel sheet says the hours come back to the membership ("${rsText.match(/YOUR MEMBERSHIP HOURS[^.]*/i)?.[0] ?? rsText.slice(0, 80)}")`);
     await rs.getByRole("button", { name: "Schedule clash" }).click();
     let back = p1;
     for (let i = 0; i < 10; i++) {

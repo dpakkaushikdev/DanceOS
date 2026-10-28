@@ -8,6 +8,7 @@ import { columnTab, columnTrack } from "@/components/ui/ColumnTabs";
 import { DeskBody, DeskTop } from "@/components/ui/DeskSections";
 import { FigureHead } from "@/components/ui/FigureHead";
 import { DeleteIconButton } from "@/components/ui/DeleteIconButton";
+import { toast } from "@/components/ui/Toast";
 import { ToolActions, ToolBody, ToolCard, ToolChip, ToolFacts, ToolHead } from "@/components/ui/ToolCard";
 import { DOS_UI, INK, LILAC, SUB } from "@/lib/design/tokens";
 import { FORM_TITLE } from "@/components/ui/formTitle";
@@ -97,12 +98,7 @@ export function StudentsDesk({
   const [q, setQ] = useState("");
   const [invite, setInvite] = useState(false);
   const [busyLead, setBusyLead] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
-
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2400);
-  };
+  const fire = (m: string) => toast(m);
 
   /** the students holding a live pass here */
   const members = students.filter((s) => s.passName).length;
@@ -188,7 +184,7 @@ export function StudentsDesk({
                  Member · Yes tile — and the pass's name on a line under it. The
                  chip is the one place left; the pass itself is on the student's
                  own Membership column, one press away. */
-              right={s.passName ? <ToolChip word="MEMBER" fg={TINT} bg={`${TINT}1c`} testId="student-member" /> : null}
+              right={s.passName ? <ToolChip word="HAS MEMBERSHIP" fg={TINT} bg={`${TINT}1c`} testId="student-member" /> : null}
             />
             {/* ⚠ SIX BOXES, THREE TO A ROW (4 Oct 2026, the user: "headings -
                 Attended, Booked, Hours, Turn Up, Routines, dance styles. in
@@ -245,12 +241,6 @@ export function StudentsDesk({
       </DeskBody>
 
       {invite ? <InviteSheet businessName={businessName} inviteUrl={inviteUrl} onClose={() => setInvite(false)} onToast={fire} /> : null}
-
-      {toast ? (
-        <div role="status" style={{ position: "fixed", bottom: 96, left: "50%", transform: "translateX(-50%)", background: "var(--solid)", border: "1.5px solid #0EA5E9", color: INK, padding: "11px 18px", borderRadius: 999, fontSize: 13, fontWeight: 700, maxWidth: 360, textAlign: "center", zIndex: 650, boxShadow: "0 6px 24px rgba(0,0,0,.45)" }}>
-          {toast}
-        </div>
-      ) : null}
     </div>
   );
 }

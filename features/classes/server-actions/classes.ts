@@ -269,7 +269,7 @@ export async function updateClassAction(
        to edit a published class only delete it") — said in words here, and
        refused again by the database (`20261015090000`) */
     if (before && before.status !== "draft") {
-      return { error: "A published class cannot be edited — delete it and add a new one." };
+      return { error: "A published class can't be changed. If something changes, tell your students." };
     }
     const {
       data: { user },

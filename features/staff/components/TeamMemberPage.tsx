@@ -15,6 +15,7 @@ import { PaidCovers } from "@/features/payouts/components/PaidCovers";
 import type { PaymentDispute } from "@/repositories/disputes";
 import type { BusinessType } from "@/types/business";
 import { DOS_UI, GREEN, INK, LILAC, MUTED, SUB } from "@/lib/design/tokens";
+import { methodWord } from "@/lib/format/money";
 import { KIND_WORD, kindOf } from "@/types/profile";
 import { PERIODS, bucketKeyOf, bucketLabelOf, bucketStartIso, type Period } from "@/lib/format/month";
 import { MEMBER_LABEL, MEMBER_ROLE_WORD } from "@/types/staff";
@@ -290,29 +291,29 @@ function EarningsPanel({
         <ToolFacts
           tint={tint}
           items={[
-            { label: "Revenue", value: rupees(revenue), testId: "team-revenue" },
+            { label: "Earned", value: rupees(revenue), testId: "team-revenue" },
             { label: "Paid them", value: rupees(paid), testId: "team-paid" },
-            { label: "To settle", value: work.owedEntries.length, tint: work.owedEntries.length > 0 ? "#F59E0B" : undefined, testId: "team-to-settle" },
+            { label: "To pay", value: work.owedEntries.length, tint: work.owedEntries.length > 0 ? "#F59E0B" : undefined, testId: "team-to-settle" },
           ]}
         />
         <ToolFacts
           tint={tint}
           style={{ marginTop: 6 }}
           items={[
-            { label: "Total earnings", value: totalWords, tint: totalTint, testId: "team-total-earnings" },
+            { label: "Studio keeps", value: totalWords, tint: totalTint, testId: "team-total-earnings" },
             { label: history.payouts.length === 1 ? "Payment" : "Payments", value: history.payouts.length },
             { label: "Last paid", value: last ? dayWords(last).replace(/ \d{4}$/, "") : "—" },
           ]}
         />
         {/* ⚠ A CAPPED READ SAYS SO (21 Sep 2026) */}
-        {!history.complete || !work.complete ? <div style={{ fontSize: 10.5, color: "#F59E0B", marginTop: 8, lineHeight: 1.45 }}>Counting the latest 4,000 rows only — the figures above may be short.</div> : null}
+        {!history.complete || !work.complete ? <div style={{ fontSize: 10.5, color: "#F59E0B", marginTop: 8, lineHeight: 1.45 }}>Showing recent payments only — older ones aren&apos;t counted.</div> : null}
         </Fold>
       </div>
 
       {/* THE BREAKUP, in the user's own order — each section folded onto its
           entries (4 Oct 2026), the total folded onto its own sum */}
       <div style={panel} data-testid="team-earnings-breakup">
-        <Fold title="REVENUE FOR THE TEAM" figure={rupees(revenue)} count={work.revenueEntries.length} noun={["entry", "entries"]} testId="team-fold-revenue">
+        <Fold title="EARNED FOR THE TEAM" figure={rupees(revenue)} count={work.revenueEntries.length} noun={["entry", "entries"]} testId="team-fold-revenue">
           {work.revenueEntries.length === 0 ? (
             <div style={{ fontSize: 11.5, color: SUB }}>Nothing yet.</div>
           ) : (
@@ -321,7 +322,7 @@ function EarningsPanel({
                 key={e.id}
                 testId={e.kind === "refund" ? "team-revenue-refund" : "team-revenue-entry"}
                 label={e.kind === "refund" ? `Refund · ${e.classTitle}` : e.classTitle}
-                sub={[e.payerName, e.sessionAt ? sessionWords(e.sessionAt) : null, e.method ? e.method.replace(/_/g, " ").toUpperCase() : null].filter(Boolean).join(" · ") || undefined}
+                sub={[e.payerName, e.sessionAt ? sessionWords(e.sessionAt) : null, e.method ? methodWord(e.method) : null].filter(Boolean).join(" · ") || undefined}
                 value={e.kind === "refund" ? minus(e.amountInr) : rupees(e.amountInr)}
                 tint={e.kind === "refund" ? "#F87171" : undefined}
               />
@@ -329,11 +330,11 @@ function EarningsPanel({
           )}
           {work.revenueRefundedInr > 0 ? (
             <div style={{ ...rule, marginTop: 6 }}>
-              <Line label="In" value={rupees(work.revenueGrossInr)} />
+              <Line label="Earned" value={rupees(work.revenueGrossInr)} />
               <Line label="Refunded" value={minus(work.revenueRefundedInr)} />
             </div>
           ) : null}
-          <div style={{ fontSize: 10.5, color: MUTED, marginTop: 6, lineHeight: 1.45 }}>Membership seats not included.</div>
+          <div style={{ fontSize: 10.5, color: MUTED, marginTop: 6, lineHeight: 1.45 }}>Memberships not included.</div>
         </Fold>
 
         <div style={rule} />
@@ -344,7 +345,7 @@ function EarningsPanel({
             </div>
           ) : (
             <>
-              <Line label="Settled" sub={`${settledCount} of ${history.payouts.length} ${history.payouts.length === 1 ? "payment" : "payments"}`} value={rupees(history.paidInr)} testId="team-settled" />
+              <Line label="Paid" sub={`${settledCount} of ${history.payouts.length} ${history.payouts.length === 1 ? "payment" : "payments"}`} value={rupees(history.paidInr)} testId="team-settled" />
               {history.pendingInr > 0 ? <Line label="In transit" value={rupees(history.pendingInr)} /> : null}
               {history.payouts.map((p) => {
                 const tone = TONE[payoutTone(p.status)];
@@ -392,22 +393,22 @@ function EarningsPanel({
         {/* ⚠ LISTED ONCE (19 Oct 2026, the user: "make sure things aren't
             repeated") — the sessions themselves are the To settle column's, with
             the Pay button beside them; this fold only points there */}
-        <Fold title="NOT SETTLED YET" sub="Listed under To settle" testId="team-fold-to-settle">
+        <Fold title="NOT PAID YET" sub="Listed under To pay" testId="team-fold-to-settle">
           {work.owedEntries.length === 0 ? (
-            <div style={{ fontSize: 11.5, color: SUB }}>Every session is settled.</div>
+            <div style={{ fontSize: 11.5, color: SUB }}>Everything is paid.</div>
           ) : (
             <Link href={`${base}?show=settle`} replace scroll={false} style={{ fontSize: 11.5, fontWeight: 800, color: tint }}>
-              Open To settle ›
+              Open To pay ›
             </Link>
           )}
         </Fold>
 
         <div style={{ ...rule, borderTopWidth: 2 }} />
         {/* the total folds onto its own arithmetic */}
-        <Fold title="TOTAL EARNINGS" sub="Revenue − paid" figure={totalWords} figureTint={totalTint} figureTestId="team-total-figure" testId="team-total-line">
-          <Line label="Revenue" value={rupees(revenue)} />
+        <Fold title="STUDIO KEEPS" sub="Earned − paid" figure={totalWords} figureTint={totalTint} figureTestId="team-total-figure" testId="team-total-line">
+          <Line label="Earned" value={rupees(revenue)} />
           <Line label="Paid to them" value={minus(paid)} />
-          <Line label="Total earnings" value={totalWords} strong tint={totalTint} />
+          <Line label="Studio keeps" value={totalWords} strong tint={totalTint} />
         </Fold>
       </div>
 
@@ -560,7 +561,7 @@ export function TeamMemberPage({
             tint={tint}
             items={[
               { label: work.classes.length === 1 ? "Class" : "Classes", value: work.classes.length, testId: "team-class-count" },
-              { label: "Dancers in", value: work.dancers, testId: "team-dancers" },
+              { label: "Students", value: work.dancers, testId: "team-dancers" },
             ]}
           />
         </ToolBody>
@@ -583,8 +584,8 @@ export function TeamMemberPage({
            "handle team detail pages better with everything inside that … under
            right columns". The page still opens on Paid (the route's default). */
         segments={[
-          { key: "settle", href: `${base}?show=settle`, label: "To settle", aria: `What ${member.name} has not been paid for` },
-          { key: "earnings", href: `${base}?show=earnings`, label: "Paid", aria: `What ${member.name} earns the team` },
+          { key: "settle", href: `${base}?show=settle`, label: "To pay", aria: `What ${member.name} has not been paid for` },
+          { key: "earnings", href: `${base}?show=earnings`, label: "Earnings", aria: `What ${member.name} earns the team` },
           { key: "classes", href: `${base}?show=classes`, label: "Classes", aria: `${member.name}'s classes here` },
           { key: "stats", href: `${base}?show=stats`, label: "Stats", aria: `${member.name}'s stats here` },
           ...(rent.length > 0 ? [{ key: "rent", href: `${base}?show=rent`, label: "Rent", aria: `Rent ${member.name} paid here` }] : []),

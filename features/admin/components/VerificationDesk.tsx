@@ -8,6 +8,8 @@ import { decideStudioVerificationAction } from "@/features/admin/server-actions/
 import { endSubscriptionAction, refundFirstPeriodAction } from "@/features/admin/server-actions/subscriptions";
 import { VerifiedTick, dateWords } from "@/features/settings/components/settings-kit";
 import { PLATFORM_TINT, handleOf, isPlatform, safeHref } from "@/lib/constants/socials";
+import { toast } from "@/components/ui/Toast";
+import { plainError } from "@/lib/errors";
 import { INK, SUB } from "@/lib/design/tokens";
 import { ProofStrip } from "@/features/admin/components/ProofStrip";
 import { photoUrl } from "@/lib/media/photo";
@@ -143,7 +145,6 @@ export function VerificationDesk({
   nowIso: string;
 }) {
   const router = useRouter();
-  const [toast, setToast] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [note, setNote] = useState("");
   /** ⚠ TICKED, NOT AUTOMATIC. Ending somebody's mandate is a money decision, so
@@ -151,15 +152,13 @@ export function VerificationDesk({
    *  studio that goes on being billed is the failure this exists to stop. */
   const [alsoEnd, setAlsoEnd] = useState(true);
   const [pending, start] = useTransition();
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2600);
-  };
+  const fire = (m: string) => toast(m);
+  const oops = (m: string) => void toast.error(m);
   /* the studio's badge — the only answer this desk gives */
   const decideStudio = (businessId: string, approve: boolean, said: string, withNote?: string) =>
     start(async () => {
       const out = await decideStudioVerificationAction({ businessId, approve, note: withNote || null });
-      if (out.error) return fire(out.error);
+      if (out.error) return oops(out.error);
       setRejecting(null);
       setNote("");
       fire(said);
@@ -175,7 +174,7 @@ export function VerificationDesk({
     const end = Boolean(m) && alsoEnd;
     return start(async () => {
       const out = await decideStudioVerificationAction({ businessId, approve: false, note: withNote || null });
-      if (out.error) return fire(out.error);
+      if (out.error) return oops(out.error);
       let refunded: string | null = null;
       if (end && m) {
         const why = `Studio not approved${withNote ? ` — ${withNote}` : ""}`;
@@ -184,7 +183,7 @@ export function VerificationDesk({
           setRejecting(null);
           setNote("");
           router.refresh();
-          return fire(`${name} not approved — but its subscription is STILL LIVE: ${stopped.error}`);
+          return oops(`${name} not approved — but its subscription is STILL LIVE: ${plainError(stopped.error)}`);
         }
         /* AND THE FIRST PERIOD GOES BACK (6 Oct 2026, decision 2) — a studio that
            paid at creation (R51) and was then refused never had a month it could
@@ -197,7 +196,7 @@ export function VerificationDesk({
             setRejecting(null);
             setNote("");
             router.refresh();
-            return fire(`${name} not approved and its subscription ended — but the first month was NOT refunded: ${back.error}`);
+            return oops(`${name} not approved and its subscription ended — but the first month was NOT refunded: ${plainError(back.error)}`);
           }
           /* "sent", not "refunded": the money has moved only once Cashfree says so
              (10 Oct 2026) — the money desk shows it until then */
@@ -393,7 +392,6 @@ export function VerificationDesk({
 
       <Pager base={base} page={page} total={total} size={PAGE_SIZE} keep={keep} />
 
-      {toast ? <div role="status" style={{ position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)", background: "#241B33", color: "#fff", padding: "11px 18px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 700 }}>{toast}</div> : null}
     </div>
   );
 }

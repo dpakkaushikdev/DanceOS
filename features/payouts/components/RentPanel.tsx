@@ -9,7 +9,9 @@ import { SettleSheet } from "@/features/payouts/components/SettleSheet";
 import { recordRentPaymentAction, voidRentPaymentAction } from "@/features/payouts/server-actions/payouts";
 import { DOS_TOOLS } from "@/features/businesses/components/biz-kit";
 import { ToolChip, ToolFacts, toolBtn } from "@/components/ui/ToolCard";
-import { INK, MUTED, SUB } from "@/lib/design/tokens";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { toast } from "@/components/ui/Toast";
+import { INK, SUB } from "@/lib/design/tokens";
 import { sessionDayLabel } from "@/lib/format/session";
 import { PAYOUT_METHOD_LABEL, type RentPayment, type RentVenue } from "@/types/payout";
 import type { PaymentDispute } from "@/repositories/disputes";
@@ -29,7 +31,7 @@ const dayWords = (iso: string) => new Intl.DateTimeFormat("en-IN", { day: "numer
 /** ⚠ EVERY RENT PAYMENT IS A FOLD (19 Oct 2026, the user: "rent payments should
  *  be collapsible"): the head is what it was — the amount, the day, the method,
  *  what it covered, its state — and the classes it covered, the reference, the
- *  note, the dispute and Void open underneath. */
+ *  note, the dispute and Delete open underneath. */
 function PaymentRow({ p, other, onVoid, dispute }: { p: RentPayment; other: string; onVoid?: () => void; dispute?: { side: "paid" | "payer"; byTarget: Record<string, PaymentDispute> } }) {
   return (
     <details data-testid="rent-payment" className="dos-fold" style={{ borderTop: "1.5px solid var(--el)", padding: "8px 0 2px" }}>
@@ -52,8 +54,8 @@ function PaymentRow({ p, other, onVoid, dispute }: { p: RentPayment; other: stri
         dispute={dispute ? { side: dispute.side, of: "rent", paymentId: p.id, amountInr: p.amountInr, byTarget: dispute.byTarget } : undefined}
       />
       {onVoid ? (
-        <button type="button" onClick={onVoid} aria-label={`Void the ${rupees(p.amountInr)} rent to ${other}`} style={{ fontSize: 11, fontWeight: 800, color: "#DC2626", background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}>
-          Void — recorded by mistake
+        <button type="button" onClick={onVoid} aria-label={`Delete the ${rupees(p.amountInr)} rent to ${other}`} style={{ fontSize: 11, fontWeight: 800, color: "#DC2626", background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}>
+          Delete — recorded by mistake
         </button>
       ) : null}
     </details>
@@ -67,7 +69,9 @@ function PaymentRow({ p, other, onVoid, dispute }: { p: RentPayment; other: stri
 export function RentToPay({ payerBusinessId, venues, disputes }: { payerBusinessId: string; venues: RentVenue[]; disputes?: Record<string, PaymentDispute> }) {
   const router = useRouter();
   const [open, setOpen] = useState<RentVenue | null>(null);
-  const [msg, setMsg] = useState<string | null>(null);
+  /* ⚠ THE APP'S OWN QUESTION, not `window.confirm` (19 Oct 2026) */
+  const [asking, setAsking] = useState<{ id: string; words: string; venue: string } | null>(null);
+  const [busy, setBusy] = useState(false);
   if (venues.length === 0) return null;
   return (
     <section data-testid="rent-to-pay" style={{ marginBottom: 16 }}>
@@ -88,10 +92,7 @@ export function RentToPay({ payerBusinessId, venues, disputes }: { payerBusiness
                 aria-label={`Pay rent to ${v.venueName}`}
                 disabled={nothingDue}
                 title={nothingDue ? "Every class here is paid for" : undefined}
-                onClick={() => {
-                  setMsg(null);
-                  setOpen(v);
-                }}
+                onClick={() => setOpen(v)}
                 style={{ ...toolBtn("primary", TINT), flex: "0 0 auto", opacity: nothingDue ? 0.45 : 1, cursor: nothingDue ? "default" : "pointer" }}
               >
                 Pay rent
@@ -138,12 +139,7 @@ export function RentToPay({ payerBusinessId, venues, disputes }: { payerBusiness
                     p={p}
                     other={v.venueName}
                     dispute={disputes ? { side: "payer", byTarget: disputes } : undefined}
-                    onVoid={async () => {
-                      if (!window.confirm(`Void the ${rupees(p.amountInr)} rent to ${v.venueName}? Its classes go back on the list.`)) return;
-                      const out = await voidRentPaymentAction({ id: p.id });
-                      setMsg(out.error ?? "Voided");
-                      router.refresh();
-                    }}
+                    onVoid={() => setAsking({ id: p.id, words: rupees(p.amountInr), venue: v.venueName })}
                   />
                 ))}
               </details>
@@ -151,10 +147,22 @@ export function RentToPay({ payerBusinessId, venues, disputes }: { payerBusiness
           </div>
         );
       })}
-      {msg ? (
-        <div role="status" style={{ fontSize: 11.5, color: MUTED, marginTop: 4 }}>
-          {msg}
-        </div>
+      {asking ? (
+        <ConfirmDialog
+          title="Delete this payment?"
+          body={`The ${asking.words} rent to ${asking.venue} is removed from the records, and its classes go back on the list.`}
+          goWord="Delete"
+          busy={busy}
+          onKeep={() => setAsking(null)}
+          onGo={async () => {
+            setBusy(true);
+            const out = await voidRentPaymentAction({ id: asking.id });
+            setBusy(false);
+            setAsking(null);
+            toast.result(out.error, "Payment deleted");
+            router.refresh();
+          }}
+        />
       ) : null}
       {open ? (
         <SettleSheet
@@ -173,7 +181,7 @@ export function RentToPay({ payerBusinessId, venues, disputes }: { payerBusiness
               ...meta,
             });
             if (!out.error) {
-              setMsg(`${rupees(lines.reduce((n, l) => n + l.rateInr, 0))} rent recorded for ${open.venueName}`);
+              toast(`${rupees(lines.reduce((n, l) => n + l.rateInr, 0))} rent recorded for ${open.venueName}`);
               setOpen(null);
               router.refresh();
             }

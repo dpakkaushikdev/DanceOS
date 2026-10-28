@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Pick } from "@/components/ui/PickSheet";
 import { Portal } from "@/components/ui/Portal";
+import { toast } from "@/components/ui/Toast";
 import { LocationPicker, type PickedLocation } from "@/features/geo/components/LocationPicker";
 import { setBusinessLocationAction } from "@/features/geo/server-actions/location";
 import { updateBusinessProfileAction } from "@/features/settings/server-actions/plans";
@@ -160,6 +161,7 @@ export function BusinessEditSheet({
         setErr(out.error);
         return;
       }
+      toast(isStudio ? "Studio saved" : "Profile saved");
       onClose();
       router.refresh();
     });
@@ -231,7 +233,7 @@ export function BusinessEditSheet({
       {/* ⚠ THE PHONE AND THE EMAIL LEFT THIS SHEET (26 Sep 2026): the ⊕ beside
           the buttons on the business's own home is where Call, Mail, Message and
           Enquiry are made — and unmade — like the styles and the links */}
-      <div style={{ fontSize: 10.5, color: SUB, marginTop: 8 }}>The number, the email and the links are the ⊕ beside the buttons on the home — press the pencil first.</div>
+      <div style={{ fontSize: 10.5, color: SUB, marginTop: 8 }}>Edit phone and links on your Home page.</div>
 
       {/* ⚠ THE DANCE STYLES LEFT THIS SHEET TOO (21 Sep 2026, the user: "make
           sure all profile types have similar ways to edit the profile, the

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ReactNode } from "react";
 import { DragList } from "@/components/ui/DragList";
+import { plainError } from "@/lib/errors";
 import { ToolGlyph, type Tile } from "@/features/home/components/tool-grid";
 import { setToolOrderAction } from "@/features/home/server-actions/toolOrder";
 import { arrangeTiles, orderOf } from "@/features/home/toolOrder";
@@ -154,8 +155,8 @@ export function DrawerTools({
             )}
           />
           {err ? (
-            <p role="status" style={{ margin: "8px 6px 0", fontSize: 11, fontWeight: 800, color: "#F87171" }}>
-              {err}
+            <p role="alert" style={{ margin: "8px 6px 0", fontSize: 11, fontWeight: 800, color: "#F87171" }}>
+              {plainError(err)}
             </p>
           ) : null}
           <div style={{ display: "flex", padding: "8px 6px 0" }}>

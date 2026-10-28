@@ -130,7 +130,7 @@ export async function sendRefundToRailAction(input: { refundId: string }): Promi
       return { message: null, error: "That refund is not waiting to be sent" };
     }
     if (row.provider !== "cashfree" || !row.providerOrderId) {
-      return { message: null, error: "That payment never went through Cashfree — settle it at the desk" };
+      return { message: null, error: "Refund this one in cash at the studio." };
     }
     const outcome = await sendRefundToRail(supabase, row, "Sent by the studio");
     revalidateRefundSurfaces();
@@ -158,7 +158,7 @@ export async function settleRefundOfflineAction(input: {
   try {
     await settleRefundOffline(supabase, parsed.data.refundId, parsed.data.note);
     revalidateRefundSurfaces();
-    return { message: "Marked refunded — settled by hand, not through the rail", error: null };
+    return { message: "Marked as refunded.", error: null };
   } catch (error: unknown) {
     return {
       message: null,

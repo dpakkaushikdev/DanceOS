@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { confirmSubscriptionAction, startSubscriptionAction } from "@/features/payments/server-actions/subscriptions";
 import { openCashfreeSubscription } from "@/lib/cashfree/checkout-client";
+import { PAYMENT_ERROR, plainError } from "@/lib/errors";
 
 /** SUBSCRIBE (10 Sep 2026) — the one button that sets up a recurring plan: the
  *  Artist plan on the Subscription screen, and a studio's plan under its row on
@@ -43,7 +44,7 @@ export function SubscribeButton({
     const res = await startSubscriptionAction({ planKey, businessId: businessId ?? null });
     if (!res.checkout) {
       setBusy(false);
-      setError(res.error ?? "Could not start the subscription");
+      setError(res.error ? plainError(res.error) : PAYMENT_ERROR);
       return;
     }
     let authorised = false;
@@ -51,10 +52,13 @@ export function SubscribeButton({
       const result = await openCashfreeSubscription(res.checkout.subsSessionId, res.checkout.mode);
       authorised = !result.error;
       if (result.error) {
-        setError(result.error.message ?? "The window closed before the mandate was set up — nothing was charged");
+        /* the SDK's own message is never shown — a closed window charged nothing */
+        console.error(result.error);
+        setError("Payment window closed — nothing charged.");
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not open the payment window");
+      console.error(e);
+      setError(PAYMENT_ERROR);
     }
     if (!authorised) {
       setBusy(false);
@@ -63,14 +67,14 @@ export function SubscribeButton({
     const out = await confirmSubscriptionAction({ subscriptionId: res.checkout.subscriptionId });
     setBusy(false);
     if (out.error || !out.outcome) {
-      setError(out.error ?? "Could not confirm the subscription");
+      setError(plainError(out.error ?? "Could not confirm the subscription — check again in a moment."));
       return;
     }
     const said =
       out.outcome === "subscribed"
         ? "Subscribed — it renews on its own; cancel any time"
         : out.outcome === "pending"
-          ? "Authorisation received — confirming with the bank…"
+          ? "Confirming with your bank…"
           : "The authorisation did not go through — nothing was charged";
     if (onDone) onDone(said);
     router.refresh();
@@ -103,7 +107,7 @@ export function SubscribeButton({
       >
         {busy ? "One moment…" : label}
       </button>
-      {error ? <span style={{ fontSize: 10.5, color: "#B42318", lineHeight: 1.4 }}>{error}</span> : null}
+      {error ? <span role="alert" style={{ fontSize: 10.5, color: "#F87171", lineHeight: 1.4 }}>{error}</span> : null}
     </span>
   );
 }

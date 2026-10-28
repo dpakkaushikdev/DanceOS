@@ -7,7 +7,8 @@ import { cancelCrewPracticeAction, setPracticeAttendanceAction } from "@/feature
 import { DeleteIconButton } from "@/components/ui/DeleteIconButton";
 import { checkInEnquiryPracticeAction } from "@/features/enquiries/server-actions/enquiryTeam";
 import { photoUrl } from "@/lib/media/photo";
-import { CrewFace, Toast } from "./crew-kit";
+import { CrewFace } from "./crew-kit";
+import { toast } from "@/components/ui/Toast";
 
 /** THE REGISTER ON A PRACTICE'S OWN PAGE (18 Oct 2026) — `/practice/crew/{id}`
  *  and `/practice/job/{id}` draw the same rows: a face, a name, what they are to
@@ -53,13 +54,7 @@ export type RegisterTarget = { kind: "crew"; practiceId: string; crewId: string 
 export function PracticeRegister({ rows: initial, target, tint, locked = false }: { rows: RegisterRow[]; target: RegisterTarget; tint: string; locked?: boolean }) {
   const router = useRouter();
   const [rows, setRows] = useState(initial);
-  const [toast, setToast] = useState<string | null>(null);
   const [, start] = useTransition();
-
-  const say = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2600);
-  };
 
   const mark = (userId: string, present: boolean) => {
     start(async () => {
@@ -68,11 +63,11 @@ export function PracticeRegister({ rows: initial, target, tint, locked = false }
           ? await setPracticeAttendanceAction({ practiceId: target.practiceId, userId, present, crewId: target.crewId })
           : await checkInEnquiryPracticeAction({ enquiryId: target.enquiryId, practiceId: target.practiceId, userId, on: present });
       if (r.error) {
-        say(r.error);
+        toast.error(r.error);
         return;
       }
       setRows((p) => p.map((x) => (x.userId === userId ? { ...x, present } : x)));
-      say(present ? "Marked in" : "Taken off the register");
+      toast(present ? "Checked in" : "Taken off attendance");
       router.refresh();
     });
   };
@@ -110,7 +105,6 @@ export function PracticeRegister({ rows: initial, target, tint, locked = false }
           )}
         </div>
       ))}
-      <Toast msg={toast} />
     </div>
   );
 }

@@ -15,9 +15,9 @@ import {
   FormConfirm,
   FormPage,
   FormSummary,
-  FormToast,
   formPrimary,
 } from "@/components/ui/FormPage";
+import { toast } from "@/components/ui/Toast";
 import { dosStyleColor } from "@/lib/constants/styles";
 import { SUB } from "@/lib/design/tokens";
 import type { Profile } from "@/types/profile";
@@ -65,12 +65,6 @@ export function CrewForm({ defaultCity, sheet = false }: { defaultCity: string |
   const [pick, setPick] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
-
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2300);
-  };
 
   /* the button NAMES what is missing rather than greying out (15573-15578) */
   const phoneOk = /^\+?[0-9][0-9 ]{7,17}$/.test(phone.trim());
@@ -84,10 +78,11 @@ export function CrewForm({ defaultCity, sheet = false }: { defaultCity: string |
     setBusy(false);
     setConfirm(false);
     if (out.error || !out.crewId) {
-      fire(out.error ?? "Give the crew a name first");
+      toast.error(out.error ?? "Give the crew a name first");
       return;
     }
-    fire(out.note ?? `🎉 ${name.trim()} created — you're the leader`);
+    /* the global toast outlives the sheet this form closes on the way out */
+    toast(out.note ?? `🎉 ${name.trim()} created — you're the leader`);
     /* ⚠ A SHEET REPLACES ITS OWN ENTRY ON THE WAY OUT (22 Sep 2026). Unlike a
        routine or a membership, making a crew LEAVES for the thing you just made
        — so a `push` from a sheet would stack the crew's home on top of the
@@ -161,7 +156,7 @@ export function CrewForm({ defaultCity, sheet = false }: { defaultCity: string |
                 pickLabel={(p) => `Add ${p.fullName} to the crew`}
                 onPick={(p) => {
                   setMembers((ms) => (ms.some((x) => x.id === p.id) ? ms : [...ms, p]));
-                  fire(`✅ ${p.fullName} added — they'll be asked to confirm`);
+                  toast(`✅ ${p.fullName} added — they'll be asked to confirm`);
                 }}
               />
             </div>
@@ -178,7 +173,7 @@ export function CrewForm({ defaultCity, sheet = false }: { defaultCity: string |
           type="button"
           
           aria-disabled={Boolean(stepOneErr)}
-          onClick={() => (stepOneErr ? fire(stepOneErr) : setConfirm(true))}
+          onClick={() => (stepOneErr ? toast.error(stepOneErr) : setConfirm(true))}
           style={{ ...formPrimary(!stepOneErr), flex: 1 }}
         >
           {stepOneErr ?? "Create crew"}
@@ -205,8 +200,6 @@ export function CrewForm({ defaultCity, sheet = false }: { defaultCity: string |
           </FormSummary>
         </FormConfirm>
       ) : null}
-
-      <FormToast msg={toast} />
     </FormPage>
   );
 }

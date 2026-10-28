@@ -230,7 +230,7 @@ const pressed = async (loc) => (await loc.getAttribute("aria-pressed").catch(() 
     const recvText = await recvBox.innerText().catch(() => "");
     check(/\bZQ\b/.test(recvText) && !/\bKH\b/.test(recvText), "studio's card: the sender's face, not the studio's own");
     check(await pressed(op.getByRole("button", { name: "To do enquiries", exact: true })), "studio inbox: a NEW enquiry waits on the studio, so it opens on To do");
-    check((await op.getByTestId("enquiries-move").getByRole("link", { name: `Choreographer enquiry from Zed Qul ${tag}` }).count()) === 1, "…filed under To do › Your move");
+    check((await op.getByTestId("enquiries-move").getByRole("link", { name: `Choreographer enquiry from Zed Qul ${tag}` }).count()) === 1, "…filed under To do › Your turn");
     check((await recvBox.getByRole("button").count()) === 0 && /Accept or decline/.test(await recvBox.getByTestId("enquiry-move").innerText().catch(() => "")), "the card carries no buttons — its pill says Accept or decline");
     check((await recvCard.getAttribute("href").catch(() => null)) === `/business/${studio.id}/inbox/enquiries/${open.id}`, "the card opens under the studio's own address");
     check((await op.getByRole("button", { name: /^Enquiry settings/ }).count()) === 1, "studio inbox: the studio's Enquiry settings stay with the desk");

@@ -86,7 +86,8 @@ export function EnrollButton({
   const [enrollState, enrollForm, enrollPending] = useActionState(enrollAction, initialState);
   const [cancelState, cancelForm, cancelPending] = useActionState(cancelClassBookingAction, initialState);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const error = enrollState.error || cancelState.error;
+  /* a successful cancel clears a stale booking error from before it */
+  const error = cancelState.error || (cancelState.outcome ? null : enrollState.error);
   const isPaid = priceInr > 0;
 
   if (!isSignedIn) {
@@ -136,7 +137,7 @@ export function EnrollButton({
                 thing this row is for: the way out of the seat. */}
             {isPaid ? (
               <Link href={`/c/${shareSlug}`} style={{ ...btn(false), textDecoration: "none" }}>
-                Cancel / refund ›
+                Cancel booking ›
               </Link>
             ) : (
               /* ⚠ ASKED FIRST (B17, 11 Oct 2026) — it was one tap, and a seat
@@ -148,7 +149,7 @@ export function EnrollButton({
             {confirmOpen ? (
               <ConfirmDialog
                 title="Cancel this booking?"
-                body="Your seat goes back on sale — if the class fills, it may not be there to take back."
+                body="Your spot goes back on sale — if the class fills, it may not be there to take back."
                 keepWord="Keep it"
                 goWord="Cancel booking"
                 tone="danger"
@@ -188,7 +189,7 @@ export function EnrollButton({
         )}
       </div>
       {error && (
-        <div style={{ fontSize: 10.5, color: "#EF4444", fontWeight: 700, marginTop: 6 }}>{error}</div>
+        <div role="alert" style={{ fontSize: 10.5, color: "#F87171", fontWeight: 700, marginTop: 6 }}>{error}</div>
       )}
     </div>
   );

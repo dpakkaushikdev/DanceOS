@@ -290,7 +290,7 @@ export function StatsScreen({
   const small: Array<[string, number, string, Array<[string, string]>]> = isStudioSubject
     ? [
         ["Styles", styleRows.length, "#22C55E", styleRows],
-        ["Teachers", teacherRows.length, "#EAB308", teacherRows],
+        ["Faculty", teacherRows.length, "#EAB308", teacherRows],
         ["Rooms", roomRows.length, "#0D9488", roomRows],
         ["Classes", classRows.length, "#14B8A6", classRows],
       ]
@@ -344,7 +344,7 @@ export function StatsScreen({
   const mx = Math.max(1, ...groups.map((x) => x[sortKey === "key" ? "sessions" : sortKey]));
   const DIMS: Array<[Dim, string]> = [
     ["style", "Dance style"],
-    ["artist", isStudioSubject ? "Teacher" : isArtist ? "Artist" : "Taught by"],
+    ["artist", isStudioSubject ? "Faculty" : isArtist ? "Artist" : "Faculty"],
     ["studio", isStudioSubject ? "Room" : "Studio"],
   ];
 
@@ -419,7 +419,7 @@ export function StatsScreen({
           return [
             { key: "conducted", label: "Sessions held", n: held, sub: hoursWords(hrs), aria: `Sessions held — ${held}, ${hoursWords(hrs)}`, colour: SIDE_TINT.conducted },
             { key: "floor", label: "On the floor", n: subjectRow?.extra ?? 0, sub: "people", aria: `On the floor — ${subjectRow?.extra ?? 0} people`, colour: SIDE_TINT.attended },
-            { key: "teachers", label: "Teachers", n: teacherRows.length, sub: `${styleRows.length} style${styleRows.length === 1 ? "" : "s"}`, aria: `Teachers — ${teacherRows.length}, ${styleRows.length} styles`, colour: "#EAB308" },
+            { key: "teachers", label: "Faculty", n: teacherRows.length, sub: `${styleRows.length} style${styleRows.length === 1 ? "" : "s"}`, aria: `Faculty —${teacherRows.length}, ${styleRows.length} styles`, colour: "#EAB308" },
           ];
         })()
       : [
@@ -812,7 +812,7 @@ export function StatsScreen({
                   </span>
                 </div>
                 <div style={{ padding: "0 0 2px" }}>
-                  {groups.length === 0 ? <div style={{ fontSize: 11.5, color: MUTED, padding: "10px 0" }}>Nothing on this side of the floor yet.</div> : null}
+                  {groups.length === 0 ? <div style={{ fontSize: 11.5, color: MUTED, padding: "10px 0" }}>No classes yet.</div> : null}
                   {groups.map((r, i) => {
                     const c = dim === "style" ? dosStyleColor(r.key) : "#5AC8FA";
                     const v = r[sortKey === "key" ? "sessions" : sortKey];

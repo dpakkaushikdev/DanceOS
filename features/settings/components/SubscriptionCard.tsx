@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ReactNode } from "react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { toast } from "@/components/ui/Toast";
 import { ToolActions, ToolBody, ToolCard, ToolChip, ToolFacts, ToolHead, toolBtn } from "@/components/ui/ToolCard";
 import { cancelSubscriptionAction } from "@/features/payments/server-actions/subscriptions";
 import { priceWords } from "@/repositories/plans";
@@ -71,16 +72,12 @@ export function SubscriptionCard({
   const router = useRouter();
   const [asking, setAsking] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const s = subscription;
   const live = Boolean(s?.hasAccess);
   const until = s?.currentPeriodEnd ? dateWords(s.currentPeriodEnd) : null;
 
-  const say = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2800);
-  };
+  const say = (m: string) => toast(m);
 
   const stop = () =>
     start(async () => {
@@ -123,7 +120,7 @@ export function SubscriptionCard({
               tint={tint}
               items={[
                 { label: "Price", value: s.granted ? "Free" : priceWords(s.priceInr, s.period) },
-                { label: "Billing", value: s.granted ? "Granted" : s.period === "yearly" ? "Yearly" : "Monthly" },
+                { label: "Billing", value: s.granted ? "Free from DanceOS" : s.period === "yearly" ? "Yearly" : "Monthly" },
               ]}
             />
             <ToolFacts
@@ -134,7 +131,7 @@ export function SubscriptionCard({
                 { label: s.renews ? "Renews on" : "End date", value: endWords, testId: "plan-until" },
               ]}
             />
-            {s.failureReason ? <div style={{ fontSize: 12, fontWeight: 700, color: "#F87171", marginTop: 8 }}>Last charge failed: {s.failureReason}</div> : null}
+            {s.failureReason ? <div style={{ fontSize: 12, fontWeight: 700, color: "#F87171", marginTop: 8 }}>The last payment didn&apos;t go through.</div> : null}
           </>
         ) : null}
         <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", lineHeight: 1.45, marginTop: s ? 10 : 0 }}>{standing.line}</div>
@@ -171,12 +168,6 @@ export function SubscriptionCard({
           onKeep={() => setAsking(false)}
           onGo={stop}
         />
-      ) : null}
-
-      {toast ? (
-        <div role="status" style={{ position: "fixed", bottom: 96, left: "50%", transform: "translateX(-50%)", background: "var(--solid)", border: "1.5px solid #0EA5E9", color: "var(--text)", padding: "11px 18px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 700, maxWidth: 360, textAlign: "center", boxShadow: "0 6px 24px rgba(0,0,0,.45)" }}>
-          {toast}
-        </div>
       ) : null}
     </ToolCard>
   );

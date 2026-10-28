@@ -26,6 +26,9 @@ import { DOS_MONO } from "@/features/inbox/components/inbox-kit";
 import { ColumnCount, columnTab, columnTrack } from "@/components/ui/ColumnTabs";
 import { openCashfreeCheckout, preloadCheckout } from "@/lib/cashfree/checkout-client";
 import { DOS_UI, LILAC } from "@/lib/design/tokens";
+import { toast } from "@/components/ui/Toast";
+import { PAYMENT_ERROR, plainError } from "@/lib/errors";
+import { statusWord } from "@/lib/format/money";
 import {
   ENQ_CLOSED,
   ENQ_STAGE_WORD,
@@ -233,7 +236,6 @@ export function EnquiryDetail({
   const otherName = mine ? e.fromName : e.businessName;
 
   const [busy, setBusy] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [composer, setComposer] = useState<null | { mode: "quote" } | { mode: "addition"; revises: EnquiryQuote | null }>(null);
   const [ask, setAsk] = useState<Ask | null>(null);
@@ -263,7 +265,7 @@ export function EnquiryDetail({
       if (a.status === "accepted" && a.costInr > 0 && !a.fullPaidAt) dues.push({ quoteId: a.id, part: "addition", amount: a.costInr, word: `Addition #${a.n}` });
     }
     if (!m.balancePaid && m.advanceDueInr === 0 && m.balanceInr > 0) {
-      dues.push({ quoteId: base.id, part: base.advanceInr > 0 ? "balance" : "full", amount: m.balanceInr, word: base.advanceInr > 0 ? "The balance" : "The project" });
+      dues.push({ quoteId: base.id, part: base.advanceInr > 0 ? "balance" : "full", amount: m.balanceInr, word: base.advanceInr > 0 ? "The balance" : "The job" });
     }
   }
   const canPay = !mine && payOnline && dues.length > 0 && !ending;
@@ -271,10 +273,8 @@ export function EnquiryDetail({
     if (canPay) preloadCheckout();
   }, [canPay]);
 
-  const fire = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2400);
-  };
+  /* the app's one toast — it outlives a sheet that closes as it fires */
+  const fire = (msg: string) => toast(msg);
   const run = async (op: () => Promise<{ error: string | null }>, doneMsg: string) => {
     if (busy) return false;
     setBusy(true);
@@ -283,6 +283,8 @@ export function EnquiryDetail({
     setBusy(false);
     if (out.error) {
       setError(out.error);
+      /* a page-level press may be far above the line at the foot that says why */
+      if (!ask) toast.error(out.error);
       return false;
     }
     fire(doneMsg);
@@ -323,7 +325,8 @@ export function EnquiryDetail({
     setBusy(false);
     setOpenOrder(null);
     if (out.error || !out.outcome) {
-      setError(out.error ?? "Could not confirm the payment");
+      setError(out.error ?? PAYMENT_ERROR);
+      toast.error(out.error ?? PAYMENT_ERROR);
       return;
     }
     fire(out.outcome === "booked" ? "Paid — they have been told" : out.outcome === "processing" ? "Payment received — confirming it now" : "That payment could not be applied — it is on its way back");
@@ -336,7 +339,8 @@ export function EnquiryDetail({
     const res = await startEnquiryCheckoutAction({ quoteId: d.quoteId, enquiryId: e.id, businessName: e.businessName.slice(0, 80) || "DanceOS", description: `${type?.label ?? "Enquiry"} · ${d.word}` });
     if (!res.checkout) {
       setBusy(false);
-      setError(res.error ?? "Could not start the payment");
+      setError(res.error ?? PAYMENT_ERROR);
+      toast.error(res.error ?? PAYMENT_ERROR);
       return;
     }
     const checkout = res.checkout;
@@ -344,10 +348,12 @@ export function EnquiryDetail({
     try {
       const result = await openCashfreeCheckout(checkout.paymentSessionId, checkout.mode);
       if (result.redirect) return;
-    } catch (openError: unknown) {
+    } catch {
       setBusy(false);
       setOpenOrder(null);
-      setError(openError instanceof Error ? openError.message : "Could not open the payment window");
+      /* a checkout SDK's own message is not a sentence for a person */
+      setError(PAYMENT_ERROR);
+      toast.error(PAYMENT_ERROR);
       return;
     }
     void confirmPay(checkout.orderId);
@@ -447,7 +453,7 @@ export function EnquiryDetail({
         <textarea value={askReason} maxLength={500} rows={3} onChange={(ev) => setAskReason(ev.target.value)} placeholder={ask.placeholder} aria-label="Reason" style={{ ...fieldStyle, resize: "vertical", marginBottom: 8 }} />
         {error ? (
           <div role="alert" style={{ fontSize: 11.5, color: "#F87171", marginBottom: 8 }}>
-            {error}
+            {plainError(error)}
           </div>
         ) : null}
         <div style={{ display: "flex", gap: 7 }}>
@@ -538,7 +544,7 @@ export function EnquiryDetail({
                 type="button"
                 disabled={busy || quoteExpired(shown, nowIso)}
                 aria-label="Accept this quote"
-                onClick={() => void run(() => answerQuoteAction({ quoteId: shown.id, enquiryId: e.id, answer: "accept", reason: null }), shown.advanceInr > 0 ? `Accepted — the project is on, ${money(shown.advanceInr)} due as the advance` : "Accepted — the project is on")}
+                onClick={() => void run(() => answerQuoteAction({ quoteId: shown.id, enquiryId: e.id, answer: "accept", reason: null }), shown.advanceInr > 0 ? `Accepted — it's a job now, ${money(shown.advanceInr)} due as the advance` : "Accepted — it's a job now")}
                 style={{ ...greenBtn, flex: 1.4, opacity: quoteExpired(shown, nowIso) ? 0.45 : 1 }}
               >
                 {quoteExpired(shown, nowIso) ? "Expired" : `Accept ${money(shown.costInr)}`}
@@ -795,7 +801,7 @@ export function EnquiryDetail({
                       .filter((x) => x.id !== ending.id)
                       .map((x) => (
                         <div key={x.id} style={{ fontSize: 10.5, color: "var(--muted)", padding: "2px 0" }}>
-                          {x.side === mySide ? "You" : otherName} · {money(x.refundInr)} · {x.status}
+                          {x.side === mySide ? "You" : otherName} · {money(x.refundInr)} · {statusWord(x.status)}
                           {x.answerReason ? ` — “${x.answerReason}”` : ""}
                         </div>
                       ))}
@@ -803,7 +809,7 @@ export function EnquiryDetail({
                 ) : null}
                 {acts ? (
                   ending.side === mySide ? (
-                    <button type="button" disabled={busy} onClick={() => void run(() => retractEndingAction({ endingId: ending.id, enquiryId: e.id }), "Taken back — the project carries on")} style={{ ...ghostBtn, marginTop: 10 }}>
+                    <button type="button" disabled={busy} onClick={() => void run(() => retractEndingAction({ endingId: ending.id, enquiryId: e.id }), "Taken back — the job carries on")} style={{ ...ghostBtn, marginTop: 10 }}>
                       Take back these terms
                     </button>
                   ) : (
@@ -816,11 +822,11 @@ export function EnquiryDetail({
                             openAsk({
                               key: "refuse-ending",
                               title: "Refuse these terms?",
-                              placeholder: "Why — the project stays open",
+                              placeholder: "Why — the job stays open",
                               confirm: "Refuse",
                               danger: true,
                               run: (reason) => answerEndingAction({ endingId: ending.id, enquiryId: e.id, answer: "refuse", refundInr: null, reason }),
-                              done: "Refused — the project stays open",
+                              done: "Refused — the job stays open",
                             })
                           }
                           style={{ ...ghostBtn, flex: 1, minWidth: 90 }}
@@ -880,7 +886,7 @@ export function EnquiryDetail({
                         Marked complete — waiting for {otherName} to confirm.
                       </div>
                       {acts ? (
-                        <button type="button" disabled={busy} onClick={() => void run(() => declineCompletionAction({ enquiryId: e.id, reason: null }), "Taken back — the project is on again")} style={{ ...ghostBtn, marginTop: 9, padding: 10, fontSize: 12 }}>
+                        <button type="button" disabled={busy} onClick={() => void run(() => declineCompletionAction({ enquiryId: e.id, reason: null }), "Taken back — the job is on again")} style={{ ...ghostBtn, marginTop: 9, padding: 10, fontSize: 12 }}>
                           Take it back
                         </button>
                       ) : null}
@@ -903,14 +909,14 @@ export function EnquiryDetail({
                                   placeholder: "What is still to do",
                                   confirm: "Say not yet",
                                   run: (reason) => declineCompletionAction({ enquiryId: e.id, reason }),
-                                  done: "Sent back — the project is on again",
+                                  done: "Sent back — the job is on again",
                                 })
                               }
                               style={{ ...ghostBtn, flex: 1 }}
                             >
                               Not finished
                             </button>
-                            <button type="button" disabled={busy} onClick={() => void run(() => markCompleteAction({ enquiryId: e.id }), "Completed — the project is closed")} style={{ ...greenBtn, flex: 1.4 }}>
+                            <button type="button" disabled={busy} onClick={() => void run(() => markCompleteAction({ enquiryId: e.id }), "Completed — the job is closed")} style={{ ...greenBtn, flex: 1.4 }}>
                               Confirm complete
                             </button>
                           </div>
@@ -924,11 +930,11 @@ export function EnquiryDetail({
                     <div style={hint}>
                       {m.readyToComplete
                         ? `All paid — mark it complete when the job is done.`
-                        : `Can be completed once ${[m.outstandingInr ? `${money(m.outstandingInr)} is paid` : null, m.additionsWaiting ? "every addition is answered" : null].filter(Boolean).join(" and ") || "everything is settled"}.`}
+                        : `Can be completed once ${[m.outstandingInr ? `${money(m.outstandingInr)} is paid` : null, m.additionsWaiting ? "every addition is answered" : null].filter(Boolean).join(" and ") || "everything is paid"}.`}
                     </div>
                     {acts ? (
                       <button type="button" disabled={busy || !m.readyToComplete || Boolean(ending)} onClick={() => void run(() => markCompleteAction({ enquiryId: e.id }), "Marked complete — they confirm it")} style={{ ...greenBtn, marginTop: 9, opacity: m.readyToComplete && !ending ? 1 : 0.45 }}>
-                        Mark the project complete
+                        Mark the job complete
                       </button>
                     ) : null}
                   </>
@@ -960,7 +966,7 @@ export function EnquiryDetail({
                   <div data-testid="enquiry-money">
                     <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={smallLabel}>{base ? "THE PROJECT" : priced ? "QUOTED" : "EARNINGS"}</div>
+                        <div style={smallLabel}>{base ? "THE JOB" : priced ? "QUOTED" : "EARNINGS"}</div>
                         {base ? (
                           <div data-testid="project-total" style={{ fontSize: 30, fontWeight: 900, letterSpacing: -1, fontFamily: DOS_MONO, marginTop: 2 }}>
                             {money(m.totalInr)}
@@ -988,7 +994,7 @@ export function EnquiryDetail({
                         </div>
                       </>
                     ) : (
-                      <div style={{ ...hint, marginTop: 6 }}>{mine ? "Send a quote from the Quote column." : `${e.businessName} sends a quote first.`}</div>
+                      <div style={{ ...hint, marginTop: 6 }}>{mine ? "Send a quote from the Quote tab." : `${e.businessName} sends a quote first.`}</div>
                     )}
                   </div>
                   {moneyLines.length ? (
@@ -1110,7 +1116,7 @@ export function EnquiryDetail({
                     {!adds.length ? <div style={hint}>Nothing added yet.</div> : null}
                     {mine && acts && projectOn && !ending ? (
                       <button type="button" onClick={() => setComposer({ mode: "addition", revises: null })} style={{ ...bizBtn, marginTop: 10, background: tint, color: "#08060C" }}>
-                        Add to the project
+                        Add to the job
                       </button>
                     ) : null}
                   </Surface>
@@ -1181,7 +1187,7 @@ export function EnquiryDetail({
 
         {error && !ask && !composer ? (
           <div role="alert" style={{ fontSize: 11.5, color: "#F87171", marginTop: 8 }}>
-            {error}
+            {plainError(error)}
           </div>
         ) : null}
       </div>
@@ -1190,7 +1196,7 @@ export function EnquiryDetail({
           should open like a form when adding or revising") ── */}
       {composer ? (
         <EnquiryFormSheet
-          title={composer.mode === "quote" ? (quotes.length ? "Revise the quote" : "Send a quote") : composer.revises ? `Revise addition #${composer.revises.n}` : "Add to the project"}
+          title={composer.mode === "quote" ? (quotes.length ? "Revise the quote" : "Send a quote") : composer.revises ? `Revise addition #${composer.revises.n}` : "Add to the job"}
           onClose={closeComposer}
         >
           {composer.mode === "quote" ? (
@@ -1221,11 +1227,6 @@ export function EnquiryDetail({
         </EnquiryFormSheet>
       ) : null}
 
-      {toast ? (
-        <div role="status" aria-live="polite" style={{ position: "fixed", bottom: 26, left: "50%", transform: "translateX(-50%)", background: "var(--solid)", border: "1.5px solid #0EA5E9", boxShadow: "0 6px 24px rgba(0,0,0,.45)", color: "var(--text)", padding: "11px 18px", borderRadius: 999, fontSize: 13, fontWeight: 700, maxWidth: 360, textAlign: "center", zIndex: 650 }}>
-          {toast}
-        </div>
-      ) : null}
     </div>
   );
 }

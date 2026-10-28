@@ -6,6 +6,8 @@ import { cancelBookingAction } from "@/features/payments/server-actions/payments
 import { DOS_DISPLAY, DOS_UI } from "@/lib/design/tokens";
 import { refundPolicySentence, refundSideNow, windowWords } from "@/lib/format/refundPolicy";
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
+import { plainError } from "@/lib/errors";
+import { rupees } from "@/lib/format/money";
 
 /** Cancelling is two things, and only one of them is about money — lifted from
  *  prototype DanceOSApp.jsx:6269-6327. The seat goes back the instant you
@@ -57,14 +59,14 @@ export function RefundSheet({
   const [openedAt] = useState(nowMs);
   const startMs = startsAt ? new Date(startsAt).getTime() : NaN;
   const side = Number.isFinite(startMs) ? refundSideNow(win, startMs - openedAt) : null;
-  const what = paidWith === "pass" ? "Your pass hours" : "Your money";
+  const what = paidWith === "pass" ? "Your membership hours" : "Your money";
   const moneyLine =
     paidWith === "free"
-      ? "nothing to return — this seat was free"
+      ? "nothing to return — this spot was free"
       : side === "automatic"
         ? paidWith === "pass"
-          ? "come back to your pass automatically — you are outside the window"
-          : `₹${amountInr.toLocaleString("en-IN")} comes back automatically — you are outside the window`
+          ? "come back to your membership automatically — you are outside the window"
+          : `${rupees(amountInr)} comes back automatically — you are outside the window`
         : side === "studio"
           ? paidWith === "pass"
             ? `are kept — you are inside the ${windowWords(win)} window`
@@ -83,7 +85,7 @@ export function RefundSheet({
     const out = await cancelBookingAction({ classBookingId, reason });
     setBusy(false);
     if (out.error || !out.message) {
-      setError(out.error ?? "Could not cancel");
+      setError(plainError(out.error ?? "Could not cancel — try again."));
       return;
     }
     onDone(out.message);
@@ -117,7 +119,7 @@ export function RefundSheet({
         <div style={{ background: "var(--card)", border: "1.5px solid var(--el)", borderRadius: 14, padding: "11px 12px", marginBottom: 14 }}>
           {(
             [
-              ["Your place", "goes back on sale straight away"],
+              ["Your spot", "goes back on sale straight away"],
               [what, moneyLine],
             ] as Array<[string, string]>
           ).map(([k, v]) => (
@@ -158,7 +160,7 @@ export function RefundSheet({
             {r}
             {paidWith === "money" && amountInr > 0 ? (
               <span style={{ marginLeft: "auto", fontFamily: DOS_MONO, fontSize: 11, color: "var(--sub)" }}>
-                ₹{amountInr.toLocaleString("en-IN")}
+                {rupees(amountInr)}
               </span>
             ) : null}
           </div>
@@ -236,7 +238,7 @@ export function RefundSheet({
           </div>
         )}
         {error && (
-          <div style={{ fontSize: 10.5, color: "#EF4444", fontWeight: 700, marginBottom: 8, textAlign: "center" }}>{error}</div>
+          <div role="alert" style={{ fontSize: 10.5, color: "#F87171", fontWeight: 700, marginBottom: 8, textAlign: "center" }}>{error}</div>
         )}
         <div
           role="button"

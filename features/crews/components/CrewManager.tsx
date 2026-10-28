@@ -20,7 +20,9 @@ import { DeleteIconButton } from "@/components/ui/DeleteIconButton";
 import { DOS_UI, INK, LILAC, MUTED } from "@/lib/design/tokens";
 import { FORM_TITLE } from "@/components/ui/formTitle";
 import { CREW_ROLE_TINT, CREW_ROLE_WORD, type Crew, type CrewMember, type CrewRole } from "@/types/crew";
-import { Toast, bizCard, sinceWords } from "./crew-kit";
+import { bizCard, sinceWords } from "./crew-kit";
+import { toast } from "@/components/ui/Toast";
+import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
 import { InviteHeadButtons } from "@/features/inbox/components/JoinInvites";
 import type { AnsweredInviteRow } from "@/features/inbox/inviteRows";
 
@@ -57,24 +59,15 @@ export function CrewManager({ crew, members, answered = [] }: { crew: Crew; memb
   const router = useRouter();
   const [add, setAdd] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2300);
-  };
+  /* the add sheet answers the phone's back button like every other sheet */
+  useCloseOnBack(() => setAdd(false), add);
   const run = async (op: () => Promise<CrewActionResult>, done: string) => {
     if (busy) return;
     setBusy(true);
-    setError(null);
     const out = await op();
     setBusy(false);
-    if (out.error) {
-      setError(out.error);
-      return;
-    }
-    fire(done);
-    router.refresh();
+    toast.result(out.error, done);
+    if (!out.error) router.refresh();
   };
 
   const confirmed = members.filter((m) => m.status === "confirmed");
@@ -90,7 +83,7 @@ export function CrewManager({ crew, members, answered = [] }: { crew: Crew; memb
       {/* the asks already answered, top right — the place Classes gives its own (11 Oct 2026) */}
       <div style={{ position: "relative", margin: "0 0 12px" }}>
         <DeskHero tool="team" as="h1" margin="0" toggle={false} />
-        <InviteHeadButtons answered={answered} answeredTestId="crew-answered" answeredListTestId="crew-answered-list" answeredLabel="Answered asks" />
+        <InviteHeadButtons answered={answered} answeredTestId="crew-answered" answeredListTestId="crew-answered-list" answeredLabel="Answered invites" />
       </div>
 
             {/* ⚠ THE SHARED ＋, ON TOP, IN THE SAME WORDS AS EVERY OTHER TEAM DESK
@@ -133,7 +126,6 @@ export function CrewManager({ crew, members, answered = [] }: { crew: Crew; memb
         {/* ⚠ THE LOWER SECTION (3 Oct 2026, C116) — the roster, GROUPED BY ROLE
             under the studio desk's own heads (a dot, the role, the count) since
             4 Oct 2026 — it was one flat stack */}
-        {error ? <div style={{ fontSize: 11.5, color: "#F87171", marginBottom: 10 }}>{error}</div> : null}
         {ROLE_ORDER.map((role) => {
           const group = members.filter((m) => m.role === role);
           if (!group.length) return null;
@@ -188,7 +180,7 @@ export function CrewManager({ crew, members, answered = [] }: { crew: Crew; memb
                     photoPath={m.avatarPath ?? null}
                     /* no profile door on a card's face (12 Oct 2026, the user) */
                     /* the row's word, exactly — `CREW_ROLE_WORD` ("Member") */
-                    eyebrow={pending ? "Asked to join" : CREW_ROLE_WORD[m.role]}
+                    eyebrow={pending ? "Invited" : CREW_ROLE_WORD[m.role]}
                     sub={m.city ?? null}
                     right={
                       /* the crew's profile shows them in this order, so the order has to be movable HERE */
@@ -220,7 +212,7 @@ export function CrewManager({ crew, members, answered = [] }: { crew: Crew; memb
                     <ToolFacts
                       tint={TEAM_TINT}
                       items={[
-                        { label: pending ? "Asked" : "On the crew since", value: sinceWords(m.createdAt) },
+                        { label: pending ? "Invited" : "On the crew since", value: sinceWords(m.createdAt) },
                         { label: "Status", value: pending ? "Waiting" : "Confirmed", tint: pending ? "#F59E0B" : "#22C55E" },
                       ]}
                     />
@@ -250,8 +242,8 @@ export function CrewManager({ crew, members, answered = [] }: { crew: Crew; memb
                         <button
                           type="button"
                           disabled={busy}
-                          aria-label={`Withdraw the ask to ${m.name}`}
-                          onClick={() => void run(() => withdrawCrewAskAction({ memberId: m.id, crewId: crew.id }), `Withdrawn — ${m.name} is no longer being asked`)}
+                          aria-label={`Withdraw the invite to ${m.name}`}
+                          onClick={() => void run(() => withdrawCrewAskAction({ memberId: m.id, crewId: crew.id }), `Invite to ${m.name} withdrawn`)}
                           style={toolBtn("danger", TEAM_TINT)}
                         >
                           Withdraw
@@ -279,7 +271,7 @@ export function CrewManager({ crew, members, answered = [] }: { crew: Crew; memb
                 three tiles and a button and no words */}
             {members.length === 0 ? (
               <div style={{ ...bizCard, textAlign: "center", fontSize: 12, color: "var(--sub)", border: "1.5px dashed var(--el)", lineHeight: 1.5 }}>
-                Nobody in the crew yet. Ask somebody above — they are on the crew&rsquo;s page once they say yes.
+                Nobody in the crew yet. Invite somebody above — they are on the crew&rsquo;s page once they say yes.
               </div>
             ) : null}
             {/* SEARCH DANCEOS, THEN ASK THEM — nobody is added by this; a crew roster is a public page */}
@@ -296,17 +288,16 @@ export function CrewManager({ crew, members, answered = [] }: { crew: Crew; memb
                   </div>
                   <PeoplePicker
                     exclude={members.map((m) => m.userId)}
-                    pickLabel={(p) => `Ask ${p.fullName} to join the crew`}
+                    pickLabel={(p) => `Invite ${p.fullName} to the crew`}
                     onPick={(p) => {
                       setAdd(false);
-                      void run(() => askCrewMemberAction({ crewId: crew.id, userId: p.id }), `📨 ${p.fullName} asked to confirm joining the crew`);
+                      void run(() => askCrewMemberAction({ crewId: crew.id, userId: p.id }), `📨 Invite sent to ${p.fullName}`);
                     }}
                   />
                 </div>
               </div>
             ) : null}
       </DeskBody>
-      <Toast msg={toast} />
     </div>
   );
 }

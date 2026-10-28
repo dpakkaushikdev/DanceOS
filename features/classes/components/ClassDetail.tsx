@@ -43,6 +43,8 @@ import type { RefundRequest } from "@/types/refund";
 import { AddAssistant, AskNewTeacher, AssistantControls, StepDownButton } from "./ClassTeamControls";
 import { ClosedDraftButtons, DraftButtons } from "./ClassCardActions";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { toast } from "@/components/ui/Toast";
+import { priceWord } from "@/lib/format/money";
 import { ProfileShare } from "@/features/profiles/components/ProfileShare";
 import { refundPolicyWords } from "@/lib/format/refundPolicy";
 import type { DraftState } from "@/features/classes/classesScreen";
@@ -333,11 +335,8 @@ export function ClassDetail({
   const ink = dosStyleInk(col, dark);
   const heroGone = useDosFold(DOS_SLEEVE);
   const router = useRouter();
-  const [toast, setToast] = useState<string | null>(null);
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2400);
-  };
+  /* the app's one toast (components/ui/Toast) — success here, errors via toast.error */
+  const fire = (m: string) => toast(m);
   /* ⚠ NOT `posterOpen`, which is the owner's poster PICKER further down — this
      is the poster being LOOKED at, which is what pressing it does since
      29 Sep 2026 */
@@ -431,7 +430,7 @@ export function ClassDetail({
     setPosterBusy(true);
     const out = await setClassPosterAction({ classId: c.id, businessId: c.businessId, poster });
     setPosterBusy(false);
-    fire(out.error ?? said);
+    toast.result(out.error, said);
     if (!out.error) router.refresh();
   };
   const levelWord = DOS_LEVEL_LABEL[c.level] ?? c.level;
@@ -445,7 +444,7 @@ export function ClassDetail({
   const done = c.status === "completed" || sessionPhase === "ended";
   const isDraft = c.status === "draft";
   const isFree = c.priceInr === 0;
-  const price = isFree ? "Free" : `₹${c.priceInr}`;
+  const price = priceWord(c.priceInr);
   /* the seats are written on the card's own `SeatBar` (4 Oct 2026) */
   const soldOut = filled >= c.capacity && c.capacity > 0;
   const booked = mine?.status === "enrolled";
@@ -546,7 +545,7 @@ export function ClassDetail({
     ? { name: whoTakes.personName, photoPath: whoTakes.avatarPath, eyebrow: artist ? "Artist" : "Artist · Asked", dim: !artist, confirmed: Boolean(artist), href: `/person/${whoTakes.userId}`, hrefLabel: `Open ${whoTakes.personName}` }
     : artistMade && classOwner
       ? { name: classOwner.name, photoPath: classOwner.photoPath, eyebrow: "Artist", dim: false, confirmed: true, href: ownerHref ?? undefined, hrefLabel: `${classOwner.name} — their profile` }
-      : { name: "No teacher yet", photoPath: null, icon: DancerIcon, eyebrow: "Artist", dim: false, confirmed: false };
+      : { name: "No faculty yet", photoPath: null, icon: DancerIcon, eyebrow: "Artist", dim: false, confirmed: false };
 
   /* one grammar for the money sheets — the same date/time the card prints */
   const whenText = when
@@ -589,7 +588,7 @@ export function ClassDetail({
     setOpPending(classPersonId);
     const out = await respondToClassAskAction({ classPersonId, accept });
     setOpPending(null);
-    fire(out.error ?? (accept ? "You’re on this class" : "Declined — they’ve been told"));
+    toast.result(out.error, accept ? "Accepted — it's on your calendar" : "Declined — they've been told");
     router.refresh();
   };
 
@@ -624,7 +623,7 @@ export function ClassDetail({
    *  RPC's own words and the confirm card stays up wearing it, which is what
    *  `ok: false` means to this sheet. */
   const scanCheckIn = async (personId: string, personName: string): Promise<ScanOutcome> => {
-    if (!register) return { ok: false, message: "This register is not open." };
+    if (!register) return { ok: false, message: "Attendance isn't open yet." };
     const row = register.rows.find((r) => r.userId === personId);
     if (!row) {
       if (!c.session) {
@@ -665,7 +664,7 @@ export function ClassDetail({
     setDoorBusy(true);
     const out = await bookAtTheDoorAction({ sessionId: c.session.id, name });
     setDoorBusy(false);
-    if (out.error) return fire(out.error);
+    if (out.error) return toast.error(out.error);
     setDoorName("");
     fire(`✓ ${name} checked in at the door`);
     router.refresh();
@@ -676,7 +675,7 @@ export function ClassDetail({
     setOpPending(classBookingId);
     const out = await removeWalkInAction({ classBookingId });
     setOpPending(null);
-    fire(out.error ?? `${name} removed`);
+    toast.result(out.error, `${name} removed`);
     router.refresh();
   };
 
@@ -690,7 +689,7 @@ export function ClassDetail({
     const out = await op({ classBookingId });
     setOpPending(null);
     if (out.error) {
-      fire(out.error);
+      toast.error(out.error);
     } else if (doneMsg) {
       fire(doneMsg);
     }
@@ -931,7 +930,7 @@ export function ClassDetail({
                 already out (it is the dimmed half above) */}
             {waitingForTeacher ? (
               <div data-testid="waiting-for-teacher-band" style={{ marginTop: 10, padding: "10px 12px", borderRadius: 14, background: "rgba(245,158,11,.12)", border: "1.5px solid rgba(245,158,11,.4)" }}>
-                <div style={{ fontSize: 12.5, fontWeight: 900, color: "#F59E0B" }}>Waiting for a new teacher</div>
+                <div style={{ fontSize: 12.5, fontWeight: 900, color: "#F59E0B" }}>Waiting for new faculty</div>
                 <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 2, lineHeight: 1.45 }}>
                   {askedArtist
                     ? `${askedArtist.personName} has been asked. Booking opens again when they say yes.`
@@ -1255,7 +1254,7 @@ export function ClassDetail({
           const present = register.rows.filter((r) => r.checkedIn);
           const rows: Array<[string, number, number, string]> = [
             ["Attended", present.length, register.rows.length, register.rows.length && (100 * present.length) / register.rows.length >= 75 ? "#22C55E" : "#F59E0B"],
-            ["Seats filled", filled, c.capacity, col],
+            ["Spots filled", filled, c.capacity, col],
           ];
           return (
             <Sec
@@ -1287,7 +1286,7 @@ export function ClassDetail({
                 );
               })}
               <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 9, lineHeight: 1.5 }}>
-                This class is finished. Nothing on it can be changed now — the register is final on the Attendance tab{canSettleRefunds ? " and any refunds still open are on the Refunds tab" : ""}.
+                This class is finished. Nothing on it can be changed now — attendance is final on the Attendance tab{canSettleRefunds ? " and any refunds still open are on the Refunds tab" : ""}.
               </div>
             </Sec>
           );
@@ -1315,7 +1314,7 @@ export function ClassDetail({
                 </svg>
               }
             >
-              <div style={{ fontSize: 10.5, color: "var(--sub)", marginBottom: 9, lineHeight: 1.5 }}>The final register, as it stood when the class ended. It cannot be edited.</div>
+              <div style={{ fontSize: 10.5, color: "var(--sub)", marginBottom: 9, lineHeight: 1.5 }}>Final attendance</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{present.map((r) => chip(r, true))}</div>
               {absent.length > 0 ? (
                 <>
@@ -1572,10 +1571,10 @@ export function ClassDetail({
               const memberWords = !c.allowsStudioMemberships
                 ? "Not accepted"
                 : c.venueStatus === "accepted"
-                  ? `${c.venue?.name ?? "Studio"} passes accepted`
+                  ? `${c.venue?.name ?? "Studio"} memberships accepted`
                   : c.venueBusinessId || c.owner?.kind === "artist"
                     ? "Not accepted"
-                    : "Studio passes accepted";
+                    : "Studio memberships accepted";
               const memberOk = memberWords !== "Not accepted";
               const tile = (k: string, v: string, ok: boolean, testId: string) => (
                 <div data-testid={testId} style={{ borderRadius: 12, padding: "9px 10px", background: ok ? `${col}14` : "var(--el)", minWidth: 0 }}>
@@ -1648,7 +1647,7 @@ export function ClassDetail({
                 </div>
                 <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 1 }}>
                   {sessionPhase === "ended"
-                    ? "The register below is final."
+                    ? "Attendance below is final."
                     : sessionPhase === "live"
                       ? `${checkedInCount} checked in · check-in is open`
                       : time
@@ -1698,7 +1697,7 @@ export function ClassDetail({
                   setDoorBusy(true);
                   const out = await scanCheckIn(p.id, p.fullName);
                   setDoorBusy(false);
-                  if (out.message) fire(out.message);
+                  if (out.message) (out.ok ? toast : toast.error)(out.message);
                   if (out.ok) setDoorName("");
                 }}
                 onWalkIn={() => void doorWalkIn()}
@@ -1753,7 +1752,7 @@ export function ClassDetail({
             {/* the register itself (12117-12137) */}
             <Sec
               col={col}
-              label={`${sessionPhase === "ended" ? "FINAL REGISTER" : "LIVE REGISTER"} · ${checkedInCount}/${c.capacity} IN`}
+              label={`${sessionPhase === "ended" ? "FINAL ATTENDANCE" : "LIVE ATTENDANCE"} ·${checkedInCount}/${c.capacity} IN`}
               icon={
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={col} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3.5" y="4.5" width="17" height="16" rx="3" />
@@ -1802,7 +1801,7 @@ export function ClassDetail({
                   : isFree
                   ? r.walkIn
                     ? "walk-in"
-                    : "free seat"
+                    : "free spot"
                   : doorSeat
                     ? r.doorPaidAt
                       ? `${r.walkIn ? "walk-in · " : ""}paid at the door · ${price}`
@@ -2009,7 +2008,7 @@ export function ClassDetail({
           ) : waitingForTeacher && !booked ? (
             /* ⚠ D4: the database refuses every booking door on a published class
                with no confirmed teacher — the bar says so before the press */
-            <NoBookBar testId="waiting-for-teacher" why="Waiting for a new teacher — booking opens once somebody says yes" />
+            <NoBookBar testId="waiting-for-teacher" why="Waiting for new faculty — booking opens once somebody says yes" />
           ) : sessionPhase === "live" && !booked ? (
             /* ⚠⚠ A CLASS THAT HAS STARTED CANNOT BE BOOKED, AND NOW SAYS SO
                (30 Sep 2026). `book_class_session` refuses `starts_at <= now()`
@@ -2321,28 +2320,6 @@ export function ClassDetail({
             router.refresh();
           }}
         />
-      )}
-      {toast && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: 110,
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: "var(--el)",
-            border: "1.5px solid #EC4899",
-            color: "var(--text)",
-            padding: "11px 18px",
-            borderRadius: 999,
-            fontSize: 13,
-            fontWeight: 700,
-            maxWidth: 390,
-            textAlign: "center",
-            zIndex: 650,
-          }}
-        >
-          {toast}
-        </div>
       )}
     </div>
   );

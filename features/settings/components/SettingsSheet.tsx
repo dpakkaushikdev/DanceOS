@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type CSSProperties, type ReactNode } from "react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { toast } from "@/components/ui/Toast";
 import { requestAccountDeletionAction } from "@/features/auth/server-actions/auth";
 import { deleteStudioAction } from "@/features/businesses/server-actions/businesses";
 import { deleteCrewAction } from "@/features/crews/server-actions/crews";
@@ -207,7 +208,6 @@ export function SettingsSheet({
    *  race (a `router.back()` cancelling a push in the same tick) cannot happen —
    *  that bug was about closing AND pushing, not about pushing. */
   const go = (href: string) => router.push(href);
-  const [toast, setToast] = useState<string | null>(null);
   /* DELETE MY ACCOUNT's question (6 Oct 2026) */
   const [leaving, setLeaving] = useState(false);
   const [leaveWhy, setLeaveWhy] = useState("");
@@ -217,10 +217,7 @@ export function SettingsSheet({
   const [dropping, setDropping] = useState<"studio" | "crew" | null>(null);
   const [dropErr, setDropErr] = useState<string | null>(null);
   const [dropPending, startDrop] = useTransition();
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2400);
-  };
+  const fire = (m: string) => toast(m);
   /* ⚠ NO NESTED SHEET ANY MORE (27 Sep 2026): Enquiry types was the only one,
      and with it gone `useCloseOnBack` has nothing here to close. This sheet
      registers NO entry of its own and never did — its open state IS the URL
@@ -526,7 +523,6 @@ export function SettingsSheet({
             The control it held lives on in `ContactEditor`, beside the switch
             that decides whether the button exists at all. */}
 
-        {toast ? <div role="status" style={{ position: "fixed", bottom: 26, left: "50%", transform: "translateX(-50%)", background: "var(--solid)", border: "1.5px solid #0EA5E9", color: INK, padding: "11px 18px", borderRadius: 999, fontSize: 13, fontWeight: 700, maxWidth: 360, textAlign: "center", zIndex: 650, boxShadow: "0 6px 24px rgba(0,0,0,.45)" }}>{toast}</div> : null}
       </div>
     </div>
   );

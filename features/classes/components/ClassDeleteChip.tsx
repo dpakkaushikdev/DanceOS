@@ -82,14 +82,14 @@ export function ClassDeleteChip({
       : paid > 0
         ? {
             title: "Delete this published class?",
-            body: `${title} · ${paid} enrolled ${paid === 1 ? "student" : "students"} must be refunded — the refunds go out through Cashfree by themselves, and you can follow them on the next screen. Everybody booked is told${enrolled > paid ? ", and a pass gets its hours back" : ""}.`,
-            word: "Delete & manage refunds",
+            body: `${title} · ${ppl(paid)} booked. Everyone booked is refunded automatically, and you can follow the refunds on the next screen. Everybody booked is told${enrolled > paid ? ", and membership hours come back" : ""}.`,
+            word: "Delete and refund everyone",
           }
         : {
             title: "Delete this published class?",
             body: priceInr > 0
-              ? `${title} · ${ppl(enrolled)} booked. Nobody paid online, so nothing goes back through Cashfree — a pass gets its hours back. Everybody booked is told.`
-              : `${title} · ${ppl(enrolled)} booked. It is free, so there is nothing to refund — their seats are cancelled and they are told.`,
+              ? `${title} · ${ppl(enrolled)} booked. Nobody paid online, so there is no money to send back — membership hours come back. Everybody booked is told.`
+              : `${title} · ${ppl(enrolled)} booked. It is free, so there is nothing to refund — their spots are cancelled and they are told.`,
             word: "Delete class",
           };
 

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { DeleteIconButton } from "@/components/ui/DeleteIconButton";
 import { toolBtn } from "@/components/ui/ToolCard";
+import { toast } from "@/components/ui/Toast";
 import { voidPayoutAction } from "@/features/payouts/server-actions/payouts";
 import { TeamPaySheet } from "./TeamPaySheet";
 import { sessionDayLabel } from "@/lib/format/session";
@@ -40,7 +41,6 @@ export function MemberToSettle({
      so the money is still only ever shown inside Member Detail. */
   const params = useSearchParams();
   const [open, setOpen] = useState(() => params.get("pay") === "1");
-  const [msg, setMsg] = useState<string | null>(null);
   /* take `pay=1` back off the address once the sheet closes, so a reload does not
      re-open it — a plain replaceState, never a router hop (19 Sep: a back() racing
      the router) */
@@ -58,7 +58,7 @@ export function MemberToSettle({
       <div style={panel}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: n ? 8 : 0 }}>
           <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ ...head, display: "block" }}>NOT SETTLED YET · {n}</span>
+            <span style={{ ...head, display: "block" }}>NOT PAID YET · {n}</span>
             <span style={{ display: "block", fontSize: 10.5, color: SUB, marginTop: 2 }}>What each is worth is set when you pay.</span>
           </span>
           <button type="button" onClick={() => setOpen(true)} aria-label={`Pay ${person.name} from their page`} data-testid="member-pay" style={toolBtn("primary", tint)}>
@@ -66,7 +66,7 @@ export function MemberToSettle({
           </button>
         </div>
         {n === 0 ? (
-          <div style={{ fontSize: 11.5, color: SUB }}>Every session is settled.</div>
+          <div style={{ fontSize: 11.5, color: SUB }}>Everything is paid.</div>
         ) : (
           <>
             {sessions.map((s) => (
@@ -84,11 +84,6 @@ export function MemberToSettle({
           </>
         )}
       </div>
-      {msg ? (
-        <div role="status" style={{ fontSize: 12, fontWeight: 800, color: INK, padding: "0 4px 10px" }}>
-          {msg}
-        </div>
-      ) : null}
       {open ? (
         <TeamPaySheet
           businessId={businessId}
@@ -102,7 +97,7 @@ export function MemberToSettle({
           onDone={(words) => {
             setOpen(false);
             setTimeout(dropPayParam, 0);
-            setMsg(words);
+            toast(words);
             router.refresh();
           }}
         />
@@ -115,15 +110,16 @@ export function VoidPayment({ payoutId, amountWords }: { payoutId: string; amoun
   const router = useRouter();
   return (
     <DeleteIconButton
-      label={`Void the ${amountWords} payment`}
-      word="Void"
-      title={`Void this ${amountWords} payment?`}
-      body="It comes off the ledger and the sessions it covered are back under To settle."
-      goWord="Void"
+      label={`Delete the ${amountWords} payment`}
+      word="Delete"
+      title="Delete this payment?"
+      body="It's removed from the records, and the sessions it covered go back under To pay."
+      goWord="Delete"
       testId="team-payment-void"
       onConfirm={async () => {
         const out = await voidPayoutAction({ payoutId });
         if (out.error) return out.error;
+        toast("Payment deleted");
         router.refresh();
       }}
     />

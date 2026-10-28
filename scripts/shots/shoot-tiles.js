@@ -460,7 +460,7 @@ async function personOpensAStudio(page, who, acc, stamp) {
        studio's: it used to be rendered by the person's own profile page. */
     const shome = await p3.locator("body").innerText().catch(() => "");
     check(!shome.includes("Get this studio verified"), "studio · the verification form has LEFT its home for Settings");
-    check(!shome.includes("NOT LIVE"), "studio · and the subscription standing with it");
+    check(!shome.includes("NOT ON DISCOVER"), "studio · and the subscription standing with it");
     check(
       !stiles.some((t) => t.href === `/business/${studio.id}/refunds`),
       "studio · and the Refunds door — one place per subject, never two"

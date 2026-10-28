@@ -10,9 +10,9 @@ import {
   FormConfirm,
   FormPage,
   FormSummary,
-  FormToast,
   formPrimary,
 } from "@/components/ui/FormPage";
+import { toast } from "@/components/ui/Toast";
 import { saveMembershipAction } from "@/features/memberships/server-actions/memberships";
 import { UNLIMITED_WORD, VALIDITY_CHOICES, type ValidityDays } from "@/repositories/memberships";
 import { DOS_TOOLS } from "@/features/businesses/components/biz-kit";
@@ -52,7 +52,6 @@ export function MembershipForm({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [confirm, setConfirm] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
   /* ⚠⚠ HOURS ONLY (3 Oct 2026, the user: "membership only according to hours not
      classes"). A membership is sold as a number of HOURS and every seat spends
      the length of its class off it, so a 90-minute class and a 60-minute one cost
@@ -61,10 +60,7 @@ export function MembershipForm({
      a pass snapshots its unit (`membership_passes.unit`) and nothing rewrites it. */
   const [f, setF] = useState({ name: "", unit: "hours" as const, units: "10", price: "", total: "20", validity: 30 as ValidityDays | null });
 
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2600);
-  };
+  const fire = (m: string) => toast(m);
 
   const units = Number(f.units);
   const price = Number(f.price);
@@ -95,8 +91,8 @@ export function MembershipForm({
         validityDays: f.validity,
       });
       setConfirm(false);
-      if (out.error) return fire(out.error);
-      fire("🎟 Membership on sale");
+      if (out.error) return toast.error(out.error);
+      fire("Membership on sale");
       /* a sheet spends the `?new=1` entry that opened it and refreshes the desk
        underneath; a page goes to the desk that sent it (22 Sep 2026) */
     setTimeout(() => {
@@ -179,8 +175,6 @@ export function MembershipForm({
           </FormSummary>
         </FormConfirm>
       ) : null}
-
-      <FormToast msg={toast} />
     </FormPage>
   );
 }

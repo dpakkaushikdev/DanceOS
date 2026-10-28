@@ -12,6 +12,7 @@ import type { Room } from "@/types/room";
 import { DeskAddButton } from "@/features/settings/components/settings-kit";
 import { AmenityChip } from "@/components/ui/AmenityIcon";
 import { DeleteIconButton } from "@/components/ui/DeleteIconButton";
+import { toast } from "@/components/ui/Toast";
 import { splitAddress } from "@/lib/format/address";
 
 /** The studio's rooms — lifted from the prototype's business settings Rooms
@@ -78,12 +79,7 @@ export function RoomsManager({
   const [sheet, setSheet] = useState<Sheet>(initialSheet);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
-
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2200);
-  };
+  const fire = (m: string) => toast(m);
 
   /* rooms drawn ahead of their save — dimmed, with no buttons, until it lands */
   const [saving, setSaving] = useState<Set<string>>(() => new Set());
@@ -112,12 +108,12 @@ export function RoomsManager({
       if (out.error || !out.room) {
         setList((cur) => cur.filter((r) => r.id !== tmp));
         setSheet({ mode: "new", draft: d });
-        fire(out.error ?? "Could not add the room");
+        toast.error(out.error ?? "Could not add the room");
         return;
       }
       const real = out.room;
       setList((cur) => cur.map((r) => (r.id === tmp ? real : r)));
-      fire("● Room added");
+      fire("Room added");
       return;
     }
     const before = current.room;
@@ -128,12 +124,12 @@ export function RoomsManager({
     if (out.error || !out.room) {
       setList((cur) => cur.map((r) => (r.id === before.id ? before : r)));
       setSheet({ mode: "edit", room: before, draft: d });
-      fire(out.error ?? "Could not save the room");
+      toast.error(out.error ?? "Could not save the room");
       return;
     }
     const real = out.room;
     setList((cur) => cur.map((r) => (r.id === real.id ? real : r)));
-    fire("● Room saved");
+    fire("Room saved");
   };
 
   const remove = async (r: Room): Promise<string | null> => {
@@ -144,7 +140,7 @@ export function RoomsManager({
     setBusy(false);
     if (out.error) return out.error;
     setList((cur) => cur.filter((x) => x.id !== r.id));
-    fire(`${r.name} removed`);
+    fire(`${r.name} deleted`);
     return null;
   };
 
@@ -266,15 +262,6 @@ export function RoomsManager({
           onClose={() => setSheet(null)}
           onSubmit={(d) => void submit(sheet, d)}
         />
-      ) : null}
-
-      {/* ⚠ `pointerEvents: none` — the toast sits over the form's Save bar, and
-          for its 2.2 s it swallowed the press of the next Save (found timing the
-          edit, 4 Oct 2026: 1.4–1.9 s that were the toast, not the network) */}
-      {toast ? (
-        <div role="status" aria-live="polite" style={{ pointerEvents: "none", position: "fixed", bottom: 26, left: "50%", transform: "translateX(-50%)", background: "var(--solid)", border: "1.5px solid #0EA5E9", boxShadow: "0 6px 24px rgba(0,0,0,.45)", color: "var(--text)", padding: "11px 18px", borderRadius: 999, fontSize: 13, fontWeight: 700, maxWidth: 360, textAlign: "center", zIndex: 650 }}>
-          {toast}
-        </div>
       ) : null}
     </div>
   );

@@ -9,6 +9,7 @@ import { dosStyleInk } from "@/lib/format/styleInk";
 import { compactRangeOf, dateParts, timeOf } from "@/lib/format/session";
 import { CLASS_RELATION, finishedWord, type ClassRelation } from "@/lib/format/classLabels";
 import { useNowMs } from "@/lib/hooks/useNowMs";
+import { rupees } from "@/lib/format/money";
 import type { ClassOwner, DanceClass } from "@/types/class";
 import { useDosDark } from "./poster";
 
@@ -308,7 +309,7 @@ export function ClassTile({ danceClass: c, filled = 0, artist, isToday = false, 
   const bc = dosStyleColor(c.style);
   const dark = useDosDark();
   const ink = dosStyleInk(bc, dark);
-  const priceAmt = c.priceInr === 0 ? "Free" : `₹${c.priceInr}`;
+  const priceAmt = c.priceInr === 0 ? "Free" : rupees(c.priceInr);
   const levelWord = DOS_LEVEL_LABEL[c.level] ?? c.level;
   /* ⚠ ONE WORD FOR A FINISHED CLASS, FROM THE SESSION'S END (11 Oct 2026, B19):
      "Completed" for a published class that ran, "Closed" for a draft whose date
@@ -356,7 +357,7 @@ export function ClassTile({ danceClass: c, filled = 0, artist, isToday = false, 
     ? { name: artist.name, photoPath: artist.avatarPath, icon: undefined as ReactNode }
     : artistMade && owner
       ? { name: owner.name, photoPath: owner.photoPath, icon: undefined as ReactNode }
-      : { name: "No teacher yet", photoPath: null, icon: DancerIcon };
+      : { name: "No faculty yet", photoPath: null, icon: DancerIcon };
   const madeBy = owner ? `Created by ${owner.name} — ${owner.kind === "artist" ? "an artist" : "a studio"}` : undefined;
   /* ⚠ THE GREEN RING IS A DRAFT'S ALONE (4 Oct 2026, the user: "remove green ring
      from class cards after published. green ring should not be visible on

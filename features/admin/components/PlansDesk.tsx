@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { setPlanPriceAction } from "@/features/admin/server-actions/subscriptions";
+import { toast } from "@/components/ui/Toast";
 import { DOS_DISPLAY, INK, SUB } from "@/lib/design/tokens";
 import type { PlanCatalogRow } from "@/repositories/plans";
 
@@ -36,20 +37,17 @@ export function PlansDesk({ plans }: { plans: PlanCatalogRow[] }) {
   const router = useRouter();
   const [editing, setEditing] = useState<string | null>(null);
   const [price, setPrice] = useState("");
-  const [toast, setToast] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2800);
-  };
+  const fire = (m: string) => toast(m);
+  const oops = (m: string) => void toast.error(m);
 
   const save = (p: PlanCatalogRow, active: boolean) =>
     start(async () => {
       const inr = Number(price.replace(/[^\d]/g, ""));
-      if (!Number.isFinite(inr)) return fire("A price is a whole number of rupees");
+      if (!Number.isFinite(inr)) return oops("A price is a whole number of rupees");
       const out = await setPlanPriceAction({ key: p.key, priceInr: inr, active });
-      if (out.error) return fire(out.error);
+      if (out.error) return oops(out.error);
       setEditing(null);
       fire(`${p.label} is ₹${inr.toLocaleString("en-IN")} a ${p.period === "monthly" ? "month" : "year"}${active ? "" : " — and off offer"}`);
       router.refresh();
@@ -58,7 +56,7 @@ export function PlansDesk({ plans }: { plans: PlanCatalogRow[] }) {
   const toggle = (p: PlanCatalogRow) =>
     start(async () => {
       const out = await setPlanPriceAction({ key: p.key, priceInr: p.priceInr, active: !p.active });
-      if (out.error) return fire(out.error);
+      if (out.error) return oops(out.error);
       fire(p.active ? `${p.label} is off offer — nobody new can take it` : `${p.label} is on offer again`);
       router.refresh();
     });
@@ -134,11 +132,6 @@ export function PlansDesk({ plans }: { plans: PlanCatalogRow[] }) {
         Comping somebody a period is on Businesses (a studio) or Accounts (a user), and is a separate, audited decision.
       </div>
 
-      {toast ? (
-        <div role="status" style={{ position: "fixed", left: "50%", transform: "translateX(-50%)", bottom: "calc(28px + var(--dos-safe-bottom, 0px))", zIndex: 500, background: "var(--text)", color: "var(--solid)", borderRadius: 999, padding: "10px 18px", fontSize: 12, fontWeight: 800, width: "min(360px, calc(100vw - 44px))", textAlign: "center", boxSizing: "border-box" }}>
-          {toast}
-        </div>
-      ) : null}
     </div>
   );
 }

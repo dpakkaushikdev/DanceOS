@@ -301,7 +301,7 @@ test.describe.serial("the admin panel: businesses and reports", () => {
        the person's /subscription is the artist plan alone */
     await owner.goto(`/business/${studioId}/subscription`);
     const strip = owner.getByTestId("studio-subscription").filter({ hasText: studioName });
-    await expect(strip.getByText("NOT LIVE", { exact: true })).toBeVisible();
+    await expect(strip.getByText("NOT ON DISCOVER", { exact: true })).toBeVisible();
     await expect(strip).toContainText("Each studio has its own subscription");
     await expect(strip.getByRole("button", { name: /^Subscribe · ₹1,200\/mo$/ })).toBeVisible();
 
@@ -318,7 +318,7 @@ test.describe.serial("the admin panel: businesses and reports", () => {
     await owner.goto("/business");
     await expect(owner.getByTestId("studio-live")).toBeVisible();
     await owner.goto(`/business/${studioId}/subscription`);
-    await expect(owner.getByTestId("studio-subscription").filter({ hasText: studioName })).toContainText("GRANTED");
+    await expect(owner.getByTestId("studio-subscription").filter({ hasText: studioName })).toContainText("FREE FROM DANCEOS");
 
     // the studio is findable the way a dancer finds it, with nothing in between
     dancerId = await signUp(dancer, `mod-dancer-${stamp}@example.com`);

@@ -239,13 +239,13 @@ export function EarningsScreen({
         <div style={{ display: "grid", gridTemplateColumns: noExpenses ? "1fr 1fr" : "1fr 1fr 1fr", gap: 7, margin: "10px 0" }}>
           <Kpi label="IN" value={revenue} tone={GREEN} delta={range ? null : deltaOf(revenue, prevRev)} onOpen={() => setDive("revenue")} testId="earn-kpi-in" />
           {noExpenses ? null : <Kpi label="OUT" value={expenses} tone={RED} delta={range ? null : deltaOf(expenses, prevExp)} invert onOpen={() => setDive("expenses")} testId="earn-kpi-out" />}
-          <Kpi label="LEFT" value={left} tone={left < 0 ? RED : GREEN} delta={range ? null : deltaOf(left, prevLeft)} onOpen={() => setDive("left")} testId="earn-kpi-left" />
+          <Kpi label="TAKE-HOME" value={left} tone={left < 0 ? RED : GREEN} delta={range ? null : deltaOf(left, prevLeft)} onOpen={() => setDive("left")} testId="earn-kpi-left" />
         </div>
 
         {/* WHAT IS LEFT — revenue minus expenses, nothing else is deducted */}
         <div style={{ ...card, marginBottom: 0, background: left < 0 ? "rgba(248,113,113,.10)" : "rgba(34,197,94,.10)", border: `1.5px solid ${left < 0 ? RED : GREEN}55` }}>
           <FigureHead
-            title={<span style={{ fontSize: 11, fontWeight: 900, letterSpacing: 0.7, color: "var(--muted)" }}>WHAT IS LEFT</span>}
+            title={<span style={{ fontSize: 11, fontWeight: 900, letterSpacing: 0.7, color: "var(--muted)" }}>TAKE-HOME</span>}
             figure={
               <b style={{ fontSize: 22, fontWeight: 900, color: left < 0 ? RED : GREEN }} data-testid="earn-left">
                 {money(left)}
@@ -339,8 +339,8 @@ export function EarningsScreen({
         ) : null}
 
         {report.complete ? null : (
-          <div role="status" style={{ ...card, fontSize: 11, color: "#F59E0B", lineHeight: 1.5 }}>
-            Counting the latest 4,000 rows only — older money is not in these totals.
+          <div role="alert" style={{ ...card, fontSize: 11, color: "#F59E0B", lineHeight: 1.5 }}>
+            Showing recent payments only — older ones aren&apos;t counted in these totals.
           </div>
         )}
 
@@ -546,7 +546,7 @@ function DiveSheet({
   const avg = values.length ? Math.round(values.reduce((n, v) => n + v, 0) / values.length) : 0;
   const tops = topGroups(items, 6);
   const shown = all ? items : items.slice(0, 30);
-  const title = which === "revenue" ? "Revenue" : which === "expenses" ? "Expenses" : "What is left";
+  const title = which === "revenue" ? "Revenue" : which === "expenses" ? "Expenses" : "Take-home";
 
   return (
     <Portal>
@@ -586,7 +586,7 @@ function DiveSheet({
               <div style={{ ...eyebrow, marginBottom: 8 }}>THE SUM</div>
               <Row label="Revenue" value={money(sumLines(revenueLines))} tone={GREEN} />
               {noExpenses ? null : <Row label="Expenses" value={`− ${money(sumLines(expenseLines))}`} tone={RED} />}
-              <Row label="What is left" value={money(total)} tone={tone} bold />
+              <Row label="Take-home" value={money(total)} tone={tone} bold />
             </div>
           ) : (
             <>

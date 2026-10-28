@@ -12,9 +12,10 @@ import {
   FormConfirm,
   FormPage,
   FormSummary,
-  FormToast,
   formPrimary,
 } from "@/components/ui/FormPage";
+import { toast } from "@/components/ui/Toast";
+import { UPLOAD_ERROR } from "@/lib/errors";
 import { saveRoutineAction } from "@/features/routines/server-actions/routines";
 import { DOS_LEVELS, DOS_LEVEL_LABEL, dosStyleColor } from "@/lib/constants/styles";
 import { INK, LILAC, SUB } from "@/lib/design/tokens";
@@ -50,7 +51,6 @@ export function RoutineForm({ userId, sheet = false }: { userId: string; sheet?:
   const [pending, start] = useTransition();
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
   const [f, setF] = useState({
     title: "",
     style: "Hip-Hop",
@@ -61,25 +61,22 @@ export function RoutineForm({ userId, sheet = false }: { userId: string; sheet?:
     videoUrl: "",
   });
 
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2400);
-  };
+  const fire = (m: string) => toast(m);
 
   const pickTrack = async (file: File) => {
     const why = whyNotATrack(file);
-    if (why) return fire(why);
+    if (why) return toast.error(why);
     setBusy(true);
     try {
       const path = routineAudioPath(userId, file);
       const supabase = await browserSupabase();
       const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, file, { contentType: file.type, upsert: false });
       if (error) {
-        fire(error.message);
+        toast.error(UPLOAD_ERROR);
         return;
       }
       setF((x) => ({ ...x, songUrl: path, songTitle: x.songTitle || file.name.replace(/\.[^.]+$/, "") }));
-      fire("🎵 Track attached");
+      fire("Track attached");
     } finally {
       setBusy(false);
     }
@@ -106,8 +103,8 @@ export function RoutineForm({ userId, sheet = false }: { userId: string; sheet?:
         status: "live",
       });
       setConfirm(false);
-      if (out.error) return fire(out.error);
-      fire("🎭 Routine added");
+      if (out.error) return toast.error(out.error);
+      fire("Routine added");
       /* ⚠ A SHEET GOES BACK, A PAGE GOES TO THE DESK (22 Sep 2026). As a sheet
          the desk is already underneath — `back()` spends the `?new=1` entry that
          opened it, and `refresh()` re-runs the desk's own read so the new
@@ -215,8 +212,6 @@ export function RoutineForm({ userId, sheet = false }: { userId: string; sheet?:
           </FormSummary>
         </FormConfirm>
       ) : null}
-
-      <FormToast msg={toast} />
     </FormPage>
   );
 }

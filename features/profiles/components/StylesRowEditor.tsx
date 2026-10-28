@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "@/components/ui/Toast";
 import { DosStyleTile } from "@/features/discovery/components/DiscoverFilters";
 import { dosStyleColor } from "@/lib/constants/styles";
-import { DOS_UI, SUB } from "@/lib/design/tokens";
+import { SUB } from "@/lib/design/tokens";
 import { useEditMode } from "./EditMode";
 import { STYLES_ROW } from "./profile-band";
 import { useRecordLists } from "./RecordLists";
@@ -42,15 +43,9 @@ export function StylesRowEditor({
   const { lists, adopt } = useRecordLists();
   const styles = lists.styles;
   const [open, setOpen] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const { editing } = useEditMode();
   const showPlus = canEdit && editing;
-
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2600);
-  };
 
   /* ⚠ OPTIMISTIC SINCE 11 Oct 2026: a drag drops the tile where the finger let
      go, and a list that snapped back for the length of a round trip would read
@@ -63,10 +58,10 @@ export function StylesRowEditor({
       const err = await save(next);
       if (err) {
         adopt(before);
-        fire(err);
+        toast.error(err);
         return;
       }
-      fire(said);
+      toast(said);
     });
   };
 
@@ -89,11 +84,6 @@ export function StylesRowEditor({
         {styles.length === 0 && fallback.length === 0 && !showPlus && emptyWords ? <span style={{ fontSize: 11.5, color: SUB, fontWeight: 700 }}>{emptyWords}</span> : null}
       </div>
       {open ? <StylesSheet styles={styles} pending={pending} lastWords={lastWords} onSave={commit} onClose={() => setOpen(false)} /> : null}
-      {toast ? (
-        <div role="status" style={{ position: "fixed", bottom: 96, left: "50%", transform: "translateX(-50%)", background: "var(--solid)", border: "1.5px solid #0EA5E9", color: "var(--text)", padding: "11px 18px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 650, fontFamily: DOS_UI }}>
-          {toast}
-        </div>
-      ) : null}
     </>
   );
 }

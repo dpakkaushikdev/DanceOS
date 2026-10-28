@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { plainError } from "@/lib/errors";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { restoreAccount, suspendAccount, unsuspendAccount } from "@/repositories/adminPanel";
@@ -39,7 +40,7 @@ export async function suspendAccountAction(input: unknown): Promise<{ error: str
   try {
     await suspendAccount(supabase, parsed.data.accountId, parsed.data.reason);
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "Could not suspend that account" };
+    return { error: e instanceof Error ? plainError(e.message) : "Could not suspend that account" };
   }
   refresh();
   return { error: null };
@@ -69,19 +70,17 @@ export async function restoreAccountAction(input: unknown): Promise<{ error: str
     await restoreAccount(supabase, parsed.data.accountId, parsed.data.reason);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Could not restore that account";
-    if (!/has not left/.test(msg)) return { error: msg };
+    if (!/has not left/.test(msg)) return { error: plainError(msg) };
     /* already restored — the ban may be what is left; only an admin may lift it */
     const { data: isAdmin } = await supabase.rpc("is_platform_admin");
-    if (isAdmin !== true) return { error: msg };
+    if (isAdmin !== true) return { error: plainError(msg) };
   }
   try {
     const { error } = await createSupabaseAdminClient().auth.admin.updateUserById(parsed.data.accountId, { ban_duration: "none" });
     if (error) throw new Error(error.message);
-  } catch (e) {
+  } catch {
     refresh();
-    return {
-      error: `Their profile is back, but sign-in is still blocked: ${e instanceof Error ? e.message : "the ban could not be lifted"} — press Restore again`,
-    };
+    return { error: "Their profile is back, but sign-in is still blocked — press Restore again" };
   }
   refresh();
   return { error: null };
@@ -96,7 +95,7 @@ export async function unsuspendAccountAction(input: unknown): Promise<{ error: s
   try {
     await unsuspendAccount(supabase, parsed.data.accountId, parsed.data.note ?? null);
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "Could not lift that suspension" };
+    return { error: e instanceof Error ? plainError(e.message) : "Could not lift that suspension" };
   }
   refresh();
   return { error: null };

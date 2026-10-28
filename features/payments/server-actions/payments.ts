@@ -220,7 +220,7 @@ export async function startEnquiryCheckoutAction(input: {
   }
   const { supabase, user } = await requireUser();
   if (!isCashfreeConfigured()) {
-    return { checkout: null, error: "Payments aren't switched on for this deployment yet — settle directly and they will record it." };
+    return { checkout: null, error: "Online payment isn't available yet — pay the studio directly." };
   }
   try {
     const order = await createEnquiryPaymentOrder(supabase, parsed.data.quoteId);

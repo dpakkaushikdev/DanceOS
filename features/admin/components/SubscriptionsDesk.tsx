@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { endSubscriptionAction } from "@/features/admin/server-actions/subscriptions";
 import { dateWords } from "@/features/settings/components/settings-kit";
+import { toast } from "@/components/ui/Toast";
 import { DOS_DISPLAY, INK, SUB } from "@/lib/design/tokens";
 import type { AdminSubscription, SubscriptionStatus } from "@/repositories/subscriptions";
 import { agoWords } from "@/types/notification";
@@ -41,17 +42,14 @@ export function SubscriptionsDesk({ rows, status, nowIso }: { rows: AdminSubscri
   const router = useRouter();
   const [ending, setEnding] = useState<string | null>(null);
   const [reason, setReason] = useState("");
-  const [toast, setToast] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2800);
-  };
+  const fire = (m: string) => toast(m);
+  const oops = (m: string) => void toast.error(m);
 
   const end = (s: AdminSubscription) =>
     start(async () => {
       const out = await endSubscriptionAction({ subscriptionId: s.id, reason: reason.trim() });
-      if (out.error) return fire(out.error);
+      if (out.error) return oops(out.error);
       setEnding(null);
       setReason("");
       fire(`${s.kind === "studio" ? s.businessName ?? "The studio" : s.userName}'s subscription has ended — they have been told why`);
@@ -148,11 +146,6 @@ export function SubscriptionsDesk({ rows, status, nowIso }: { rows: AdminSubscri
         for. Comp a period on Businesses or Accounts; change what a plan costs on Plans.
       </div>
 
-      {toast ? (
-        <div role="status" style={{ position: "fixed", left: "50%", transform: "translateX(-50%)", bottom: "calc(28px + var(--dos-safe-bottom, 0px))", zIndex: 500, background: "var(--text)", color: "var(--solid)", borderRadius: 999, padding: "10px 18px", fontSize: 12, fontWeight: 800, width: "min(360px, calc(100vw - 44px))", textAlign: "center", boxSizing: "border-box" }}>
-          {toast}
-        </div>
-      ) : null}
     </div>
   );
 }

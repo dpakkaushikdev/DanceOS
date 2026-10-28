@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { toast } from "@/components/ui/Toast";
 import { DeskAddButton } from "@/features/settings/components/settings-kit";
 import { DeskHero } from "@/features/businesses/components/biz-kit";
 import { cancelCrewPracticeAction } from "@/features/crews/server-actions/practices";
 import { DeskBody, DeskTop } from "@/components/ui/DeskSections";
 import { DOS_UI, INK, LILAC } from "@/lib/design/tokens";
 import { practiceWhen, type CrewPractice } from "@/types/crewPractice";
-import { Toast, bizCard } from "./crew-kit";
+import { bizCard } from "./crew-kit";
 import { DeleteIconButton } from "@/components/ui/DeleteIconButton";
 import { PRACTICE_HEAD, PracticeCard, splitPractices } from "./practice-card";
 
@@ -22,19 +22,13 @@ import { PRACTICE_HEAD, PracticeCard, splitPractices } from "./practice-card";
 /* `crewName` is still passed and no longer drawn — the line under the heading
    went on 4 Oct 2026 */
 export function PracticeDesk({ crewId, practices, todayIso }: { crewId: string; crewName: string; practices: CrewPractice[]; todayIso: string }) {
-  const [toast, setToast] = useState<string | null>(null);
   const now = new Date(todayIso).getTime();
   const { coming, over } = splitPractices(practices, now);
-
-  const say = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2600);
-  };
 
   const callOff = async (practiceId: string): Promise<string | null> => {
     const r = await cancelCrewPracticeAction({ practiceId, crewId });
     if (r.error) return r.error;
-    say("Called off — everyone is told");
+    toast("Called off — everyone is told");
     return null;
   };
 
@@ -85,8 +79,6 @@ export function PracticeDesk({ crewId, practices, todayIso }: { crewId: string; 
           </>
         ) : null}
       </DeskBody>
-
-      <Toast msg={toast} />
     </div>
   );
 }

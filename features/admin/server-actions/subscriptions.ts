@@ -8,6 +8,7 @@ import {
   fetchCashfreeSubscriptionPayments,
   refundCashfreeSubscriptionPayment,
 } from "@/lib/cashfree/subscriptions";
+import { plainError } from "@/lib/errors";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { setPlanPrice } from "@/repositories/plans";
@@ -83,7 +84,7 @@ export async function setPlanPriceAction(input: unknown): Promise<{ error: strin
   try {
     await setPlanPrice(supabase, parsed.data.key, parsed.data.priceInr, parsed.data.active);
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "Could not change that price" };
+    return { error: e instanceof Error ? plainError(e.message) : "Could not change that price" };
   }
   refresh();
   return { error: null };
@@ -98,7 +99,7 @@ export async function grantSubscriptionAction(input: unknown): Promise<{ error: 
   try {
     await grantSubscription(supabase, parsed.data.kind, parsed.data.subjectId, parsed.data.months, parsed.data.note ?? null);
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "Could not set that up" };
+    return { error: e instanceof Error ? plainError(e.message) : "Could not set that up" };
   }
   refresh();
   return { error: null };
@@ -126,7 +127,7 @@ export async function endSubscriptionAction(input: unknown): Promise<{ error: st
       }
     }
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "Could not end that" };
+    return { error: e instanceof Error ? plainError(e.message) : "Could not end that" };
   }
   refresh();
   return { error: null };
@@ -184,13 +185,13 @@ export async function refundFirstPeriodAction(input: unknown): Promise<{ error: 
       p_reason: parsed.data.reason,
     });
     if (error) {
-      return { error: `Cashfree accepted the refund (${refundId}) but the ledger did not record it: ${error.message}` };
+      return { error: "Cashfree accepted the refund, but it was not recorded here — check the Payments tab" };
     }
     refresh();
     revalidatePath("/invoices");
     revalidatePath("/admin/payments");
     return { error: null, amountInr: Number((data as { amount_inr?: number } | null)?.amount_inr ?? auth.payment_amount) };
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "Could not refund that" };
+    return { error: e instanceof Error ? plainError(e.message) : "Could not refund that" };
   }
 }

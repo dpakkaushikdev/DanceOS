@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { DosStylePicker } from "@/components/ui/DosStyleKit";
 import { Portal } from "@/components/ui/Portal";
+import { toast } from "@/components/ui/Toast";
 import { updateCrewAction } from "@/features/crews/server-actions/crews";
 import { CityPicker } from "@/features/geo/components/CityPicker";
 import { Sheet, fieldInput, fieldLabel, sheetBtn } from "@/features/profiles/components/profile-kit";
@@ -54,6 +55,7 @@ export function CrewEditSheet({ crew, onClose }: { crew: Crew; onClose: () => vo
         setErr(out.error);
         return;
       }
+      toast("Crew saved");
       onClose();
       router.refresh();
     });
@@ -77,7 +79,7 @@ export function CrewEditSheet({ crew, onClose }: { crew: Crew; onClose: () => vo
         <div style={fieldLabel}>Style</div>
         {/* the FIRST of the crew's styles — the list is the ＋ on the crew's home (26 Sep 2026) */}
         <DosStylePicker value={style} onChange={setStyle} ariaLabel="Style" />
-        <div style={{ fontSize: 10.5, color: MUTED, marginTop: 4 }}>The number, the email and the links are the ⊕ beside the buttons on the crew&apos;s home.</div>
+        <div style={{ fontSize: 10.5, color: MUTED, marginTop: 4 }}>Edit phone and links on your Home page.</div>
         {err ? <div role="alert" style={{ fontSize: 12, color: "#F87171", marginTop: 10 }}>{err}</div> : null}
         <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
           <button type="button" onClick={onClose} style={sheetBtn(false)}>

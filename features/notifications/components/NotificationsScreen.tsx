@@ -5,6 +5,8 @@ import { useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { DeskBody, DeskTop } from "@/components/ui/DeskSections";
 import { Portal } from "@/components/ui/Portal";
+import { toast } from "@/components/ui/Toast";
+import { plainError } from "@/lib/errors";
 import { markNotificationsReadAction, setNotificationPrefsAction } from "@/features/notifications/server-actions/notifications";
 import { PushDevice, type PushDeviceState } from "@/features/notifications/components/PushDevice";
 import { DOS_DISPLAY, DOS_UI, INK, LILAC, MUTED, SUB } from "@/lib/design/tokens";
@@ -160,7 +162,7 @@ function Toggle({ on, label, tint, disabled = false, testId, onPress }: { on: bo
   );
 }
 
-function SettingsSheet({ prefs, busy, onSave, onClose }: { prefs: NotificationPrefs; busy: boolean; onSave: (p: NotificationPrefs) => void; onClose: () => void }) {
+function SettingsSheet({ prefs, busy, error, onSave, onClose }: { prefs: NotificationPrefs; busy: boolean; error: string | null; onSave: (p: NotificationPrefs) => void; onClose: () => void }) {
   useCloseOnBack(onClose);
   const [draft, setDraft] = useState<NotificationPrefs>(prefs);
   const [device, setDevice] = useState<PushDeviceState>("checking");
@@ -204,6 +206,12 @@ function SettingsSheet({ prefs, busy, onSave, onClose }: { prefs: NotificationPr
               </div>
             );
           })}
+          {/* a refused save is said HERE — the screen behind the sheet is covered by it */}
+          {error ? (
+            <div role="alert" style={{ fontSize: 11.5, color: "#F87171", marginTop: 12 }}>
+              {plainError(error)}
+            </div>
+          ) : null}
           <button
             type="button"
             disabled={busy}
@@ -211,7 +219,7 @@ function SettingsSheet({ prefs, busy, onSave, onClose }: { prefs: NotificationPr
             onClick={() => onSave(draft)}
             style={{ marginTop: 16, width: "100%", padding: 13, borderRadius: 999, border: "none", background: "var(--text)", color: "var(--solid)", fontWeight: 900, fontSize: 13, ...pressable }}
           >
-            Done
+            {busy ? "Saving…" : "Done"}
           </button>
         </div>
       </div>
@@ -362,7 +370,6 @@ export function NotificationsScreen({
   const [toggled, setToggled] = useState<Record<string, boolean>>({});
   const [prefOpen, setPrefOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const write = (c: Column, f: Filter) => {
@@ -381,11 +388,7 @@ export function NotificationsScreen({
     write(column, f);
   };
 
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2000);
-  };
-  const run = async (op: () => Promise<{ error: string | null }>, done: string | null): Promise<boolean> => {
+  const run =async (op: () => Promise<{ error: string | null }>, done: string | null): Promise<boolean> => {
     if (busy) return false;
     setBusy(true);
     setError(null);
@@ -395,7 +398,7 @@ export function NotificationsScreen({
       setError(out.error);
       return false;
     }
-    if (done) fire(done);
+    if (done) toast(done);
     router.refresh();
     return true;
   };
@@ -404,10 +407,10 @@ export function NotificationsScreen({
   const shown = filter === "all" ? inColumn : inColumn.filter((n) => n.kind === filter);
   const filterLabel = filter === "all" ? null : groupOf(filter).label;
 
-  const openRow = async (n: AppNotification) => {
-    if (!n.readAt) {
-      await markNotificationsReadAction({ ids: [n.id] });
-    }
+  /* the tap goes at once — marking it read rides behind the navigation rather
+     than holding the person on this screen for a round trip */
+  const openRow = (n: AppNotification) => {
+    if (!n.readAt) void markNotificationsReadAction({ ids: [n.id] });
     if (n.href) {
       router.push(n.href);
     } else {
@@ -514,7 +517,7 @@ export function NotificationsScreen({
             <button
               type="button"
               aria-label={`Open: ${n.title}`}
-              onClick={() => void openRow(n)}
+              onClick={() => openRow(n)}
               style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "var(--card)", border: `1.5px solid ${unread ? `${g.tint}66` : "var(--el)"}`, borderRadius: 16, textAlign: "left", color: INK, ...pressable }}
             >
               <span style={{ position: "relative", width: 32, height: 32, borderRadius: 10, flexShrink: 0, background: `${g.tint}22`, color: g.tint, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
@@ -655,9 +658,10 @@ export function NotificationsScreen({
         {hiddenBySettings} off in settings ›
       </button>
     ) : null;
-  const errorLine = error ? (
+  /* while the settings sheet is open its own line says it (above), not this one behind it */
+  const errorLine = error && !prefOpen ? (
     <div role="alert" style={{ fontSize: 11.5, color: "#F87171", marginBottom: 10 }}>
-      {error}
+      {plainError(error)}
     </div>
   ) : null;
 
@@ -694,7 +698,11 @@ export function NotificationsScreen({
         <SettingsSheet
           prefs={prefs}
           busy={busy}
-          onClose={() => setPrefOpen(false)}
+          error={error}
+          onClose={() => {
+            setPrefOpen(false);
+            setError(null);
+          }}
           onSave={(p) =>
             void run(() => setNotificationPrefsAction({ kinds: p.kinds, pushKinds: p.pushKinds, push: p.push }), "Saved").then((ok) => {
               if (ok) setPrefOpen(false);
@@ -703,13 +711,6 @@ export function NotificationsScreen({
         />
       ) : null}
 
-      {toast ? (
-        <Portal>
-          <div role="status" style={{ position: "fixed", bottom: 96, left: "50%", transform: "translateX(-50%)", background: "var(--el)", border: "1.5px solid #5AC8FA", color: INK, padding: "11px 18px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 950, fontFamily: DOS_DISPLAY, whiteSpace: "nowrap", pointerEvents: "none" }}>
-            {toast}
-          </div>
-        </Portal>
-      ) : null}
     </div>
   );
 }

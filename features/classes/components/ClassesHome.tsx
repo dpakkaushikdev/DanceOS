@@ -56,7 +56,7 @@ export interface AnsweredCard {
 
 const TAB_WORD: Record<ClassesTab, string> = { todo: "To do", upcoming: "Upcoming", past: "Past" };
 const GROUP_WORD: Record<TimeGroup, string> = { now: "Now", today: "Today", week: "This week", later: "Later", past: "Past" };
-const SECTION_WORD: Record<TodoSection, string> = { answer: "Asked of you", mine: "Your move", waiting: "Waiting on others" };
+const SECTION_WORD: Record<TodoSection, string> = { answer: "Needs your reply", mine: "Your turn", waiting: "Waiting for them" };
 
 const head: React.CSSProperties = { fontSize: 10, fontWeight: 900, letterSpacing: 1, color: SUB, textTransform: "uppercase", margin: "14px 2px 9px" };
 

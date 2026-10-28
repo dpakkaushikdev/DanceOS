@@ -58,10 +58,10 @@ export const draftStateOf = (st: ClassPublishState | undefined): DraftState => {
      missing — unknown is never "ready", so no Publish is offered on a guess */
   if (!st) return { kind: "waiting", chip: "Could not check — open it", tint: "#F59E0B" };
   if (st.venueStatus === "declined") return { kind: "fix", chip: `${st.venueName ?? "The studio"} said no`, tint: "#F87171", fix: "studio" };
-  if (st.teacherStatus === "rejected") return { kind: "fix", chip: `${st.teacherName ?? "The teacher"} said no`, tint: "#F87171", fix: "teacher" };
-  if (st.teacherStatus === "asked") return { kind: "waiting", chip: `Waiting on ${st.teacherName ?? "the teacher"}`, tint: "#F59E0B" };
+  if (st.teacherStatus === "rejected") return { kind: "fix", chip: `${st.teacherName ?? "Faculty"} declined`, tint: "#F87171", fix: "teacher" };
+  if (st.teacherStatus === "asked") return { kind: "waiting", chip: `Waiting on ${st.teacherName ?? "faculty"}`, tint: "#F59E0B" };
   if (st.venueStatus === "requested") return { kind: "waiting", chip: `Waiting on ${st.venueName ?? "the studio"}`, tint: "#F59E0B" };
-  if (st.why) return { kind: "fix", chip: "No teacher yet", tint: "#F87171", fix: "edit" };
+  if (st.why) return { kind: "fix", chip: "No faculty yet", tint: "#F87171", fix: "edit" };
   return { kind: "ready", chip: "Ready to publish", tint: "#22C55E" };
 };
 

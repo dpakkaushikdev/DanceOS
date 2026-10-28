@@ -11,6 +11,7 @@ import type { DraftState } from "@/features/classes/classesScreen";
 import { setInboxOffAction, setRoomRequestsAction } from "@/features/inbox/server-actions/askSettings";
 import { SETTING_ICONS, SettingRow } from "@/components/ui/RequestSettingsSheet";
 import { cardBtn } from "@/features/classes/cardStyles";
+import { toast } from "@/components/ui/Toast";
 
 /** ⚠⚠ THE BUTTONS ON A CLASS CARD (11 Oct 2026, the user: "write buttons on class
  *  cards for doing proper action"). At most two per card, chosen by what the
@@ -59,6 +60,7 @@ export function AnswerButtons({ title, classPersonId, venueClassId }: { title: s
     if (out.error) setErr(out.error);
     else {
       setDeclining(false);
+      toast(accept ? "Accepted — it's on your calendar" : "Declined");
       router.refresh();
     }
   };
@@ -109,6 +111,7 @@ export function ClosedDraftButtons({ businessId, classId, title, canEdit }: { bu
       return;
     }
     setAsking(false);
+    toast("Deleted");
     router.refresh();
   };
   return (
@@ -122,7 +125,7 @@ export function ClosedDraftButtons({ businessId, classId, title, canEdit }: { bu
       {asking ? (
         <ConfirmDialog
           title={`Delete ${title}?`}
-          body="It was never published, so nobody holds a seat. It goes for good."
+          body="It was never published, so nobody has a spot. It goes for good."
           keepWord="Keep it"
           goWord="Delete"
           busy={busy}
@@ -153,7 +156,10 @@ export function WithdrawButton({ title, classPersonId }: { title: string; classP
           const out = await withdrawClassAskAction({ classPersonId });
           setBusy(false);
           if (out.error) setErr(out.error);
-          else router.refresh();
+          else {
+            toast("Request withdrawn");
+            router.refresh();
+          }
         }}
         style={cardBtn(false)}
       >
@@ -207,16 +213,21 @@ export function DraftButtons({
   const [asking, setAsking] = useState<{ clash: RoomClash } | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
   const editHref = `/business/${businessId}/classes/${classId}/edit`;
   if (!canEdit) return <StateChip word={state.chip} tint={state.tint} />;
 
   const openPublish = async () => {
+    if (checking) return;
     setErr(null);
     let clash: RoomClash = null;
     if (roomId && startsAt && endsAt && !isVenueClass) {
+      /* busy while the room is checked, so a second tap cannot open two sheets */
+      setChecking(true);
       const s = istParts(startsAt);
       const e = istParts(endsAt);
       clash = await checkRoomClashAction({ businessId, roomId, date: s.date, startTime: s.time, endTime: e.time, excludeClassId: classId });
+      setChecking(false);
     }
     setAsking({ clash });
   };
@@ -232,6 +243,7 @@ export function DraftButtons({
       return;
     }
     setAsking(null);
+    toast("Published — it's on sale");
     router.refresh();
   };
 
@@ -243,8 +255,8 @@ export function DraftButtons({
           <Link href={editHref} style={cardBtn(false)}>
             Edit
           </Link>
-          <button type="button" data-testid="card-publish" aria-label={`Publish ${title}`} onClick={() => void openPublish()} style={greenBtn}>
-            Publish
+          <button type="button" data-testid="card-publish" aria-label={`Publish ${title}`} disabled={checking} onClick={() => void openPublish()} style={greenBtn}>
+            {checking ? "Checking…" : "Publish"}
           </button>
         </>
       ) : state.kind === "fix" ? (
@@ -274,7 +286,7 @@ export function DraftButtons({
         ) : (
           <ConfirmDialog
             title={`Publish ${title}?`}
-            body={`${when} · ${capacity} places. It goes on sale at once.`}
+            body={`${when} · ${capacity} spots. It goes on sale at once.`}
             keepWord="Not yet"
             goWord="Publish"
             tone="go"

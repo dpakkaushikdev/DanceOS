@@ -6,6 +6,8 @@ import { useState, useTransition, type CSSProperties } from "react";
 import { confirmCheckoutAction, startMembershipCheckoutAction } from "@/features/payments/server-actions/payments";
 import { returnMembershipPassAction } from "@/features/memberships/server-actions/memberships";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { toast } from "@/components/ui/Toast";
+import { PAYMENT_ERROR } from "@/lib/errors";
 import { openCashfreeCheckout } from "@/lib/cashfree/checkout-client";
 import { DOS_TOOLS, DeskHero } from "@/features/businesses/components/biz-kit";
 import { DeskAddButton } from "@/features/settings/components/settings-kit";
@@ -98,12 +100,8 @@ export function MembershipsScreen({
   const [seg, setSeg] = useState<"mine" | "selling">(canSell && !openOnBooked ? "selling" : "mine");
   /* a studio's desk has one side, so the switch is not drawn and cannot be reached */
   const side = business ? "selling" : seg;
-  const [toast, setToast] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2600);
-  };
+  const fire = (m: string) => toast(m);
   /* the pass being handed back, while its question is open (decision 3) */
   const [returning, setReturning] = useState<MyPass | null>(null);
   const [returnErr, setReturnErr] = useState<string | null>(null);
@@ -122,18 +120,18 @@ export function MembershipsScreen({
   const payFor = (p: MyPass) =>
     start(async () => {
       const res = await startMembershipCheckoutAction({ passId: p.passId, businessName: p.businessName, description: p.name });
-      if (res.error || !res.checkout) return fire(res.error ?? "Could not start the payment");
+      if (res.error || !res.checkout) return toast.error(res.error ?? PAYMENT_ERROR);
       try {
         const result = await openCashfreeCheckout(res.checkout.paymentSessionId, res.checkout.mode);
         if (result.redirect) return; // leaving for /pay/return, which confirms it
         /* a closed window is still ASKED about below — a UPI payment finished in
            another app can land after the window gave up (2 Oct 2026) */
-      } catch (openError: unknown) {
-        return fire(openError instanceof Error ? openError.message : "Could not open the payment window");
+      } catch {
+        return toast.error(PAYMENT_ERROR);
       }
       const out = await confirmCheckoutAction({ orderId: res.checkout.orderId });
-      if (out.error) return fire(out.error);
-      fire("🎟 Membership is yours");
+      if (out.error) return toast.error(out.error);
+      fire("Membership is yours");
       router.refresh();
     });
 
@@ -391,12 +389,6 @@ export function MembershipsScreen({
           onKeep={() => setReturning(null)}
           onGo={() => doReturn(returning)}
         />
-      ) : null}
-
-      {toast ? (
-        <div role="status" style={{ position: "fixed", bottom: 96, left: "50%", transform: "translateX(-50%)", background: "#241B33", color: "#fff", padding: "11px 18px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 40 }}>
-          {toast}
-        </div>
       ) : null}
     </div>
   );

@@ -3,6 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { QRBlock } from "@/components/ui/QRBlock";
+import { toast } from "@/components/ui/Toast";
 import { myCheckInSinceAction, type MyCheckIn } from "@/features/attendance/server-actions/myCheckIn";
 import { CENTER_CARD, CENTER_SCRIM } from "@/components/ui/centerModal";
 import { DOS_DISPLAY, DOS_UI } from "@/lib/design/tokens";
@@ -185,7 +186,6 @@ export function ProfileShare({ path, name, watchCheckIn = false }: { path: strin
  *  does nothing on half the machines that can press it is the thing this app
  *  keeps refusing to ship — the same reasoning as the students invite. */
 export function ProfileLink({ path, name }: { path: string; name: string }) {
-  const [said, setSaid] = useState<string | null>(null);
   const origin = useSyncExternalStore(subscribeNever, readHost, readServerHost);
   const link = `${origin}${path}`;
 
@@ -202,11 +202,10 @@ export function ProfileLink({ path, name }: { path: string; name: string }) {
     }
     try {
       await navigator.clipboard.writeText(link);
-      setSaid("Link copied");
+      toast("Link copied");
     } catch {
-      setSaid("Could not copy the link");
+      toast.error("Could not copy the link");
     }
-    setTimeout(() => setSaid(null), 1800);
   };
 
   return (
@@ -220,11 +219,6 @@ export function ProfileLink({ path, name }: { path: string; name: string }) {
           <path d="M8.3 10.8 15.7 6.4M8.3 13.2l7.4 4.4" />
         </svg>
       </button>
-      {said ? (
-        <span role="status" style={{ position: "fixed", bottom: 96, left: "50%", transform: "translateX(-50%)", background: "var(--solid)", border: "1.5px solid #0EA5E9", color: "var(--text)", padding: "11px 18px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 650, fontFamily: DOS_UI }}>
-          {said}
-        </span>
-      ) : null}
     </>
   );
 }

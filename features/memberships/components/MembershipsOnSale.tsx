@@ -13,6 +13,9 @@ import { SeatBar } from "@/features/classes/components/ClassTile";
 import { unitWord } from "@/features/memberships/components/usage-kit";
 import type { MembershipOnSale } from "@/repositories/memberships";
 import { ShelfHead } from "@/features/discovery/components/discover-kit";
+import { toast } from "@/components/ui/Toast";
+import { PAYMENT_ERROR } from "@/lib/errors";
+import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
 
 /** MEMBERSHIPS ON A PUBLIC PAGE (19 Sep 2026, the user: "Users should be able
  *  to buy from Studio and Artist Profile Pages").
@@ -62,18 +65,19 @@ export function MembershipsOnSale({
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [note, setNote] = useState<string | null>(null);
   /* the payment step — the membership being bought, or nothing open */
   const [paying, setPaying] = useState<MembershipOnSale | null>(null);
+  /* system back closes the payment step (19 Oct 2026). `spend: false` because a
+     paid step ends in a navigation to Memberships, and a back() would race it. */
+  useCloseOnBack(() => setPaying(null), paying !== null, { spend: false });
   if (memberships.length === 0) return null;
 
   const take = (m: MembershipOnSale) =>
     start(async () => {
-      setNote(null);
       const out = await buyMembershipAction({ membershipId: m.id });
       if (out.error) {
         setPaying(null);
-        return setNote(out.error);
+        return void toast.error(out.error);
       }
       if (!out.needsPayment) {
         setPaying(null);
@@ -83,20 +87,20 @@ export function MembershipsOnSale({
       const res = await startMembershipCheckoutAction({ passId: out.passId as string, businessName, description: m.name });
       if (res.error || !res.checkout) {
         setPaying(null);
-        return setNote(res.error ?? "Could not start the payment — it is waiting under Memberships");
+        return void toast.error(res.error ?? "Could not start the payment — it is waiting, not paid yet, under Memberships.");
       }
       try {
         const result = await openCashfreeCheckout(res.checkout.paymentSessionId, res.checkout.mode);
         if (result.redirect) return; // leaving for /pay/return, which confirms it
-      } catch (openError: unknown) {
+      } catch {
         setPaying(null);
-        return setNote(openError instanceof Error ? openError.message : "Could not open the payment window");
+        return void toast.error(PAYMENT_ERROR);
       }
       /* ASK, whatever the window said — a UPI payment finished in another app
          can land after the window gave up (2 Oct 2026) */
       const done = await confirmCheckoutAction({ orderId: res.checkout.orderId });
       setPaying(null);
-      if (done.error) return setNote(done.error === "No payment was made" ? "The payment window closed — it is waiting, unpaid, under Memberships" : done.error);
+      if (done.error) return void toast.error(done.error === "No payment was made" ? "The payment window closed — it is waiting, not paid yet, under Memberships." : done.error);
       /* AND THEN TO THE PASS ITSELF (2 Oct 2026, the user: "should take to …
          membership detail page after payment is done") */
       router.push("/memberships?show=booked");
@@ -188,7 +192,7 @@ export function MembershipsOnSale({
                  22 Sep mismatch, where a screen reader heard a different verb
                  from the one on the screen */
               aria-label={`Buy ${m.name}`}
-              onClick={() => { setNote(null); setPaying(m); if (m.priceInr > 0) preloadCheckout(); }}
+              onClick={() => { setPaying(m); if (m.priceInr > 0) preloadCheckout(); }}
               style={{ ...buyBox, color: inkOn(accent), background: accent, border: `1.5px solid ${accent}`, cursor: pending ? "wait" : "pointer", boxShadow: `0 3px 10px ${accent}44` }}
             >
               {/* ⚠ "BUY NOW", NOT "TAKE IT" (27 Sep 2026, the user's own word).
@@ -233,11 +237,6 @@ export function MembershipsOnSale({
         </div>
         );
       })}
-      {note ? (
-        <div role="status" style={{ fontSize: 10.5, color: INK, marginTop: 8, lineHeight: 1.45 }}>
-          {note}
-        </div>
-      ) : null}
 
       {/* ── THE PAYMENT STEP (S_class 12456-12573, the class page's own) ── */}
       {paying ? (
@@ -278,7 +277,7 @@ export function MembershipsOnSale({
             <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 10, lineHeight: 1.45 }}>
               {paying.priceInr === 0
                 ? "Nothing is charged. It appears under Memberships straight away."
-                : "Paid through Cashfree. Your pass is only made once the payment lands — until then it waits, unpaid, under Memberships."}
+                : "Paid securely online. Your membership starts once the payment goes through — until then it waits under Memberships."}
             </div>
           </div>
         </div>

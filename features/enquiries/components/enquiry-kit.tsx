@@ -45,9 +45,9 @@ export const stageTint = (s: EnquiryStatus): string =>
 
 /** the sentence under a road that ENDED rather than arrived */
 const endedWords: Partial<Record<EnquiryStatus, string>> = {
-  declined: "The business declined this enquiry.",
+  declined: "The studio declined this enquiry.",
   withdrawn: "This enquiry was withdrawn.",
-  called_off: "This project was called off.",
+  called_off: "This job was called off.",
   lost: "This enquiry is closed as lost.",
   cancelled: "This enquiry was cancelled.",
 };

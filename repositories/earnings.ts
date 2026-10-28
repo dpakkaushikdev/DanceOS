@@ -401,7 +401,7 @@ export async function findBusinessEarnings(
       group: name,
       method: p.method ?? null,
       /* their Member Detail page, where every payment to them is listed */
-      href: p.business_id && p.user_id ? `/business/${p.business_id}/staff/${p.user_id}` : undefined,
+      href: p.business_id && p.user_id ? `/business/${p.business_id}/staff/${p.user_id}?show=earnings` : undefined,
     });
   }
 
@@ -449,10 +449,14 @@ export async function findBusinessEarnings(
     if (paid && got) continue;
     if (paid) {
       const name = single(r.venue as { name: string } | null)?.name ?? "A studio";
-      take(rentOut, rentOutI, dayToIso(r.paid_on), r.amount_inr, name, { group: name, method: r.method ?? null, href: `/business/${r.payer_business_id}/staff?show=other` });
+      /* rent you paid is on that studio's Other Teams detail page, Rent tab */
+      take(rentOut, rentOutI, dayToIso(r.paid_on), r.amount_inr, name, { group: name, method: r.method ?? null, href: `/team/other/business/${r.venue_business_id}?show=rent` });
     } else if (got) {
       const name = single(r.payer as { name: string } | null)?.name ?? "An artist";
-      take(rentIn, rentInI, dayToIso(r.paid_on), r.amount_inr, name, { group: name, method: r.method ?? null, href: `/business/${r.venue_business_id}/staff` });
+      /* ⚠ the renter's own page, not Member Detail: this read does not carry the
+         payer page's owner, and the renter page opens for every payer (on the team
+         or not) */
+      take(rentIn, rentInI, dayToIso(r.paid_on), r.amount_inr, name, { group: name, method: r.method ?? null, href: `/business/${r.venue_business_id}/renters/${r.payer_business_id}` });
     }
   }
 
@@ -501,7 +505,7 @@ export async function findBusinessEarnings(
       { key: "pay", label: "Team pay", by: pay, items: payI, href: one ? `/business/${one}/staff` : undefined },
       { key: "refunds", label: "Refunds", by: refunded, items: refundedI, href: one ? `/business/${one}/refunds` : undefined },
       { key: "assets", label: "Assets bought", by: bought, items: boughtI, href: one ? `/business/${one}/assets` : undefined },
-      { key: "plan", label: "DanceOS subscription", by: plan, items: planI, href: "/subscription" },
+      { key: "plan", label: "DanceOS subscription", by: plan, items: planI, href: one ? `/business/${one}/subscription` : "/subscription" },
     ],
     complete,
     range
@@ -544,20 +548,21 @@ export async function findPersonEarnings(
     add(taught, k, p.amount_inr);
     const name = single(p.businesses)?.name ?? "A studio";
     /* which studio paid it — the row behind the line (2 Oct 2026); it opens that
-       studio's card under Team › Paid to you (18 Oct 2026) */
+       studio's Other Teams detail page, Paid tab (19 Oct 2026 — Team › Paid to
+       you was removed that day) */
     addItem(taughtI, k, {
       label: name,
       amountInr: p.amount_inr,
       at: dayToIso(p.paid_on),
       group: name,
       method: p.method ?? null,
-      href: p.business_id ? `/team#paid-${p.business_id}` : "/team#paid-to-you",
+      href: p.business_id ? `/team/other/business/${p.business_id}?show=paid` : "/team?show=other",
     });
   }
   return assemble(
     period,
     keys,
-    [{ key: "teaching", label: "From studios", by: taught, items: taughtI, href: "/team#paid-to-you" }],
+    [{ key: "teaching", label: "From studios", by: taught, items: taughtI, href: "/team?show=other" }],
     [],
     (data?.length ?? 0) < MAX_ROWS,
     range

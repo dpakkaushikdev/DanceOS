@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { searchPeopleAction } from "@/features/people/server-actions/people";
 import { gradientOf } from "@/features/profiles/components/profile-kit";
 import { NAME_MAX } from "@/lib/constants/names";
+import { plainError } from "@/lib/errors";
 import { photoUrl } from "@/lib/media/photo";
 import type { Profile } from "@/types/profile";
 
@@ -65,7 +66,7 @@ export function DoorSearch({
   const shown = term.length >= 2 ? hits : [];
   const groups: Array<[string, Hit[]]> = [
     ["ARTISTS", shown.filter((h) => h.isArtist)],
-    ["USERS", shown.filter((h) => !h.isArtist)],
+    ["DANCERS", shown.filter((h) => !h.isArtist)],
   ];
 
   return (
@@ -90,7 +91,7 @@ export function DoorSearch({
           }
         }}
         maxLength={NAME_MAX}
-        placeholder="Search a user or an artist"
+        placeholder="Search by name"
         aria-label="Search DanceOS for somebody at the door"
         autoComplete="off"
         data-testid="door-name"
@@ -118,7 +119,7 @@ export function DoorSearch({
         >
           {searching && shown.length === 0 ? <div style={{ padding: "16px 14px", fontSize: 12.5, color: "var(--sub)", textAlign: "center" }}>Searching…</div> : null}
           {!searching && shown.length === 0 ? (
-            <div style={{ padding: "16px 14px", fontSize: 12.5, color: "var(--sub)", textAlign: "center" }}>{err ?? "No user or artist by that name."}</div>
+            <div style={{ padding: "16px 14px", fontSize: 12.5, color: "var(--sub)", textAlign: "center" }}>{err ? plainError(err) : "Nobody by that name."}</div>
           ) : null}
           {groups
             .filter(([, list]) => list.length > 0)
@@ -130,7 +131,7 @@ export function DoorSearch({
                   const face = photoUrl(h.avatarPath);
                   const initials = h.fullName.split(" ").filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
                   const state = onRegister(h.id);
-                  const sub = [h.isArtist ? "Artist" : "User", h.city, state === "in" ? "Already in" : state === "booked" ? "Booked" : null].filter(Boolean).join(" · ");
+                  const sub = [h.isArtist ? "Artist" : "Dancer", h.city, state === "in" ? "Already in" : state === "booked" ? "Booked" : null].filter(Boolean).join(" · ");
                   return (
                     <button
                       key={h.id}

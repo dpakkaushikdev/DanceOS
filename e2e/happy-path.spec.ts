@@ -674,7 +674,7 @@ test.describe.serial("DanceOS, end to end", () => {
     // and it must have a screen)
     await owner.goto(`/business/${studioId}/subscription`);
     const studioStrip = owner.getByTestId("studio-subscription").filter({ hasText: studioName });
-    await expect(studioStrip.getByText("NOT LIVE", { exact: true })).toBeVisible();
+    await expect(studioStrip.getByText("NOT ON DISCOVER", { exact: true })).toBeVisible();
     /* ⚠ THIS SENTENCE IS THE DATABASE'S, NOT THE PAGE'S, and I broke this
        assertion for one run by assuming otherwise (27 Sep 2026). The
        explanations that came off the Subscription page were the app's own
@@ -713,7 +713,7 @@ test.describe.serial("DanceOS, end to end", () => {
     await owner.goto("/business");
     await expect(owner.getByTestId("studio-live")).toBeVisible();
     await owner.goto(`/business/${studioId}/subscription`);
-    await expect(owner.getByTestId("studio-subscription").filter({ hasText: studioName })).toContainText("GRANTED");
+    await expect(owner.getByTestId("studio-subscription").filter({ hasText: studioName })).toContainText("FREE FROM DANCEOS");
     // the Accounts desk counts it for the owner (the chip appears with the first studio)
     await admin.goto(`/admin/accounts?q=${encodeURIComponent(ownerEmail)}`);
     await expect(admin.getByTestId("admin-account").filter({ hasText: ownerEmail })).toContainText("1/1 STUDIOS SUBSCRIBED");
@@ -940,7 +940,7 @@ test.describe.serial("DanceOS, end to end", () => {
     await admin.getByRole("button", { name: `Confirm the Artist plan for ${trainerName}` }).click();
     await expect(admin.getByText(`${trainerName} has the Artist plan for 12 months — nothing charged`)).toBeVisible({ timeout: 15_000 });
     await trainer.goto("/subscription");
-    await expect(trainer.getByText("Active · granted")).toBeVisible({ timeout: 15_000 });
+    await expect(trainer.getByText("Active · free from DanceOS")).toBeVisible({ timeout: 15_000 });
     /* ⚠⚠ A TEAM INVITATION IS ANSWERED ON THE STUDIOS HUB (11 Oct 2026, the
        user: "handle invites to join a team and crew from the crew and studio
        tabs at home. remove from inbox"). Home's gold "wants you on the team"
@@ -1330,7 +1330,7 @@ test.describe.serial("DanceOS, end to end", () => {
     // and the owner's register now reads the seat's meta: a free seat
     await owner.reload();
     await owner.getByRole("button", { name: "Attendance", exact: true }).click();
-    await expect(owner.getByText("free seat")).toBeVisible();
+    await expect(owner.getByText("free spot")).toBeVisible();
     await owner.getByRole("button", { name: "Details" }).click();
 
     // the booking shows up on the learner's own list too
@@ -1534,7 +1534,7 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(owner.getByTestId("enquiry-stage")).toHaveText("Accepted", { timeout: 15_000 });
     await owner.getByRole("button", { name: "Send a quote" }).click();
     await owner.getByRole("button", { name: "One total", exact: true }).click();
-    await owner.getByLabel("Project total").fill("5000");
+    await owner.getByLabel("Quote total").fill("5000");
     await owner.getByRole("button", { name: "Send quote", exact: true }).click();
     await expect(owner.getByTestId("enquiry-stage")).toHaveText("Quoted", { timeout: 15_000 });
 
@@ -1557,8 +1557,8 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(owner.getByTestId("revision-asked")).toContainText("Could it be four thousand?");
     await owner.getByRole("button", { name: "Revise the quote" }).click();
     /* the composer starts from the price it revises */
-    await expect(owner.getByLabel("Project total")).toHaveValue("5000");
-    await owner.getByLabel("Project total").fill("4000");
+    await expect(owner.getByLabel("Quote total")).toHaveValue("5000");
+    await owner.getByLabel("Quote total").fill("4000");
     await owner.getByRole("button", { name: "Send the revised quote" }).click();
     await expect(owner.getByTestId("enquiry-stage")).toHaveText("Quoted", { timeout: 15_000 });
 
@@ -1583,10 +1583,10 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(learner.getByText(/is paid — propose what goes back/)).toBeVisible();
 
     /* completion waits for the balance — the button is offered, and off */
-    await expect(owner.getByRole("button", { name: "Mark the project complete" })).toBeDisabled();
+    await expect(owner.getByRole("button", { name: "Mark the job complete" })).toBeDisabled();
     await owner.getByTestId("dues").getByRole("button", { name: "Record received" }).first().click();
     await expect(owner.getByTestId("enquiry-stage")).toHaveText("Paid", { timeout: 15_000 });
-    await owner.getByRole("button", { name: "Mark the project complete" }).click();
+    await owner.getByRole("button", { name: "Mark the job complete" }).click();
     await expect(owner.getByTestId("enquiry-stage")).toHaveText("Completing", { timeout: 15_000 });
     await expect(owner.getByTestId("completion-waiting")).toBeVisible();
 
@@ -2235,7 +2235,7 @@ test.describe.serial("DanceOS, end to end", () => {
     await confirmCrop(trainer);
     await expect(trainer.getByTestId("hero-disc").locator("img").first()).toBeVisible({ timeout: 20_000 });
     await expect(picSheet.getByLabel("Change your photo")).toBeAttached();
-    await picSheet.getByRole("button", { name: "Done" }).click();
+    await picSheet.getByRole("button", { name: "Close" }).click();
     /* and the POSTERS have their own pencil, on the rail rather than the disc */
     await enterEditMode(trainer);
     await trainer.getByRole("button", { name: "Edit posters" }).click();
@@ -2409,7 +2409,7 @@ test.describe.serial("DanceOS, end to end", () => {
     await trainer.getByRole("button", { name: "Add Instagram" }).click();
     await trainer.getByLabel("URL", { exact: true }).fill("https://instagram.com/rheamoves");
     await trainer.getByRole("dialog", { name: "Add your Instagram" }).getByRole("button", { name: "Save" }).click();
-    await trainer.getByRole("dialog", { name: "Add a social link" }).getByRole("button", { name: "Done" }).click();
+    await trainer.getByRole("dialog", { name: "Add a social link" }).getByRole("button", { name: "Close" }).click();
     await expect(trainer.getByRole("button", { name: "Instagram — @rheamoves" })).toBeVisible({ timeout: 15_000 });
     // and a bad address is refused with the database's own sentence, not saved
     await enterEditMode(trainer);
@@ -2419,7 +2419,7 @@ test.describe.serial("DanceOS, end to end", () => {
     await trainer.getByRole("dialog", { name: "Add your YouTube" }).getByRole("button", { name: "Save" }).click();
     await expect(trainer.getByText(/web address|url/i).first()).toBeVisible();
     await trainer.getByRole("dialog", { name: "Add your YouTube" }).getByRole("button", { name: "Cancel" }).click();
-    await trainer.getByRole("dialog", { name: "Add a social link" }).getByRole("button", { name: "Done" }).click();
+    await trainer.getByRole("dialog", { name: "Add a social link" }).getByRole("button", { name: "Close" }).click();
     await expect(trainer.getByRole("button", { name: /^YouTube/ })).toHaveCount(0);
 
     /* ---- AND THE TWO FIGURES ON HOME, EACH OPENING ITS LIST (19 Sep 2026, the
@@ -2586,7 +2586,7 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(trainer.getByTestId("subscription-card")).toBeVisible();
     /* the trainer's plan is an admin's GRANT (segment 4), so it renews nothing
        and there is no Cancel to press — the screen says exactly that */
-    await expect(trainer.getByText("ACTIVE · GRANTED")).toBeVisible();
+    await expect(trainer.getByText("ACTIVE · FREE FROM DANCEOS")).toBeVisible();
     /* ⚠ A CANCEL BUTTON ON EVERY CARD (4 Oct 2026, the user: "cancel button for
        all"), and it reads "Cancel Subscription" and nothing else (the user: "cancel
        button should only have Cancel Subscription") — on a grant it is DISABLED,
@@ -3057,7 +3057,7 @@ test.describe.serial("DanceOS, end to end", () => {
     // learner already holds a seat on this class, so no pass strip is offered
     // there — a seat is taken once, and the bar only offers what can happen.
     await learner.goto(`/c/${shareSlug}`);
-    await expect(learner.getByTestId("policy-memberships")).toContainText("Studio passes accepted", { timeout: 15_000 });
+    await expect(learner.getByTestId("policy-memberships")).toContainText("Studio memberships accepted", { timeout: 15_000 });
     await expect(learner.getByTestId("pass-strip")).toHaveCount(0);
 
     // ⚠ SPENDING A PASS ON A SEAT is proven by the migration's own rolled-back
@@ -3361,7 +3361,7 @@ test.describe.serial("DanceOS, end to end", () => {
        says that rather than drawing an empty list under it. */
     await expect(owner.getByText("Not against sessions.")).toBeVisible();
     await owner.getByTestId("team-fold-revenue").locator("summary").click();
-    await expect(owner.getByTestId("team-fold-revenue")).toContainText("Membership seats not included");
+    await expect(owner.getByTestId("team-fold-revenue")).toContainText("Memberships not included");
     /* ⚠ "STILL OWED" IS GONE (19 Oct 2026): with no per-session rate nothing can
        be priced as owed — what is not paid yet is NOT SETTLED YET, a count of
        sessions with no amount, and the total is revenue − paid. The learner has
@@ -3378,11 +3378,11 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(owner.getByRole("link", { name: /earns the team/ })).toHaveCount(1);
     await expect(owner.getByRole("link", { name: /has been paid/ })).toHaveCount(0);
     await expect(owner.getByTestId("team-paid")).toContainText("₹2,500");
-    await expect(owner.getByTestId("team-earnings-breakup")).toContainText("REVENUE FOR THE TEAM");
+    await expect(owner.getByTestId("team-earnings-breakup")).toContainText("EARNED FOR THE TEAM");
     await expect(owner.getByTestId("team-earnings-breakup")).toContainText("PAID TO THEM");
-    await expect(owner.getByTestId("team-earnings-breakup")).toContainText("NOT SETTLED YET");
+    await expect(owner.getByTestId("team-earnings-breakup")).toContainText("NOT PAID YET");
     await expect(owner.getByTestId("team-earnings-breakup")).not.toContainText("STILL OWED");
-    await expect(owner.getByTestId("team-total-line")).toContainText("TOTAL EARNINGS");
+    await expect(owner.getByTestId("team-total-line")).toContainText("STUDIO KEEPS");
     /* ⚠ EVERY SECTION OF EARNINGS FOLDS (4 Oct 2026, the user: "all sections in
        earnings should be collapsible") — key stats open, the total shut onto its sum */
     await expect(owner.getByTestId("team-fold-stats")).toHaveAttribute("open", "");
@@ -3457,7 +3457,7 @@ test.describe.serial("DanceOS, end to end", () => {
        stage somebody set. ⚠ Said ONCE since 4 Oct 2026 (the user: "no second line
        below name, member only as a chip on right"): the "🎟 {pass}" line is gone */
     const learnerCard = owner.getByTestId("student-card").filter({ has: learnerRow });
-    await expect(learnerCard.getByTestId("student-member")).toHaveText("MEMBER");
+    await expect(learnerCard.getByTestId("student-member")).toHaveText("HAS MEMBERSHIP");
     await expect(learnerCard.getByText("🎟")).toHaveCount(0);
     /* ONE BUTTON AND SIX BOXES (4 Oct 2026, the user: "remove all buttons and one
        common button called Student detail", then "headings - Attended, Booked,

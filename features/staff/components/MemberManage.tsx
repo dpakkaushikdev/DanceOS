@@ -9,7 +9,8 @@ import { Portal } from "@/components/ui/Portal";
 import { ToolFace, toolBtn } from "@/components/ui/ToolCard";
 import { SheetHandle, sheetBody, sheetWrap } from "@/features/businesses/components/biz-kit";
 import { dosKey } from "@/features/classes/components/ShareSheet";
-import { Toast } from "@/features/crews/components/crew-kit";
+import { toast } from "@/components/ui/Toast";
+import { plainError } from "@/lib/errors";
 import { removeMemberAction, removeOwnerAction, setMemberPowersAction, setMemberRoleAction } from "@/features/staff/server-actions/staff";
 import { DOS_DISPLAY, INK, SUB } from "@/lib/design/tokens";
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
@@ -60,7 +61,6 @@ export function MemberManage({
   const [removing, setRemoving] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
   useCloseOnBack(() => setOpen(false), open);
 
   const labels = labelsFor(businessType);
@@ -76,8 +76,7 @@ export function MemberManage({
       setError(out.error);
       return false;
     }
-    setToast(doneMsg);
-    setTimeout(() => setToast(null), 2400);
+    toast(doneMsg);
     return true;
   };
 
@@ -198,7 +197,7 @@ export function MemberManage({
               ) : null}
 
               {/* ⚠ NO PAY PER SESSION (18 Oct 2026): pay is set when paying, from Pay on the Team desk */}
-              {error ? <div role="alert" style={{ fontSize: 11.5, color: "#F87171", fontWeight: 700, marginTop: 10 }}>{error}</div> : null}
+              {error ? <div role="alert" style={{ fontSize: 11.5, color: "#F87171", fontWeight: 700, marginTop: 10 }}>{plainError(error)}</div> : null}
 
               <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
                 {mayRemove ? (
@@ -238,7 +237,6 @@ export function MemberManage({
           </div>
         </Portal>
       ) : null}
-      <Toast msg={toast} />
     </>
   );
 }

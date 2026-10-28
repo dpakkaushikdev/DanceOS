@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type CSSProperties, type ReactNode } from "react";
 import { Portal } from "@/components/ui/Portal";
+import { toast } from "@/components/ui/Toast";
 import { setCrewSocialsAction, updateCrewAction } from "@/features/crews/server-actions/crews";
 import { updateBusinessProfileAction } from "@/features/settings/server-actions/plans";
 import { updateMyProfileAction } from "@/features/profiles/server-actions/profile";
@@ -246,6 +247,7 @@ function ContactSheet({ target, onClose }: { target: ContactTarget; onClose: () 
         return;
       }
       adopt({ ...lists, socials: nextSocials });
+      toast("Contact buttons saved");
       onClose();
       router.refresh();
     });

@@ -10,6 +10,8 @@ import { browserSupabase } from "@/lib/supabase/lazyClient";
 import { DOS_UI, INK, LINE, SUB } from "@/lib/design/tokens";
 import { PhotoCropper, frameForOwnerKind } from "./PhotoCropper";
 import { DeleteIconButton } from "@/components/ui/DeleteIconButton";
+import { toast } from "@/components/ui/Toast";
+import { UPLOAD_ERROR, plainError } from "@/lib/errors";
 
 /** a camera, drawn in the app's own stroke — the add-a-photo control's glyph */
 export function CameraGlyph({ size = 14, color = "currentColor" }: { size?: number; color?: string }) {
@@ -80,7 +82,9 @@ export async function uploadPhotoFile(owner: PhotoOwner, file: File): Promise<{ 
   const bucket = bucketFor(owner);
   const path = photoPath(owner, file);
   const up = await supabase.storage.from(bucket).upload(path, file, { contentType: file.type, upsert: false });
-  if (up.error) return { path: null, error: up.error.message };
+  /* storage's own message ("new row violates row-level security policy") is
+     not a sentence for a person — say what happened in plain words */
+  if (up.error) return { path: null, error: UPLOAD_ERROR };
   const out = await setter(owner, path);
   if (out.error) {
     await supabase.storage.from(bucket).remove([path]);
@@ -135,10 +139,17 @@ export function PhotoPicker({
      on "Use this photo" */
   const [cropping, setCropping] = useState<File | null>(null);
 
+  /* the hero shapes sit inside a clipped square, so their error is the app's
+     one toast (role=alert); the chip says it on the line under itself */
+  const fail = (msg: string) => {
+    if (tile || overlay) toast.error(msg);
+    else setError(msg);
+  };
+
   const pick = (file: File) => {
     const bad = whyNotAPhoto(file);
     if (bad) {
-      setError(bad);
+      fail(bad);
       return;
     }
     setError(null);
@@ -157,9 +168,10 @@ export function PhotoPicker({
          allows exactly this person to delete exactly this path */
       const out = await uploadPhotoFile(owner, file);
       if (out.error) {
-        setError(out.error);
+        fail(out.error);
         return;
       }
+      toast("Photo saved");
       if (onSaved) onSaved(out.path);
       else router.refresh();
     } finally {
@@ -173,9 +185,10 @@ export function PhotoPicker({
     const out = await setter(owner, null);
     setBusy(false);
     if (out.error) {
-      setError(out.error);
+      fail(out.error);
       return;
     }
+    toast("Photo removed");
     if (onSaved) onSaved(null);
     else router.refresh();
   };
@@ -214,17 +227,6 @@ export function PhotoPicker({
     />
   ) : null;
 
-  /* the hero's controls sit inside a clipped square, so their error is a toast */
-  const toast = (
-    <>
-      {error ? (
-        <span role="status" style={{ position: "fixed", bottom: 96, left: "50%", transform: "translateX(-50%)", background: "var(--el)", border: "1.5px solid #F87171", color: INK, padding: "11px 18px", borderRadius: 999, fontSize: 13, fontWeight: 700, maxWidth: 390, textAlign: "center", zIndex: 650, fontFamily: DOS_UI }}>
-          {error}
-        </span>
-      ) : null}
-      {cropper}
-    </>
-  );
 
   if (tile) {
     return (
@@ -256,7 +258,7 @@ export function PhotoPicker({
           <span style={{ fontSize: compact ? 8.5 : 10.5, fontWeight: 800, letterSpacing: compact ? 0.5 : 1.2, textTransform: "uppercase", lineHeight: 1.2 }}>{busy ? "Uploading" : label}</span>
           {input(label)}
         </label>
-        {toast}
+        {cropper}
       </>
     );
   }
@@ -271,7 +273,7 @@ export function PhotoPicker({
           {busy ? "…" : "＋"}
           {input(hasPhoto ? label : "Add a photo")}
         </label>
-        {toast}
+        {cropper}
       </>
     );
   }
@@ -312,7 +314,7 @@ export function PhotoPicker({
           />
         ) : null}
       </span>
-      {error ? <span style={{ fontSize: 10, color: "#F87171", maxWidth: 260, lineHeight: 1.4 }}>{error}</span> : null}
+      {error ? <span role="alert" style={{ fontSize: 10, color: "#F87171", maxWidth: 260, lineHeight: 1.4 }}>{plainError(error)}</span> : null}
       {!error && !hasPhoto ? <span style={{ fontSize: 9.5, color: onLight ? "rgba(255,255,255,.75)" : SUB }}>JPEG, PNG or WebP · up to {PHOTO_MAX_WORDS}</span> : null}
       {cropper}
     </span>

@@ -10,7 +10,8 @@ import { DeskBody, DeskTop } from "@/components/ui/DeskSections";
 import { ToolActions, ToolBody, ToolCard, ToolFacts, ToolHead, toolBtn } from "@/components/ui/ToolCard";
 import { DeleteIconButton } from "@/components/ui/DeleteIconButton";
 import { removeAssetAction } from "@/features/assets/server-actions/assets";
-import { DOS_TOOLS, DeskHero, BizToast } from "@/features/businesses/components/biz-kit";
+import { DOS_TOOLS, DeskHero } from "@/features/businesses/components/biz-kit";
+import { toast } from "@/components/ui/Toast";
 import { DeskAddButton, eyebrow, rupees } from "@/features/settings/components/settings-kit";
 import { DOS_UI, INK, LILAC, SUB } from "@/lib/design/tokens";
 import { assetCategoryWords, type Asset } from "@/repositories/assets";
@@ -55,12 +56,7 @@ const TINT = DOS_TOOLS.assets.c;
 export function AssetsDesk({ businessId, assets }: { businessId: string; businessName?: string; assets: Asset[] }) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [toast, setToast] = useState<string | null>(null);
-
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2400);
-  };
+  const fire = (m: string) => toast(m);
 
   const total = assets.reduce((n, a) => n + a.valueInr, 0);
   const pieces = assets.reduce((n, a) => n + a.quantity, 0);
@@ -74,7 +70,7 @@ export function AssetsDesk({ businessId, assets }: { businessId: string; busines
   const drop = async (a: Asset): Promise<string | null> => {
     const out = await removeAssetAction({ assetId: a.id, businessId });
     if (out.error) return out.error;
-    fire(`${a.name} removed`);
+    fire(`${a.name} deleted`);
     start(() => router.refresh());
     return null;
   };
@@ -164,8 +160,6 @@ export function AssetsDesk({ businessId, assets }: { businessId: string; busines
       {viewing && viewSrc ? (
         <PhotoLightbox shots={[{ key: viewing.id, src: viewSrc, alt: viewing.name, signed: false }]} frame="disc" index={0} onIndex={() => {}} onClose={() => setViewing(null)} label={viewing.name} />
       ) : null}
-
-      <BizToast msg={toast} />
     </div>
   );
 }

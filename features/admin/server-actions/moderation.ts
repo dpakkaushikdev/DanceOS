@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { plainError } from "@/lib/errors";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { decideReport, setBusinessVisibility } from "@/repositories/adminPanel";
 
@@ -47,7 +48,7 @@ export async function setBusinessVisibilityAction(input: unknown): Promise<{ err
   try {
     await setBusinessVisibility(supabase, parsed.data.businessId, parsed.data.visibility, parsed.data.reason ?? null);
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "Could not change that" };
+    return { error: e instanceof Error ? plainError(e.message) : "Could not change that" };
   }
   refresh();
   return { error: null };
@@ -62,7 +63,7 @@ export async function decideReportAction(input: unknown): Promise<{ error: strin
   try {
     await decideReport(supabase, parsed.data.reportId, parsed.data.actioned, parsed.data.note ?? null);
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "Could not answer that report" };
+    return { error: e instanceof Error ? plainError(e.message) : "Could not answer that report" };
   }
   refresh();
   return { error: null };

@@ -26,9 +26,10 @@ import {
   FormConfirm,
   FormNote,
   FormPage,
-  FormToast,
   formChip,
 } from "@/components/ui/FormPage";
+import { toast } from "@/components/ui/Toast";
+import { rupees } from "@/lib/format/money";
 import { DOS_LEVELS, DOS_LEVEL_LABEL, dosClassLabel, dosStyleColor } from "@/lib/constants/styles";
 import { INK, LILAC, SUB } from "@/lib/design/tokens";
 import { refundPolicyWords } from "@/lib/format/refundPolicy";
@@ -274,11 +275,6 @@ export function ClassForm({
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [step, setStep] = useState(0);
-  const [toast, setToast] = useState<string | null>(null);
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2600);
-  };
   /* the confirm sheet before a save (15586-15625). ⚠ Its history entry is
      `FormConfirm`'s, once (22 Sep 2026), with `spend: false` — this sheet's
      button closes it AND submits in one tick. */
@@ -389,12 +385,14 @@ export function ClassForm({
      setState here: the confirm is taken down by the render reading `state.ok`. */
   useEffect(() => {
     if (!state.ok) return;
+    /* the global toast outlives the sheet that is about to close */
+    toast(isEdit ? "Class saved" : "Class created — it's a draft");
     const t = setTimeout(() => {
       router.back();
       router.refresh();
     }, 600);
     return () => clearTimeout(t);
-  }, [state.ok, router]);
+  }, [state.ok, router, isEdit]);
 
   const atRoom = whereKind === "room";
   const atStudio = whereKind === "studio";
@@ -607,7 +605,7 @@ export function ClassForm({
             {atRoom ? (
               <>
                 {studioPlace ? <div style={{ fontSize: 11.5, fontWeight: 700, color: SUB, margin: "0 0 8px" }}>{studioPlace}</div> : null}
-                <RoomList rooms={rooms} roomId={roomId} onPick={setRoomId} emptyWords="No rooms yet. Add one in Rooms on the studio's home and it will be pickable here — a room also decides what the class can hold." />
+                <RoomList rooms={rooms} roomId={roomId} onPick={setRoomId} emptyWords="No rooms yet. Add one in Rooms." />
               </>
             ) : atStudio ? (
               <>
@@ -792,7 +790,7 @@ export function ClassForm({
               type="button"
               aria-disabled={Boolean(stepOneErr)}
               onClick={() => {
-                if (stepOneErr) return fire(stepOneErr);
+                if (stepOneErr) return toast.error(stepOneErr);
                 setStep(1);
               }}
               style={{ flex: 1, padding: "14px", borderRadius: 999, border: "none", background: stepOneErr ? EL : INK, color: stepOneErr ? "var(--muted)" : LILAC, fontWeight: 700, fontSize: stepOneErr ? 13.5 : 15, cursor: "pointer", fontFamily: "inherit", transition: "all .18s" }}
@@ -857,7 +855,7 @@ export function ClassForm({
                   <div style={{ fontSize: 12, color: SUB }}>👤 {whoWords}</div>
                   <div style={{ fontSize: 12, color: SUB, marginTop: 4 }}>● {whereWords} · cap {capacity}</div>
                   {atRoom && studioPlace ? <div style={{ fontSize: 12, color: SUB, marginTop: 4 }}>📍 {studioPlace}</div> : null}
-                  <div style={{ fontSize: 12, marginTop: 4, fontWeight: 800, color: priceInr === 0 ? "#22C55E" : INK }}>{priceInr === 0 ? "FREE" : `₹${priceInr}/session`}</div>
+                  <div style={{ fontSize: 12, marginTop: 4, fontWeight: 800, color: priceInr === 0 ? "#22C55E" : INK }}>{priceInr === 0 ? "Free" : `${rupees(priceInr)}/session`}</div>
                   {priceInr > 0 ? <div style={{ fontSize: 11.5, marginTop: 4, color: "#22C55E", fontWeight: 700 }}>↩️ {refundPolicyWords(refundWindowHours)}</div> : null}
                 </div>
               </div>
@@ -865,8 +863,6 @@ export function ClassForm({
           })()}
         </FormConfirm>
       ) : null}
-
-      <FormToast msg={toast} />
     </FormPage>
   );
 }

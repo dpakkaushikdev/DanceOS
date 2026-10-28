@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { FORM_INPUT, FORM_LABEL, FormBar, FormConfirm, FormPage, FormSummary, FormToast, formPrimary, formSecondary } from "@/components/ui/FormPage";
+import { FORM_INPUT, FORM_LABEL, FormBar, FormConfirm, FormPage, FormSummary, formPrimary, formSecondary } from "@/components/ui/FormPage";
+import { toast } from "@/components/ui/Toast";
 import { saveCrewPracticeAction } from "@/features/crews/server-actions/practices";
 import { DOS_TOOLS } from "@/features/businesses/components/biz-kit";
 import type { CrewPractice } from "@/types/crewPractice";
@@ -41,7 +42,6 @@ export function PracticeForm({ crewId, crewName, practice = null }: { crewId: st
   const [note, setNote] = useState(practice?.note ?? "");
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
 
   /* the one sentence the button says when it cannot be pressed (15568-15578) */
   const blocker = !date ? "Pick a day" : !startTime || !endTime ? "Pick the hours" : endTime <= startTime ? "It has to end after it starts" : !place.trim() ? "Say where" : null;
@@ -54,9 +54,10 @@ export function PracticeForm({ crewId, crewName, practice = null }: { crewId: st
     setBusy(false);
     if (r.error) {
       setConfirm(false);
-      setToast(r.error);
+      toast.error(r.error);
       return;
     }
+    toast(practice ? "Practice saved" : "Practice arranged — the crew is told");
     /* ⚠ THE CONFIRM CLOSES FIRST AND THE SHEET A TASK BEHIND IT (C54). Each owns
        its own history entry and the confirm's sits on top, so closing them in
        the other order leaves `?new=1` live underneath and the next back press
@@ -144,7 +145,6 @@ export function PracticeForm({ crewId, crewName, practice = null }: { crewId: st
           </FormSummary>
         </FormConfirm>
       ) : null}
-      <FormToast msg={toast} />
     </FormPage>
   );
 }

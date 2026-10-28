@@ -2,7 +2,8 @@
 
 import { NAME_MAX } from "@/lib/constants/names";
 import { useState } from "react";
-import { FORM_LABEL, FORM_INPUT, FormBar, FormNote, FormPage, FormToast, formPrimary } from "@/components/ui/FormPage";
+import { FORM_LABEL, FORM_INPUT, FormBar, FormNote, FormPage, formPrimary } from "@/components/ui/FormPage";
+import { toast } from "@/components/ui/Toast";
 import { DOS_AMENITIES } from "@/lib/constants/amenities";
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
 import type { Room } from "@/types/room";
@@ -67,15 +68,11 @@ export function RoomForm({
 }) {
   useCloseOnBack(onClose);
   const editing = Boolean(room);
-  const [toast, setToast] = useState<string | null>(null);
   const [name, setName] = useState(draft?.name ?? room?.name ?? defaultName);
   const [capacity, setCapacity] = useState(String(draft?.capacity ?? room?.capacity ?? 20));
   const [amenities, setAmenities] = useState<string[]>(draft?.amenities ?? room?.amenities ?? []);
 
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2400);
-  };
+  const fire = (m: string) => toast(m);
 
   const toggle = (a: string) => setAmenities((cur) => (cur.includes(a) ? cur.filter((x) => x !== a) : [...cur, a]));
 
@@ -161,7 +158,6 @@ export function RoomForm({
         </button>
       </FormBar>
 
-      <FormToast msg={toast} />
     </FormPage>
   );
 }

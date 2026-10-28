@@ -53,10 +53,10 @@ const TAB_WORD: Record<EnquiriesTab, string> = { todo: "To do", ongoing: "Ongoin
 const SIDE_WORD: Record<EnquiriesSide, string> = { all: "All", in: "Received", out: "Sent" };
 type Group = "jobsAsked" | "move" | "running" | "waiting" | "jobsOn" | "past";
 const GROUP_WORD: Record<Group, string> = {
-  jobsAsked: "Asked to work on",
-  move: "Your move",
+  jobsAsked: "Needs your reply",
+  move: "Your turn",
   running: "Running",
-  waiting: "Waiting on them",
+  waiting: "Waiting for them",
   jobsOn: "Jobs you're on",
   past: "",
 };
@@ -232,7 +232,7 @@ export function InboxScreen({
     })
     .filter((x) => x.n > 0);
 
-  const emptyWord = tab === "todo" ? "Nothing waiting on you." : tab === "ongoing" ? (side === "out" ? "Send one from any profile." : "Nothing on right now.") : "Nothing yet.";
+  const emptyWord = tab === "todo" ? "Nothing waiting on you." : tab === "ongoing" ? (side === "out" ? "You haven't sent any enquiries." : "Nothing on right now.") : "Nothing yet.";
 
   return (
     <div style={{ position: "relative", background: LILAC, color: "var(--text)", maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", display: "flex", flexDirection: "column" }}>

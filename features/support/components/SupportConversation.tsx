@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { postSupportMessageAction, setSupportThreadStatusAction } from "@/features/support/server-actions/support";
+import { toast } from "@/components/ui/Toast";
 import { DOS_DISPLAY, DOS_UI, INK, LILAC, SUB } from "@/lib/design/tokens";
 import type { SupportMessage, SupportThread } from "@/repositories/support";
 import { agoWords } from "@/types/notification";
@@ -36,7 +37,6 @@ export function SupportConversation({
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState("");
-  const [toast, setToast] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const foot = useRef<HTMLDivElement | null>(null);
 
@@ -45,17 +45,13 @@ export function SupportConversation({
     foot.current?.scrollIntoView({ block: "end" });
   }, [messages.length]);
 
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2600);
-  };
-
   const send = () => {
     const body = draft.trim();
     if (!body) return;
     start(async () => {
       const out = await postSupportMessageAction({ threadId: thread.id, body });
-      if (out.error) return fire(out.error);
+      if (out.error) return void toast.error(out.error);
+      toast("Message sent");
       setDraft("");
       router.refresh();
     });
@@ -64,8 +60,8 @@ export function SupportConversation({
   const setStatus = (status: "open" | "closed") =>
     start(async () => {
       const out = await setSupportThreadStatusAction({ threadId: thread.id, status });
-      if (out.error) return fire(out.error);
-      fire(status === "closed" ? "Conversation closed" : "Reopened");
+      if (out.error) return void toast.error(out.error);
+      toast(status === "closed" ? "Conversation closed" : "Reopened");
       router.refresh();
     });
 
@@ -94,7 +90,7 @@ export function SupportConversation({
         {thread.kind === "verification" && thread.requestId ? (
           <Link href={isAdmin ? "/admin/verifications" : "/business"} style={{ display: "block", background: CARD, border: `1.5px solid ${EL}`, borderLeft: "4px solid #F59E0B", borderRadius: 14, padding: "10px 12px", marginBottom: 12, textDecoration: "none", color: INK }}>
             <div style={{ fontSize: 11.5, fontWeight: 800 }}>This is about a verification decision</div>
-            <div style={{ fontSize: 10.5, color: SUB, marginTop: 2 }}>{isAdmin ? "Open the verification queue ›" : "See where your organization stands ›"}</div>
+            <div style={{ fontSize: 10.5, color: SUB, marginTop: 2 }}>{isAdmin ? "Open the verification queue ›" : "See where your studio stands ›"}</div>
           </Link>
         ) : null}
 
@@ -163,11 +159,6 @@ export function SupportConversation({
         <div style={{ fontSize: 10, color: MUTED, marginTop: 6 }}>{draft.length} / 4000</div>
       </div>
 
-      {toast ? (
-        <div role="status" style={{ position: "fixed", left: "50%", transform: "translateX(-50%)", bottom: "calc(28px + var(--dos-safe-bottom, 0px))", zIndex: 500, background: "var(--text)", color: "var(--solid)", borderRadius: 999, padding: "10px 18px", fontSize: 12, fontWeight: 800, width: "min(360px, calc(100vw - 44px))", textAlign: "center", boxSizing: "border-box" }}>
-          {toast}
-        </div>
-      ) : null}
     </div>
   );
 }

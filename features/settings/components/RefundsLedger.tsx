@@ -7,7 +7,8 @@ import { decideRefundAction, sendRefundToRailAction, settleRefundOfflineAction }
 import type { RefundLedgerRow } from "@/repositories/refunds";
 import { REFUND_WORD, type RefundStatus } from "@/types/refund";
 import { columnTab, columnTrack } from "@/components/ui/ColumnTabs";
-import { BizPage, BizToast, bizCard, dayWords, ghostBtn, rupees } from "./settings-kit";
+import { BizPage, bizCard, dayWords, ghostBtn, rupees } from "./settings-kit";
+import { toast } from "@/components/ui/Toast";
 
 /** S_refunds (16621-16690): the refunds ledger — the hero's "₹X refunded · ₹Y
  *  pending", the four counted tiles (Paid · Processing · Requested · Declined),
@@ -23,12 +24,8 @@ export function RefundsLedger({ rows, side, canSettle = false, focusClassId = nu
   const router = useRouter();
   const [tab, setTab] = useState<"all" | RefundStatus>(focusClassId ? "requested" : "all");
   const [scope, setScope] = useState<"focus" | "all">(focusClassId ? "focus" : "all");
-  const [toast, setToast] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2400);
-  };
+  const fire = (m: string) => toast(m);
   const inScope = (r: RefundLedgerRow) => scope === "all" || !focusClassId || r.classId === focusClassId;
   const list = rows.filter((r) => (tab === "all" || r.status === tab) && inScope(r));
   const sum = (st: RefundStatus[]) => rows.filter((r) => st.includes(r.status)).reduce((a, r) => a + r.amountInr, 0);
@@ -39,7 +36,7 @@ export function RefundsLedger({ rows, side, canSettle = false, focusClassId = nu
   const decide = (id: string, decision: "approve" | "decline", said: string) =>
     start(async () => {
       const out = await decideRefundAction({ refundId: id, decision });
-      if (out.error) return fire(out.error);
+      if (out.error) return toast.error(out.error);
       fire(out.message ?? said);
       router.refresh();
     });
@@ -143,7 +140,7 @@ export function RefundsLedger({ rows, side, canSettle = false, focusClassId = nu
                     (30 Sep 2026): a pending row with no reference was filed and never
                     SENT — which every call-off refund was until today — and the
                     two used to read alike. */}
-                RF-{r.id.slice(0, 4).toUpperCase()} · {dayWords(r.createdAt)} · {r.settledOffline ? "cash at the desk" : r.hasRailReference ? "with Cashfree" : r.status === "pending" ? "not yet with Cashfree" : "awaiting a decision"}
+                RF-{r.id.slice(0, 4).toUpperCase()} · {dayWords(r.createdAt)} · {r.settledOffline ? "paid back in person" : r.hasRailReference ? "sent online" : r.status === "pending" ? "not sent yet" : "waiting for a decision"}
               </div>
             </div>
             <div style={{ textAlign: "right", flexShrink: 0 }}>
@@ -176,7 +173,7 @@ export function RefundsLedger({ rows, side, canSettle = false, focusClassId = nu
                   onClick={() =>
                     start(async () => {
                       const out = await sendRefundToRailAction({ refundId: r.id });
-                      if (out.error) return fire(out.error);
+                      if (out.error) return toast.error(out.error);
                       fire(out.message ?? "Sent");
                       router.refresh();
                     })
@@ -192,7 +189,7 @@ export function RefundsLedger({ rows, side, canSettle = false, focusClassId = nu
                 onClick={() =>
                   start(async () => {
                     const out = await settleRefundOfflineAction({ refundId: r.id });
-                    if (out.error) return fire(out.error);
+                    if (out.error) return toast.error(out.error);
                     fire(out.message ?? "Marked refunded");
                     router.refresh();
                   })
@@ -213,10 +210,9 @@ export function RefundsLedger({ rows, side, canSettle = false, focusClassId = nu
       {list.length === 0 ? (
         <div style={{ ...bizCard, textAlign: "center", border: "1.5px dashed var(--el)", padding: "22px 16px" }}>
           <div style={{ fontSize: 13, fontWeight: 900, marginBottom: 5 }}>{rows.length === 0 ? "No refunds yet" : "Nothing in that state"}</div>
-          <div style={{ fontSize: 11.5, color: "var(--sub)", lineHeight: 1.5 }}>{side === "mine" ? "Cancel a paid booking from its class page and the request lands here." : "A cancellation inside your refund window (set on the Payments desk) lands here for you to decide; outside it the rail refunds by itself."}</div>
+          <div style={{ fontSize: 11.5, color: "var(--sub)", lineHeight: 1.5 }}>{side === "mine" ? "Cancel a paid booking from its class page and the request lands here." : "Late cancellations land here for you to decide. Earlier ones are refunded automatically."}</div>
         </div>
       ) : null}
-      <BizToast msg={toast} />
     </BizPage>
   );
 }

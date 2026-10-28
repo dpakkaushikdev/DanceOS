@@ -19,6 +19,7 @@ import { ToolActions, ToolBody, ToolCard, ToolChip, ToolFacts, ToolHead, ToolLiv
 import { DOS_UI, INK, LILAC, MUTED, SUB, TAB_TITLE } from "@/lib/design/tokens";
 import { BeatText } from "@/components/ui/BeatText";
 import { FORM_TITLE } from "@/components/ui/formTitle";
+import { toast } from "@/components/ui/Toast";
 
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
 import { publicProfilePath } from "@/lib/routes/publicProfile";
@@ -144,11 +145,7 @@ export function BusinessHub({
   /** the owner's own id — a studio's proof photos go into their folder */
   userId?: string | null;
 }) {
-  const [toast, setToast] = useState<string | null>(null);
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2800);
-  };
+  const fire = (m: string) => toast(m);
   const router = useRouter();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [name, setName] = useState("");
@@ -188,7 +185,7 @@ export function BusinessHub({
         setPicked(null);
         setPhone("");
         setEmail("");
-        if (result.note) setToast(result.note);
+        if (result.note) toast(result.note);
         /** ⚠ PAY AT CREATION (27 Sep 2026 — the user's item 8, and their own
          *  answer when asked which of three orders they meant: *"Pay at
          *  creation, verify after"*). The sheet used to close onto this hub and
@@ -456,7 +453,7 @@ export function BusinessHub({
               <div style={{ fontSize: 11.5, color: SUB, padding: "0 2px 10px" }}>
                 {gateShut
                   ? "No studios yet. One studio = one location; add another for each branch."
-                  : "No studios yet — the button above opens one. DanceOS verifies it, then its own subscription puts it on Discover; you run it from the profile switcher."}
+                  : "No studios yet. Add your first one."}
               </div>
             )}
 
@@ -718,7 +715,6 @@ export function BusinessHub({
           </div>
         </div>
       )}
-      {toast ? <div role="status" style={{ position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)", background: "#241B33", color: "#fff", padding: "11px 18px", borderRadius: 999, fontSize: 13, fontWeight: 700, zIndex: 700, maxWidth: 360, textAlign: "center" }}>{toast}</div> : null}
     </div>
   );
 }

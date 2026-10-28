@@ -4,6 +4,7 @@ import { NAME_MAX } from "@/lib/constants/names";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Portal } from "@/components/ui/Portal";
+import { toast } from "@/components/ui/Toast";
 import { CityPicker } from "@/features/geo/components/CityPicker";
 import { updateMyProfileAction } from "@/features/profiles/server-actions/profile";
 import { MUTED } from "@/lib/design/tokens";
@@ -130,6 +131,8 @@ export function EditProfileSheet({
         return;
       }
       onSaved?.();
+      /* the global toast outlives the sheet it is fired from */
+      toast("Profile saved");
       onClose();
       router.refresh();
     });
@@ -145,7 +148,7 @@ export function EditProfileSheet({
           beside the buttons on Home; and NO PICTURES (19 Sep 2026) — both
           sections live behind the disc on Home. This sheet is who you are and
           where you are. */}
-      <div style={{ fontSize: 10.5, color: MUTED, marginTop: 8 }}>Your number, email and links are edited on Home — press the pencil, then the ⊕ beside the buttons.</div>
+      <div style={{ fontSize: 10.5, color: MUTED, marginTop: 8 }}>Edit phone and links on your Home page.</div>
       <div style={fieldLabel}>Location</div>
       {/* THE ONE CITY DROPDOWN (19 Sep 2026) — the same control as everywhere else */}
       <CityPicker value={d.city.trim() || null} onChange={(c) => setD((x) => ({ ...x, city: c ?? "" }))} label="" />

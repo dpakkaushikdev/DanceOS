@@ -269,7 +269,7 @@ const enterEdit = async (page) => {
        too until 29 Sep 2026, and its own granted strip sat under YOUR
        ORGANIZATIONS on this same page. The scoping stays — a second studio
        would put a second strip here for the same reason. */
-    check(await strip.getByText("GRANTED", { exact: true }).isVisible(), "subscription: the strip names the standing (GRANTED)");
+    check(await strip.getByText("FREE FROM DANCEOS", { exact: true }).isVisible(), "subscription: the strip names the standing (FREE FROM DANCEOS)");
     check((await owner.getByRole("button", { name: /Stop .* renewing/ }).count()) === 0, "subscription: a grant offers no Stop renewing — there is nothing to stop");
     await owner.goto(`${BASE}/business/${studioId}`);
 
@@ -761,7 +761,7 @@ const enterEdit = async (page) => {
     check((await owner.getByRole("dialog", { name: "Logo" }).count()) === 0, "owner pictures: no Logo editor — a person's disc is a Profile picture (26 Sep 2026)");
     check((await ownerLogo.getByLabel("Change your photo").count()) === 1, "owner pictures: the picker is in the picture's own editor, reached in ONE press");
     await shot("owner-pictures");
-    await ownerLogo.getByRole("button", { name: "Done" }).click().catch(() => {});
+    await ownerLogo.getByRole("button", { name: "Close" }).click().catch(() => {});
     /* ⚠ THE WORDS ARE THE EDIT DETAILS CHIP, NOT A SETTINGS TILE (26 Sep 2026,
        the user: "edit profile to be removed from all profiles settings and
        should be a button on top right"). Both ends: Settings carries no Edit

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { columnTab, columnTrack } from "@/components/ui/ColumnTabs";
+import { methodWord, statusWord } from "@/lib/format/money";
 import type { InvoiceRow } from "@/repositories/invoices";
 import { BizPage, bizCard, dayWords, ghostBtn, rupees } from "./settings-kit";
 
@@ -60,7 +61,7 @@ export function InvoicesScreen({ rows, side }: { rows: InvoiceRow[]; side: "mine
               <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 1 }}>{r.what}</div>
               <div style={{ fontSize: 9.5, color: "var(--muted)", marginTop: 2 }}>
                 {r.number} · {dayWords(r.paidAt)}
-                {r.method ? ` · ${r.method}` : ""}
+                {r.method ? ` · ${methodWord(r.method)}` : ""}
               </div>
             </div>
             <div style={{ textAlign: "right", flexShrink: 0 }}>
@@ -74,11 +75,11 @@ export function InvoicesScreen({ rows, side }: { rows: InvoiceRow[]; side: "mine
               ) : r.refundProcessing ? (
                 /* ⚠ accepted by Cashfree, not yet paid out (10 Oct 2026) — still a paid receipt */
                 <>
-                  <div style={{ fontSize: 9, fontWeight: 900, color: TONE.paid, textTransform: "uppercase" }}>{r.status}</div>
+                  <div style={{ fontSize: 9, fontWeight: 900, color: TONE.paid, textTransform: "uppercase" }}>{statusWord(r.status)}</div>
                   <div data-testid="refund-processing" style={{ fontSize: 9.5, color: "var(--sub)", marginTop: 1 }}>Refund processing</div>
                 </>
               ) : (
-                <div style={{ fontSize: 9, fontWeight: 900, color: TONE[r.status], textTransform: "uppercase" }}>{r.status}</div>
+                <div style={{ fontSize: 9, fontWeight: 900, color: TONE[r.status], textTransform: "uppercase" }}>{statusWord(r.status)}</div>
               )}
             </div>
           </>
@@ -97,11 +98,11 @@ export function InvoicesScreen({ rows, side }: { rows: InvoiceRow[]; side: "mine
       {shown.length === 0 ? (
         <div style={{ ...bizCard, textAlign: "center", border: "1.5px dashed var(--el)", padding: "22px 16px" }}>
           <div style={{ fontSize: 13, fontWeight: 900, marginBottom: 5 }}>{rows.length === 0 ? (side === "mine" ? "No invoices yet" : "Nothing collected yet") : "Nothing in that state"}</div>
-          <div style={{ fontSize: 11.5, color: "var(--sub)", lineHeight: 1.5 }}>{side === "mine" ? "Every paid booking, ticket and subscription period leaves an invoice here the moment Cashfree confirms it." : "Every payment a student or a ticket-holder makes lands here the moment Cashfree confirms it."}</div>
+          <div style={{ fontSize: 11.5, color: "var(--sub)", lineHeight: 1.5 }}>{side === "mine" ? "Every paid booking, membership and subscription leaves an invoice here." : "Every payment a student makes shows up here."}</div>
         </div>
       ) : null}
       <button type="button" onClick={csv} disabled={rows.length === 0} style={{ ...ghostBtn, marginTop: 4, opacity: rows.length ? 1 : 0.5 }}>
-        Export ledger
+        Export invoices
       </button>
     </BizPage>
   );

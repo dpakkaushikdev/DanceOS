@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { DOS_UI, INK, LINE, GREEN } from "@/lib/design/tokens";
+import { toast } from "@/components/ui/Toast";
+import { DOS_UI, INK } from "@/lib/design/tokens";
 import type { BusinessIncome } from "@/types/income";
 import { MonthStatements, PeriodChips } from "./StudioIncome";
 
@@ -19,11 +20,6 @@ import { MonthStatements, PeriodChips } from "./StudioIncome";
 export function EarningsDesk({ businessName, income }: { businessName: string; income: BusinessIncome }) {
   const [eview, setEview] = useState<"now" | "hist">("now");
   const [eopen, setEopen] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2200);
-  };
 
   return (
     <div style={{ color: INK, fontFamily: DOS_UI, marginTop: 6 }} data-testid="earn-statements">
@@ -43,31 +39,8 @@ export function EarningsDesk({ businessName, income }: { businessName: string; i
           months={income.previous}
           openKey={eopen}
           onToggle={(key) => setEopen(eopen === key ? null : key)}
-          onDownloaded={(label) => fire(`📄 ${label} statement downloaded`)}
+          onDownloaded={(label) => toast(`${label} statement downloaded`)}
         />
-      ) : null}
-      {toast ? (
-        <div
-          role="status"
-          style={{
-            position: "fixed",
-            bottom: 26,
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: LINE,
-            border: `1.5px solid ${GREEN}`,
-            color: INK,
-            padding: "11px 18px",
-            borderRadius: 999,
-            fontSize: 13,
-            fontWeight: 700,
-            maxWidth: 390,
-            textAlign: "center",
-            zIndex: 800,
-          }}
-        >
-          {toast}
-        </div>
       ) : null}
     </div>
   );

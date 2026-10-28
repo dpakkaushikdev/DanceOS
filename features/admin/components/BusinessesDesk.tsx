@@ -8,6 +8,7 @@ import { setBusinessVisibilityAction } from "@/features/admin/server-actions/mod
 import { endSubscriptionAction, grantSubscriptionAction } from "@/features/admin/server-actions/subscriptions";
 import { dateWords } from "@/features/settings/components/settings-kit";
 import { VerifiedTick } from "@/features/settings/components/settings-kit";
+import { toast } from "@/components/ui/Toast";
 import { INK, SUB } from "@/lib/design/tokens";
 import { photoUrl } from "@/lib/media/photo";
 import type { AdminBusiness } from "@/repositories/adminPanel";
@@ -59,7 +60,6 @@ export function BusinessesDesk({
   total: number;
 }) {
   const router = useRouter();
-  const [toast, setToast] = useState<string | null>(null);
   const [unlisting, setUnlisting] = useState<string | null>(null);
   const [granting, setGranting] = useState<string | null>(null);
   const [ending, setEnding] = useState<string | null>(null);
@@ -67,10 +67,8 @@ export function BusinessesDesk({
   const [reason, setReason] = useState("");
   const [pending, start] = useTransition();
 
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2800);
-  };
+  const fire = (m: string) => toast(m);
+  const oops = (m: string) => void toast.error(m);
 
   const closeSheets = () => {
     setUnlisting(null);
@@ -86,7 +84,7 @@ export function BusinessesDesk({
       /* ⚠ the organization arm (`org_monthly` at ₹5,000, 27 Sep 2026) went with
          organizations on 29 Sep — what is left takes `studio_monthly` */
       const out = await grantSubscriptionAction({ kind: "studio", subjectId: b.id, months, note: reason.trim() || null });
-      if (out.error) return fire(out.error);
+      if (out.error) return oops(out.error);
       closeSheets();
       fire(`${b.name} is subscribed for ${months} month${months === 1 ? "" : "s"} — nothing charged, the owner has been told`);
       router.refresh();
@@ -94,9 +92,9 @@ export function BusinessesDesk({
 
   const endSub = (b: AdminBusiness) =>
     start(async () => {
-      if (!b.subscriptionId) return fire("That studio has no subscription");
+      if (!b.subscriptionId) return oops("That studio has no subscription");
       const out = await endSubscriptionAction({ subscriptionId: b.subscriptionId, reason: reason.trim() });
-      if (out.error) return fire(out.error);
+      if (out.error) return oops(out.error);
       closeSheets();
       fire(`${b.name}'s subscription has ended — the owner has been told why`);
       router.refresh();
@@ -105,7 +103,7 @@ export function BusinessesDesk({
   const move = (b: AdminBusiness, visibility: "listed" | "unlisted", why?: string) =>
     start(async () => {
       const out = await setBusinessVisibilityAction({ businessId: b.id, visibility, reason: why ?? null });
-      if (out.error) return fire(out.error);
+      if (out.error) return oops(out.error);
       setUnlisting(null);
       setReason("");
       fire(visibility === "listed" ? `${b.name} is public again` : `${b.name} is off Discover — the owner has been told why`);
@@ -354,11 +352,6 @@ export function BusinessesDesk({
         Revoking a studio&apos;s verification, on the Verifications screen, takes that studio off Discover too.
       </div>
 
-      {toast ? (
-        <div role="status" style={{ position: "fixed", left: "50%", transform: "translateX(-50%)", bottom: "calc(28px + var(--dos-safe-bottom, 0px))", zIndex: 500, background: "var(--text)", color: "var(--solid)", borderRadius: 999, padding: "10px 18px", fontSize: 12, fontWeight: 800, width: "min(360px, calc(100vw - 44px))", textAlign: "center", boxSizing: "border-box" }}>
-          {toast}
-        </div>
-      ) : null}
     </div>
   );
 }

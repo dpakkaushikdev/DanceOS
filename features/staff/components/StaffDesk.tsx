@@ -9,7 +9,9 @@ import { FigureHead } from "@/components/ui/FigureHead";
 import { QRBlock } from "@/components/ui/QRBlock";
 import { CENTER_CARD, CENTER_SCRIM } from "@/components/ui/centerModal";
 import { dosKey } from "@/features/classes/components/ShareSheet";
-import { Toast, bizCard } from "@/features/crews/components/crew-kit";
+import { bizCard } from "@/features/crews/components/crew-kit";
+import { toast } from "@/components/ui/Toast";
+import { plainError } from "@/lib/errors";
 import { PeoplePicker } from "@/features/people/components/PeoplePicker";
 import {
   invitePersonAction,
@@ -223,8 +225,6 @@ export function StaffDesk({
      payment in it"*), so the two never open together. */
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
-
   /* system back closes the sheet that is open, exactly as tapping the scrim does */
   useCloseOnBack(() => setAddOpen(false), addOpen);
   useCloseOnBack(() => setShareInvite(null), Boolean(shareInvite));
@@ -251,10 +251,7 @@ export function StaffDesk({
   const roleRows: (typeof roleCounts)[] = [];
   for (let i = 0; i < roleCounts.length; i += 3) roleRows.push(roleCounts.slice(i, i + 3));
 
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2400);
-  };
+  const fire = (m: string) => toast(m);
 
 
   const run = async (op: () => Promise<{ error: string | null }>, doneMsg: string | null) => {
@@ -315,7 +312,7 @@ export function StaffDesk({
             settings={{ testId: "other-teams-settings", kinds: ["team", "crew"], off: otherTeams.data.inboxOff, title: "Team and crew invitations" }}
           />
         ) : (
-          <InviteHeadButtons key="mine" answered={answered} answeredTestId="team-answered" answeredListTestId="team-answered-list" answeredLabel="Answered invitations" />
+          <InviteHeadButtons key="mine" answered={answered} answeredTestId="team-answered" answeredListTestId="team-answered-list" answeredLabel="Answered invites" />
         )}
       </div>
 
@@ -359,7 +356,7 @@ export function StaffDesk({
             tint={DOS_TOOLS.team.c}
             /* ⚠ NO MONEY ON THE DESK (19 Oct 2026, the user: "payments should not be
                visible outside") — what is to settle is on each Member Detail page */
-            items={[{ label: team.length === 1 ? "Member" : "Total members", value: team.length, testId: "team-total" }]}
+            items={[{ label: "Team", value: team.length, testId: "team-total" }]}
           />
           {roleRows.map((row, i) => (
             <ToolFacts key={i} tint={DOS_TOOLS.team.c} style={{ marginTop: 6 }} items={row} />
@@ -651,7 +648,7 @@ export function StaffDesk({
 
       {/* ⚠ `role="alert"`, like the other two desks: a refusal that is only a
           red line is a refusal a screen reader never hears */}
-      {error && <div role="alert" style={{ fontSize: 11.5, color: "#F87171", fontWeight: 700, marginTop: 10 }}>{error}</div>}
+      {error && <div role="alert" style={{ fontSize: 11.5, color: "#F87171", fontWeight: 700, marginTop: 10 }}>{plainError(error)}</div>}
 
       {/* ⚠ NO SEPARATE "WHAT YOU OWE" LEDGER UNDER THE CARDS (18 Oct 2026, the
           user: "What you owe should be managed alongside the pay button on the
@@ -859,7 +856,7 @@ export function StaffDesk({
                     await navigator.clipboard.writeText(joinLink(shareInvite.code));
                     fire("Link copied");
                   } catch {
-                    fire("Copy failed — long-press the link");
+                    toast.error("Could not copy — press and hold the link");
                   }
                 }}
                 style={{
@@ -908,7 +905,6 @@ export function StaffDesk({
           `crew-kit`'s, declared inline, which is the same shape as the sheet
           styles 21 Sep found here: a copy that matches today and drifts the day
           one of the two is touched. */}
-      <Toast msg={toast} />
     </div>
   );
 }

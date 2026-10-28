@@ -96,15 +96,15 @@ export function ClassEarnings({
         </div>
         <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 5, lineHeight: 1.5 }}>
           {refundedInr ? `after ${money(refundedInr)} refunded.` : "nothing refunded."}
-          {owedInr ? ` ${money(owedInr)} more is asked for and not settled.` : ""}
+          {owedInr ? ` ${money(owedInr)} more is asked back and not refunded yet.` : ""}
         </div>
         <div style={{ marginTop: 12, paddingTop: 4 }}>
           <Line
-            label="Seats taken"
+            label="Spots taken"
             value={`${seatsTaken}${capacity ? ` / ${capacity}` : ""}`}
             tint={styleColor}
           />
-          <Line label="Price a seat" value={money(priceInr)} tint="var(--sub)" />
+          <Line label="Price per spot" value={money(priceInr)} tint="var(--sub)" />
           {/* ⚠⚠ THE LINE THAT MAKES THE REST ADD UP (29 Sep 2026, #0a2).
               A pass costs the holder nothing AT THE DOOR — the money came in
               when the pass was bought, on another day and against no class in
@@ -114,12 +114,12 @@ export function ClassEarnings({
               ⚠ Drawn only when there ARE any: a class nobody used a pass on
               should not carry a row about passes. */}
           {passSeats ? (
-            <Line label="Paid with a pass" value={`${passSeats} ${passSeats === 1 ? "seat" : "seats"}`} tint="var(--sub)" />
+            <Line label="Paid with a membership" value={`${passSeats} ${passSeats === 1 ? "spot" : "spots"}`} tint="var(--sub)" />
           ) : null}
           <Line label="Came in" value={money(collectedInr)} tint={GREEN} />
           {doorInr ? (
             <div data-testid="door-cash">
-              <Line label={`Collected at the door · ${doorPaidSeats} ${doorPaidSeats === 1 ? "seat" : "seats"}`} value={money(doorInr)} tint={GREEN} />
+              <Line label={`Collected at the door · ${doorPaidSeats} ${doorPaidSeats === 1 ? "spot" : "spots"}`} value={money(doorInr)} tint={GREEN} />
             </div>
           ) : null}
           {refundedInr ? (

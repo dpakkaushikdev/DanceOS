@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { toast } from "@/components/ui/Toast";
 import { respondToClassAskAction } from "@/features/classPeople/server-actions/classPeople";
 import { INK, LILAC, SUB } from "@/lib/design/tokens";
 
@@ -54,7 +55,10 @@ export function AnswerAsk({
     const out = await respondToClassAskAction({ classPersonId, accept });
     setBusy(false);
     if (out.error) setError(out.error);
-    else router.refresh();
+    else {
+      toast(accept ? "Accepted — it's on your calendar" : "Declined");
+      router.refresh();
+    }
   };
 
   return (
@@ -62,14 +66,14 @@ export function AnswerAsk({
       <span style={{ flexBasis: "100%", fontSize: 10.5, color: SUB, lineHeight: 1.45 }}>{line}</span>
       {/* ⚠ a no is asked first (B17, 11 Oct 2026) */}
       <button type="button" disabled={busy} onClick={() => setConfirmOpen(true)} style={pill(true)}>
-        {busy ? "…" : "Reject"}
+        {busy ? "…" : "Decline"}
       </button>
       {confirmOpen ? (
         <ConfirmDialog
-          title="Say no to this class?"
-          body="They are told, and would have to ask you again."
+          title="Decline this class?"
+          body="They are told, and would have to send you a new request."
           keepWord="Keep it"
-          goWord="Say no"
+          goWord="Decline"
           tone="danger"
           busy={busy}
           onKeep={() => setConfirmOpen(false)}
@@ -83,7 +87,7 @@ export function AnswerAsk({
         {busy ? "…" : "Accept"}
       </button>
       {error ? (
-        <span role="alert" style={{ flexBasis: "100%", fontSize: 10.5, fontWeight: 700, color: "#EF4444" }}>
+        <span role="alert" style={{ flexBasis: "100%", fontSize: 10.5, fontWeight: 700, color: "#F87171" }}>
           {error}
         </span>
       ) : null}

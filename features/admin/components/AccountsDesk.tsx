@@ -8,6 +8,7 @@ import { restoreAccountAction, suspendAccountAction, unsuspendAccountAction } fr
 import { grantSubscriptionAction } from "@/features/admin/server-actions/subscriptions";
 import { adminOpenSupportThreadAction } from "@/features/support/server-actions/support";
 import { VerifiedTick } from "@/features/settings/components/settings-kit";
+import { toast } from "@/components/ui/Toast";
 import { INK, SUB } from "@/lib/design/tokens";
 import { photoUrl } from "@/lib/media/photo";
 import type { AdminAccount, LeftAccount } from "@/repositories/adminPanel";
@@ -74,7 +75,6 @@ export function AccountsDesk({
   nowIso: string;
 }) {
   const router = useRouter();
-  const [toast, setToast] = useState<string | null>(null);
   const [suspending, setSuspending] = useState<string | null>(null);
   const [writing, setWriting] = useState<string | null>(null);
   const [granting, setGranting] = useState<string | null>(null);
@@ -85,10 +85,8 @@ export function AccountsDesk({
   const [body, setBody] = useState("");
   const [pending, start] = useTransition();
 
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2800);
-  };
+  const fire = (m: string) => toast(m);
+  const oops = (m: string) => void toast.error(m);
   const close = () => {
     setSuspending(null);
     setWriting(null);
@@ -102,7 +100,7 @@ export function AccountsDesk({
   const suspend = (a: AdminAccount) =>
     start(async () => {
       const out = await suspendAccountAction({ accountId: a.id, reason: reason.trim() });
-      if (out.error) return fire(out.error);
+      if (out.error) return oops(out.error);
       close();
       fire(`${a.fullName} is suspended — they have been told why`);
       router.refresh();
@@ -111,7 +109,7 @@ export function AccountsDesk({
   const lift = (a: AdminAccount) =>
     start(async () => {
       const out = await unsuspendAccountAction({ accountId: a.id, note: null });
-      if (out.error) return fire(out.error);
+      if (out.error) return oops(out.error);
       fire(`${a.fullName} is active again`);
       router.refresh();
     });
@@ -120,7 +118,7 @@ export function AccountsDesk({
   const restore = (l: LeftAccount) =>
     start(async () => {
       const out = await restoreAccountAction({ accountId: l.id, reason: reason.trim() });
-      if (out.error) return fire(out.error);
+      if (out.error) return oops(out.error);
       close();
       fire(`${l.fullName} is back — they can sign in again`);
       router.refresh();
@@ -131,7 +129,7 @@ export function AccountsDesk({
   const grant = (a: AdminAccount) =>
     start(async () => {
       const out = await grantSubscriptionAction({ kind: "artist", subjectId: a.id, months, note: reason.trim() || null });
-      if (out.error) return fire(out.error);
+      if (out.error) return oops(out.error);
       close();
       fire(`${a.fullName} has the Artist plan for ${months} month${months === 1 ? "" : "s"} — nothing charged`);
       router.refresh();
@@ -140,7 +138,7 @@ export function AccountsDesk({
   const write = (a: AdminAccount) =>
     start(async () => {
       const out = await adminOpenSupportThreadAction({ accountId: a.id, subject: subject.trim(), body: body.trim() });
-      if (out.error) return fire(out.error);
+      if (out.error) return oops(out.error);
       close();
       if (out.threadId) router.push(`/admin/support/${out.threadId}`);
       else router.refresh();
@@ -412,11 +410,6 @@ export function AccountsDesk({
         <span className="mono"> scripts/remove-accounts.js</span> exists for when that is really what you mean.
       </div>
 
-      {toast ? (
-        <div role="status" style={{ position: "fixed", left: "50%", transform: "translateX(-50%)", bottom: "calc(28px + var(--dos-safe-bottom, 0px))", zIndex: 500, background: "var(--text)", color: "var(--solid)", borderRadius: 999, padding: "10px 18px", fontSize: 12, fontWeight: 800, width: "min(360px, calc(100vw - 44px))", textAlign: "center", boxSizing: "border-box" }}>
-          {toast}
-        </div>
-      ) : null}
     </div>
   );
 }

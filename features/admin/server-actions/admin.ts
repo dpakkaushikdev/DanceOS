@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { plainError } from "@/lib/errors";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { decideStudioVerification } from "@/repositories/studioVerification";
 
@@ -39,7 +40,7 @@ export async function decideStudioVerificationAction(input: unknown): Promise<{ 
     revalidatePath("/business");
     return { error: null };
   } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "Could not record that decision" };
+    return { error: error instanceof Error ? plainError(error.message) : "Could not record that decision" };
   }
 }
 

@@ -1,12 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { columnTab, columnTrack } from "@/components/ui/ColumnTabs";
+import { toast } from "@/components/ui/Toast";
+import { methodWord } from "@/lib/format/money";
 import { setRefundWindowAction, updateBusinessProfileAction } from "@/features/settings/server-actions/plans";
 import type { MethodUse } from "@/repositories/invoices";
 import type { AcceptedMethods, Business } from "@/types/business";
-import { BizPage, BizToast, bizBtn, bizCard, dayWords, eyebrow, rupees } from "./settings-kit";
+import { BizPage, bizBtn, bizCard, dayWords, eyebrow, rupees } from "./settings-kit";
 
 /** S_payments (16531-16620): "Payments" for a person, "Payments & verification"
  *  for a business — the Payments · Verification switch, YOUR METHODS as a card
@@ -61,7 +64,7 @@ const Tick = ({ color = "#22C55E", size = 13, w = 3 }: { color?: string; size?: 
 );
 
 const ACCEPT_ROWS: Array<[keyof AcceptedMethods, string]> = [
-  ["upi", "UPI / QR at desk"],
+  ["upi", "UPI / QR at the studio"],
   ["cards", "Cards (Cashfree)"],
   ["cash", "Cash"],
   ["bank", "Bank transfer"],
@@ -87,13 +90,7 @@ export function PaymentsScreen({
   const [windowText, setWindowText] = useState(String(refundWindowHours));
   const [savedWindow, setSavedWindow] = useState(refundWindowHours);
   const windowValue = Math.min(168, Math.max(0, Number(windowText) || 0));
-  const [add, setAdd] = useState<Kind | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2600);
-  };
   const isBiz = side === "business" && business !== null;
   const verified = Boolean(business?.verifiedAt);
 
@@ -101,49 +98,29 @@ export function PaymentsScreen({
     if (!business || !canEdit || windowValue === savedWindow) return;
     start(async () => {
       const out = await setRefundWindowAction({ businessId: business.id, hours: windowValue });
-      if (out.error || out.hours == null) return fire(out.error ?? "Could not save the refund window");
+      if (out.error || out.hours == null) return toast.error(out.error ?? "Could not save the refund window");
       setSavedWindow(out.hours);
       setWindowText(String(out.hours));
-      fire(`Refund window set to ${out.hours} ${out.hours === 1 ? "hour" : "hours"}`);
+      toast(`Refund window set to ${out.hours} ${out.hours === 1 ? "hour" : "hours"}`);
       router.refresh();
     });
   };
 
   const flip = (k: keyof AcceptedMethods) => {
     if (!business) return;
-    if (!canEdit) return fire("Only the owner changes what the business accepts");
+    if (!canEdit) return toast.error("Only the owner changes what the studio accepts");
     const accepts = { ...business.accepts, [k]: !business.accepts[k] };
     start(async () => {
       const out = await updateBusinessProfileAction({ businessId: business.id, foundedYear: business.foundedYear, phone: business.phone, socials: business.socials, enquiryTypes: business.enquiryTypes, accepts });
-      if (out.error) return fire(out.error);
-      fire(`${ACCEPT_ROWS.find(([kk]) => kk === k)?.[1]} ${accepts[k] ? "enabled" : "disabled"}`);
-      router.refresh();
+      toast.result(out.error, `${ACCEPT_ROWS.find(([kk]) => kk === k)?.[1]} ${accepts[k] ? "on" : "off"}`);
+      if (!out.error) router.refresh();
     });
   };
-
-  const checklist: Array<[string, string]> =
-    business?.type === "studio"
-      ? [
-          ["Business proof", "GST or shop registration"],
-          ["Address proof", "A utility bill for the premises"],
-          ["Owner KYC", "Aadhaar + PAN"],
-          ["Bank penny-drop", "₹1 sent to the settlement account"],
-          ["Insurance", "Public liability cover"],
-        ]
-      : [
-          ["Identity", "Aadhaar"],
-          ["PAN", "For settlements and TDS"],
-          ["Bank penny-drop", "₹1 sent to the settlement account"],
-          ["Teaching proof", "Two studio references"],
-          ["Police check", "Optional for kids' batches"],
-        ];
-  /* the first four are what Cashfree's KYC clears; the fifth is optional in the prototype too */
-  const doneRow = (i: number) => verified && i < 4;
 
   return (
     <BizPage
       title={isBiz ? "Payments & verification" : "Payments"}
-      sub={pv === "pay" ? "Cards · UPI · cash" : "Trust & compliance"}
+      sub={pv === "pay" ? "Cards · UPI · cash" : "Your green tick"}
       grad="linear-gradient(135deg,#22C55E,#3B82F6)"
       top={
         /* ⚠ THE SEGMENT IS IN THE TOP SECTION (3 Oct 2026, C116) */
@@ -173,38 +150,18 @@ export function PaymentsScreen({
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 900 }}>{verified ? (business.type === "studio" ? "Verified studio" : "Verified artist") : "Not verified yet"}</div>
-                <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 1 }}>{verified ? "Green tick shown on your profile and cards" : "The tick appears once Cashfree's KYC clears your account"}</div>
+                <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 1 }}>{verified ? `Green tick shown on your profile and cards · since ${dayWords(business.verifiedAt as string)}` : "DanceOS checks your details and adds the green tick"}</div>
               </div>
             </div>
           </div>
-          {checklist.map(([t, sub], i) => {
-            const done = doneRow(i);
-            return (
-              <div key={t} style={{ ...bizCard, display: "flex", alignItems: "center", gap: 11, padding: "11px 13px" }}>
-                <span style={{ width: 26, height: 26, borderRadius: 13, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: done ? "rgba(34,197,94,.16)" : "rgba(245,158,11,.16)" }}>
-                  {done ? (
-                    <Tick />
-                  ) : (
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
-                      <circle cx="12" cy="12" r="8.5" />
-                      <path d="M12 8v4.5" />
-                    </svg>
-                  )}
-                </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 800 }}>{t}</div>
-                  <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 1 }}>{sub}</div>
-                </div>
-                <button type="button" onClick={() => fire(done ? `${t} cleared with Cashfree — DanceOS keeps no copy` : `${t} is collected by Cashfree's KYC, not uploaded here`)} style={{ fontSize: 10, fontWeight: 800, color: done ? "var(--sub)" : "#F59E0B", cursor: "pointer", background: "none", border: "none", fontFamily: "inherit" }}>
-                  {done ? "View" : "Upload"}
-                </button>
-              </div>
-            );
-          })}
-          <button type="button" onClick={() => fire(verified ? `Verified ${dayWords(business.verifiedAt as string)} — no review is due` : "Verification runs through Cashfree's KYC when the account goes live")} style={bizBtn}>
-            {verified ? "Re-verify documents" : "Start verification"}
-          </button>
-          <div style={{ fontSize: 10, color: "var(--muted)", lineHeight: 1.5, margin: "8px 2px 0" }}>DanceOS never holds an Aadhaar, a PAN or a bank statement. The tick is set by DanceOS when the rail&apos;s KYC clears — a business cannot tick itself.</div>
+          {/* ⚠ THE FAKE CHECKLIST IS GONE (19 Oct 2026): its Upload / View / Start
+              verification buttons only showed a toast. A studio's real request is
+              its own Verification page; an artist's tick is DanceOS's to give. */}
+          {business.type === "studio" ? (
+            <Link href={`/business/${business.id}/verification`} style={{ ...bizBtn, display: "block", textAlign: "center", textDecoration: "none" }}>
+              {verified ? "Open verification" : "Get verified"}
+            </Link>
+          ) : null}
         </>
       ) : null}
 
@@ -220,7 +177,7 @@ export function PaymentsScreen({
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 800 }}>
-                    {m.method}
+                    {methodWord(m.method)}
                     {methods[0] === m ? <span style={{ marginLeft: 6, fontSize: 8.5, fontWeight: 900, padding: "2px 7px", borderRadius: 999, background: "rgba(34,197,94,.16)", color: "#22C55E" }}>MOST USED</span> : null}
                   </div>
                   <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 1 }}>
@@ -230,32 +187,9 @@ export function PaymentsScreen({
               </div>
             );
           })}
-          {methods.length === 0 ? <div style={{ ...bizCard, fontSize: 12, color: "var(--sub)", lineHeight: 1.5 }}>{isBiz ? "Nothing taken yet. The first paid booking shows how it was paid here." : "Nothing paid yet. Your first paid booking shows how you paid here — Cashfree asks for the card or UPI id at checkout."}</div> : null}
-
-          <div style={{ ...eyebrow, margin: "12px 0 8px" }}>ADD A METHOD</div>
-          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-            {(["UPI", "Card", "Cash", "Netbanking"] as Kind[]).map((k) => (
-              <button type="button" key={k} aria-pressed={add === k} onClick={() => setAdd((a) => (a === k ? null : k))} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 5, padding: "12px 4px", borderRadius: 14, cursor: "pointer", fontFamily: "inherit", background: add === k ? `${COL[k]}18` : "var(--card)", border: `2px solid ${add === k ? COL[k] : "transparent"}`, color: add === k ? COL[k] : "var(--sub)" }}>
-                <Icon k={k} color="currentColor" />
-                <span style={{ fontSize: 10, fontWeight: 800 }}>{k}</span>
-              </button>
-            ))}
-          </div>
-          {add ? (
-            <div style={bizCard}>
-              <div style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: 0.8, color: "var(--muted)", marginBottom: 7 }}>{add === "UPI" ? "UPI ID" : add === "Card" ? "CARD NUMBER" : add === "Cash" ? "COUNTER NAME" : "ACCOUNT"}</div>
-              <div style={{ fontSize: 12, color: "var(--sub)", lineHeight: 1.55 }}>
-                {add === "Cash"
-                  ? isBiz
-                    ? "Cash is taken at your desk and marked on the class's register — switch it on under ACCEPTED FROM STUDENTS below."
-                    : "Cash is paid at the studio's desk and marked there — nothing to save."
-                  : `${add === "Netbanking" ? "A bank account" : `A ${add === "UPI" ? "UPI id" : "card"}`} is entered on Cashfree's checkout when you pay, and never stored on DanceOS — so there is nothing to save here yet. Saved instruments arrive with Cashfree's token vault.`}
-              </div>
-              <button type="button" onClick={() => setAdd(null)} style={{ ...bizBtn, marginTop: 9 }}>
-                Got it
-              </button>
-            </div>
-          ) : null}
+          {methods.length === 0 ? <div style={{ ...bizCard, fontSize: 12, color: "var(--sub)", lineHeight: 1.5 }}>{isBiz ? "Nothing taken yet. The first paid booking shows how it was paid here." : "Nothing paid yet. Your first paid booking shows how you paid here."}</div> : null}
+          {/* ⚠ NO "ADD A METHOD" (19 Oct 2026): it added nothing — a card or UPI id
+              is typed at checkout and DanceOS stores neither */}
 
           {isBiz ? (
             <div style={{ ...bizCard, marginTop: 10 }}>
@@ -271,7 +205,7 @@ export function PaymentsScreen({
                   </div>
                 );
               })}
-              <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 8, lineHeight: 1.5 }}>What is switched on is printed on your public page. Cards and UPI through the app are Cashfree&apos;s; cash and bank transfer are recorded at the desk.</div>
+              <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 8, lineHeight: 1.5 }}>What is switched on is shown on your public page.</div>
             </div>
           ) : null}
 
@@ -311,13 +245,12 @@ export function PaymentsScreen({
                 </div>
               )}
               <div style={{ fontSize: 10.5, color: "var(--sub)", marginTop: 8, lineHeight: 1.5 }}>
-                A learner cancelling at least this many hours before a class is refunded automatically; later, you decide.
+                A student who cancels at least this many hours before a class is refunded automatically; later, you decide.
               </div>
             </div>
           ) : null}
         </>
       ) : null}
-      <BizToast msg={toast} />
     </BizPage>
   );
 }

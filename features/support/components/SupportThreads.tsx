@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { openSupportThreadAction } from "@/features/support/server-actions/support";
+import { toast } from "@/components/ui/Toast";
 import { DOS_DISPLAY, DOS_UI, INK, LILAC, SUB } from "@/lib/design/tokens";
 import { photoUrl } from "@/lib/media/photo";
 import type { SupportThread } from "@/repositories/support";
@@ -53,18 +54,13 @@ export function SupportThreads({
   const [composing, setComposing] = useState(Boolean(requestId));
   const [subject, setSubject] = useState(requestId ? "About our verification" : "");
   const [body, setBody] = useState("");
-  const [toast, setToast] = useState<string | null>(null);
   const [pending, start] = useTransition();
-
-  const fire = (m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 2600);
-  };
 
   const open = () =>
     start(async () => {
       const out = await openSupportThreadAction({ subject: subject.trim(), body: body.trim(), requestId });
-      if (out.error) return fire(out.error);
+      if (out.error) return void toast.error(out.error);
+      toast("Message sent to DanceOS");
       setComposing(false);
       setSubject("");
       setBody("");
@@ -139,7 +135,7 @@ export function SupportThreads({
         {threads.length === 0 ? (
           <div style={{ fontSize: 11.5, color: SUB, padding: "0 2px 12px", lineHeight: 1.55 }}>
             {isAdmin
-              ? "Nobody has written in, and you have started nothing. An organization waiting on verification can write from its hub."
+              ? "Nobody has written in, and you have started nothing. A studio waiting on verification can write from its Settings."
               : "Nothing yet. If you are waiting on verification or something looks wrong, write to DanceOS and an admin will read it."}
           </div>
         ) : (
@@ -161,7 +157,7 @@ export function SupportThreads({
                   </span>
                   {isAdmin ? (
                     <span style={{ display: "block", fontSize: 10.5, color: SUB, marginTop: 1 }}>
-                      {t.accountName} · user
+                      {t.accountName}
                       {t.kind === "verification" ? " · verification" : ""}
                     </span>
                   ) : null}
@@ -180,12 +176,6 @@ export function SupportThreads({
           </div>
         )}
       </div>
-
-      {toast ? (
-        <div role="status" style={{ position: "fixed", left: "50%", transform: "translateX(-50%)", bottom: "calc(28px + var(--dos-safe-bottom, 0px))", zIndex: 500, background: "var(--text)", color: "var(--solid)", borderRadius: 999, padding: "10px 18px", fontSize: 12, fontWeight: 800, width: "min(360px, calc(100vw - 44px))", textAlign: "center", boxSizing: "border-box" }}>
-          {toast}
-        </div>
-      ) : null}
     </div>
   );
 }

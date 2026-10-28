@@ -309,7 +309,7 @@ const BOOK_ON_PAGE = /^Book Now$/;
       await oPage.goto(`${BASE}/business/${studio.id}/classes`, { waitUntil: "networkidle" });
       check((await oPage.getByTestId("classes-tab-todo").getAttribute("aria-selected")) === "true", "⚠⚠ the screen opens on To do while something waits on the studio");
       const askedOf = oPage.getByTestId("todo-answer");
-      check((await askedOf.getByTestId("card-accept").count()) === 1, "an artist's room request is the first thing under Asked of you, Accept on its card");
+      check((await askedOf.getByTestId("card-accept").count()) === 1, "an artist's room request is the first thing under Needs your reply, Accept on its card");
       check(new RegExp(`Cls Ask ${tag} wants a room`, "i").test(await askedOf.innerText()), "…naming who wants a room, on the app's own class card");
       /* ⚠ the old address lands on the tab it meant (Rule 14) */
       await oPage.goto(`${BASE}/business/${studio.id}/classes?show=requests`, { waitUntil: "networkidle" });
@@ -391,7 +391,7 @@ const BOOK_ON_PAGE = /^Book Now$/;
     const myBody = await text(lPage);
     check((await lPage.getByTestId("classes-tab-todo").getAttribute("aria-selected")) === "true", "⚠⚠ somebody asked to TAKE a class lands on To do");
     const myAsk = lPage.getByTestId("todo-answer");
-    check((await myAsk.getByTestId("card-accept").count()) === 1 && /Asked to teach/i.test(await myAsk.innerText()), "…the ask on its own card under Asked of you, Accept on it");
+    check((await myAsk.getByTestId("card-accept").count()) === 1 && /Asked to teach/i.test(await myAsk.innerText()), "…the ask on its own card under Needs your reply, Accept on it");
     check(!/you say yes in your Inbox/.test(myBody), "⚠ …and nothing still sends them to the Inbox for something this screen does");
     await lPage.getByTestId("classes-settings").click();
     check((await lPage.getByTestId("request-settings").count()) >= 1, "…and the gear carries the teach / assist switches, moved here from the Inbox");
@@ -588,8 +588,8 @@ const BOOK_ON_PAGE = /^Book Now$/;
     await chip.click();
     const dialog = oPage.getByRole("alertdialog", { name: "Delete this published class?" });
     await dialog.waitFor({ timeout: 10000 });
-    check(/1 enrolled student must be refunded/.test(await dialog.innerText()), "⚠ the question still makes the promise it has made since 29 Aug 2026");
-    const go = dialog.getByRole("button", { name: "Delete & manage refunds", exact: true });
+    check(/1 person booked\. Everyone booked is refunded automatically/.test(await dialog.innerText()), "⚠ the question still makes the promise it has made since 29 Aug 2026");
+    const go = dialog.getByRole("button", { name: "Delete and refund everyone", exact: true });
     check((await go.count()) === 1, "…and the button still names the refunds");
     await go.click();
 
@@ -624,7 +624,7 @@ const BOOK_ON_PAGE = /^Book Now$/;
 
     await oPage.goto(`${BASE}/business/${studio.id}/refunds`, { waitUntil: "networkidle" });
     const ledger = await text(oPage);
-    check(/not yet with Cashfree/.test(ledger), "⚠ the studio's ledger says the refund is NOT YET WITH CASHFREE — a different fact from 'with Cashfree', and the two used to read alike");
+    check(/not sent yet/.test(ledger), "⚠ the studio's ledger says the refund is NOT SENT YET — a different fact from 'sent online', and the two used to read alike");
     const sendBtn = oPage.getByRole("button", { name: "Send through Cashfree", exact: true });
     check((await sendBtn.count()) === 1, "⚠⚠ …and offers to SEND it through Cashfree, beside the desk settlement that used to be the only exit");
     check((await oPage.getByRole("button", { name: "Mark refunded at the desk", exact: true }).count()) === 1, "…with Mark refunded at the desk still there for money that never went through the rail");
@@ -753,7 +753,7 @@ const BOOK_ON_PAGE = /^Book Now$/;
     } catch (e) {
       fixedWhy = e.message;
     }
-    check(/A published class cannot be edited/.test(fixedWhy), `⚠⚠ a PUBLISHED class's price cannot be changed — delete it and add a new one (${fixedWhy.slice(0, 110)})`);
+    check(/A published class can't be changed/.test(fixedWhy), `⚠⚠ a PUBLISHED class's price cannot be changed — delete it and add a new one (${fixedWhy.slice(0, 110)})`);
 
     const reconfirm = await draftClass(owner.h, studio.id, roomA[0].id, "Bollywood", atIst(20, 18), atIst(20, 18) + 60);
     const rcAsk = await rpc(owner.h, "ask_class_person", { p_class_id: reconfirm, p_user_id: learner.id, p_kind: "artist" });
@@ -854,7 +854,7 @@ const BOOK_ON_PAGE = /^Book Now$/;
 
     // b. the booking bar says so, the database refuses the press, the runner can ask again
     await bPage.goto(`${BASE}/c/${stepSlug}`, { waitUntil: "networkidle" });
-    check((await bPage.getByTestId("waiting-for-teacher").count()) === 1 && /Waiting for a new teacher/.test(await bPage.getByTestId("waiting-for-teacher").innerText()), "⚠⚠ the booking bar reads Waiting for a new teacher");
+    check((await bPage.getByTestId("waiting-for-teacher").count()) === 1 && /Waiting for new faculty/.test(await bPage.getByTestId("waiting-for-teacher").innerText()), "⚠⚠ the booking bar reads Waiting for new faculty");
     check((await bPage.locator("button:not([disabled])").filter({ hasText: BOOK_ON_PAGE }).count()) === 0, "…with no Book Now to press");
     let waitingBook = "ACCEPTED";
     try {

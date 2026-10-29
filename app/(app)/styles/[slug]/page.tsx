@@ -141,27 +141,16 @@ export default async function StylePage({
     .replace(/[\s,–-]+/g, "");
   const showRegion = regionLeft.length > 0 && !/^across /i.test(region);
   const yearMatch = info.era.match(/((?:early|late|mid)[-\s])?(?<![\d,])(?:\d{1,2}(?:st|nd|rd|th)(?:\s?[–-]\s?(?:(?:early|late|mid)\s)?\d{1,2}(?:st|nd|rd|th))?\s+centur(?:y|ies)|\d{3,4}s?(?!\d)(?:\s?[–-]\s?(?:(?:early|late|mid)\s)?\d{2,4}s?)?)/i);
+  /* ⚠ WHEN IS THE YEAR AND NOTHING ELSE (29 Oct 2026, the user: "when should only
+     have year nothing else") — no era sentence under it; a style whose era names
+     no year draws no WHEN row rather than a sentence in its place */
   const when = yearMatch ? yearMatch[0].replace(/^./, (c) => c.toUpperCase()) : null;
-  /* what the era sentence says beyond the year — filler words do not count */
-  const eraLeft = when
-    ? info.era
-        .replace(yearMatch![0], "")
-        .replace(/\b(from|the|in|around|emerged|onward|onwards|era|of|a|an|and|early|late|mid)\b/gi, "")
-        .replace(/[\s,;.:–-]+/g, "")
-    : info.era;
-  /* and the sentence never says the year again: "refined in the courts from the
-     1500s" under "1500s" reads "refined in the courts" */
-  const eraTrimmed = when
-    ? info.era
-        .replace(new RegExp(`\\s*(?:(?:from|since|in)(?:\\s+around)?\\s+the\\s+|from\\s+around\\s+the\\s+|in\\s+the\\s+)?${yearMatch![0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "i"), "")
-        .replace(/^[\s,;.:–-]+|[\s,;:–-]+$/g, "")
-        .replace(/\s+([,;])/g, "$1")
-        .replace(/^./, (c) => c.toUpperCase())
-    : info.era;
-  /* a sentence left hanging on its preposition ("…heritage list since") needs its year back */
-  const eraSentence = when && (eraLeft.length === 0 || eraTrimmed.length === 0) ? null : /\b(since|from|in|at|by)$/i.test(eraTrimmed) ? info.era : eraTrimmed;
-  const factRow = { display: "grid", gridTemplateColumns: "62px 1fr", gap: 10, alignItems: "start", padding: "11px 0" } as const;
-  const factKey = { fontSize: 9, fontWeight: 900, letterSpacing: 0.8, color: "var(--muted)", paddingTop: 3 } as const;
+  /* ⚠ ONE TYPE FOR ALL THREE VALUES (29 Oct 2026, the user: "from when and
+     family should be handled better different fonts currently for each") — the
+     key in the micro caps, the value in one size, one weight, one ink */
+  const factRow = { display: "grid", gridTemplateColumns: "62px 1fr", gap: 10, alignItems: "center", padding: "11px 0" } as const;
+  const factKey = { fontSize: 9, fontWeight: 900, letterSpacing: 0.8, color: "var(--muted)" } as const;
+  const factValue = { fontSize: 14, fontWeight: 800, lineHeight: 1.35, color: INK } as const;
 
   const details = (
     <div>
@@ -174,8 +163,9 @@ export default async function StylePage({
           <div data-testid="style-fact-country" style={factRow}>
             <div style={factKey}>FROM</div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <span data-testid="style-flags" aria-hidden="true" style={{ display: "inline-flex", gap: 4 }}>
+              {/* the flag stays beside the words — a long region wraps under the words, never the flag onto a line of its own */}
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                <span data-testid="style-flags" aria-hidden="true" style={{ display: "inline-flex", gap: 4, flexShrink: 0, marginTop: 2 }}>
                   {isGlobal(info.country) ? (
                     <span style={{ fontSize: 17, lineHeight: 1 }}>🌍</span>
                   ) : (
@@ -185,23 +175,22 @@ export default async function StylePage({
                     ))
                   )}
                 </span>
-                <span style={{ fontSize: 14, fontWeight: 900, lineHeight: 1.3 }}>{info.country}</span>
+                <span style={{ ...factValue, minWidth: 0 }}>
+                  {info.country}
+                  {showRegion ? <span data-testid="style-fact-region"> · {region}</span> : null}
+                </span>
               </div>
-              {showRegion ? <div data-testid="style-fact-region" style={{ fontSize: 12, color: SUB, marginTop: 4, lineHeight: 1.4 }}>{region}</div> : null}
             </div>
           </div>
-          <div data-testid="style-fact-since" style={{ ...factRow, borderTop: "1.5px solid var(--el)" }}>
-            <div style={factKey}>WHEN</div>
-            <div style={{ minWidth: 0 }}>
-              {when ? <div style={{ fontSize: 19, fontWeight: 900, lineHeight: 1.15, color, letterSpacing: -0.3 }}>{when}</div> : null}
-              {eraSentence ? <div style={{ fontSize: 12, color: when ? SUB : INK, fontWeight: when ? 500 : 800, marginTop: when ? 4 : 0, lineHeight: 1.45 }}>{eraSentence}</div> : null}
+          {when ? (
+            <div data-testid="style-fact-since" style={{ ...factRow, borderTop: "1.5px solid var(--el)" }}>
+              <div style={factKey}>WHEN</div>
+              <div style={factValue}>{when}</div>
             </div>
-          </div>
+          ) : null}
           <div data-testid="style-fact-family" style={{ ...factRow, borderTop: "1.5px solid var(--el)", paddingBottom: 2 }}>
             <div style={factKey}>FAMILY</div>
-            <div>
-              <span style={{ display: "inline-block", fontSize: 12, fontWeight: 800, padding: "4px 10px", borderRadius: 999, background: `${color}1f`, border: `1.5px solid ${color}44` }}>{info.family}</span>
-            </div>
+            <div style={factValue}>{info.family}</div>
           </div>
         </div>
       </SectionCard>
@@ -332,16 +321,18 @@ export default async function StylePage({
           plainBody
           tint={color}
           top={
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1.2, color: SUB }}>DANCE STYLE</div>
-                <h1 data-testid="style-title" style={{ ...TAB_TITLE, color: INK, marginTop: 4, overflowWrap: "anywhere" }}><BeatText text={style} /></h1>
-                {/* no country / family chips here — they are THE FACTS card's (29 Oct 2026) */}
-              </div>
-              {/* THE DANCER beside the heading (30 Oct 2026) — the drawn figure in
-                  the style's costume, small, on the style's own colour */}
-              <div data-testid="style-art-frame" style={{ position: "relative", width: 84, height: 84, flexShrink: 0, borderRadius: 22, overflow: "hidden", background: `linear-gradient(160deg, ${color}, ${color}88)`, boxShadow: `0 6px 18px ${color}40` }}>
-                <StyleArt style={style} frame="page" label={`${style} dancer in costume`} />
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1.2, color: SUB }}>DANCE STYLE</div>
+              <h1 data-testid="style-title" style={{ ...TAB_TITLE, color: INK, marginTop: 4, overflowWrap: "anywhere" }}><BeatText text={style} /></h1>
+              {/* no country / family chips here — they are THE FACTS card's (29 Oct 2026) */}
+              {/* THE DANCER UNDER THE NAME (29 Oct 2026, the user: "style pic should
+                  be below the name and should be a bit bigger to match the space"):
+                  a band the width of the heading on the style's own colour, the
+                  drawn figure a 148px square centred in it */}
+              <div data-testid="style-art-frame" style={{ marginTop: 12, height: 156, borderRadius: 22, overflow: "hidden", display: "flex", justifyContent: "center", alignItems: "center", background: `linear-gradient(160deg, ${color}, ${color}88)`, boxShadow: `0 6px 18px ${color}40` }}>
+                <div style={{ position: "relative", width: 148, height: 148 }}>
+                  <StyleArt style={style} frame="page" label={`${style} dancer in costume`} />
+                </div>
               </div>
             </div>
           }

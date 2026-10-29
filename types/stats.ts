@@ -60,15 +60,48 @@ export interface HistoryRow {
 export type ChartSegment = "dancer" | "artist" | "studio" | "crew";
 
 /** the board's metric (9612) — Wins is absent because no score is recorded */
-export type ChartMetric = "overall" | "conducted" | "assisted" | "attended" | "hours";
+export type ChartMetric = "overall" | "conducted" | "assisted" | "attended" | "hours" | "people";
 export const CHART_METRICS: Array<{ k: ChartMetric; label: string; unit: string }> = [
   { k: "overall", label: "Overall", unit: "pts" },
   { k: "conducted", label: "Sessions conducted", unit: "sessions" },
   { k: "assisted", label: "Sessions assisted", unit: "sessions" },
   { k: "attended", label: "Sessions attended", unit: "sessions" },
   { k: "hours", label: "Hours on the floor", unit: "hours" },
+  { k: "people", label: "People on the floor", unit: "people" },
 ];
 export const parseChartMetric = (raw: string | undefined): ChartMetric => (CHART_METRICS.some((m) => m.k === raw) ? (raw as ChartMetric) : "overall");
+
+/** THE METRICS EACH BOARD CAN RANK BY (29 Oct 2026, the user: "rankings filters
+ *  should appropriate when in studios, artist or dancers"). A studio holds
+ *  sessions and has people on its floor; an artist teaches and assists; a dancer
+ *  dances. A metric a board's rows never carry (a dancer's "sessions conducted")
+ *  ranked everybody at 0 — it is simply not offered there. */
+export const METRICS_FOR: Record<ChartSegment, Array<{ k: ChartMetric; label: string; unit: string }>> = {
+  studio: [
+    { k: "overall", label: "Overall", unit: "pts" },
+    { k: "conducted", label: "Sessions held", unit: "sessions" },
+    { k: "people", label: "People on the floor", unit: "people" },
+    { k: "hours", label: "Hours held", unit: "hours" },
+  ],
+  artist: [
+    { k: "overall", label: "Overall", unit: "pts" },
+    { k: "conducted", label: "Sessions taught", unit: "sessions" },
+    { k: "assisted", label: "Sessions assisted", unit: "sessions" },
+    { k: "hours", label: "Hours on the floor", unit: "hours" },
+  ],
+  dancer: [
+    { k: "overall", label: "Overall", unit: "pts" },
+    { k: "attended", label: "Sessions danced", unit: "sessions" },
+    { k: "hours", label: "Hours on the floor", unit: "hours" },
+  ],
+  crew: [
+    { k: "overall", label: "Overall", unit: "pts" },
+    { k: "people", label: "Members", unit: "members" },
+  ],
+};
+/** the metric a board actually ranks by — one it does not carry falls back to Overall */
+export const metricFor = (segment: ChartSegment, metric: ChartMetric): ChartMetric =>
+  METRICS_FOR[segment].some((m) => m.k === metric) ? metric : "overall";
 
 export const CHART_SEGMENTS: Array<{ k: ChartSegment; label: string }> = [
   { k: "studio", label: "Studios" },

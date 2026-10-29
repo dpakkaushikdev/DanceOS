@@ -9,7 +9,7 @@ import { SectionCard } from "@/components/ui/SectionCard";
 import { CitySelect } from "@/features/geo/components/CitySelect";
 import { photoUrl } from "@/lib/media/photo";
 import { CARD, DOS_DISPLAY, INK, LILAC, LINE, MUTED, SUB } from "@/lib/design/tokens";
-import { CHART_METRICS, CHART_SEGMENTS, CREW_POINT_RULES, POINT_RULES, type ChartMetric, type ChartRow, type ChartSegment } from "@/types/stats";
+import { CHART_SEGMENTS, CREW_POINT_RULES, METRICS_FOR, POINT_RULES, metricFor, type ChartMetric, type ChartRow, type ChartSegment } from "@/types/stats";
 
 /** BROWSE THE BOARDS — lifted out of `StatsScreen` (29 Oct 2026, the user:
  *  "overall rankings should take to page with just browse the boards … pulse
@@ -60,7 +60,7 @@ export function BoardFace({ row, size, ring }: { row: ChartRow; size: number; ri
 export function BoardsBrowser({
   chart,
   segment,
-  metric,
+  metric: metricAsked,
   city,
   cities,
   basePath,
@@ -91,16 +91,21 @@ export function BoardsBrowser({
   const isCrew = segment === "crew";
   const peopleBoard = segment === "dancer" || segment === "artist";
 
+  /* ⚠ each board offers only what its rows carry (METRICS_FOR); a metric carried
+     over from another board that this one cannot rank by falls back to Overall */
+  const metrics = METRICS_FOR[segment];
+  const metric = metricFor(segment, metricAsked);
   const chartHref = (over: { seg?: ChartSegment; city?: string | null; metric?: ChartMetric }) => {
     const seg = over.seg ?? segment;
     const c = over.city === undefined ? city : over.city;
-    const m = over.metric ?? metric;
+    const m = metricFor(seg, over.metric ?? metric);
     const q = [baseQuery || null, `seg=${seg}`, c ? `city=${encodeURIComponent(c)}` : null, m !== "overall" ? `metric=${m}` : null].filter(Boolean).join("&");
     return `${basePath}?${q}`;
   };
 
-  const valueOf = (r: ChartRow) => (metric === "overall" ? r.points : metric === "conducted" ? r.conducted : metric === "assisted" ? r.assisted : metric === "attended" ? r.attended : Math.round(r.hours * 10) / 10);
-  const unit = CHART_METRICS.find((m) => m.k === metric)?.unit ?? "pts";
+  const valueOf = (r: ChartRow) =>
+    metric === "overall" ? r.points : metric === "conducted" ? r.conducted : metric === "assisted" ? r.assisted : metric === "attended" ? r.attended : metric === "people" ? r.extra : Math.round(r.hours * 10) / 10;
+  const unit = metrics.find((m) => m.k === metric)?.unit ?? "pts";
   const board = metric === "overall" ? chart : [...chart].sort((a, b) => valueOf(b) - valueOf(a)).map((r, i) => ({ ...r, place: i + 1 }));
   const leaderValue = Math.max(1, ...board.map((r) => valueOf(r)));
   const podiumRows = board.length >= 3 && board[0].place === 1 ? board.slice(0, 3) : [];
@@ -124,7 +129,7 @@ export function BoardsBrowser({
         })}
       </div>
       <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", marginBottom: 8 }}>
-        {CHART_METRICS.map((m) => {
+        {metrics.map((m) => {
           const on = metric === m.k;
           return (
             <Link key={m.k} href={chartHref({ metric: m.k })} replace scroll={false} aria-pressed={on} style={{ flexShrink: 0, padding: "7px 12px", borderRadius: 999, fontSize: 11, fontWeight: 800, whiteSpace: "nowrap", textDecoration: "none", background: on ? INK : CARD, color: on ? LILAC : SUB, border: `1.5px solid ${on ? INK : LINE}` }}>

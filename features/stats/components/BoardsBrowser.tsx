@@ -158,16 +158,21 @@ export function BoardsBrowser({
     const mark = markOf(r);
     const isYou = mark?.word === "YOU";
     return (
-      <Link key={`${pinnedBelow ? "pin-" : ""}${r.kind}-${r.id}`} href={hrefOf(r)} data-you={isYou ? "1" : undefined} data-viewing={mark && !isYou ? "1" : undefined} data-pinned={pinnedBelow ? "1" : undefined} aria-label={`${isYou ? "You — " : mark ? "Viewing — " : ""}${r.name} — place ${r.place} of ${r.population}`} style={{ position: "relative", overflow: "hidden", display: "flex", alignItems: "center", gap: 10, background: mark ? `linear-gradient(100deg,${mark.col}55,${mark.col}22 55%,${mark.col}10)` : CARD, border: `${mark ? 2 : 1.5}px solid ${mark ? mark.col : LINE}`, borderRadius: 14, padding: mark ? "11px 12px 13px 16px" : "9px 12px 11px", marginBottom: 7, color: INK, textDecoration: "none", boxShadow: mark ? `0 0 0 3px ${mark.col}33, 0 6px 18px ${mark.col}40` : undefined }}>
-        {/* the marked row's own edge (30 Oct 2026, "make highlight better on browse the board") */}
-        {mark ? <span aria-hidden="true" style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 5, background: mark.col }} /> : null}
+      <Link key={`${pinnedBelow ? "pin-" : ""}${r.kind}-${r.id}`} href={hrefOf(r)} data-you={isYou ? "1" : undefined} data-viewing={mark && !isYou ? "1" : undefined} data-pinned={pinnedBelow ? "1" : undefined} aria-label={`${isYou ? "You — " : mark ? "Viewing — " : ""}${r.name} — place ${r.place} of ${r.population}`} style={{ display: "flex", alignItems: "center", gap: 10, background: mark ? `linear-gradient(100deg,${mark.col}40,${mark.col}18)` : CARD, border: `${mark ? 2 : 1.5}px solid ${mark ? mark.col : LINE}`, borderRadius: 14, padding: "10px 12px", marginBottom: 8, color: INK, textDecoration: "none", boxShadow: mark ? `0 4px 14px ${mark.col}38` : undefined }}>
+        {/* ⚠ no edge strip and no bar pinned to the border (30 Oct 2026, the user:
+            "on list the design looks bad from left edge and the bottom bar") — the
+            mark is the border, the tint and the glow; the bar is a track under the name */}
         <span style={{ ...figure, minWidth: 28, height: 28, padding: "0 4px", boxSizing: "border-box", borderRadius: 9, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12.5, fontFamily: DOS_DISPLAY, fontWeight: 900, background: mark ? mark.col : top3 ? "linear-gradient(135deg,#7C3AED,#EC4899)" : LINE, color: mark || top3 ? "#fff" : SUB }}>{r.place}</span>
         <BoardFace row={r} size={36} ring={mark ? mark.col : undefined} />
-        <span style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ minWidth: 0, fontSize: mark ? 14 : 13, fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
-          {mark ? pillOf(mark) : null}
+        <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+          <span style={{ minWidth: 0, display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ minWidth: 0, fontSize: mark ? 14 : 13, fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
+            {mark ? pillOf(mark) : null}
+          </span>
+          <span aria-hidden="true" data-testid="board-row-bar" style={{ display: "block", height: 4, borderRadius: 999, background: mark ? `${mark.col}33` : LINE, overflow: "hidden" }}>
+            <span style={{ display: "block", height: "100%", borderRadius: 999, width: `${Math.min(100, Math.max(4, (valueOf(r) / leaderValue) * 100))}%`, background: mark ? mark.col : "linear-gradient(90deg,#7C3AED,#EC4899)" }} />
+          </span>
         </span>
-        <span aria-hidden="true" style={{ position: "absolute", left: 0, bottom: 0, height: mark ? 4 : 3, width: `${Math.min(100, Math.max(4, (valueOf(r) / leaderValue) * 100))}%`, background: mark ? mark.col : "linear-gradient(90deg,#7C3AED,#EC4899)" }} />
         <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 900, padding: "4px 10px", borderRadius: 999, border: `1.5px solid ${mark ? mark.col : LINE}`, background: mark ? mark.col : undefined, color: mark ? "#fff" : undefined, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
           {valueOf(r)} <span style={{ fontSize: 9, fontWeight: 800, color: mark ? "rgba(255,255,255,.85)" : MUTED }}>{unit}</span>
         </span>
@@ -222,13 +227,17 @@ export function BoardsBrowser({
                 const mark = markOf(r);
                 const you = mark?.word === "YOU";
                 return (
-                  <Link key={`pod-${r.kind}-${r.id}`} href={hrefOf(r)} data-you={you ? "1" : undefined} data-viewing={mark && !you ? "1" : undefined} aria-label={`${you ? "You — " : mark ? "Viewing — " : ""}${r.name} — place ${r.place} of ${r.population}`} style={{ display: "flex", flexDirection: "column", alignItems: "center", textDecoration: "none", color: INK, minWidth: 0, borderRadius: 16, padding: mark ? "6px 4px 0" : 0, background: mark ? `linear-gradient(180deg,${mark.col}44,${mark.col}14)` : undefined, boxShadow: mark ? `0 0 0 2px ${mark.col}, 0 6px 18px ${mark.col}40` : undefined }}>
-                    <BoardFace row={r} size={r.place === 1 ? 54 : 44} ring={mark ? mark.col : medal} />
-                    <span style={{ height: 6 }} />
-                    {mark ? <span style={{ marginBottom: 3 }}>{pillOf(mark)}</span> : null}
-                    <span style={{ fontSize: 11.5, fontWeight: 900, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
-                    <span style={{ fontSize: 10.5, fontWeight: 900, padding: "2px 8px", borderRadius: 999, background: `${medal}26`, color: INK, marginTop: 3, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{valueOf(r)} {unit}</span>
-                    <span style={{ height: 6 }} />
+                  <Link key={`pod-${r.kind}-${r.id}`} href={hrefOf(r)} data-you={you ? "1" : undefined} data-viewing={mark && !you ? "1" : undefined} aria-label={`${you ? "You — " : mark ? "Viewing — " : ""}${r.name} — place ${r.place} of ${r.population}`} style={{ display: "flex", flexDirection: "column", alignItems: "center", textDecoration: "none", color: INK, minWidth: 0 }}>
+                    {/* ⚠ the highlight wraps the person, never the bar (30 Oct 2026, the
+                        user: "on podium outline outline cuts the bar") */}
+                    <span style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", boxSizing: "border-box", minWidth: 0, borderRadius: 14, padding: mark ? "8px 5px 7px" : "0 0 1px", background: mark ? `linear-gradient(180deg,${mark.col}40,${mark.col}14)` : undefined, border: mark ? `2px solid ${mark.col}` : undefined, boxShadow: mark ? `0 4px 14px ${mark.col}38` : undefined }}>
+                      <BoardFace row={r} size={r.place === 1 ? 54 : 44} ring={mark ? mark.col : medal} />
+                      <span style={{ height: 6 }} />
+                      {mark ? <span style={{ marginBottom: 3 }}>{pillOf(mark)}</span> : null}
+                      <span style={{ fontSize: 11.5, fontWeight: 900, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
+                      <span style={{ fontSize: 10.5, fontWeight: 900, padding: "2px 8px", borderRadius: 999, background: mark ? mark.col : `${medal}26`, color: mark ? "#fff" : INK, marginTop: 3, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{valueOf(r)} {unit}</span>
+                    </span>
+                    <span style={{ height: 8 }} />
                     <span style={{ width: "100%", height: tall, borderRadius: "12px 12px 4px 4px", background: `linear-gradient(180deg, ${medal}, ${medal}55)`, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 6, color: "#fff", fontFamily: DOS_DISPLAY, fontWeight: 900, fontSize: 20 }}>
                       {r.place}
                     </span>

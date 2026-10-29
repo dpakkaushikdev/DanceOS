@@ -15,7 +15,10 @@ Keys for all of these are in `.env.local` (gitignored). Any older record below t
 
 ## LAST SESSION (17–29 Oct 2026) — replaced on every push (Rule 13)
 
-> ### ARTISTS TWO TO A ROW AGAIN, AND THE FOLLOWER COUNT BACK ON THE PICTURE, SMALLER (29 Oct 2026, latest) — no migration
+> ### "CREATE AN ACCOUNT" AT THE TOP OF THE EMAIL SIGN-IN SCREEN (29 Oct 2026, latest) — no migration · ✅ PUSHED AND LIVE (`fe103c2`, made in another chat)
+> `PasswordSignIn.tsx`: the footer line became a button under the heading, carrying `next=`. Read back the next chat: Vercel READY, alias `danceos-sigma.vercel.app` on `fe103c2` through the API, `stranger-smoke` **9/9** on the live site. ⚠ No e2e re-run for it (`password-auth` reads the sign-in screen — run it next time auth is touched).
+
+> ### ARTISTS TWO TO A ROW AGAIN, AND THE FOLLOWER COUNT BACK ON THE PICTURE, SMALLER (29 Oct 2026) — no migration · ✅ PUSHED AND LIVE (`e527cca`, carried by the `fe103c2` deploy)
 > The user: *"artist on discover should be 2 in a row. follower count place it where it was earlier and make it smaller."* Row C188.
 > * **Discover's Artists tab is `1fr 1fr`** (`CompactCard` at its default size); Styles stays three to a row.
 > * **`FollowerPill` is pinned to the picture's top-right again** on studio, artist, crew and style cards (C100's place, reversing C187's lower-half move), now 9.5px with a 10px mark and 6px insets. The `inline` variant has no caller left.

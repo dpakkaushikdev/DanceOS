@@ -599,7 +599,7 @@ export default async function DiscoverPage({
         margin: "0 auto",
         fontFamily: DOS_UI,
         minHeight: "100vh",
-        padding: "16px var(--dos-gutter) 40px",
+        padding: "12px var(--dos-gutter) 40px",
         boxSizing: "border-box",
         transition: "background .25s",
       }}

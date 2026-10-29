@@ -137,7 +137,7 @@ export function CrewsHub({ led }: { led: CrewSummary[] }) {
   );
   return (
     <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", paddingBottom: 40 }}>
-      <div style={{ padding: "14px var(--dos-gutter) 0" }}>
+      <div style={{ padding: "12px var(--dos-gutter) 0" }}>
         <DeskTop style={{ margin: "0 0 12px" }}>
           {hero}
           {/* ＋ Add Crew under the heading (11 Oct 2026); opens over this hub (22 Sep 2026) */}

@@ -50,7 +50,7 @@ export default async function RenterRoute({ params }: { params: Promise<{ busine
   const disputes = Object.fromEntries(latestByTarget(await findDisputesFor(supabase, { rentPaymentIds: payments.map((p) => p.id) })));
 
   return (
-    <div data-testid="renter-detail" style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "14px var(--dos-gutter) 40px", boxSizing: "border-box" }}>
+    <div data-testid="renter-detail" style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "12px var(--dos-gutter) 40px", boxSizing: "border-box" }}>
       {/* ⚠ THE HEADING SITS IN ITS DESKTOP (28 Oct 2026). It stood bare on the
           page, and the hue heading's own -14px margins — written to reach a
           DeskTop's padding — pushed it past the page's edge. Headed by the

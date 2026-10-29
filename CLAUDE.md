@@ -15,6 +15,12 @@ Keys for all of these are in `.env.local` (gitignored). Any older record below t
 
 ## LAST SESSION (17–30 Oct 2026) — replaced on every push (Rule 13)
 
+> ### A BIG QR ON PULSE'S HEADING, AND ONE GAP UNDER THE TOP BAR (30 Oct 2026, latest) — no migration · pushed with this block
+> Finished from the previous chat, which left the tree uncommitted. The user: *"pulse heading to have a big qr code button for easy access on the right"*.
+> * **Pulse**: your own profile QR as a 64px button on the heading's right (`ProfileShare big`, `data-testid="big-qr"`), watching for a check-in like the profile's own chip.
+> * **The gap under the top bar is even** across ~24 pages (Discover, Pulse, the desks, the settings ledgers, follows, support): page tops trimmed to 0–12px where a `DeskTop` already carries its own margin.
+> * **Verified:** typecheck 0 · lint 0 · build green · a probe **12/12** on `:3100` as demo.kabir, both themes (one 64×64 QR right of the title, it opens a scannable code, no sideways scroll, no page error) and the screenshot by eye. ⚠ e2e not re-run. ⚠ Not looked at on a phone.
+
 > ### NO CREW STATS, AND A BOARD HIGHLIGHT THAT CUTS NOTHING (30 Oct 2026, latest) — no migration · pushed with this block
 > The user: *"handle highlight better on rankings - on podium outline cuts the bar and on list the design looks bad from left edge and the bottom bar"*, then *"crew stats to be removed and push to live"*.
 > * **`BoardsBrowser`**: a marked podium spot's outline wraps the face, name and points only — 8px clear of the bar; a list row has no left edge strip and no bar pinned to its border — every row carries a rounded track under the name, a marked one its colour, border, tint and glow.

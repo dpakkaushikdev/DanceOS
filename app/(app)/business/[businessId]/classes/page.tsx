@@ -175,7 +175,7 @@ export default async function BusinessClassesPage({
   const rooms = opening && !whyNoClass ? await findRoomsByBusiness(supabase, businessId).catch(() => []) : [];
 
   return (
-    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "14px var(--dos-gutter) 40px", boxSizing: "border-box" }}>
+    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "0 var(--dos-gutter) 40px", boxSizing: "border-box" }}>
       <ClassesHome
         /* keyed on the ADDRESS, never the computed default — see /my-classes */
         key={`${tabAsked ?? "auto"}-${initialRole}`}

@@ -73,7 +73,7 @@ export function SupportConversation({
 
   return (
     <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", paddingBottom: "var(--dos-foot, 40px)" }}>
-      <div style={{ padding: "14px var(--dos-gutter) 0" }}>
+      <div style={{ padding: "12px var(--dos-gutter) 0" }}>
         {/* who this is with, and what it is about */}
         {/* the page's own `<h1>` — the chrome no longer prints a drill page's name
             (28 Sep 2026). A conversation's name IS its subject, which is why the

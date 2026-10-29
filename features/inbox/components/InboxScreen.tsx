@@ -241,7 +241,7 @@ export function InboxScreen({
       {/* ⚠ DISCOVER'S GUTTER (28 Oct 2026): the side margins are `--dos-gutter`
           and the top 16, exactly Discover's page padding, so switching tabs
           does not make the panels jump sideways */}
-      <TopPanel tint={accent} style={{ margin: "16px var(--dos-gutter) 12px" }}>
+      <TopPanel tint={accent} style={{ margin: "12px var(--dos-gutter) 12px" }}>
         <div style={{ position: "relative" }}>
           <h1 data-testid="inbox-title" style={TAB_TITLE}>
             {/* ⚠ "Enquiries", not "Inbox" (18 Oct 2026, the user: "inbox to be renamed as Enquiries") */}

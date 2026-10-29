@@ -710,7 +710,7 @@ export function NotificationsScreen({
   return (
     <div
       data-testid={inDrawer ? "notif-drawer-body" : undefined}
-      style={inDrawer ? { color: INK, fontFamily: DOS_UI } : { background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "2px var(--dos-gutter) 40px", boxSizing: "border-box", overflowX: "hidden" }}
+      style={inDrawer ? { color: INK, fontFamily: DOS_UI } : { background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "0 var(--dos-gutter) 40px", boxSizing: "border-box", overflowX: "hidden" }}
     >
       {inDrawer ? (
         <>

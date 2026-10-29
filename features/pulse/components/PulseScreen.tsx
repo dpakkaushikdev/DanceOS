@@ -3,6 +3,7 @@ import { BeatText } from "@/components/ui/BeatText";
 import { InvertedPanel } from "@/components/ui/InvertedPanel";
 import { TopPanel } from "@/components/ui/TopPanel";
 import { SearchBox } from "@/features/discovery/components/SearchBox";
+import { ProfileShare } from "@/features/profiles/components/ProfileShare";
 import { TodayShelf } from "@/features/home/components/TodayShelf";
 import { BoardsBrowser } from "@/features/stats/components/BoardsBrowser";
 import { WholeRecord } from "@/features/stats/components/WholeRecord";
@@ -46,16 +47,21 @@ export function PulseScreen({
   nowIso: string;
 }) {
   return (
-    <div style={{ background: "var(--bg)", color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "16px var(--dos-gutter) 40px", boxSizing: "border-box" }}>
+    <div style={{ background: "var(--bg)", color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "12px var(--dos-gutter) 40px", boxSizing: "border-box" }}>
       <TopPanel tint={PULSE_TINT}>
         {/* no picture on the heading (30 Oct 2026, the user: "remove the profile pic on right from the heading on pulse page") */}
-        <div style={{ minWidth: 0 }}>
-          <h1 data-testid="pulse-title" style={{ ...TAB_TITLE, color: INK, marginTop: 4 }}>
-            <BeatText text="Pulse" />
-          </h1>
-          <div data-testid="pulse-day" style={{ ...TAB_SUB, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{dayLine(nowIso)}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <h1 data-testid="pulse-title" style={{ ...TAB_TITLE, color: INK, marginTop: 4 }}>
+              <BeatText text="Pulse" />
+            </h1>
+            <div data-testid="pulse-day" style={{ ...TAB_SUB, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{dayLine(nowIso)}</div>
+          </div>
+          {/* your own code, big, on the right (30 Oct 2026) — it watches for a
+              check-in like the profile's own chip, so the door's answer shows on it */}
+          <ProfileShare path={`/person/${me.id}`} name={me.name} watchCheckIn big />
         </div>
-        <SearchBox city={me.city ?? ""} margin="14px 0 2px" placeholder="Search studios, artists, styles, people" />
+        <SearchBox city={me.city ?? ""} margin="14px 0 0" placeholder="Search studios, artists, styles, people" />
       </TopPanel>
 
       <InvertedPanel ground="page" style={SECTION}>

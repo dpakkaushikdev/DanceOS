@@ -408,7 +408,7 @@ export function BusinessHub({
         paddingBottom: "var(--dos-foot, 40px)",
       }}
     >
-      <div style={{ padding: "14px var(--dos-gutter) 0" }}>
+      <div style={{ padding: "12px var(--dos-gutter) 0" }}>
         {/* ⚠ SECTIONS (3 Oct 2026, C116): the heading, the price line and the two
             column pills in the TOP squircle (`SegmentedPanels sections`), the shown
             column — Add studio included, it belongs to Yours — in the LOWER one */}

@@ -62,7 +62,7 @@ export default async function PracticePage({
 
   return (
     <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", paddingBottom: 40 }}>
-      <div style={{ padding: "14px var(--dos-gutter) 0" }}>
+      <div style={{ padding: "12px var(--dos-gutter) 0" }}>
         <PracticeHome top={<DeskHero tool="practice" as="h1" margin="0" />} crew={crew} job={job} todayIso={new Date(now).toISOString()} initialTab={tab} initialChip={chip} />
       </div>
     </div>

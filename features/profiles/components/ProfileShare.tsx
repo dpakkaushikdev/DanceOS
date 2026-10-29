@@ -36,7 +36,7 @@ const readServerHost = () => "";
  *  not the QR. Copying is `ProfileLink`'s job, it is the chip directly beside
  *  this one, and it falls back to the clipboard on exactly the laptop that
  *  argument was about. ⚠ Nothing became unreachable, which is the test C31 sets. */
-export function ProfileShare({ path, name, watchCheckIn = false }: { path: string; name: string; watchCheckIn?: boolean }) {
+export function ProfileShare({ path, name, watchCheckIn = false, big = false }: { path: string; name: string; watchCheckIn?: boolean; big?: boolean }) {
   const [open, setOpen] = useState(false);
   const [approved, setApproved] = useState<MyCheckIn | null>(null);
   const router = useRouter();
@@ -85,10 +85,17 @@ export function ProfileShare({ path, name, watchCheckIn = false }: { path: strin
       <button
         type="button"
         aria-label="QR code"
+        data-testid={big ? "big-qr" : undefined}
         onClick={() => setOpen(true)}
-        style={PROFILE_CHIP}
+        style={
+          big
+            ? /* Pulse's heading (30 Oct 2026, the user: "pulse heading to have a big qr code button
+                 for easy access on the right") — the code you show at a door, one press away */
+              { ...PROFILE_CHIP, flex: "0 0 64px", width: 64, height: 64, minWidth: 64, maxWidth: 64, borderRadius: 18, boxShadow: "0 8px 20px rgba(0,0,0,.18)" }
+            : PROFILE_CHIP
+        }
       >
-        <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <svg width={big ? 34 : 21} height={big ? 34 : 21} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M3 3h8v8H3zM5 5v4h4V5zM13 3h8v8h-8zm2 2v4h4V5zM3 13h8v8H3zm2 2v4h4v-4zM13 13h3v3h-3zm5 0h3v3h-3zm-5 5h3v3h-3zm5 0h3v3h-3z" />
         </svg>
       </button>

@@ -26,7 +26,7 @@ export default async function RankingsPage({ searchParams }: { searchParams: Pro
   const tint = "#7C3AED";
 
   return (
-    <div style={{ background: "var(--bg)", color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "16px var(--dos-gutter) 40px", boxSizing: "border-box" }}>
+    <div style={{ background: "var(--bg)", color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "12px var(--dos-gutter) 40px", boxSizing: "border-box" }}>
       <TopPanel tint={tint}>
         <h1 data-testid="rankings-title" style={{ ...TAB_TITLE, color: INK, margin: 0 }}>
           <BeatText text="Rankings" />

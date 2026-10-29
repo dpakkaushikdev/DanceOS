@@ -129,10 +129,10 @@ export function FollowsScreen({ data, initialTab, initialShow }: { data: FollowP
   };
 
   return (
-    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "6px var(--dos-gutter) 40px", boxSizing: "border-box" }}>
+    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "0 var(--dos-gutter) 40px", boxSizing: "border-box" }}>
       {/* WHOSE LIST — the page's own heading (28 Oct 2026: the one heading
           standard, DeskTop + HueHead with the entity's name), the face on its right */}
-      <DeskTop style={{ margin: "8px 0 12px" }}>
+      <DeskTop>
         <HueHead
           title={data.subject.name}
           color={SKY}

@@ -78,9 +78,9 @@ export function SupportThreads({
 
   return (
     <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", paddingBottom: "var(--dos-foot, 40px)" }}>
-      <div style={{ padding: "14px var(--dos-gutter) 0" }}>
+      <div style={{ padding: "12px var(--dos-gutter) 0" }}>
         {/* the page's own `<h1>`, in the one heading standard (DeskTop + HueHead, 28 Oct 2026) */}
-        <DeskTop style={{ margin: "0 0 14px" }}>
+        <DeskTop style={{ margin: "0 0 12px" }}>
           <HueHead
             title={isAdmin ? "Support" : "DanceOS support"}
             color={SUPPORT_TINT}

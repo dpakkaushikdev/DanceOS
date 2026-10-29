@@ -891,7 +891,7 @@ export function CalendarScreen({ mode, months, todayKey, entries, practices = []
         margin: "0 auto",
         fontFamily: DOS_UI,
         minHeight: "100vh",
-        padding: "14px var(--dos-gutter) 40px",
+        padding: "12px var(--dos-gutter) 40px",
         boxSizing: "border-box",
       }}
     >

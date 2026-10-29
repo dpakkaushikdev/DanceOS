@@ -165,7 +165,7 @@ export function EarningsScreen({
   const tops = topGroups(revItems, 5);
 
   return (
-    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "8px var(--dos-gutter) 40px", boxSizing: "border-box" }}>
+    <div style={{ background: LILAC, color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "0 var(--dos-gutter) 40px", boxSizing: "border-box" }}>
       <DeskTop>
         {title === DOS_TOOLS.earn.name ? (
           <DeskHero tool="earn" as="h1" margin="0" />

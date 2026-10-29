@@ -344,8 +344,8 @@ export default async function ClassSharePage({
          retired by R48 and the gate had been dead for a day) */
       /* ⚠ the runner of the studio whose ROOM it is held in books no seat either
          (30 Oct 2026) — they run its door; the app's rule, as on Discover */
-      viewerCanBook={canBookClass(actingAs) && !venueRunner}
-      cannotBookWhy={actingAs && !canBookClass(actingAs) ? noBookingWords(actingAs) : venueRunner ? "You run this class" : null}
+      viewerCanBook={canBookClass(actingAs)}
+      cannotBookWhy={actingAs && !canBookClass(actingAs) ? noBookingWords(actingAs) : null}
       passes={passes}
       openOn={openOn}
       doorOnly={doorOnly}

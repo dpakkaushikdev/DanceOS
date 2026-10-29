@@ -280,9 +280,11 @@ const measureRail = (page, selector) =>
       check(h.subText === "Dance First, Think Later!", `${theme}: "Dance First, Think Later!" is the line under the heading — read "${h.subText}"`);
       check(h.subFont >= 14, `${theme}: a bit bigger than the old 12.5px — ${h.subFont}px`);
       check(h.subFont < h.font, `${theme}: and it is SMALLER than the heading — ${h.subFont}px against ${h.font}px, which is yesterday's hierarchy the other way up`);
-      check(h.chipFound, `${theme}: the place chip is in that row`);
-      check(h.sameLine, `${theme}: and SHARES its line — the row is ${h.rowH}px against a tallest child of ${h.tallest}px, so the two are side by side and not stacked`);
-      check(h.subLeftOfChip === true, `${theme}: with the chip to its right`);
+      /* ⚠ 29 Oct 2026: the city chip is GONE — the place is the address search
+         under the tabs (C191), so the row holds the line alone */
+      check(!h.chipFound, `${theme}: no city chip in that row any more`);
+      check((await page.getByLabel("Search an address").count()) === 1, `${theme}: the address search is the place control`);
+      check((await page.getByLabel("Search DanceOS", { exact: true }).count()) === 0, `${theme}: and Discover carries no DanceOS search (Pulse has it)`);
       check(h.gapToRow >= 4 && h.gapToRow <= 8, `${theme}: and the gap under the heading is the head's own measured rhythm — ${h.gapToRow}px`);
     }
 

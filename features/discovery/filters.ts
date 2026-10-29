@@ -172,7 +172,10 @@ export const filtersOnCount = (f: DiscoverFilters, tab: string): number =>
   (tab === "styles" && f.has ? 1 : 0) +
   (tab === "classes" && f.prices.length ? 1 : 0) +
   (isPricedTab(tab) && priceRangeOn(f) ? 1 : 0) +
-  (tab === "studios" && f.dist !== "any" ? 1 : 0) +
+  /* a distance bites on Studios always, and on the measured shelves once a
+     point is set (29 Oct 2026) — the caller cannot see the point, so a carried
+     `dist` counts on those three too; it is only ever set from a measured page */
+  (["studios", "classes", "artists", "styles"].includes(tab) && f.dist !== "any" ? 1 : 0) +
   (tab === "classes" && f.when !== "any" ? 1 : 0) +
   (tab === "classes" && f.dur !== "any" ? 1 : 0) +
   /* a sort counts only where the tab offers it — a word carried over from

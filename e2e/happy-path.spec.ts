@@ -1874,7 +1874,9 @@ test.describe.serial("DanceOS, end to end", () => {
     // events branch (the migration's to drop) and nothing can reach it — the
     // repository drops event hits before they are offered, because a row that
     // opens a 404 is worse than no row.
-    await learner.goto("/discover?city=Pune&tab=classes");
+    /* ⚠ THE DANCEOS SEARCH IS PULSE'S (29 Oct 2026): Discover's box searches an
+       address now, so the people-and-studios search is asked on /pulse */
+    await learner.goto("/pulse");
     /* the STAMPED name, not the shared "E2E Studio" prefix: search_dance_os caps
        each kind at three ordered by name, so leftovers from a killed run pushed
        this run own studio out of its own result list (10 Sep 2026) */
@@ -2177,7 +2179,7 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(personFollow).toHaveAttribute("data-followers", "0");
 
     // the search box offers people now — and the row opens the person
-    await learner.goto("/discover?city=Pune&tab=classes");
+    await learner.goto("/pulse");
     await learner.getByLabel("Search DanceOS").fill(trainerName);
     /* AN ARTIST IS LISTED UNDER ARTISTS, AS THE PERSON (later on 18 Sep 2026, the
        user: "should only come as their profile as artist, no separate page
@@ -2202,7 +2204,7 @@ test.describe.serial("DanceOS, end to end", () => {
     // owner's address is an ordinary signed-in person's page (200, "User"). The
     // ORGANIZATION is a business with a page of its own at /org/{business id},
     // which the push-2 segment reads.
-    await learner.goto("/discover?city=Pune&tab=classes");
+    await learner.goto("/pulse");
     /* two classPeople, each on a term that cannot be crowded out by a leftover: this
        run stamp finds the trainer, and the owner's name finds the owner */
     await learner.getByLabel("Search DanceOS").fill(stamp);

@@ -265,8 +265,9 @@ const pressed = async (loc) => (await loc.getAttribute("aria-pressed").catch(() 
     const gp = await (await browser.newContext({ viewport: { width: 430, height: 932 } })).newPage();
     await gp.goto(`${BASE}/discover?city=Pune&tab=classes`, { waitUntil: "networkidle" });
     const pune = Number(((await gp.getByTestId("shelf-count").innerText().catch(() => "0")).match(/\d+/) || ["0"])[0]);
-    await gp.getByRole("button", { name: "Where to look" }).click();
-    const allRow = gp.getByRole("option", { name: "All cities" });
+    /* ⚠ the place is the ADDRESS SEARCH's since 29 Oct 2026 — All cities is a row in its dropdown */
+    await gp.getByLabel("Search an address").click();
+    const allRow = gp.getByTestId("address-all-cities");
     check((await allRow.count()) === 1, "Discover: the place list offers All cities");
     await allRow.click();
     await gp.waitForURL(/city=all/, { timeout: 15000 }).catch(() => {});
@@ -280,14 +281,14 @@ const pressed = async (loc) => (await loc.getAttribute("aria-pressed").catch(() 
     await gp.goto(`${BASE}/discover?city=all&tab=studios`, { waitUntil: "networkidle" });
     const stText = await gp.getByTestId("shelf-count").innerText().catch(() => "");
     check(/^\s*\d/.test(stText) && !/\bin\b/.test(stText), `studios: "${stText}" — a total and no place word`);
-    const chip = await gp.getByRole("button", { name: "Where to look" }).locator("..").innerText().catch(() => "");
-    check(/All cities/.test(chip), "the chip says All cities");
+    const chip = (await gp.getByLabel("Search an address").getAttribute("placeholder").catch(() => "")) || "";
+    check(/All cities/.test(chip), "the address box says All cities");
     /* ⚠ ANCHORED — "Within 5 km" is the radius quick chip and is not a distance */
     const kms = await gp.locator("text=/^\\d+(\\.\\d+)? k?m$/").count();
     check(kms === 0, `no distance is printed nationwide (${kms})`);
     /* ⚠ no Crews tab since 18 Oct 2026 — the artists shelf reads across every city too */
     await gp.goto(`${BASE}/discover?city=all&tab=artists`, { waitUntil: "networkidle" });
-    check(/All cities/.test(await gp.getByRole("button", { name: "Where to look" }).locator("..").innerText().catch(() => "")), "artists: read across every city");
+    check(/All cities/.test((await gp.getByLabel("Search an address").getAttribute("placeholder").catch(() => "")) || ""), "artists: read across every city");
 
     /* ── A CLASS ASK POINTS AT CLASSES, NOT THE INBOX (11 Oct 2026, 20261017090000,
        B14). Class requests left the Inbox for Classes on 11 Oct, and the

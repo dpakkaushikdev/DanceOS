@@ -70,7 +70,7 @@ export function DosStyleTile({ label, color, on, tap, aria, small }: { label: st
   );
 }
 
-export function DiscoverFilters({ tab, city, filters, styleOrder, tabs, as = null, priceCeil = 500, part = "all" }: { tab: string; city: string; filters: DiscoverFilters; styleOrder: string[]; tabs?: React.ReactNode; /** ⚠ WHICH HALF TO DRAW (18 Oct 2026, the user: "filters should be placed under headings like studios near you, upcoming classes, artist and styles"). "top" is the search box and the tabs, in the top squircle; "bar" is Filters · N, the quick chips and the sheet, drawn under the shelf's own heading. Each half is drawn ONCE on the page, so no control answers to its name twice. */ part?: "all" | "top" | "bar"; /** ⚠ WHICH PROFILE IS READING THIS SHELF — carried through every href this control builds (27 Sep 2026). Dropping it on a style tap would have quietly restored the Book button a studio is not supposed to have: the gate is only as durable as the least careful link on the page. */ as?: string | null; /** the price bar's right end — the dearest class in this city, worked out by the page (10 Oct 2026) */ priceCeil?: number }) {
+export function DiscoverFilters({ tab, city, filters, styleOrder, tabs, as = null, priceCeil = 500, part = "all", search = null, place = {}, measured = false }: { /** ⚠ THE BOX AT THE TOP (29 Oct 2026): Discover hands in its address search here, in place of the "Search DanceOS" box Pulse keeps */ search?: React.ReactNode; /** where the page is measured from (`near`, `at`) — carried by every filter change so a filter never forgets the place */ place?: Record<string, string>; /** is the page measured from a POINT (Near me or an address) — then a distance means something on Classes, Artists and Styles too */ measured?: boolean; tab: string; city: string; filters: DiscoverFilters; styleOrder: string[]; tabs?: React.ReactNode; /** ⚠ WHICH HALF TO DRAW (18 Oct 2026, the user: "filters should be placed under headings like studios near you, upcoming classes, artist and styles"). "top" is the search box and the tabs, in the top squircle; "bar" is Filters · N, the quick chips and the sheet, drawn under the shelf's own heading. Each half is drawn ONCE on the page, so no control answers to its name twice. */ part?: "all" | "top" | "bar"; /** ⚠ WHICH PROFILE IS READING THIS SHELF — carried through every href this control builds (27 Sep 2026). Dropping it on a style tap would have quietly restored the Book button a studio is not supposed to have: the gate is only as durable as the least careful link on the page. */ as?: string | null; /** the price bar's right end — the dearest class in this city, worked out by the page (10 Oct 2026) */ priceCeil?: number }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [tapped, setTapped] = useState<string | null>(null);
@@ -82,7 +82,7 @@ export function DiscoverFilters({ tab, city, filters, styleOrder, tabs, as = nul
   useCloseOnBack(() => setOpen(false), open, { spend: false });
 
   const go = (next: DiscoverFilters) => {
-    const p = new URLSearchParams({ city, tab, ...filtersToParams(next), ...(as ? { as } : {}) });
+    const p = new URLSearchParams({ city, tab, ...place, ...filtersToParams(next), ...(as ? { as } : {}) });
     router.replace(`/discover?${p.toString()}`, { scroll: false });
   };
   const toggleStyle = (s: string) => {
@@ -128,7 +128,12 @@ export function DiscoverFilters({ tab, city, filters, styleOrder, tabs, as = nul
   const flipWhen = (w: When) => go({ ...filters, when: filters.when === w ? "any" : w });
   const flipDist = (d: Dist) => go({ ...filters, dist: filters.dist === d ? "any" : d });
   const flipSort = (s: SortBy) => go({ ...filters, sort: filters.sort === s ? "near" : s });
-  const quick: Array<[string, string, boolean, () => void]> = isStyles
+  /* ⚠ A DISTANCE ON EVERY MEASURED SHELF (29 Oct 2026, the user: "have near me
+     also for classes artist and styles according to the classes they hold"):
+     once the page is measured from a point, a class is as far as where it is
+     held, an artist as their nearest class, a style as its nearest class */
+  const distQuick: Array<[string, string, boolean, () => void]> = measured && (tab === "classes" || tab === "artists" || isStyles) ? [["d5", "Within 5 km", filters.dist === "5", () => flipDist("5")]] : [];
+  const tabQuick: Array<[string, string, boolean, () => void]> = isStyles
     ? [
         ["has", city === ALL_CITIES ? "With classes" : `Classes in ${city}`, filters.has, () => go({ ...filters, has: !filters.has })],
         ["popular", "Most classes", filters.sort === "popular", () => flipSort("popular")],
@@ -156,6 +161,7 @@ export function DiscoverFilters({ tab, city, filters, styleOrder, tabs, as = nul
                 ["members", "Most members", filters.sort === "members", () => flipSort("members")],
               ]
             : [];
+  const quick = [...distQuick, ...tabQuick];
   /* the families, one tap each — a picked one leaves this row and becomes its
      removable pill below, so it is never shown twice */
   const QUICK_FAMS: Array<[string, string]> = [
@@ -195,7 +201,7 @@ export function DiscoverFilters({ tab, city, filters, styleOrder, tabs, as = nul
       {part !== "bar" ? (
       <>
       {/* the global search box: everything, in sections (4535) */}
-      <SearchBox city={city} />
+      {search ?? <SearchBox city={city} />}
 
       {/* the five section tabs — the page hands them in, so they sit under the search box as they do in the prototype (4571) */}
       {tabs}
@@ -291,7 +297,7 @@ export function DiscoverFilters({ tab, city, filters, styleOrder, tabs, as = nul
                 promised an order the list never had */}
             <Row label="SORT BY">{pick<SortBy>(SORTS_FOR[tab] ?? SORTS_FOR.classes, (SORTS_FOR[tab] ?? []).some(([s]) => s === filters.sort) ? filters.sort : "near", (v) => go({ ...filters, sort: v }))}</Row>
             {/* a distance is only measured on the Studios shelf (the radius search) */}
-            {tab === "studios" ? <Row label="DISTANCE">{pick<Dist>([["any", "Any"], ["2", "Within 2 km"], ["5", "Within 5 km"], ["10", "Within 10 km"]], filters.dist, (v) => go({ ...filters, dist: v }))}</Row> : null}
+            {tab === "studios" || (measured && (tab === "classes" || tab === "artists" || isStyles)) ? <Row label="DISTANCE">{pick<Dist>([["any", "Any"], ["2", "Within 2 km"], ["5", "Within 5 km"], ["10", "Within 10 km"]], filters.dist, (v) => go({ ...filters, dist: v }))}</Row> : null}
             {tab === "classes" ? <Row label="TIME OF DAY">{pick<When>([["any", "Any"], ["morning", "Morning"], ["afternoon", "Afternoon"], ["evening", "Evening"]], filters.when, (v) => go({ ...filters, when: v }))}</Row> : null}
             {tab === "classes" ? <Row label="DURATION">{pick<Dur>([["any", "Any"], ["60", "Up to 1 h"], ["90", "Up to 1½ h"], ["120", "Up to 2 h"]], filters.dur, (v) => go({ ...filters, dur: v }))}</Row> : null}
             {/* THE PRICE BAR (10 Oct 2026, the user: "a price range bar which can

@@ -355,14 +355,18 @@ export async function findPublishedClasses(
     return style ? q.eq("style", style) : q;
   };
 
+  /* ⚠ THE PINS RIDE THIS READ ALONE (29 Oct 2026) — Discover measures a class
+     by where it is held, so the owner's and the venue's lat/lng come along; no
+     other read asks for them */
+  const B = "name, area, city, type, profile_photo_path, lat, lng";
   const reads = city
     ? [
-        base(OWNER_AND_VENUE(true)).eq("businesses.city", city),
-        base(`businesses!classes_business_id_fkey (name, area, city, type, profile_photo_path), venue:businesses!classes_venue_business_id_fkey!inner (name, area, city, type, profile_photo_path)`)
+        base(`businesses!classes_business_id_fkey!inner (${B}), venue:businesses!classes_venue_business_id_fkey (${B})`).eq("businesses.city", city),
+        base(`businesses!classes_business_id_fkey (${B}), venue:businesses!classes_venue_business_id_fkey!inner (${B})`)
           .eq("venue_status", "accepted")
           .eq("venue.city", city),
       ]
-    : [base(OWNER_AND_VENUE(false))];
+    : [base(`businesses!classes_business_id_fkey (${B}), venue:businesses!classes_venue_business_id_fkey (${B})`)];
 
   const results = await Promise.all(reads.map((q) => q.order("created_at", { ascending: false }).limit(limit)));
   const seen = new Set<string>();
@@ -378,14 +382,21 @@ export async function findPublishedClasses(
       rows.push(row);
     }
   }
-  return rows.slice(0, limit).map((row) => ({
-    ...toClass(row),
-    businessName: row.businesses?.name ?? "",
-    businessType: row.businesses?.type ?? "studio",
-    businessArea: row.businesses?.area ?? null,
-    businessCity: row.businesses?.city ?? null,
-    ...venueOf(row),
-  }));
+  const pin = (o: { lat?: number | null; lng?: number | null } | null | undefined) =>
+    o && typeof o.lat === "number" && typeof o.lng === "number" ? { lat: o.lat, lng: o.lng } : null;
+  return rows.slice(0, limit).map((row) => {
+    const own = row.lat != null && row.lng != null ? { lat: row.lat, lng: row.lng } : null;
+    const venue = row.venue_status === "accepted" ? pin(row.venue as { lat?: number | null; lng?: number | null } | null) : null;
+    return {
+      ...toClass(row),
+      businessName: row.businesses?.name ?? "",
+      businessType: row.businesses?.type ?? "studio",
+      businessArea: row.businesses?.area ?? null,
+      businessCity: row.businesses?.city ?? null,
+      ...venueOf(row),
+      heldAt: own ?? venue ?? pin(row.businesses as { lat?: number | null; lng?: number | null } | null),
+    };
+  });
 }
 
 /** One class by its share slug — the /c/{slug} detail page. No policy of its own:

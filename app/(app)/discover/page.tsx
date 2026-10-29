@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { HERE_COOKIE, NEAR_CENTRE, nearestCity, parsePoint } from "@/lib/geo/here";
+import { HERE_COOKIE, NEAR_CENTRE, distanceKm, nearestCity, parsePoint } from "@/lib/geo/here";
 import { amIPlatformAdmin } from "@/repositories/admin";
 import { InvertedPanel } from "@/components/ui/InvertedPanel";
 import { TopPanel } from "@/components/ui/TopPanel";
@@ -16,7 +16,7 @@ import { dosStyleColor } from "@/lib/constants/styles";
 import { DiscoverFilters } from "@/features/discovery/components/DiscoverFilters";
 import { DiscoverTabs } from "@/features/discovery/components/DiscoverTabs";
 import { FollowedShelf, type FollowedTile } from "@/features/discovery/components/FollowedShelf";
-import { PlaceChip } from "@/features/discovery/components/PlaceChip";
+import { AddressSearch } from "@/features/discovery/components/AddressSearch";
 import { TurnOnLocationRow } from "@/features/geo/components/TurnOnLocationRow";
 import { StudioCard } from "@/features/discovery/components/StudioCard";
 import { ArtistI, ClassI, ShelfHead, StudioI } from "@/features/discovery/components/discover-kit";
@@ -204,7 +204,8 @@ export default async function DiscoverPage({
   const nearOff = params.near === NEAR_CENTRE;
   const near = parsePoint(params.near) ?? (!nearOff && here && hereCity && city === hereCity ? here : null);
   /* what a tab link must carry so the next tab is measured from the same place */
-  const placeQ = atLabel ? `&near=${encodeURIComponent(params.near ?? "")}&at=${encodeURIComponent(atLabel)}` : nearOff ? `&near=${NEAR_CENTRE}` : "";
+  const placeParams: Record<string, string> = atLabel && params.near ? { near: params.near, at: atLabel } : parsePoint(params.near) && params.near ? { near: params.near } : nearOff ? { near: NEAR_CENTRE } : {};
+  const placeQ = atLabel ?`&near=${encodeURIComponent(params.near ?? "")}&at=${encodeURIComponent(atLabel)}` : nearOff ? `&near=${NEAR_CENTRE}` : "";
   /* the city's own centre from the registry; a city nobody has been to yet has
      none, and then the country is the honest place to measure from */
   const centre = near ?? (allCities ? null : centreOf(cities, city)) ?? INDIA_CENTRE;
@@ -277,10 +278,29 @@ export default async function DiscoverPage({
      accepted it. This line used to re-filter on the OWNER's city and threw away
      every artist's class held at a studio in another city, which is exactly the
      class the user found missing from Gurugram. */
+  /* ⚠⚠ NEAR ME ON EVERY SHELF (29 Oct 2026, the user: "have near me also for
+     classes artist and styles according to the classes they hold"). Once the
+     page is measured from a POINT — Near me, or a searched address — a class is
+     as far as where it is HELD (its own pin, else the studio that said yes, else
+     the owner's), an artist as their nearest class, a style as its nearest
+     class. The sheet's distance narrows all three, and "near" — each tab's
+     default order — means nearest first. A class whose place is not on the map
+     stays on the shelf, last, rather than vanishing: a missing pin is not a
+     long way away. */
+  const heldKm = (c: { heldAt?: { lat: number; lng: number } | null }): number | null => (near && c.heldAt ? distanceKm(near, c.heldAt) : null);
+  const distLimit = near && filters.dist !== "any" ? Number(filters.dist) : null;
+  const withinLimit = (km: number | null): boolean => distLimit === null || (km !== null && km <= distLimit);
+  const nearestFirst = <T,>(list: T[], km: (x: T) => number | null): T[] =>
+    near && filters.sort === "near"
+      ? list
+          .map((x, i) => ({ x, i, k: km(x) }))
+          .sort((a, b) => (a.k ?? Number.POSITIVE_INFINITY) - (b.k ?? Number.POSITIVE_INFINITY) || a.i - b.i)
+          .map((o) => o.x)
+      : list;
   const inCity = filterClasses(
     allClasses,
     filters
-  );
+  ).filter((c) => withinLimit(heldKm(c)));
 
   /* THE TAB'S OWN READS, IN ONE ROUND TRIP (19 Sep 2026, "make app snappier" —
      these ran one after another, several of them serial for no reason):
@@ -334,14 +354,18 @@ export default async function DiscoverPage({
     /* the followed studios' faces on the Classes tab too (18 Oct 2026) */
     wantsBusinesses || (tab === "classes" && followedIds.length > 0) ? findBusinessCardFacts(supabase, [...nearbyIds, ...followedIds]) : Promise.resolve(new Map<string, BusinessCardFacts>()),
     wantsBusinesses ? findStudioHeaderPhotosMany(supabase, nearbyIds) : Promise.resolve(new Map<string, HeaderPhoto[]>()),
-    wantsArtists && priceAsked ? findClassArtists(supabase, allClasses.map((c) => c.id)) : Promise.resolve(new Map<string, ClassArtist>()),
+    wantsArtists && (priceAsked || near) ? findClassArtists(supabase, allClasses.map((c) => c.id)) : Promise.resolve(new Map<string, ClassArtist>()),
     /* the follower pill on every style tile (10 Oct 2026) — an aggregate, never a name */
     tab === "styles" ? findStyleFollowerCounts() : Promise.resolve(new Map<string, number>()),
   ]);
   const pricesByArtist = new Map<string, number[]>();
+  /* an artist is as far as the nearest class they teach (29 Oct 2026) */
+  const kmByArtist = new Map<string, number>();
   allClasses.forEach((c) => {
     const who = teachersOfAll.get(c.id)?.userId;
     if (!who) return;
+    const km = heldKm(c);
+    if (km !== null && km < (kmByArtist.get(who) ?? Number.POSITIVE_INFINITY)) kmByArtist.set(who, km);
     const list = pricesByArtist.get(who) ?? [];
     list.push(c.priceInr);
     pricesByArtist.set(who, list);
@@ -357,7 +381,7 @@ export default async function DiscoverPage({
      ⚠ The host cards (18 Sep 2026) and what this person already held (27 Sep)
      went with events on 29 Sep. */
   /* an artist narrows by style through THEIR OWN styles — the ones on their profile */
-  const artistsFiltered = wantsArtists ? recommendFirst(artistsRaw.filter((a) => anyStyleOk(filters, a.styles) && anyPriceOk(filters, pricesByArtist.get(a.id))), learnStyles, filters, (a) => a.styles) : [];
+  const artistsFiltered = wantsArtists ? recommendFirst(artistsRaw.filter((a) => anyStyleOk(filters, a.styles) && anyPriceOk(filters, pricesByArtist.get(a.id)) && withinLimit(kmByArtist.get(a.id) ?? null)), learnStyles, filters, (a) => a.styles) : [];
   /* ⚠ one round for every tab's per-card counts (10 Oct 2026): the crews' and the
      artists' follower counts used to be two more rounds of their own */
   const [counts, classArtists, crewFollowers, personCounts, ranIds] = await Promise.all([
@@ -389,8 +413,8 @@ export default async function DiscoverPage({
     const taken = sid ? counts.get(sid) ?? 0 : 0;
     return !(c.capacity > 0 && taken >= c.capacity);
   };
-  const classesShown = tab === "classes" ? sortShelf(classes.filter(bookable), filters.sort, { popular: (c) => (c.session ? counts.get(c.session.id) ?? 0 : 0) }) : classes;
-  const artists = sortShelf(artistsFiltered, filters.sort, { name: (a) => a.name, popular: (a) => personCounts.get(a.id)?.followers ?? 0, price: (a) => minOf(pricesByArtist.get(a.id)) });
+  const classesShown = tab === "classes" ? nearestFirst(sortShelf(classes.filter(bookable), filters.sort, { popular: (c) => (c.session ? counts.get(c.session.id) ?? 0 : 0) }), heldKm) : classes;
+  const artists = nearestFirst(sortShelf(artistsFiltered, filters.sort, { name: (a) => a.name, popular: (a) => personCounts.get(a.id)?.followers ?? 0, price: (a) => minOf(pricesByArtist.get(a.id)) }), (a) => kmByArtist.get(a.id) ?? null);
   const crews = sortShelf(crewsFiltered, filters.sort, { name: (c) => c.name, popular: (c) => crewFollowers.get(c.id) ?? 0, members: (c) => c.members });
   const businesses = wantsBusinesses
     ? sortShelf(recommendFirst(filterBusinesses(nearby, filters, stylesByBusiness, pricesByBusiness), learnStyles, filters, (b) => stylesByBusiness.get(b.id) ?? []), filters.sort, {
@@ -403,7 +427,23 @@ export default async function DiscoverPage({
   const priceCeil = priceCeilOf(allClasses.map((c) => c.priceInr));
   const followed = following.filter((f) => f.businessType === "studio");
   /* the Styles tab's own shelf, narrowed by its own filters (2 Oct 2026) */
-  const styleShelf = tab === "styles" ? recommendFirst(filterStyleShelf(stylesShelfOrder(), filters, styleCount, styleFollowers), learnStyles, filters, (x) => [x]) : [];
+  /* a style is as far as the nearest class of it (29 Oct 2026); with a distance
+     limit on, only the classes inside it count toward "has classes" and popularity */
+  const kmByStyle = new Map<string, number>();
+  const styleCountNear = new Map<string, number>();
+  allClasses.forEach((c) => {
+    const km = heldKm(c);
+    if (km !== null && km < (kmByStyle.get(c.style) ?? Number.POSITIVE_INFINITY)) kmByStyle.set(c.style, km);
+    if (withinLimit(km)) styleCountNear.set(c.style, (styleCountNear.get(c.style) ?? 0) + 1);
+  });
+  const styleShelf = tab === "styles"
+    ? nearestFirst(
+        recommendFirst(
+          filterStyleShelf(stylesShelfOrder(), filters, distLimit !== null ? styleCountNear : styleCount, styleFollowers)
+            .filter((s) => distLimit === null || (styleCountNear.get(s) ?? 0) > 0),
+          learnStyles, filters, (x) => [x]),
+        (s) => kmByStyle.get(s) ?? null)
+    : [];
   /* the follower count sits at the foot of every card — a number, never a name (Step 15);
      the faces come from the businesses themselves (the nearby RPC carries none) */
   /* ⚠⚠ AND THE POSTERS THE CARD SWIPES THROUGH (27 Sep 2026, the user: "Studio
@@ -613,7 +653,6 @@ export default async function DiscoverPage({
         <span data-testid="discover-sub" style={{ ...TAB_SUB, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           Dance First, Think Later!
         </span>
-        <PlaceChip city={city} cities={cities} tab={tab} extra={{ ...filtersToParams(filters), ...(asRaw ? { as: asRaw } : {}) }} near={near !== null} at={atLabel} offerNearMe={wantsBusinesses} />
       </div>
       {/* the standard "turn on location" row (28 Oct 2026) — only while nothing
           says where this person is: no cookie from the phone, no point in the address */}
@@ -623,7 +662,16 @@ export default async function DiscoverPage({
           UNDER THE SHELF'S HEADING (18 Oct 2026, the user: "filters should be
           placed under headings like studios near you, upcoming classes, artist
           and styles") — the same component, its other half, drawn below */}
-      <DiscoverFilters part="top" tab={tab} city={city} filters={filters} styleOrder={styleOrder} tabs={tabTiles} as={asRaw} priceCeil={priceCeil} />
+      {/* ⚠ THE SEARCH BOX IS AN ADDRESS SEARCH, AND IT IS THE ONLY PLACE CONTROL
+          (29 Oct 2026, the user: "search on discover should be replaced by search
+          an address … merge nearby with the search an address and remove the city
+          drop down"). Near me and All cities are rows in its dropdown; the city is
+          read off the address picked. Pulse keeps the DanceOS search. */}
+      <DiscoverFilters
+        part="top" tab={tab} city={city} filters={filters} styleOrder={styleOrder} tabs={tabTiles} as={asRaw} priceCeil={priceCeil}
+        place={placeParams} measured={near !== null}
+        search={<AddressSearch city={city} cities={cities} tab={tab} extra={{ ...filtersToParams(filters), ...(asRaw ? { as: asRaw } : {}) }} near={near} at={atLabel} />}
+      />
       </TopPanel>
 
       {/* "Followed by you" (FollowedRow 4112, mounted 4767) — Studios and Artists, for a signed-in person */}
@@ -656,7 +704,7 @@ export default async function DiscoverPage({
               unit={tab === "styles" ? "styles" : tab === "classes" ? "classes" : tab === "artists" ? "artists" : "studios"}
               testId="shelf-count"
             />
-            <DiscoverFilters part="bar" tab={tab} city={city} filters={filters} styleOrder={styleOrder} as={asRaw} priceCeil={priceCeil} />
+            <DiscoverFilters part="bar" tab={tab} city={city} filters={filters} styleOrder={styleOrder} as={asRaw} priceCeil={priceCeil} place={placeParams} measured={near !== null} />
           </div>
         }
       >

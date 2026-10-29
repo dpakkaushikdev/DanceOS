@@ -149,4 +149,8 @@ export interface PublicClassListing extends DanceClass {
   venueName: string | null;
   venueArea: string | null;
   venueCity: string | null;
+  /** WHERE IT IS HELD, as a point (29 Oct 2026): the class's own pin at an
+   *  artist's own place, else the accepted venue's, else the owner's. Read by
+   *  Discover's Near me / address search alone; null on every other read. */
+  heldAt?: { lat: number; lng: number } | null;
 }

@@ -1,4 +1,4 @@
-import { DOS_STYLE_NAMES } from "./styles";
+import { DOS_STYLE_NAMES, styleSlug } from "./styles";
 
 /** WHAT A DANCE STYLE IS — the Styles section on Discover and each style's own
  *  page (2 Oct 2026, the user: "New section in discover called Styles. All dance
@@ -25,8 +25,9 @@ export interface StyleInfo {
   notable: string[];
 }
 
-export const styleSlug = (style: string): string =>
-  style.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+/* lives beside the registry (29 Oct 2026) so the client search box can link a
+   style without pulling this file's text into its bundle */
+export { styleSlug };
 
 const BY_SLUG = new Map(DOS_STYLE_NAMES.map((s) => [styleSlug(s), s]));
 /** the style a slug names, or null — a URL is a request, the registry decides */

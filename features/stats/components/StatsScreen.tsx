@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CitySelect } from "@/features/geo/components/CitySelect";
 import { useState } from "react";
 import { dosStyleColor } from "@/lib/constants/styles";
 import { Sheet } from "@/features/profiles/components/profile-kit";
@@ -11,10 +10,10 @@ import { columnTab, columnTrack } from "@/components/ui/ColumnTabs";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { TopPanel } from "@/components/ui/TopPanel";
 import { CARD, DOS_DISPLAY, DOS_UI, INK, LILAC, LINE, MUTED, SUB } from "@/lib/design/tokens";
-import { CHART_METRICS, CHART_SEGMENTS, CREW_POINT_RULES, POINT_RULES, SEG_WORD, SIDE_TINT, chartRowWords, hoursWords, type ChartMetric, type ChartRow, type ChartSegment, type DanceStats, type HistoryRow, type Side, type Standing } from "@/types/stats";
+import { SEG_WORD, SIDE_TINT, chartRowWords, hoursWords, type ChartMetric, type ChartRow, type ChartSegment, type DanceStats, type HistoryRow, type Side, type Standing } from "@/types/stats";
 import { BTN_RESET, BTN_RESET_BLOCK } from "@/components/ui/buttonReset";
-import { photoUrl } from "@/lib/media/photo";
 import { StyleArt } from "@/features/styles/components/StyleArt";
+import { BoardsBrowser } from "@/features/stats/components/BoardsBrowser";
 
 /** Stats — the prototype's Stats is one screen in three dresses, all of
  *  S_profiletab: YOUR RECORD (historyOnly 9862 — "A LIBRARY, NOT A DASHBOARD"),
@@ -44,40 +43,10 @@ type Tab = "record" | "charts";
 
 const DOS_MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace';
 const micro: React.CSSProperties = { fontSize: 9.5, fontWeight: 900, letterSpacing: 1.2, textTransform: "uppercase" };
-const shelf: React.CSSProperties = { fontSize: 17, fontWeight: 900, letterSpacing: -0.5, fontFamily: DOS_DISPLAY };
 const figure: React.CSSProperties = { fontFamily: DOS_MONO, fontWeight: 700, fontVariantNumeric: "tabular-nums", letterSpacing: -0.3 };
 const dayWords = (iso: string) =>
   new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short" }).format(new Date(iso));
 const initialsOf = (name: string) => name.split(" ").filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "D";
-
-/** A face on the board (29 Oct 2026, the user: "show profile pic in rankings in
- *  browse the board") — the profile's own picture, initials on the gradient
- *  when there is none. */
-function BoardFace({ row, size, ring }: { row: ChartRow; size: number; ring?: string }) {
-  const src = photoUrl(row.photoPath ?? null);
-  return (
-    <span
-      style={{
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        flexShrink: 0,
-        overflow: "hidden",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "linear-gradient(135deg,#7C3AED,#EC4899)",
-        color: "#fff",
-        fontWeight: 900,
-        fontFamily: DOS_DISPLAY,
-        fontSize: Math.round(size * 0.33),
-        boxShadow: ring ? `0 0 0 3px ${ring}` : undefined,
-      }}
-    >
-      {src ? <Image src={src} alt="" width={size} height={size} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : initialsOf(row.name)}
-    </span>
-  );
-}
 
 /* the section cards' marks (5 Oct 2026) — one stroke family, drawn in the
    section's own colour inside the band's soft square */
@@ -246,9 +215,6 @@ export function StatsScreen({
   const shownSides: Side[] = isStudioSubject ? ["conducted"] : SIDES;
   const pastOf = (k: Side) => (isStudioSubject && k === "conducted" ? "Held" : SIDE_PAST[k]);
   const [open, setOpen] = useState<string | null>(null);
-  /** the points rules on the Charts board — a disclosure since 27 Sep, where a
-   *  permanent full-width card stood between the controls and the board */
-  const [rulesOpen, setRulesOpen] = useState(false);
   /* opens on the side with the most sessions (29 Oct 2026) — an artist who
      only teaches opened on Trained and read "No classes yet" under a full chart */
   const [cvSide, setCvSide] = useState<Side>(() => {
@@ -280,9 +246,6 @@ export function StatsScreen({
   const assistedFor = tally(bySide("assisted"), (r) => r.artistName);
   const trainedUnder = tally(bySide("attended"), (r) => r.artistName);
 
-  const isCrew = segment === "crew";
-  const isStudio = segment === "studio";
-  const peopleBoard = segment === "dancer" || segment === "artist";
 
   const router = useRouter();
   /* ⚠ NO STYLE ON THE BOARDS (29 Oct 2026, the user: "rankings remove dance
@@ -379,34 +342,6 @@ export function StatsScreen({
     ["studio", isStudioSubject ? "Room" : "Studio"],
   ];
 
-
-  /* the board, in the order the metric asks for (9612, 9699-9703) */
-  const valueOf = (r: ChartRow) => (metric === "overall" ? r.points : metric === "conducted" ? r.conducted : metric === "assisted" ? r.assisted : metric === "attended" ? r.attended : Math.round(r.hours * 10) / 10);
-  const unit = CHART_METRICS.find((m) => m.k === metric)?.unit ?? "pts";
-  const board = metric === "overall" ? chart : [...chart].sort((a, b) => valueOf(b) - valueOf(a)).map((r, i) => ({ ...r, place: i + 1 }));
-  /* ⚠ A PODIUM AND A BAR (18 Oct 2026, the user: "better rankings mechanism and
-     page for all profiles"). The first three stand on a podium when the board
-     really starts at #1 (a filtered city can start anywhere), and every row
-     below carries a bar of its value against the leader's — so a gap reads as a
-     gap, not as two numbers to subtract. Nothing about the ORDER changed: it is
-     still the database's board (`dance_chart`), measured the same way. */
-  const leaderValue = Math.max(1, ...board.map((r) => valueOf(r)));
-  const podiumRows = board.length >= 3 && board[0].place === 1 ? board.slice(0, 3) : [];
-  const listRows = podiumRows.length ? board.slice(3) : board;
-  /** ⚠ ONE SHORT DETAIL LINE FOR EVERY PLACE, 1 TO THE LAST (29 Oct 2026, the
-   *  user: "make sure 1,2,3 also show the same details but try reducing text").
-   *  Numbers with one word each, never a sentence; no dance style. */
-  const hrs = (h: number) => `${Math.round(h * 10) / 10}h`;
-  const detailOf = (r: ChartRow) =>
-    (r.kind === "crew"
-      ? [`${r.extra} members`]
-      : isStudio
-        ? [`${r.conducted} held`, hrs(r.hours), `${r.extra} dancers`]
-        : segment === "artist"
-          ? [`${r.conducted} taught`, `${r.assisted} asst`, hrs(r.hours)]
-          : [`${r.attended} danced`, hrs(r.hours)]
-    ).join(" · ");
-  const hrefOf = (r: ChartRow) => (r.kind === "crew" ? `/crew/${r.id}` : r.kind === "studio" ? `/studio/${r.id}` : `/person/${r.id}`);
 
   /* ── WHOSE RECORD, AND WHAT CAN BE SAID ABOUT IT ─────────────────────────── */
   const isPerson = subjectKind === "person";
@@ -910,146 +845,7 @@ export function StatsScreen({
               </div>
             ) : null}
             {canBrowseBoards ? (
-              <SectionCard icon={ICON.boards} label="BROWSE THE BOARDS" col={SEC.boards}>
-            {/* the four boards, in the app's one column look (11 Oct 2026) */}
-            <div role="group" aria-label="Board" style={{ ...columnTrack(), marginBottom: 9 }}>
-              {CHART_SEGMENTS.filter((s) => s.k !== "crew").map((s) => {
-                const on = segment === s.k;
-                return (
-                  <Link key={s.k} href={chartHref({ seg: s.k })} replace scroll={false} aria-pressed={on} style={columnTab(on)}>
-                    {s.label}
-                  </Link>
-                );
-              })}
-            </div>
-            {/* ⚠ THE METRIC IS A ROW OF CHIPS, NOT A NATIVE SELECT (27 Sep 2026,
-                the user: *"all list drop downs should be within the app only not
-                open a seprate screen"*). On a phone a `<select>` is answered by
-                a full-screen OS picker; there are five metrics and they fit on
-                one scrolling line, so the list IS the control and nothing
-                leaves the app. The city keeps `CitySelect`, which is a sheet
-                now for the same reason. The address is still the state, and a
-                change REPLACES it in place. */}
-            <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", marginBottom: 8 }}>
-              {CHART_METRICS.map((m) => {
-                const on = metric === m.k;
-                return (
-                  <Link key={m.k} href={chartHref({ metric: m.k })} replace scroll={false} aria-pressed={on} style={{ flexShrink: 0, padding: "7px 12px", borderRadius: 999, fontSize: 11, fontWeight: 800, whiteSpace: "nowrap", textDecoration: "none", background: on ? INK : CARD, color: on ? LILAC : SUB, border: `1.5px solid ${on ? INK : LINE}` }}>
-                    {m.label}
-                  </Link>
-                );
-              })}
-            </div>
-            <div style={{ marginBottom: 8 }}>
-              {/* ⚠ `navigates` — picking replaces the address, so the sheet must
-                  not spend its history entry (useCloseOnBack rule 2) */}
-              <CitySelect value={city} cities={cities} ariaLabel="City" allowNone noneLabel="Everywhere" placeholder="Everywhere" navigates onChange={(c) => router.replace(chartHref({ city: c }), { scroll: false })} />
-            </div>
-
-            {/* ⚠⚠ THE RANKINGS SECTION, RE-CUT (27 Sep 2026, the user: *"fix the
-                rankings section properly. make it better"*, and *"remove global
-                from name as only for india"*).
-
-                THREE THINGS WENT, and each was in the way of the board itself:
-                · **the word "Global"**, which was never true — every city on
-                  this board is an Indian city and the registry is the eight the
-                  user fixed on 19 Sep. The hero says "DanceOS · India" now.
-                · **the "How points work" CARD**, which stood between the
-                  controls and the board on every load, at the full width of the
-                  screen, saying the same four rules for ever. It is a Rules
-                  DISCLOSURE beside the count now — pressed when somebody
-                  actually asks "why am I here", closed the rest of the time.
-                · **the paragraph under those rules**, which was three sentences
-                  about what is NOT counted. What a board owes its reader is the
-                  denominator, and that is printed on every place.
-                · **the pinned "you" row**, which repeated the place the hero now
-                  prints for this exact board — and printed it in a third set of
-                  colours. Your own row is HIGHLIGHTED in the board instead, so
-                  where you stand is shown among the people you stand among. */}
-
-            <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6 }}>
-              <span style={shelf}>{CHART_SEGMENTS.find((s) => s.k === segment)?.label}</span>
-              {/* the rules, beside the count, open only when asked */}
-              <button type="button" onClick={() => setRulesOpen((v) => !v)} aria-expanded={rulesOpen} style={{ marginLeft: "auto", fontSize: 10, fontWeight: 900, letterSpacing: 0.3, color: MUTED, background: "none", border: "none", padding: "2px 4px", cursor: "pointer", fontFamily: "inherit" }}>
-                {rulesOpen ? "Hide points" : "Points"}
-              </button>
-              <span style={{ fontSize: 10.5, fontWeight: 800, color: MUTED }} data-testid="chart-population">
-                {chart.length ? `${chart.length} of ${chart[0].population}` : "0"}
-              </span>
-            </div>
-            {rulesOpen ? (
-              <div style={{ background: CARD, border: `1.5px solid ${LINE}`, borderRadius: 14, padding: "4px 12px", marginBottom: 8 }}>
-                {(isCrew ? CREW_POINT_RULES : POINT_RULES).map(([k, v, c]) => (
-                  <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: `1.5px solid ${LINE}` }}>
-                    <span style={{ fontSize: 12, color: SUB }}>{k}</span>
-                    <span style={{ fontSize: 11, fontWeight: 900, padding: "3px 10px", borderRadius: 999, background: `${c}1a`, color: c }}>{v}</span>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-            {board.length === 0 ? (
-              <div style={{ background: CARD, border: `1.5px dashed ${LINE}`, borderRadius: 18, padding: "36px 20px", textAlign: "center" }}>
-                <div style={{ fontSize: 13.5, fontWeight: 800, fontFamily: DOS_DISPLAY }}>No board here yet</div>
-                <div style={{ fontSize: 11.5, color: SUB, marginTop: 4 }}>Nobody in {city ?? "any city"} has finished a session on this board — a board of nobody is not a ranking.</div>
-              </div>
-            ) : (
-              <>
-              {podiumRows.length ? (
-                <div data-testid="board-podium" style={{ display: "grid", gridTemplateColumns: "1fr 1.15fr 1fr", alignItems: "end", gap: 8, margin: "4px 0 12px" }}>
-                  {[podiumRows[1], podiumRows[0], podiumRows[2]].map((r) => {
-                    const medal = r.place === 1 ? "#F59E0B" : r.place === 2 ? "#94A3B8" : "#B45309";
-                    const tall = r.place === 1 ? 70 : r.place === 2 ? 52 : 40;
-                    return (
-                      <Link key={`pod-${r.kind}-${r.id}`} href={hrefOf(r)} aria-label={`${r.name} — place ${r.place} of ${r.population}`} style={{ display: "flex", flexDirection: "column", alignItems: "center", textDecoration: "none", color: INK, minWidth: 0 }}>
-                        <BoardFace row={r} size={r.place === 1 ? 54 : 44} ring={medal} />
-                        <span style={{ height: 6 }} />
-                        <span style={{ fontSize: 11.5, fontWeight: 900, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
-                        {/* the same details every row carries, shorter (29 Oct 2026) */}
-                        <span style={{ fontSize: 10.5, fontWeight: 900, padding: "2px 8px", borderRadius: 999, background: `${medal}26`, color: INK, marginTop: 3, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{valueOf(r)} {unit}</span>
-                        <span style={{ fontSize: 9, fontWeight: 700, color: MUTED, marginTop: 3, marginBottom: 5, maxWidth: "100%", textAlign: "center", lineHeight: 1.3 }}>{detailOf(r)}</span>
-                        <span style={{ width: "100%", height: tall, borderRadius: "12px 12px 4px 4px", background: `linear-gradient(180deg, ${medal}, ${medal}55)`, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 6, color: "#fff", fontFamily: DOS_DISPLAY, fontWeight: 900, fontSize: 20 }}>
-                          {r.place}
-                        </span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              ) : null}
-              {listRows.map((r) => {
-                const href = hrefOf(r);
-                const top3 = r.place <= 3;
-                /* ⚠ YOUR OWN ROW, IN THE BOARD (27 Sep 2026) — where the pinned
-                   card used to be. A ranking is a list of the people you are
-                   ranked among, and lifting one of them out of it to say the
-                   same place a third time is the duplication the rest of this
-                   session has been taking out. */
-                const isYou = peopleBoard && boardPlace != null && r.place === boardPlace.place;
-                return (
-                  /* ⚠ PLACE 4 AND BELOW, RE-CUT (29 Oct 2026, the user: "make the
-                     list which has numbers 4 and below in a better way"): the
-                     place in a rounded badge, the face, the name over ONE short
-                     detail line (no city, no style), the score as a pill, and the
-                     bar against the leader along the row's foot. */
-                  <Link key={`${r.kind}-${r.id}`} href={href} aria-label={`${isYou ? "You — " : ""}${r.name} — place ${r.place} of ${r.population}`} style={{ position: "relative", overflow: "hidden", display: "flex", alignItems: "center", gap: 10, background: isYou ? "linear-gradient(120deg,#7C3AED22,#EC489922)" : CARD, border: `1.5px solid ${isYou ? "#7C3AED77" : LINE}`, borderRadius: 14, padding: "10px 12px 12px", marginBottom: 7, color: INK, textDecoration: "none" }}>
-                    <span style={{ ...figure, width: 28, height: 28, borderRadius: 9, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12.5, fontFamily: DOS_DISPLAY, fontWeight: 900, background: top3 ? "linear-gradient(135deg,#7C3AED,#EC4899)" : LINE, color: top3 ? "#fff" : SUB }}>{r.place}</span>
-                    <BoardFace row={r} size={36} />
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: "block", fontSize: 13, fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {r.name}
-                        {isYou ? <span style={{ marginLeft: 6, fontSize: 8.5, fontWeight: 900, letterSpacing: 0.6, padding: "2px 6px", borderRadius: 999, background: "#7C3AED", color: "#fff", verticalAlign: "middle" }}>YOU</span> : null}
-                      </span>
-                      <span style={{ display: "block", fontSize: 10, fontWeight: 700, color: MUTED, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{detailOf(r)}</span>
-                    </span>
-                    <span aria-hidden="true" style={{ position: "absolute", left: 0, bottom: 0, height: 3, width: `${Math.max(4, (valueOf(r) / leaderValue) * 100)}%`, background: "linear-gradient(90deg,#7C3AED,#EC4899)" }} />
-                    <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 900, padding: "4px 10px", borderRadius: 999, border: `1.5px solid ${LINE}`, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
-                      {valueOf(r)} <span style={{ fontSize: 9, fontWeight: 800, color: MUTED }}>{unit}</span>
-                    </span>
-                  </Link>
-                );
-              })}
-              </>
-            )}
-              </SectionCard>
+              <BoardsBrowser chart={chart} segment={segment} metric={metric} city={city} cities={cities} basePath={basePath} baseQuery="tab=charts" boardPlace={boardPlace} />
             ) : null}
           </>
         ) : null}

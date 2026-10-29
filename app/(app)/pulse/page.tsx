@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { PulseScreen } from "@/features/pulse/components/PulseScreen";
+import { loadBoard, type BoardQuery } from "@/features/stats/server/loadBoard";
 import { amIPlatformAdmin } from "@/repositories/admin";
 import { resolveActingAs } from "@/repositories/actingAs";
 import { findMyDeck } from "@/repositories/home";
 import { findPublicPerson } from "@/repositories/publicPerson";
-import { findChart, findEntityChartRow, findMyStats, withChartPhotos } from "@/repositories/stats";
+import { findMyStats } from "@/repositories/stats";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { kindOf } from "@/types/profile";
-import type { ChartRow, ChartSegment } from "@/types/stats";
 
 export const metadata: Metadata = { title: "Pulse — DanceOS" };
 
@@ -18,15 +18,14 @@ export const metadata: Metadata = { title: "Pulse — DanceOS" };
  *  rankings for that person, search bar from discover … also give an option on
  *  this page with a button to look at overall rankings as well").
  *
- *  Your day, your numbers and where you stand, on one screen: the search box
- *  (Discover's own, shared), Today's schedule (the deck put away on 28 Oct, C182),
- *  your record's figures, your standing nationally and in your city with the top
- *  of your board, and Overall rankings opening the full boards.
+ *  Your day and your numbers, then the board — the stats screen's own BROWSE THE
+ *  BOARDS card (the user, later the same day: "where you stand should be browse
+ *  the board"), your row marked — and Overall rankings opening `/rankings`.
  *
  *  ⚠ Every read is one the app already makes — no migration. A studio or a crew
  *  profile has no Pulse: the switcher's cookie sends it to its own page, the same
  *  rule Discover keeps (C185). */
-export default async function PulsePage() {
+export default async function PulsePage({ searchParams }: { searchParams: Promise<BoardQuery> }) {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -42,32 +41,23 @@ export default async function PulsePage() {
   const person = await findPublicPerson(supabase, user.id);
   if (!person) redirect((await amIPlatformAdmin(supabase)) ? "/admin/verifications" : "/onboarding");
 
+  const query = await searchParams;
   const kind = kindOf(person.isArtist);
-  const segment: ChartSegment = person.isArtist ? "artist" : "dancer";
   const city = person.profile.city;
   const nowIso = new Date().toISOString();
 
-  const [deck, stats, everywhere, inCity, top] = await Promise.all([
+  const [deck, stats, board] = await Promise.all([
     findMyDeck(supabase, user.id, nowIso),
     findMyStats(supabase),
-    findEntityChartRow(supabase, { segment, id: user.id }),
-    city ? findEntityChartRow(supabase, { segment, id: user.id, city }) : Promise.resolve(null),
-    findChart(supabase, { segment, city: null, style: null, limit: 3 })
-      .then((rows) => withChartPhotos(supabase, rows))
-      .catch(() => [] as ChartRow[]),
+    loadBoard(supabase, query, person.isArtist ? "artist" : "dancer"),
   ]);
 
   return (
     <PulseScreen
       me={{ id: user.id, name: person.profile.fullName, photoPath: person.profile.avatarPath ?? null, city, kind }}
-      segment={segment}
       deck={deck}
       stats={stats}
-      standings={[
-        { scope: "Everywhere", row: everywhere },
-        ...(city ? [{ scope: `In ${city}`, row: inCity }] : []),
-      ]}
-      top={top}
+      board={board}
       nowIso={nowIso}
     />
   );

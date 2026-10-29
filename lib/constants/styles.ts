@@ -54,6 +54,10 @@ export const DOS_STYLE_REG: ReadonlyArray<readonly [string, string]> = [
 
 export const DOS_STYLE_NAMES: readonly string[] = DOS_STYLE_REG.map(([name]) => name);
 
+/** A style's address — `/styles/{slug}`. */
+export const styleSlug = (style: string): string =>
+  style.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
 const STYLE_COLOR_BY_LABEL: Record<string, string> = Object.fromEntries(DOS_STYLE_REG);
 
 /** A style's colour — ask the registry, never a copy on the record (prototype line 1684). */

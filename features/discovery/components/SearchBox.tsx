@@ -8,7 +8,20 @@ import { gradientOf } from "@/features/profiles/components/profile-kit";
 import { photoUrl } from "@/lib/media/photo";
 import { BTN_RESET } from "@/components/ui/buttonReset";
 import type { SearchHit, SearchKind } from "@/repositories/search";
+import { DOS_STYLE_NAMES, dosStyleColor, styleSlug } from "@/lib/constants/styles";
 import { ALL_CITIES } from "../filters";
+
+/* DANCE STYLES IN THE BOX (29 Oct 2026, the user: "search bar should also have
+   dance styles"). The registry is fifty names already in the bundle, so they are
+   matched here with the prototype's own rule — the name starts with the term, or
+   a word in it does — and never cost a round trip. */
+function styleHits(term: string): string[] {
+  const t = term.toLowerCase();
+  return DOS_STYLE_NAMES.filter((n) => {
+    const s = n.toLowerCase();
+    return s.startsWith(t) || s.split(/[\s-/&]+/).some((w) => w.startsWith(t));
+  }).slice(0, 3);
+}
 
 /** THE ONE SEARCH BOX (lifted out of DiscoverFilters, 29 Oct 2026, so Pulse and
  *  Discover draw the same control — two copies of a search box are two search
@@ -51,6 +64,7 @@ export function SearchBox({ city, margin = "12px 0 4px", placeholder = "Search" 
   }, [term]);
   const hits = answer.term === term ? answer.hits : [];
   const searching = term.length >= 2 && answer.term !== term;
+  const styles = term.length >= 2 ? styleHits(term) : [];
 
   return (
     <div style={{ position: "relative", margin }}>
@@ -75,8 +89,25 @@ export function SearchBox({ city, margin = "12px 0 4px", placeholder = "Search" 
       ) : null}
       {searchOn && term.length >= 2 ? (
         <div role="listbox" aria-label="Search results" style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 400, background: "var(--solid)", border: "1.5px solid var(--el)", borderRadius: 16, maxHeight: 340, overflowY: "auto", boxShadow: "0 14px 40px rgba(0,0,0,.5)" }}>
-          {searching && hits.length === 0 ? <div style={{ padding: "18px 14px", fontSize: 12.5, color: "var(--sub)", textAlign: "center" }}>Searching…</div> : null}
-          {!searching && hits.length === 0 ? <div style={{ padding: "18px 14px", fontSize: 12.5, color: "var(--sub)", textAlign: "center" }}>No matches anywhere on DanceOS.</div> : null}
+          {styles.length > 0 ? (
+            <div data-testid="search-styles">
+              <div style={{ ...micro, color: "var(--muted)", padding: "10px 14px 4px" }}>Dance styles</div>
+              {styles.map((name) => (
+                <Link key={name} href={`/styles/${styleSlug(name)}`} role="option" aria-label={`${name} — dance style`} onMouseDown={(e) => e.preventDefault()} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 14px", cursor: "pointer", color: "var(--text)", textDecoration: "none" }}>
+                  <span aria-hidden="true" style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, background: dosStyleColor(name), display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900, fontSize: 12 }}>
+                    {name.split(/[\s-]+/).filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase()}
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: "block", fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
+                    <span style={{ display: "block", fontSize: 11, color: "var(--sub)" }}>Dance style</span>
+                  </span>
+                  <span style={{ color: "var(--sub)", fontSize: 12 }}>›</span>
+                </Link>
+              ))}
+            </div>
+          ) : null}
+          {searching && hits.length === 0 && styles.length === 0 ? <div style={{ padding: "18px 14px", fontSize: 12.5, color: "var(--sub)", textAlign: "center" }}>Searching…</div> : null}
+          {!searching && hits.length === 0 && styles.length === 0 ? <div style={{ padding: "18px 14px", fontSize: 12.5, color: "var(--sub)", textAlign: "center" }}>No matches anywhere on DanceOS.</div> : null}
           {KIND_ORDER.filter((k) => hits.some((h) => h.kind === k)).map((k) => (
             <div key={k}>
               <div style={{ ...micro, color: "var(--muted)", padding: "10px 14px 4px" }}>{KIND_LABEL[k]}</div>

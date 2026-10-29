@@ -42,29 +42,28 @@ export function PasswordSignIn({ initialError = null, next = null }: { initialEr
   const canSubmit = isEmailUsable(email) && password.length > 0;
 
   return (
-    <AuthShell
-      toast={state.error ?? initialError}
-      footer={
-        <p className="text-center text-[12.5px] text-muted-foreground">
-          New to DanceOS?{" "}
-          <Link
-            href="/login/signup"
-            data-slot="link"
-            className="rounded-full font-extrabold text-primary underline-offset-4 hover:underline focus-visible:ring-[2.5px] focus-visible:ring-ring focus-visible:outline-none"
-          >
-            Create an account
-          </Link>
-        </p>
-      }
-    >
+    <AuthShell toast={state.error ?? initialError}>
       <AuthBackLink href="/login" />
 
       <h1 className="mt-3.5 mb-1 font-display text-[26px] font-extrabold tracking-[-0.5px]">
         Welcome back
       </h1>
-      <p className="mb-5 text-[13.5px] leading-[1.6] text-muted-foreground">
+      <p className="mb-4 text-[13.5px] leading-[1.6] text-muted-foreground">
         Sign in with the email and password you set up.
       </p>
+
+      {/* CREATE AN ACCOUNT, AT THE TOP (29 Oct 2026, the user: "keep this at top,
+          just under sign in, similar as sign up for the Google button"). It was
+          a footer line; a new person coming through the email tile should meet
+          it before the fields, as a button with the Google one's weight. `next`
+          rides along (B21), as it does for the Google button. */}
+      <Link
+        href={next ? `/login/signup?next=${encodeURIComponent(next)}` : "/login/signup"}
+        data-testid="create-account"
+        className="mb-5 flex h-12 w-full items-center justify-center gap-2 rounded-full border-[1.5px] border-[var(--el)] bg-[var(--card)] text-[14px] font-extrabold text-foreground no-underline focus-visible:ring-[2.5px] focus-visible:ring-ring focus-visible:outline-none"
+      >
+        New to DanceOS? Create an account
+      </Link>
 
       <form action={formAction} noValidate>
         {/* where to come back to after signing in (B21) — re-checked by the action */}

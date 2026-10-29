@@ -102,7 +102,11 @@ export function NextSessions({ entries, booking }: { entries: CalendarEntry[]; b
              already hold — the way out of it. No bar at all on your OWN profile
              (`booking` absent) or on a class you run. */
           const seat = booking?.mine[e.sessionId] ?? null;
-          const offerTo = booking && !booking.runs.includes(e.sessionId) && (seat || !booking.started.includes(e.sessionId)) ? booking : null;
+          /* ⚠ A CLASS YOU RUN IS DRAWN WITH ITS BUTTON DISABLED, not without one
+             (30 Oct 2026, the user: "classes taught by other faculty and me should
+             also be visible … but booking it should be blocked"). */
+          const runsIt = !!booking && booking.runs.includes(e.sessionId);
+          const offerTo = booking && (runsIt || seat || !booking.started.includes(e.sessionId)) ? booking : null;
           return (
             <div key={e.sessionId} role="listitem" data-testid="next-session" style={{ flex: one ? "0 0 100%" : "0 0 88%", scrollSnapAlign: one ? "start" : "center", minWidth: 0 }}>
               <ClassTile
@@ -122,6 +126,7 @@ export function NextSessions({ entries, booking }: { entries: CalendarEntry[]; b
                       priceInr={e.priceInr}
                       shareSlug={e.shareSlug}
                       started={booking?.started.includes(e.sessionId) ?? false}
+                      cannotBookWhy={runsIt ? "You run this class" : null}
                     />
                   ) : undefined
                 }

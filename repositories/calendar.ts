@@ -375,18 +375,21 @@ export async function findPublicBusinessSchedule(
         null
       )
     );
-  /* ⚠⚠ ONLY THIS PAGE'S OWN CLASSES (18 Oct 2026, the user: "should only show
-     published classes by that particular artist or studio"). Since 18 Sep a
-     studio's schedule also listed the artists' classes held in its rooms
-     (`findVenueEntries`) — classes somebody ELSE made. They are off it now; a
-     studio's own calendar still draws them (`findBusinessCalendar`). An
-     artist's list keeps the classes they are the CONFIRMED artist on (C127),
-     which ARE theirs. */
-  const taught = teacherId ? await findTaughtEntries(supabase, teacherId, nowIso, toIso) : [];
+  /* ⚠⚠ AND THE ARTISTS' CLASSES HELD IN ITS ROOMS ARE BACK (30 Oct 2026, the
+     user: "a class made by an artist and accepted by a studio should be visible
+     on both profiles on next session and calendar and classes on public
+     profile"). This reverses the 18 Oct cut ("only this page's own classes"):
+     a class the studio ACCEPTED into its room is on both pages — the artist's
+     (`findTaughtEntries`, C127) and the studio's. Published only. A venue read
+     that fails degrades to the page's own classes rather than a 500. */
+  const [taught, hosted] = await Promise.all([
+    teacherId ? findTaughtEntries(supabase, teacherId, nowIso, toIso) : Promise.resolve([] as CalendarEntry[]),
+    findVenueEntries(supabase, businessId, business, nowIso, toIso, true).catch(() => [] as CalendarEntry[]),
+  ]);
   /* one row per session: a class on the page's own books that its owner also
      teaches is the same session, and is drawn once */
   const seen = new Set<string>();
-  const all = [...entries, ...taught].filter((e) => (seen.has(e.sessionId) ? false : (seen.add(e.sessionId), true)));
+  const all = [...entries, ...hosted, ...taught].filter((e) => (seen.has(e.sessionId) ? false : (seen.add(e.sessionId), true)));
   /* soonest first — `withSeatCounts` sorts by the instant (18 Oct 2026, the
      user: "should be sorted"; it was a string sort across two read shapes) */
   return withSeatCounts(supabase, all);

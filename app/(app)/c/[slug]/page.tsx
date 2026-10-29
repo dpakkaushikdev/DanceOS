@@ -342,8 +342,10 @@ export default async function ClassSharePage({
       /* a business reads this page and books nothing (19 Sep 2026, re-cut
          27 Sep onto the profile you are acting as — the role it tested was
          retired by R48 and the gate had been dead for a day) */
-      viewerCanBook={canBookClass(actingAs)}
-      cannotBookWhy={actingAs && !canBookClass(actingAs) ? noBookingWords(actingAs) : null}
+      /* ⚠ the runner of the studio whose ROOM it is held in books no seat either
+         (30 Oct 2026) — they run its door; the app's rule, as on Discover */
+      viewerCanBook={canBookClass(actingAs) && !venueRunner}
+      cannotBookWhy={actingAs && !canBookClass(actingAs) ? noBookingWords(actingAs) : venueRunner ? "You run this class" : null}
       passes={passes}
       openOn={openOn}
       doorOnly={doorOnly}

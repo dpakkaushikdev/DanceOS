@@ -87,7 +87,10 @@ export async function PublicBusinessPage({ businessId, expect }: { businessId: s
      business, or anybody confirmed on it — so the rail asks the same question in
      one read and draws no Book Now there. Signed out, nobody runs anything. */
   const ranIds = user ? await findClassIdsIRun(supabase, user.id, nextSessions.map((e) => e.classId)) : new Set<string>();
-  const runs = nextSessions.filter((e) => ranIds.has(e.classId) || (runsTheBusiness(role) && e.owner?.kind === "studio")).map((e) => e.sessionId);
+  /* ⚠ EVERY CLASS ON A STUDIO'S RAIL IS ITS RUNNER'S (30 Oct 2026): the studio's
+     own classes, and an artist's class held in its rooms — whose door the venue
+     runs (R84). So the owner or a manager sees each with its button disabled. */
+  const runs = nextSessions.filter((e) => ranIds.has(e.classId) || runsTheBusiness(role)).map((e) => e.sessionId);
   const booking = { signedIn: Boolean(user), mine: Object.fromEntries(mine), runs, started: startedSessionIds(nextSessions) };
   const ownerId0 = profile.team.find((m) => m.role === "owner")?.userId ?? null;
   const followingN = ownerId0 ? (ownerCounts.get(ownerId0)?.following ?? null) : null;

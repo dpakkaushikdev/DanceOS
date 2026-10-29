@@ -430,14 +430,20 @@ export async function findClassIdsIRun(supabase: SupabaseClient, userId: string 
     /* the classes' own businesses (a card's data carries the maker's name, not
        its id) and the viewer's confirmed rows, together; then the running seats */
     const [owners, rows] = await Promise.all([
-      supabase.from("classes").select("id, business_id").in("id", classIds),
+      supabase.from("classes").select("id, business_id, venue_business_id, venue_status").in("id", classIds),
       supabase.from("class_people").select("class_id").eq("user_id", userId).eq("status", "confirmed").in("class_id", classIds).is("deleted_at", null),
     ]);
     for (const r of ((rows.error ? null : rows.data) as Array<{ class_id: string }> | null) ?? []) {
       out.add(r.class_id);
     }
-    const ownerRows = ((owners.error ? null : owners.data) as Array<{ id: string; business_id: string }> | null) ?? [];
-    const businessIds = [...new Set(ownerRows.map((o) => o.business_id))];
+    const ownerRows = ((owners.error ? null : owners.data) as Array<{ id: string; business_id: string; venue_business_id: string | null; venue_status: string | null }> | null) ?? [];
+    /* ⚠ AND THE STUDIO WHOSE ROOM IT IS HELD IN (30 Oct 2026): an artist's class
+       a studio ACCEPTED is on that studio's pages, and its owner or manager runs
+       its door (R84) — so they are offered no seat either. ⚠ This one is the
+       APP's rule: the database's `guard_not_own_class` does not refuse a venue's
+       runner. */
+    const venueOf = (o: (typeof ownerRows)[number]) => (o.venue_status === "accepted" ? o.venue_business_id : null);
+    const businessIds = [...new Set(ownerRows.flatMap((o) => [o.business_id, venueOf(o)].filter(Boolean) as string[]))];
     if (businessIds.length > 0) {
       const { data: seats, error } = await supabase
         .from("business_members")
@@ -449,7 +455,8 @@ export async function findClassIdsIRun(supabase: SupabaseClient, userId: string 
       const seatRows = ((error ? null : seats) as Array<{ business_id: string }> | null) ?? [];
       const running = new Set(seatRows.map((s) => s.business_id));
       for (const o of ownerRows) {
-        if (running.has(o.business_id)) out.add(o.id);
+        const v = venueOf(o);
+        if (running.has(o.business_id) || (v && running.has(v))) out.add(o.id);
       }
     }
   } catch {

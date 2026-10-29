@@ -6,7 +6,7 @@ import { TopPanel } from "@/components/ui/TopPanel";
 import { BoardsBrowser } from "@/features/stats/components/BoardsBrowser";
 import { loadBoard, type BoardQuery } from "@/features/stats/server/loadBoard";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { DOS_UI, INK, TAB_SUB, TAB_TITLE } from "@/lib/design/tokens";
+import { DOS_UI, INK, TAB_TITLE } from "@/lib/design/tokens";
 
 export const metadata: Metadata = { title: "Rankings — DanceOS" };
 
@@ -31,7 +31,7 @@ export default async function RankingsPage({ searchParams }: { searchParams: Pro
         <h1 data-testid="rankings-title" style={{ ...TAB_TITLE, color: INK, margin: 0 }}>
           <BeatText text="Rankings" />
         </h1>
-        <div style={{ ...TAB_SUB, marginTop: 3 }}>Everybody on DanceOS, across India</div>
+        {/* no sub-heading (29 Oct 2026, the user: "no sub heading on rankings page which says everybody on dance os") */}
       </TopPanel>
       <InvertedPanel ground="page" style={{ marginTop: 12 }}>
         <BoardsBrowser chart={board.chart} segment={board.segment} metric={board.metric} city={board.city} cities={board.cities} basePath="/rankings" label="THE BOARDS" />

@@ -68,7 +68,10 @@ export function BoardsBrowser({
   youId = null,
   label = "BROWSE THE BOARDS",
   footer,
+  limit = null,
 }: {
+  /** at most this many rows (Pulse: 7) */
+  limit?: number | null;
   chart: ChartRow[];
   segment: ChartSegment;
   metric: ChartMetric;
@@ -103,7 +106,10 @@ export function BoardsBrowser({
   const valueOf = (r: ChartRow) =>
     metric === "overall" ? r.points : metric === "conducted" ? r.conducted : metric === "assisted" ? r.assisted : metric === "attended" ? r.attended : metric === "people" ? r.extra : Math.round(r.hours * 10) / 10;
   const unit = metrics.find((m) => m.k === metric)?.unit ?? "pts";
-  const board = metric === "overall" ? chart : [...chart].sort((a, b) => valueOf(b) - valueOf(a)).map((r, i) => ({ ...r, place: i + 1 }));
+  const ranked = metric === "overall" ? chart : [...chart].sort((a, b) => valueOf(b) - valueOf(a)).map((r, i) => ({ ...r, place: i + 1 }));
+  /* ⚠ Pulse shows at most 7 (29 Oct 2026, the user: "not more then 7 on browse
+     the board on pulse") — the full board is Overall rankings, one press below */
+  const board = limit != null ? ranked.slice(0, limit) : ranked;
   const leaderValue = Math.max(1, ...board.map((r) => valueOf(r)));
   const podiumRows = board.length >= 3 && board[0].place === 1 ? board.slice(0, 3) : [];
   const listRows = podiumRows.length ? board.slice(3) : board;

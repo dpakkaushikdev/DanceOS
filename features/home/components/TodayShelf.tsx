@@ -24,12 +24,23 @@ import type { DeckItem } from "@/types/home";
  *  question, a studio's home asks it the studio's; the shelf is the same. The
  *  wrapper runs the full width so the swiped rail, which reaches past the
  *  page's padding, is not clipped. */
-export function TodayShelf({ deck }: { deck: DeckItem[] }) {
+export function TodayShelf({
+  deck,
+  title = "Today’s schedule",
+  unit = "today",
+  emptyText = "Nothing On Today’s Schedule",
+}: {
+  deck: DeckItem[];
+  /** Pulse names it "Upcoming classes" (29 Oct 2026) — the same shelf, the same cards */
+  title?: string;
+  unit?: string;
+  emptyText?: string;
+}) {
   return (
     <div id="today-schedule" data-dosfold="deck" style={{ margin: "10px calc(-1 * var(--dos-gutter)) 14px", padding: "0 var(--dos-gutter)", scrollMarginTop: "calc(var(--dos-top) + 12px)" }}>
       <CheckedInReveal />
       {/* Discover's shelf head (18 Oct 2026): caps, the total boxed, nothing after it */}
-      <ShelfHead title="Today’s schedule" count={deck.length} unit="today" testId="today-count" margin="2px 0 8px" />
+      <ShelfHead title={title} count={deck.length} unit={unit} testId="today-count" margin="2px 0 8px" />
 
       {deck.length === 0 ? (
         /* ⚠ THE HEADING AND NOTHING ELSE (21 Sep 2026, the user: "when todays
@@ -49,7 +60,7 @@ export function TodayShelf({ deck }: { deck: DeckItem[] }) {
            /my-classes, the events desk and the studio list, all of which are
            tiles on the grid directly below. */
         <div style={{ background: CARD, border: `1.5px dashed ${LINE}`, borderRadius: 16, padding: "18px 16px", textAlign: "center" }}>
-          <div style={{ fontSize: 12.5, fontWeight: 900 }}>Nothing On Today&rsquo;s Schedule</div>
+          <div style={{ fontSize: 12.5, fontWeight: 900 }}>{emptyText}</div>
         </div>
       ) : (
         <PassDeck items={deck} />

@@ -62,6 +62,9 @@ export interface DeckClassItem extends DeckBase {
   /** the door has let you in (a live attendance row on your booking) — the card
    *  says "✓ Checked in". ⚠ `receipt` went with the deck's Invoice (2 Oct 2026) */
   checkedIn: boolean;
+  /** ⚠ Pulse's Upcoming classes spans days (29 Oct 2026), so the date block
+   *  says "Today" only when it is; Home's deck was always today. Absent = today. */
+  isToday?: boolean;
 }
 
 export type DeckItem = DeckClassItem;

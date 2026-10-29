@@ -5,7 +5,7 @@ import { PulseScreen } from "@/features/pulse/components/PulseScreen";
 import { loadBoard, type BoardQuery } from "@/features/stats/server/loadBoard";
 import { amIPlatformAdmin } from "@/repositories/admin";
 import { resolveActingAs } from "@/repositories/actingAs";
-import { findMyDeck } from "@/repositories/home";
+import { findMyUpcomingDeck } from "@/repositories/home";
 import { findPublicPerson } from "@/repositories/publicPerson";
 import { findMyHistory } from "@/repositories/stats";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -50,7 +50,7 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
      with the whole record on pulse") — the stats screen's read, and its rule that
      a class with no faculty is left off the record */
   const [deck, history, board] = await Promise.all([
-    findMyDeck(supabase, user.id, nowIso),
+    findMyUpcomingDeck(supabase, user.id, nowIso),
     findMyHistory(supabase).then((rows) => rows.filter((r) => r.artistName)),
     loadBoard(supabase, query, person.isArtist ? "artist" : "dancer"),
   ]);

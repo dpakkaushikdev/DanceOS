@@ -10,7 +10,7 @@ import { columnTab, columnTrack } from "@/components/ui/ColumnTabs";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { TopPanel } from "@/components/ui/TopPanel";
 import { CARD, DOS_DISPLAY, DOS_UI, INK, LILAC, LINE, MUTED, SUB } from "@/lib/design/tokens";
-import { SEG_WORD, SIDE_TINT, chartRowWords, hoursWords, type ChartMetric, type ChartRow, type ChartSegment, type DanceStats, type HistoryRow, type Side, type Standing } from "@/types/stats";
+import { SEG_WORD, SIDE_TINT, hoursWords, type ChartMetric, type ChartRow, type ChartSegment, type DanceStats, type HistoryRow, type Side, type Standing } from "@/types/stats";
 import { BTN_RESET_BLOCK } from "@/components/ui/buttonReset";
 import { StyleArt } from "@/features/styles/components/StyleArt";
 import { BoardsBrowser } from "@/features/stats/components/BoardsBrowser";
@@ -83,27 +83,27 @@ function StandingCard({ s, accent }: { s: Standing; accent: string }) {
     /* ⚠ a tile INSIDE its section card since 5 Oct 2026 — the 4px coloured left
        edge went, the way it went from every tool card on 4 Oct ("remove bold line
        from left of the card"); the scope's colour is a soft wash instead */
-    <div style={{ background: `${accent}10`, border: `1.5px solid ${accent}33`, borderRadius: 14, padding: "11px 13px", marginBottom: 8 }} data-testid="standing-card">
-      <div style={{ ...micro, color: MUTED }}>{s.scope}</div>
+    /* ⚠ ONE LINE PER SCOPE, NO SUB-HEADINGS (29 Oct 2026, the user: "rankings
+       where you stands section should also remove subheadings and should be
+       handled better") — the scope is a chip on the row, the place is the figure,
+       the population says what it is out of, the points sit on the right; the
+       micro heading over each card and the "taught · asst" line are gone */
+    <div style={{ display: "flex", alignItems: "center", gap: 10, background: `${accent}10`, border: `1.5px solid ${accent}33`, borderRadius: 14, padding: "10px 12px", marginBottom: 8 }} data-testid="standing-card">
+      <span style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 900, padding: "4px 10px", borderRadius: 999, background: `${accent}22`, color: INK, whiteSpace: "nowrap", maxWidth: 110, overflow: "hidden", textOverflow: "ellipsis" }}>{s.scope}</span>
       {r ? (
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 6 }}>
-          <span aria-label={`Place ${r.place} of ${r.population}`} style={{ display: "flex", alignItems: "baseline", gap: 1, lineHeight: 1 }}>
-            <span style={{ fontSize: 14, fontWeight: 900, fontFamily: DOS_DISPLAY, color: accent, opacity: 0.8 }}>#</span>
-            <span style={{ fontSize: 30, fontWeight: 900, letterSpacing: -1, fontFamily: DOS_DISPLAY, fontVariantNumeric: "tabular-nums", background: "linear-gradient(120deg,#7C3AED,#EC4899)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>{r.place}</span>
-          </span>
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ display: "block", fontSize: 12.5, fontWeight: 800 }}>
+        <>
+          <span aria-label={`Place ${r.place} of ${r.population}`} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "baseline", gap: 6, lineHeight: 1 }}>
+            <span style={{ fontSize: 26, fontWeight: 900, letterSpacing: -1, fontFamily: DOS_DISPLAY, fontVariantNumeric: "tabular-nums", background: "linear-gradient(120deg,#7C3AED,#EC4899)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>#{r.place}</span>
+            <span style={{ fontSize: 11.5, fontWeight: 800, color: SUB, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               of {r.population} {r.population === 1 ? SEG_WORD[r.kind].one : SEG_WORD[r.kind].many}
             </span>
-            <span style={{ display: "block", fontSize: 10.5, color: SUB, marginTop: 2 }}>{chartRowWords(r)}</span>
           </span>
-          <span style={{ textAlign: "right", flexShrink: 0 }}>
-            <span style={{ display: "block", ...figure, fontSize: 15 }}>{r.points}</span>
-            <span style={{ display: "block", fontSize: 9, fontWeight: 700, color: MUTED }}>pts</span>
+          <span style={{ flexShrink: 0, ...figure, fontSize: 12, fontWeight: 900, padding: "4px 10px", borderRadius: 999, border: `1.5px solid ${accent}55`, whiteSpace: "nowrap" }}>
+            {r.points} <span style={{ fontSize: 9, fontWeight: 800, color: MUTED }}>pts</span>
           </span>
-        </div>
+        </>
       ) : (
-        <div style={{ fontSize: 12, color: SUB, marginTop: 6, lineHeight: 1.45 }}>Not on this board yet — nothing counted here so far.</div>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 800, color: SUB }}>Not on this board yet</span>
       )}
     </div>
   );

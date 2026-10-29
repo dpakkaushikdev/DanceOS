@@ -45,8 +45,8 @@ export function PassDeck({ items }: { items: DeckItem[] }) {
       artist={p.artist}
       city={p.businessCity}
       href={p.href}
-      /* every card in this rail is today, so the date block says so (8290-8293) */
-      isToday
+      /* Home's rail is all today (8290-8293); Pulse's Upcoming spans days, so each card says */
+      isToday={p.isToday ?? true}
       relation={p.roleLabel}
       /* done · live · upcoming — red, green, amber (2 Oct 2026); `live` rides on it */
       deckState={p.state}

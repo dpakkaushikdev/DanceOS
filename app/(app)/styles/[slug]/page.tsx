@@ -24,6 +24,61 @@ import { canBookClass, noBookingWords } from "@/types/profile";
 import { findNotablePeople } from "@/lib/styles/notablePhotos";
 import Image from "next/image";
 
+/** THE STATE (or the city, where a style comes from one) each style is FROM —
+ *  only a place's name, never the sentence about it. A style that belongs to a
+ *  whole country or to everywhere has none, and prints its country alone. */
+const STYLE_STATE: Record<string, string> = {
+  Bharatanatyam: "Tamil Nadu",
+  Kathak: "Uttar Pradesh",
+  Kathakali: "Kerala",
+  Kuchipudi: "Andhra Pradesh",
+  Manipuri: "Manipur",
+  Mohiniyattam: "Kerala",
+  Odissi: "Odisha",
+  Sattriya: "Assam",
+  Bhangra: "Punjab",
+  Garba: "Gujarat",
+  "Dandiya Raas": "Gujarat",
+  Ghoomar: "Rajasthan",
+  Kalbelia: "Rajasthan",
+  Lavani: "Maharashtra",
+  Bihu: "Assam",
+  Giddha: "Punjab",
+  "Sufi Whirling": "Konya",
+  Bollywood: "Maharashtra",
+  "Hip-Hop": "New York",
+  Breaking: "New York",
+  Popping: "California",
+  Locking: "California",
+  House: "Illinois",
+  Waacking: "California",
+  Krump: "California",
+  Dancehall: "Kingston",
+  Salsa: "New York",
+  Samba: "Rio de Janeiro",
+  Tango: "Buenos Aires",
+  Flamenco: "Andalusia",
+  "K-pop": "Seoul",
+  Bachata: "Santo Domingo",
+  Reggaeton: "San Juan",
+  Zumba: "Cali",
+};
+
+/** The first year-like figure in an era sentence, as a year: a decade stays a
+ *  decade ("Early 1970s" → "1970s"), a century becomes its first hundred
+ *  ("19th century" → "1800s"), a bare year stays itself. "since 2010" is when a
+ *  form was recognised, not when it began, so it is not read as one. */
+function yearOfEra(era: string): string | null {
+  const text = era.replace(/since \d{4}/gi, "");
+  const m = text.match(/(\d{1,2})(?:st|nd|rd|th)\s*(?:[–-]\s*(?:(?:early|late|mid)\s+)?\d{1,2}(?:st|nd|rd|th)\s*)?centur/i) ?? null;
+  const d = text.match(/(?<![\d,])(\d{3,4})(s?)(?!\d)/);
+  const centuryAt = m ? (m.index ?? 0) : Infinity;
+  const decadeAt = d ? (d.index ?? 0) : Infinity;
+  if (m && centuryAt <= decadeAt) return `${Number(m[1]) - 1}00s`;
+  if (d) return `${d[1]}${d[2]}`;
+  return null;
+}
+
 /** A DANCE STYLE'S OWN PAGE (2 Oct 2026, the user: "page opens dance style —
  *  column 1: Photos, info, History, country, and Notable names — max 5 names,
  *  column 2 rankings for that particular dance style").
@@ -131,20 +186,17 @@ export default async function StylePage({
                it only when it says more than the year (not "SINCE": Kalbelia's
                2010 is its UNESCO listing, not its start);
        FAMILY — one word. */
-  const region = info.origin.replace(/\s*\(present-day[^)]*\)/i, "").trim();
-  /* a region that is only the countries again ("Puerto Rico and Panama") says nothing new */
-  const regionLeft = info.country
-    .split("/")
-    .map((c) => c.trim())
-    .reduce((r, c) => r.split(c).join(""), region)
-    .replace(/\b(and|the)\b/gi, "")
-    .replace(/[\s,–-]+/g, "");
-  const showRegion = regionLeft.length > 0 && !/^across /i.test(region);
-  const yearMatch = info.era.match(/((?:early|late|mid)[-\s])?(?<![\d,])(?:\d{1,2}(?:st|nd|rd|th)(?:\s?[–-]\s?(?:(?:early|late|mid)\s)?\d{1,2}(?:st|nd|rd|th))?\s+centur(?:y|ies)|\d{3,4}s?(?!\d)(?:\s?[–-]\s?(?:(?:early|late|mid)\s)?\d{2,4}s?)?)/i);
-  /* ⚠ WHEN IS THE YEAR AND NOTHING ELSE (29 Oct 2026, the user: "when should only
-     have year nothing else") — no era sentence under it; a style whose era names
-     no year draws no WHEN row rather than a sentence in its place */
-  const when = yearMatch ? yearMatch[0].replace(/^./, (c) => c.toUpperCase()) : null;
+  /* ⚠ FROM IS THE FLAG, THE COUNTRY AND THE STATE — NOTHING ELSE (29 Oct 2026,
+     the user: "from should only have flag, country name and state no extra
+     details"). The `origin` sentence ("Tamil Nadu — the temples of Thanjavur")
+     is not parsed for a state; the state is named here, one per style, and a
+     style that has none (a global or a whole-country form) prints the country alone */
+  const region = STYLE_STATE[style] ?? null;
+  /* ⚠ WHEN IS A YEAR, NEVER A CENTURY (29 Oct 2026, the user: "when should only be
+     written in years not century etc only year") — the first year-like figure in
+     the era: a decade stays a decade ("1970s"), a century becomes its first year
+     ("19th century" → "1800s"); an era that names neither draws no WHEN row */
+  const when = yearOfEra(info.era);
   /* ⚠ ONE TYPE FOR ALL THREE VALUES (29 Oct 2026, the user: "from when and
      family should be handled better different fonts currently for each") — the
      key in the micro caps, the value in one size, one weight, one ink */
@@ -177,7 +229,7 @@ export default async function StylePage({
                 </span>
                 <span style={{ ...factValue, minWidth: 0 }}>
                   {info.country}
-                  {showRegion ? <span data-testid="style-fact-region"> · {region}</span> : null}
+                  {region ? <span data-testid="style-fact-region"> · {region}</span> : null}
                 </span>
               </div>
             </div>

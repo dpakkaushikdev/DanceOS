@@ -57,7 +57,8 @@ export function PulseScreen({
 
       <InvertedPanel ground="page" style={SECTION}>
         <div data-testid="pulse-section-today">
-          <TodayShelf deck={deck} />
+          {/* Upcoming classes (29 Oct 2026): the next 10, the deck's cards and borders */}
+          <TodayShelf deck={deck} title="Upcoming classes" unit="upcoming" emptyText="No Upcoming Classes" />
         </div>
       </InvertedPanel>
 
@@ -86,6 +87,7 @@ export function PulseScreen({
             cities={board.cities}
             basePath="/pulse"
             youId={me.id}
+            limit={7}
             label="BROWSE THE BOARD"
             footer={
               <Link

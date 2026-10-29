@@ -124,6 +124,34 @@ export async function findMyDeck(supabase: SupabaseClient, userId: string, nowIs
   return settle(rows, new Date(nowIso).getTime());
 }
 
+/** PULSE'S UPCOMING CLASSES (29 Oct 2026, the user: "Todays schedule on Pulse to be
+ *  renamed to Upcoming classes with upto 10 next classes and should contain the
+ *  things we did with todays schedule border and every element on cards"). The
+ *  same cards as the deck — the role chip, the live frame, the amber upcoming
+ *  border, Checked in — over the next 10 classes that are not yet OVER (a live one
+ *  included), across days. Ended ones are left off: they are not upcoming. Same
+ *  calendar read as the deck, asked for 90 days. */
+export const UPCOMING_MAX = 10;
+export async function findMyUpcomingDeck(supabase: SupabaseClient, userId: string, nowIso: string): Promise<DeckItem[]> {
+  const { today, from } = todayWindow(nowIso);
+  const nowMs = new Date(nowIso).getTime();
+  const entries = await findMyCalendar(supabase, userId, from, dayStartIso(addDays(today, 90)));
+  const next = entries
+    .filter((e) => e.classStatus !== "draft" && new Date(e.endsAt).getTime() > nowMs)
+    .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
+    .slice(0, UPCOMING_MAX);
+  const checkedIn = await findMyCheckedInBookings(
+    supabase,
+    userId,
+    next.filter((e) => e.classBooking?.status === "enrolled").map((e) => e.classBooking!.id)
+  );
+  const rows: DeckItem[] = next.map((e) => ({
+    ...classItem(e, SIDE_RELATION[e.side], e.side === "hosting", Boolean(e.classBooking && checkedIn.has(e.classBooking.id))),
+    isToday: dayKeyOf(e.startsAt) === today,
+  }));
+  return settle(rows, nowMs);
+}
+
 /** A studio's day is not a person's day (prototype 7022-7060): what is running
  *  in ITS rooms today, drawn by the same card, in the same rail, as everybody
  *  else's. */

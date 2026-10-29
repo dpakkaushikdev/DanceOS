@@ -14142,6 +14142,7 @@ for the database schema. **The UI is not redesigned** — see Rule 2.
 
 ### Progress tracker — update after EVERY push (Rule 11)
 
+- **SMOOTH ADDRESS TYPING, A STYLE PAGE'S FACTS SAID ONCE, NO DETAIL LINE ON THE BOARDS, THE BOARD ON A STYLE PAGE, NO FACE ON PULSE — 29 Oct 2026, no step number — no migration, PUSHED (`5b1a520`).** Row C192. Detail at the top.
 - **DISCOVER SEARCHES AN ADDRESS, NEAR ME MERGED IN, NO CITY DROPDOWN, DISTANCE ON CLASSES · ARTISTS · STYLES — 29 Oct 2026, no step number — no migration.** Row C191. Detail at the top.
 - **PULSE BROWSES THE BOARD, /rankings, THE DAY AS SUB-HEADING, STYLES IN SEARCH — 29 Oct 2026, no step number — no migration.** Row C190. Detail at the top.
 - **PULSE, A SECOND TAB — 29 Oct 2026, no step number — no migration.** Row C189. Detail at the top.

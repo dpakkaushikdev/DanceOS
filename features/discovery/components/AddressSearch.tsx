@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { BTN_RESET } from "@/components/ui/buttonReset";
 import type { PlaceSuggestion, ResolvedPlace } from "@/features/geo/components/PlaceSearch";
 import { NEAR_CENTRE, formatPoint, hereCookie, nearestCity, type Point } from "@/lib/geo/here";
@@ -51,17 +51,28 @@ export function AddressSearch({
   /* `signIn`: the address lookup is a signed-in person's (an open geocoder is
      the Maps quota spent on anybody's behalf), so a stranger is told so rather
      than shown "no places" */
-  const [answer, setAnswer] = useState<{ term: string; places: PlaceSuggestion[]; signIn?: boolean }>({ term: "", places: [] });
-  const seq = useRef(0);
+  /* ⚠ TYPING MUST NEVER WAIT ON THE NETWORK (30 Oct 2026, the user: "handle
+     typing better on this search bar getting stuck at some places"). Each
+     lookup is a round trip through the server to Google, and the first cut
+     blanked the list to "Searching…" on every keystroke and let a slow answer
+     for an older word land late — so the box read as stuck. Now: every answer
+     is REMEMBERED by term (backspacing is instant), a request the next keystroke
+     makes stale is ABORTED rather than raced, and while a new word is being
+     looked up the last list stays on screen, dimmed, instead of vanishing. */
+  const [found, setFound] = useState<Record<string, PlaceSuggestion[]>>({});
+  const [last, setLast] = useState<PlaceSuggestion[]>([]);
+  const [signIn, setSignIn] = useState(false);
   const term = q.trim();
 
   const cityShown = city && city !== ALL_CITIES ? city : null;
   const centre = cities.find((c) => c.city === cityShown) ?? null;
   const showing = busy ? "Finding you…" : at ? at : near ? (cityShown ? `Near me · ${cityShown}` : "Near me") : cityShown ?? "All cities";
+  const key = `${centre?.city ?? ""}|${term.toLowerCase()}`;
+  const known = found[key];
 
   useEffect(() => {
-    if (term.length < 2) return;
-    const mine = ++seq.current;
+    if (term.length < 2 || known || signIn) return;
+    const ctl = new AbortController();
     const t = setTimeout(async () => {
       try {
         const p = new URLSearchParams({ q: term });
@@ -69,22 +80,27 @@ export function AddressSearch({
           p.set("lat", String(centre.lat));
           p.set("lng", String(centre.lng));
         }
-        const res = await fetch(`/api/places?${p.toString()}`);
+        const res = await fetch(`/api/places?${p.toString()}`, { signal: ctl.signal });
         if (res.status === 401) {
-          if (mine === seq.current) setAnswer({ term, places: [], signIn: true });
+          setSignIn(true);
           return;
         }
         const body = (await res.json()) as { places?: PlaceSuggestion[] };
-        if (mine === seq.current) setAnswer({ term, places: body.places ?? [] });
+        const got = body.places ?? [];
+        setFound((m) => ({ ...m, [key]: got }));
+        setLast(got);
       } catch {
-        if (mine === seq.current) setAnswer({ term, places: [] });
+        /* aborted by the next keystroke, or the network blinked — the next word asks again */
       }
-    }, 250);
-    return () => clearTimeout(t);
-  }, [term, centre]);
-  const places = answer.term === term ? answer.places : [];
-  const signIn = answer.term === term && answer.signIn === true;
-  const searching = term.length >= 2 && answer.term !== term;
+    }, 200);
+    return () => {
+      clearTimeout(t);
+      ctl.abort();
+    };
+  }, [term, centre, key, known, signIn]);
+  const searching = term.length >= 2 && !known && !signIn;
+  /* the answer for THIS word, else the last list we had, shown dimmed */
+  const places = known ?? (searching ? last : []);
 
   const go = (nextCity: string, nextNear: Point | null, label: string | null = null) => {
     const p = new URLSearchParams({ city: nextCity, tab, ...extra });
@@ -172,7 +188,12 @@ export function AddressSearch({
         onBlur={() => setTimeout(() => setOpen(false), 180)}
         placeholder={showing}
         autoComplete="off"
-        style={{ width: "100%", boxSizing: "border-box", background: "var(--card)", border: "1.5px solid var(--el)", borderRadius: 14, padding: "13px 40px 13px 38px", color: "var(--text)", fontSize: 13.5, outline: "none", fontFamily: "inherit" }}
+        autoCorrect="off"
+        spellCheck={false}
+        inputMode="search"
+        enterKeyHint="search"
+        /* 16px: under it, iOS zooms the page on focus and the box jumps under the thumb */
+        style={{ width: "100%", boxSizing: "border-box", background: "var(--card)", border: "1.5px solid var(--el)", borderRadius: 14, padding: "12px 40px 12px 38px", color: "var(--text)", fontSize: 16, outline: "none", fontFamily: "inherit" }}
         className={placed ? "dos-address-placed" : undefined}
       />
       {/* the placeholder of a measured page reads in ink, not grey — it is the answer, not a hint */}
@@ -209,12 +230,14 @@ export function AddressSearch({
             <div data-testid="address-places">
               <div style={{ ...micro, color: "var(--muted)", padding: "10px 14px 4px" }}>Places</div>
               {searching && places.length === 0 ? <div style={{ padding: "14px", fontSize: 12.5, color: "var(--sub)", textAlign: "center" }}>Searching…</div> : null}
+              {searching && places.length > 0 ? <div aria-live="polite" style={{ padding: "0 14px 4px", fontSize: 10.5, color: "var(--muted)" }}>Updating…</div> : null}
               {signIn ? (
                 <a data-testid="address-sign-in" href={`/login?next=${encodeURIComponent(`/discover?city=${encodeURIComponent(city)}&tab=${encodeURIComponent(tab)}`)}`} style={{ display: "block", padding: "14px", fontSize: 12.5, color: "var(--text)", fontWeight: 700, textAlign: "center", textDecoration: "none" }}>
                   Sign in to search an address ›
                 </a>
               ) : null}
               {!searching && !signIn && places.length === 0 ? <div style={{ padding: "14px", fontSize: 12.5, color: "var(--sub)", textAlign: "center" }}>No places match that.</div> : null}
+              <div style={{ opacity: searching ? 0.55 : 1, transition: "opacity .15s" }}>
               {places.map((s) => (
                 <button type="button" key={s.id} role="option" aria-selected={false} aria-label={`${s.main}${s.secondary ? ` — ${s.secondary}` : ""}`} onMouseDown={(e) => e.preventDefault()} onClick={() => void pickPlace(s)} style={row}>
                   <span aria-hidden="true" style={icon("var(--el)")}>
@@ -230,6 +253,7 @@ export function AddressSearch({
                   <span style={{ color: "var(--sub)", fontSize: 12 }}>›</span>
                 </button>
               ))}
+              </div>
             </div>
           ) : (
             <div style={{ padding: "8px 14px 12px", fontSize: 11, color: "var(--sub)" }}>Type an area, a street or a landmark.</div>

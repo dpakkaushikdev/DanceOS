@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { StyleArt } from "@/features/styles/components/StyleArt";
-import { StyleBoards } from "@/features/styles/components/StyleBoards";
+import { BoardsBrowser } from "@/features/stats/components/BoardsBrowser";
+import { loadBoard } from "@/features/stats/server/loadBoard";
 import { SegmentedPanels } from "@/features/shell/components/SegmentedNav";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { dosStyleColor } from "@/lib/constants/styles";
@@ -10,7 +11,6 @@ import { countryCodes, flagSrc, isGlobal } from "@/lib/constants/countryFlags";
 import { DOS_UI, INK, SUB, TAB_TITLE } from "@/lib/design/tokens";
 import { BeatText } from "@/components/ui/BeatText";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { findChart } from "@/repositories/stats";
 import { ClassTile } from "@/features/classes/components/ClassTile";
 import { EnrollButton } from "@/features/classBookings/components/EnrollButton";
 import { findPublishedClasses } from "@/repositories/classes";
@@ -19,7 +19,6 @@ import { countEnrolledBySession, findMyEnrolledSessionIds } from "@/repositories
 import type { ClassArtist } from "@/types/classPerson";
 import type { ClassBookingStatus } from "@/types/classBooking";
 import type { PublicClassListing } from "@/types/class";
-import type { ChartRow, ChartSegment } from "@/types/stats";
 import { resolveActingAs } from "@/repositories/actingAs";
 import { canBookClass, noBookingWords } from "@/types/profile";
 import { findNotablePeople } from "@/lib/styles/notablePhotos";
@@ -66,7 +65,10 @@ export default async function StylePage({
   } = await supabase.auth.getUser();
 
   /* ⚠ no Crews board (18 Oct 2026, the user: "crew rankings to be removed for now") */
-  const SEGS: ChartSegment[] = ["studio", "artist", "dancer"];
+  /* ⚠ THE STATS SCREEN'S OWN BOARD, NARROWED TO THIS STYLE (30 Oct 2026, the
+     user: "give similar rankings in dance style page with similar look and
+     filters") — Dancers · Artists · Studios, the metric chips and the city, the
+     state in the address beside `show=rankings` */
   /* ⚠ A BOARD THAT CANNOT BE READ IS AN EMPTY BOARD, never a 500 — this page is
      mostly an encyclopedia entry and must not fail over a leaderboard.
      ⚠ THE CLASSES COLUMN (10 Oct 2026, the user: "add a column called classes
@@ -77,14 +79,13 @@ export default async function StylePage({
   /* the notable dancers' own photos (29 Oct 2026) — resolved ahead of time, so
      this is a lookup, and a name without a photo is never drawn */
   const notable = findNotablePeople(info.notable.slice(0, 5));
-  const [boardsList, styleClassesRaw, mine] = await Promise.all([
+  const [board, styleClassesRaw, mine] = await Promise.all([
     user
-      ? Promise.all(SEGS.map(async (s) => [s, await findChart(supabase, { segment: s, style, limit: 20 }).catch(() => [] as ChartRow[])] as const))
+      ? loadBoard(supabase, { seg: sp.seg, city: sp.city, metric: sp.metric }, "artist", style).catch(() => null)
       : Promise.resolve(null),
     findPublishedClasses(supabase, 120, null, style).catch(() => [] as PublicClassListing[]),
     user ? findMyEnrolledSessionIds(supabase).catch(() => new Map<string, { id: string; status: ClassBookingStatus }>()) : Promise.resolve(new Map<string, { id: string; status: ClassBookingStatus }>()),
   ]);
-  const boards = boardsList ? (Object.fromEntries(boardsList) as Partial<Record<ChartSegment, ChartRow[]>>) : null;
   const ids = styleClassesRaw.map((c) => c.id);
   const sessionIds = styleClassesRaw.map((c) => c.session?.id).filter(Boolean) as string[];
   /* ⚠ THE PROFILE YOU ARE ACTING AS (11 Oct 2026, B23) — Discover's own gate: a
@@ -117,53 +118,91 @@ export default async function StylePage({
     </svg>
   );
 
+  /* ⚠ THE FACTS SAY EACH THING ONCE (30 Oct 2026, the user: "handle the facts
+     in a better way without repetition of things, when mentioned in the same way
+     according to year. place things better here."). The four tiles repeated
+     themselves: "Konya, Anatolia (present-day Turkey)" under a Turkey flag,
+     "Kerala" beside "India" with nothing new, and WHEN printed "1970s" as a
+     sentence where the year IS the fact. Now one card in three rows:
+       FROM  — the flag and the country, with the region after it only when the
+               region adds something (a "(present-day …)" aside is dropped,
+               because the flag already says it);
+       WHEN  — the year or century set as a figure, and the era's sentence under
+               it only when it says more than the year (not "SINCE": Kalbelia's
+               2010 is its UNESCO listing, not its start);
+       FAMILY — one word. */
+  const region = info.origin.replace(/\s*\(present-day[^)]*\)/i, "").trim();
+  /* a region that is only the countries again ("Puerto Rico and Panama") says nothing new */
+  const regionLeft = info.country
+    .split("/")
+    .map((c) => c.trim())
+    .reduce((r, c) => r.split(c).join(""), region)
+    .replace(/\b(and|the)\b/gi, "")
+    .replace(/[\s,–-]+/g, "");
+  const showRegion = regionLeft.length > 0 && !/^across /i.test(region);
+  const yearMatch = info.era.match(/((?:early|late|mid)[-\s])?(?<![\d,])(?:\d{1,2}(?:st|nd|rd|th)(?:\s?[–-]\s?(?:(?:early|late|mid)\s)?\d{1,2}(?:st|nd|rd|th))?\s+centur(?:y|ies)|\d{3,4}s?(?!\d)(?:\s?[–-]\s?(?:(?:early|late|mid)\s)?\d{2,4}s?)?)/i);
+  const when = yearMatch ? yearMatch[0].replace(/^./, (c) => c.toUpperCase()) : null;
+  /* what the era sentence says beyond the year — filler words do not count */
+  const eraLeft = when
+    ? info.era
+        .replace(yearMatch![0], "")
+        .replace(/\b(from|the|in|around|emerged|onward|onwards|era|of|a|an|and|early|late|mid)\b/gi, "")
+        .replace(/[\s,;.:–-]+/g, "")
+    : info.era;
+  /* and the sentence never says the year again: "refined in the courts from the
+     1500s" under "1500s" reads "refined in the courts" */
+  const eraTrimmed = when
+    ? info.era
+        .replace(new RegExp(`\\s*(?:(?:from|since|in)(?:\\s+around)?\\s+the\\s+|from\\s+around\\s+the\\s+|in\\s+the\\s+)?${yearMatch![0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "i"), "")
+        .replace(/^[\s,;.:–-]+|[\s,;:–-]+$/g, "")
+        .replace(/\s+([,;])/g, "$1")
+        .replace(/^./, (c) => c.toUpperCase())
+    : info.era;
+  /* a sentence left hanging on its preposition ("…heritage list since") needs its year back */
+  const eraSentence = when && (eraLeft.length === 0 || eraTrimmed.length === 0) ? null : /\b(since|from|in|at|by)$/i.test(eraTrimmed) ? info.era : eraTrimmed;
+  const factRow = { display: "grid", gridTemplateColumns: "62px 1fr", gap: 10, alignItems: "start", padding: "11px 0" } as const;
+  const factKey = { fontSize: 9, fontWeight: 900, letterSpacing: 0.8, color: "var(--muted)", paddingTop: 3 } as const;
+
   const details = (
     <div>
-      {/* THE DANCER — drawn in the style's costume, pose and props (2 Oct 2026,
-          replacing the photo). A square on the style's own colour, the figure
-          fitted whole inside it. */}
-      <SectionCard icon={mark(<path d="M12 4a2 2 0 1 0 0 .01M9 21l2-6-3-3 2-4h4l2 4-3 3 2 6" />)} label="THE DANCE" col={color}>
-        <div data-testid="style-art-frame" style={{ position: "relative", width: "100%", aspectRatio: "1 / 1", borderRadius: 14, overflow: "hidden", background: `linear-gradient(160deg, ${color}, ${color}88)` }}>
-          <StyleArt style={style} frame="page" label={`${style} dancer in costume`} />
-        </div>
-      </SectionCard>
-
-      {/* INFO — the four facts (9508-9513), tiles inside one card now; the 3px
-          coloured top edge went the way the tool cards' left edge went (4 Oct) */}
+      {/* ⚠ NO "THE DANCE" CARD (30 Oct 2026, the user: "remove big photo from
+          details and place it with the dance style heading … can reduce the
+          size"): the drawn dancer is a small square beside the title now, so it
+          is on every column rather than a full-width block at the top of one. */}
       <SectionCard icon={mark(<path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-4M12 8h.01" />)} label="THE FACTS" col={color}>
-        <div data-testid="style-facts" style={{ display: "grid", gap: 8 }}>
-          {/* COUNTRY and FAMILY are facts too (29 Oct 2026, the user: "facts should
-              also include country and family in it not on top, country flag should
-              also be there") — they were two chips under the title */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            {(["COUNTRY", "FAMILY"] as const).map((k) => (
-              <div key={k} data-testid={`style-fact-${k.toLowerCase()}`} style={{ background: `${color}10`, border: `1.5px solid ${color}33`, borderRadius: 12, padding: "10px 11px", minWidth: 0 }}>
-                <div style={{ fontSize: 8.5, fontWeight: 900, letterSpacing: 0.6, color: "var(--muted)" }}>{k}</div>
-                {k === "COUNTRY" ? (
-                  <div data-testid="style-flags" aria-hidden="true" style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 6 }}>
-                    {isGlobal(info.country) ? (
-                      <span style={{ fontSize: 18, lineHeight: 1 }}>🌍</span>
-                    ) : (
-                      countryCodes(info.country).map((c) => (
-                        // eslint-disable-next-line @next/next/no-img-element -- a 40px static flag; next/image would need a remote host entry for nothing
-                        <img key={c} src={flagSrc(c)} alt="" width={26} height={18} style={{ width: 26, height: 18, objectFit: "cover", borderRadius: 3, boxShadow: "0 0 0 1px rgba(0,0,0,.12)" }} />
-                      ))
-                    )}
-                  </div>
-                ) : null}
-                <div style={{ fontSize: 12, fontWeight: 800, marginTop: 5, lineHeight: 1.35 }}>{k === "COUNTRY" ? info.country : info.family}</div>
+        <div data-testid="style-facts">
+          <div data-testid="style-fact-country" style={factRow}>
+            <div style={factKey}>FROM</div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span data-testid="style-flags" aria-hidden="true" style={{ display: "inline-flex", gap: 4 }}>
+                  {isGlobal(info.country) ? (
+                    <span style={{ fontSize: 17, lineHeight: 1 }}>🌍</span>
+                  ) : (
+                    countryCodes(info.country).map((c) => (
+                      // eslint-disable-next-line @next/next/no-img-element -- a small static flag; next/image would need a remote host entry for nothing
+                      <img key={c} src={flagSrc(c)} alt="" width={24} height={16} style={{ width: 24, height: 16, objectFit: "cover", borderRadius: 3, boxShadow: "0 0 0 1px rgba(0,0,0,.12)" }} />
+                    ))
+                  )}
+                </span>
+                <span style={{ fontSize: 14, fontWeight: 900, lineHeight: 1.3 }}>{info.country}</span>
               </div>
-            ))}
-          </div>
-          {[
-            ["WHERE IT BEGAN", info.origin],
-            ["WHEN", info.era],
-          ].map(([k, v]) => (
-            <div key={k} style={{ background: `${color}10`, border: `1.5px solid ${color}33`, borderRadius: 12, padding: "10px 11px" }}>
-              <div style={{ fontSize: 8.5, fontWeight: 900, letterSpacing: 0.6, color: "var(--muted)" }}>{k}</div>
-              <div style={{ fontSize: 12, fontWeight: 800, marginTop: 3, lineHeight: 1.35 }}>{v}</div>
+              {showRegion ? <div data-testid="style-fact-region" style={{ fontSize: 12, color: SUB, marginTop: 4, lineHeight: 1.4 }}>{region}</div> : null}
             </div>
-          ))}
+          </div>
+          <div data-testid="style-fact-since" style={{ ...factRow, borderTop: "1.5px solid var(--el)" }}>
+            <div style={factKey}>WHEN</div>
+            <div style={{ minWidth: 0 }}>
+              {when ? <div style={{ fontSize: 19, fontWeight: 900, lineHeight: 1.15, color, letterSpacing: -0.3 }}>{when}</div> : null}
+              {eraSentence ? <div style={{ fontSize: 12, color: when ? SUB : INK, fontWeight: when ? 500 : 800, marginTop: when ? 4 : 0, lineHeight: 1.45 }}>{eraSentence}</div> : null}
+            </div>
+          </div>
+          <div data-testid="style-fact-family" style={{ ...factRow, borderTop: "1.5px solid var(--el)", paddingBottom: 2 }}>
+            <div style={factKey}>FAMILY</div>
+            <div>
+              <span style={{ display: "inline-block", fontSize: 12, fontWeight: 800, padding: "4px 10px", borderRadius: 999, background: `${color}1f`, border: `1.5px solid ${color}44` }}>{info.family}</span>
+            </div>
+          </div>
         </div>
       </SectionCard>
 
@@ -252,11 +291,21 @@ export default async function StylePage({
     </SectionCard>
   );
 
-  const rankings = (
+  const rankings = board ? (
+    <BoardsBrowser
+      chart={board.chart}
+      segment={board.segment}
+      metric={board.metric}
+      city={board.city}
+      cities={board.cities}
+      basePath={`/styles/${slug}`}
+      baseQuery="show=rankings"
+      youId={user?.id ?? null}
+      label={`WHO LEADS IN ${style.toUpperCase()}`}
+    />
+  ) : (
     <SectionCard icon={mark(<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM17 5h3a3 3 0 0 1-3 4M7 5H4a3 3 0 0 0 3 4" />)} label={`WHO LEADS IN ${style.toUpperCase()}`} col={color}>
-      {boards ? (
-        <StyleBoards style={style} color={color} boards={boards} />
-      ) : (
+      {(
         <div style={{ textAlign: "center", padding: "22px 12px", border: "1.5px dashed var(--el)", borderRadius: 14, fontSize: 12.5, color: SUB }}>
           The {style} rankings are for people on DanceOS.{" "}
           <Link href="/login" style={{ color: INK, fontWeight: 800 }}>
@@ -283,11 +332,18 @@ export default async function StylePage({
           plainBody
           tint={color}
           top={
-            <>
-              <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1.2, color: SUB }}>DANCE STYLE</div>
-              <h1 data-testid="style-title" style={{ ...TAB_TITLE, color: INK, marginTop: 4 }}><BeatText text={style} /></h1>
-              {/* no country / family chips here — they are THE FACTS card's (29 Oct 2026) */}
-            </>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1.2, color: SUB }}>DANCE STYLE</div>
+                <h1 data-testid="style-title" style={{ ...TAB_TITLE, color: INK, marginTop: 4, overflowWrap: "anywhere" }}><BeatText text={style} /></h1>
+                {/* no country / family chips here — they are THE FACTS card's (29 Oct 2026) */}
+              </div>
+              {/* THE DANCER beside the heading (30 Oct 2026) — the drawn figure in
+                  the style's costume, small, on the style's own colour */}
+              <div data-testid="style-art-frame" style={{ position: "relative", width: 84, height: 84, flexShrink: 0, borderRadius: 22, overflow: "hidden", background: `linear-gradient(160deg, ${color}, ${color}88)`, boxShadow: `0 6px 18px ${color}40` }}>
+                <StyleArt style={style} frame="page" label={`${style} dancer in costume`} />
+              </div>
+            </div>
           }
           segments={[
             { key: "classes", href: base, label: "Classes", aria: "Classes" },

@@ -15,12 +15,13 @@ export async function loadBoard(
   supabase: SupabaseClient,
   query: BoardQuery,
   fallback: ChartSegment,
+  style: string | null = null,
 ): Promise<{ chart: ChartRow[]; segment: ChartSegment; metric: ChartMetric; city: string | null; cities: string[] }> {
   const segment = SEGMENTS.includes((query.seg ?? "") as ChartSegment) ? (query.seg as ChartSegment) : fallback;
   const cityList = await findDiscoverCities(supabase);
   const city = cityList.some((c) => c.city === query.city) ? (query.city as string) : null;
   const metric = parseChartMetric(query.metric);
-  const chart = await findChart(supabase, { segment, city, style: null })
+  const chart = await findChart(supabase, { segment, city, style })
     .then((rows) => withChartPhotos(supabase, rows))
     .catch(() => [] as ChartRow[]);
   return { chart, segment, metric, city, cities: cityList.map((c) => c.city) };

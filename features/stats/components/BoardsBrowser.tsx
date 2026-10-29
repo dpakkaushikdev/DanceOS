@@ -89,7 +89,6 @@ export function BoardsBrowser({
   const router = useRouter();
   const [rulesOpen, setRulesOpen] = useState(false);
   const isCrew = segment === "crew";
-  const isStudio = segment === "studio";
   const peopleBoard = segment === "dancer" || segment === "artist";
 
   const chartHref = (over: { seg?: ChartSegment; city?: string | null; metric?: ChartMetric }) => {
@@ -106,16 +105,9 @@ export function BoardsBrowser({
   const leaderValue = Math.max(1, ...board.map((r) => valueOf(r)));
   const podiumRows = board.length >= 3 && board[0].place === 1 ? board.slice(0, 3) : [];
   const listRows = podiumRows.length ? board.slice(3) : board;
-  const hrs = (h: number) => `${Math.round(h * 10) / 10}h`;
-  const detailOf = (r: ChartRow) =>
-    (r.kind === "crew"
-      ? [`${r.extra} members`]
-      : isStudio
-        ? [`${r.conducted} held`, hrs(r.hours), `${r.extra} dancers`]
-        : segment === "artist"
-          ? [`${r.conducted} taught`, `${r.assisted} asst`, hrs(r.hours)]
-          : [`${r.attended} danced`, hrs(r.hours)]
-    ).join(" · ");
+  /* ⚠ NO DETAIL LINE UNDER A NAME (30 Oct 2026, the user: "remove the subheading
+     below every person or studio in browse the board which says taught asst
+     etc"): the row is the place, the face, the name and the metric's own figure */
   const hrefOf = (r: ChartRow) => (r.kind === "crew" ? `/crew/${r.id}` : r.kind === "studio" ? `/studio/${r.id}` : `/person/${r.id}`);
   const isYouRow = (r: ChartRow) => peopleBoard && ((youId != null && r.id === youId) || (boardPlace != null && r.place === boardPlace.place));
 
@@ -183,7 +175,7 @@ export function BoardsBrowser({
                     <span style={{ height: 6 }} />
                     <span style={{ fontSize: 11.5, fontWeight: 900, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
                     <span style={{ fontSize: 10.5, fontWeight: 900, padding: "2px 8px", borderRadius: 999, background: `${medal}26`, color: INK, marginTop: 3, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{valueOf(r)} {unit}</span>
-                    <span style={{ fontSize: 9, fontWeight: 700, color: MUTED, marginTop: 3, marginBottom: 5, maxWidth: "100%", textAlign: "center", lineHeight: 1.3 }}>{detailOf(r)}</span>
+                    <span style={{ height: 6 }} />
                     <span style={{ width: "100%", height: tall, borderRadius: "12px 12px 4px 4px", background: `linear-gradient(180deg, ${medal}, ${medal}55)`, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 6, color: "#fff", fontFamily: DOS_DISPLAY, fontWeight: 900, fontSize: 20 }}>
                       {r.place}
                     </span>
@@ -196,7 +188,7 @@ export function BoardsBrowser({
             const top3 = r.place <= 3;
             const isYou = isYouRow(r);
             return (
-              <Link key={`${r.kind}-${r.id}`} href={hrefOf(r)} aria-label={`${isYou ? "You — " : ""}${r.name} — place ${r.place} of ${r.population}`} style={{ position: "relative", overflow: "hidden", display: "flex", alignItems: "center", gap: 10, background: isYou ? "linear-gradient(120deg,#7C3AED22,#EC489922)" : CARD, border: `1.5px solid ${isYou ? "#7C3AED77" : LINE}`, borderRadius: 14, padding: "10px 12px 12px", marginBottom: 7, color: INK, textDecoration: "none" }}>
+              <Link key={`${r.kind}-${r.id}`} href={hrefOf(r)} aria-label={`${isYou ? "You — " : ""}${r.name} — place ${r.place} of ${r.population}`} style={{ position: "relative", overflow: "hidden", display: "flex", alignItems: "center", gap: 10, background: isYou ? "linear-gradient(120deg,#7C3AED22,#EC489922)" : CARD, border: `1.5px solid ${isYou ? "#7C3AED77" : LINE}`, borderRadius: 14, padding: "9px 12px 11px", marginBottom: 7, color: INK, textDecoration: "none" }}>
                 <span style={{ ...figure, width: 28, height: 28, borderRadius: 9, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12.5, fontFamily: DOS_DISPLAY, fontWeight: 900, background: top3 ? "linear-gradient(135deg,#7C3AED,#EC4899)" : LINE, color: top3 ? "#fff" : SUB }}>{r.place}</span>
                 <BoardFace row={r} size={36} />
                 <span style={{ flex: 1, minWidth: 0 }}>
@@ -204,7 +196,6 @@ export function BoardsBrowser({
                     {r.name}
                     {isYou ? <span style={{ marginLeft: 6, fontSize: 8.5, fontWeight: 900, letterSpacing: 0.6, padding: "2px 6px", borderRadius: 999, background: "#7C3AED", color: "#fff", verticalAlign: "middle" }}>YOU</span> : null}
                   </span>
-                  <span style={{ display: "block", fontSize: 10, fontWeight: 700, color: MUTED, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{detailOf(r)}</span>
                 </span>
                 <span aria-hidden="true" style={{ position: "absolute", left: 0, bottom: 0, height: 3, width: `${Math.max(4, (valueOf(r) / leaderValue) * 100)}%`, background: "linear-gradient(90deg,#7C3AED,#EC4899)" }} />
                 <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 900, padding: "4px 10px", borderRadius: 999, border: `1.5px solid ${LINE}`, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>

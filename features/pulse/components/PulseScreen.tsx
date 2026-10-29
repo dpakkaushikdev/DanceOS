@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { BeatText } from "@/components/ui/BeatText";
 import { InvertedPanel } from "@/components/ui/InvertedPanel";
@@ -6,10 +5,8 @@ import { SectionCard } from "@/components/ui/SectionCard";
 import { TopPanel } from "@/components/ui/TopPanel";
 import { SearchBox } from "@/features/discovery/components/SearchBox";
 import { TodayShelf } from "@/features/home/components/TodayShelf";
-import { gradientOf } from "@/features/profiles/components/profile-kit";
 import { BoardsBrowser } from "@/features/stats/components/BoardsBrowser";
 import { DOS_DISPLAY, DOS_UI, GOLD, INK, LINE, MUTED, SUB, TAB_SUB, TAB_TITLE } from "@/lib/design/tokens";
-import { photoUrl } from "@/lib/media/photo";
 import type { DeckItem } from "@/types/home";
 import { SIDE_TINT, SIDE_VERB, hoursWords, type ChartMetric, type ChartRow, type ChartSegment, type DanceStats, type Side } from "@/types/stats";
 
@@ -25,17 +22,6 @@ const micro: React.CSSProperties = { fontSize: 9.5, fontWeight: 800, letterSpaci
 function dayLine(nowIso: string): string {
   return new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", weekday: "long", day: "numeric", month: "short" })
     .format(new Date(nowIso));
-}
-
-function Face({ name, path, size }: { name: string; path: string | null | undefined; size: number }) {
-  const g = gradientOf(name);
-  const src = photoUrl(path ?? null);
-  const initials = name.split(" ").filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
-  return (
-    <span style={{ width: size, height: size, borderRadius: "50%", flexShrink: 0, overflow: "hidden", background: `linear-gradient(135deg,${g[0]},${g[1]})`, display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900, fontSize: Math.round(size * 0.34) }}>
-      {src ? <Image src={src} alt="" width={size} height={size} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : initials}
-    </span>
-  );
 }
 
 const PulseIcon = ({ c = "#fff" }: { c?: string }) => (
@@ -65,16 +51,12 @@ export function PulseScreen({
   return (
     <div style={{ background: "var(--bg)", color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "16px var(--dos-gutter) 40px", boxSizing: "border-box" }}>
       <TopPanel tint={PULSE_TINT}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-          <div style={{ minWidth: 0 }}>
-            <h1 data-testid="pulse-title" style={{ ...TAB_TITLE, color: INK, marginTop: 4 }}>
-              <BeatText text="Pulse" />
-            </h1>
-            <div data-testid="pulse-day" style={{ ...TAB_SUB, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{dayLine(nowIso)}</div>
-          </div>
-          <Link href={`/person/${me.id}`} aria-label={`${me.name} — your page`} style={{ borderRadius: "50%", padding: 2, background: `linear-gradient(135deg,${PULSE_TINT},#F59E0B)`, flexShrink: 0, display: "inline-flex" }}>
-            <Face name={me.name} path={me.photoPath} size={52} />
-          </Link>
+        {/* no picture on the heading (30 Oct 2026, the user: "remove the profile pic on right from the heading on pulse page") */}
+        <div style={{ minWidth: 0 }}>
+          <h1 data-testid="pulse-title" style={{ ...TAB_TITLE, color: INK, marginTop: 4 }}>
+            <BeatText text="Pulse" />
+          </h1>
+          <div data-testid="pulse-day" style={{ ...TAB_SUB, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{dayLine(nowIso)}</div>
         </div>
         <SearchBox city={me.city ?? ""} margin="14px 0 2px" placeholder="Search studios, artists, styles, people" />
       </TopPanel>

@@ -80,6 +80,8 @@ const ICONS = {
   /* the team desk's glyph (26 Sep 2026) — two people, for the organization's Team tile */
   team: (c: string) => <Glyph c={c}><circle cx="9" cy="8" r="3" /><path d="M3.5 19c.6-3 2.7-4.6 5.5-4.6s4.9 1.6 5.5 4.6" /><circle cx="16.5" cy="9" r="2.4" /><path d="M15.5 14.6c2.5.1 4.3 1.5 5 4.4" /></Glyph>,
   language: (c: string) => <Glyph c={c}><circle cx="12" cy="12" r="8.5" /><path d="M3.5 12h17M12 3.5c2.6 2.6 3.8 5.4 3.8 8.5s-1.2 5.9-3.8 8.5c-2.6-2.6-3.8-5.4-3.8-8.5S9.4 6.1 12 3.5z" /></Glyph>,
+  /* a stack of three disks — the space a profile takes up (30 Oct 2026) */
+  storage: (c: string) => <Glyph c={c}><ellipse cx="12" cy="6" rx="7.5" ry="2.8" /><path d="M4.5 6v6c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8V6" /><path d="M4.5 12v6c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8v-6" /></Glyph>,
   privacy: (c: string) => <Glyph c={c}><path d="M12 3 5 6v5.5c0 4.2 2.9 7.6 7 9.5 4.1-1.9 7-5.3 7-9.5V6z" /><path d="m9.5 12 1.8 1.8L15 10" /></Glyph>,
   help: (c: string) => <Glyph c={c}><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="3.2" /><path d="m6 6 3.7 3.7M18 6l-3.7 3.7M18 18l-3.7-3.7M6 18l3.7-3.7" /></Glyph>,
   admin: (c: string) => <Glyph c={c}><path d="M12 3 5 6v5.5c0 4.2 2.9 7.6 7 9.5 4.1-1.9 7-5.3 7-9.5V6z" /><path d="M12 8v4M12 15.5v.5" /></Glyph>,
@@ -452,6 +454,11 @@ export function SettingsSheet({
         <div style={grid}>
           <Tile icon={ICONS.language("#06B6D4")} onClick={() => fire("English — more languages are coming")}>
             Language
+          </Tile>
+          {/* STORAGE (30 Oct 2026) — the profile you are IN, so a studio's and a
+              crew's read their own folders and rows (`?as=`, re-checked on the page) */}
+          <Tile icon={ICONS.storage("#6366F1")} href={studio ? `/storage?as=${studio.id}` : active.kind === "crew" ? `/storage?as=crew-${active.crew.id}` : "/storage"} onNavigate={go}>
+            Storage
           </Tile>
           <Tile icon={ICONS.privacy("#64748B")} href="/legal/privacy" onNavigate={go}>
             Privacy & data

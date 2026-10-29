@@ -190,6 +190,16 @@ export async function findBusinessName(supabase: SupabaseClient, businessId: str
   return (data as { name: string } | null)?.name ?? null;
 }
 
+/** A business's type, as the caller may read it — null when RLS says no (30 Oct
+ *  2026: a studio's class may not be held at a map link, so the action asks). */
+export async function findBusinessType(supabase: SupabaseClient, businessId: string): Promise<string | null> {
+  const { data, error } = await supabase.from("businesses").select("type").eq("id", businessId).is("deleted_at", null).maybeSingle();
+  if (error) {
+    throw new Error(`businesses.findBusinessType failed: ${error.message}`);
+  }
+  return (data as { type: string } | null)?.type ?? null;
+}
+
 /** The profile pictures of a few businesses, as the caller may read them (11 Oct
  *  2026 — the faces on the team invitations the Studios hub draws). One query for
  *  the list; a business RLS hides simply has no entry, and the card draws its

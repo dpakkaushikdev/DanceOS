@@ -255,3 +255,29 @@ export function ProfileDisc({ name, grad, photo, photoAlt, testId }: { name: str
     </div>
   );
 }
+
+/** ⚠ SOMEBODY ELSE'S PICTURE OPENS (30 Oct 2026, the user: "when clicking on
+ *  profile pic of someone else its not opening"). The disc on a page you do not
+ *  own was a plain picture; pressed, it now opens the picture in the viewer, in
+ *  the disc's own crop — the same viewer your own disc opens. No picture, no
+ *  button: initials are not a picture to look at. */
+export function ViewableDisc({ name, grad, photo, photoAlt, testId }: { name: string; grad: [string, string]; photo: string | null; photoAlt?: string; testId?: string }) {
+  const [open, setOpen] = useState(false);
+  const disc = <ProfileDisc name={name} grad={grad} photo={photo} photoAlt={photoAlt} testId={testId} />;
+  if (!photo) return disc;
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label={`View ${name}'s picture`}
+        style={{ display: "block", flexShrink: 0, padding: 0, margin: 0, border: "none", background: "none", cursor: "zoom-in", borderRadius: Math.round(HERO_DISC * DISC_RADIUS) }}
+      >
+        {disc}
+      </button>
+      {open ? (
+        <PhotoLightbox shots={[{ key: "avatar", src: photo, alt: photoAlt ?? name, signed: false }]} frame="disc" index={0} onIndex={() => {}} onClose={() => setOpen(false)} label={name} />
+      ) : null}
+    </>
+  );
+}

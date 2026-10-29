@@ -17,6 +17,7 @@ import { DosStyleMultiPicker } from "@/components/ui/DosStyleKit";
 import { ToolActions, ToolBody, ToolCard, ToolChip, ToolFacts, ToolHead, ToolLive, toolBtn } from "@/components/ui/ToolCard";
 import { DOS_UI, INK, LILAC, MUTED, SUB, TAB_TITLE } from "@/lib/design/tokens";
 import { BeatText } from "@/components/ui/BeatText";
+import { HeadCorner } from "@/components/ui/RequestSettingsSheet";
 import { FORM_TITLE } from "@/components/ui/formTitle";
 import { toast } from "@/components/ui/Toast";
 
@@ -419,13 +420,24 @@ export function BusinessHub({
           <h1 style={{ ...TAB_TITLE, color: INK, position: "relative" }}>
             <BeatText text={DOS_TOOLS.studios.name} />
           </h1>
+          {/* the card · list switch, back on the hub (30 Oct 2026) */}
+          <HeadCorner>{null}</HeadCorner>
         </div>
-        {/* THE PRICE, ONCE, FROM THE PRICE LIST (26 Sep 2026) — the one fact the
-            cards cannot say until there is one; the Organizations hub prints
-            its own the same way */}
-        <div style={{ fontSize: 11, color: SUB, lineHeight: 1.5, margin: "8px 2px 0" }}>
-          {studioPrice ? `A studio is ${priceWords(studioPrice.priceInr, studioPrice.period).replace("/mo", " a month")} once DanceOS has verified it.` : "No studio plan is on offer right now — message DanceOS from Settings › Help & support."}
-        </div>
+        {/* THE PRICE, ON ITS OWN (30 Oct 2026, the user: "studio subscription line
+            below heading should be reimagined properly with price mentioned
+            seprately and text should be consized") — the figure as a pill, then
+            three words saying what it buys */}
+        {studioPrice ? (
+          <div data-testid="studio-price" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", margin: "10px 2px 0" }}>
+            <span style={{ display: "inline-flex", alignItems: "baseline", gap: 3, padding: "5px 11px", borderRadius: 999, background: `${ACCENT}26`, border: `1.5px solid ${ACCENT}66`, color: INK }}>
+              <span style={{ fontSize: 14, fontWeight: 900, fontVariantNumeric: "tabular-nums" }}>₹{studioPrice.priceInr.toLocaleString("en-IN")}</span>
+              <span style={{ fontSize: 11, fontWeight: 800, color: SUB }}>/ {studioPrice.period === "monthly" ? "month" : "year"}</span>
+            </span>
+            <span style={{ fontSize: 11.5, color: SUB, fontWeight: 700 }}>per studio · live once verified</span>
+          </div>
+        ) : (
+          <div style={{ fontSize: 11.5, color: SUB, margin: "10px 2px 0" }}>No studio plan on offer right now.</div>
+        )}
         {/* ⚠ ADD STUDIO UNDER THE HEADING, ABOVE THE COLUMNS (11 Oct 2026, the
             user: "add studio below the heading above the column"). It was the
             Manage column's first row, so it was gone the moment Team was open.

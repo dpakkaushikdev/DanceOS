@@ -154,16 +154,22 @@ export function AssetForm({ businessId, asset }: { businessId: string; businessN
       <>
         <div style={FORM_LABEL}>PICTURE</div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div
-            data-testid="asset-form-photo"
-            style={{ position: "relative", width: 92, height: 92, borderRadius: 92 * DISC_RADIUS, overflow: "hidden", flexShrink: 0, border: `1.5px ${preview ? "solid" : "dashed"} var(--el)`, background: `${DOS_TOOLS.assets.c}14`, display: "flex", alignItems: "center", justifyContent: "center" }}
-          >
-            {preview ? (
-              // eslint-disable-next-line @next/next/no-img-element -- a local object URL, before anything is uploaded
-              <img src={preview} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            ) : (
-              <span aria-hidden="true" style={{ fontSize: 30 }}>📦</span>
-            )}
+          {/* ⚠ THE ＋ SITS OUTSIDE THE CLIPPED SQUIRCLE (30 Oct 2026, the user: "add
+              asset form pic and plus sign looks broken") — inside it, the
+              squircle's corner cut the chip in half; and the empty face is a drawn
+              box, not an emoji */}
+          <div data-testid="asset-form-photo" style={{ position: "relative", width: 92, height: 92, flexShrink: 0 }}>
+            <div style={{ width: "100%", height: "100%", boxSizing: "border-box", borderRadius: 92 * DISC_RADIUS, overflow: "hidden", border: `1.5px ${preview ? "solid" : "dashed"} var(--el)`, background: `${DOS_TOOLS.assets.c}14`, display: "flex", alignItems: "center", justifyContent: "center", color: DOS_TOOLS.assets.c }}>
+              {preview ? (
+                // eslint-disable-next-line @next/next/no-img-element -- a local object URL, before anything is uploaded
+                <img src={preview} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+              ) : (
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 8 12 3 3 8v8l9 5 9-5V8Z" />
+                  <path d="m3 8 9 5 9-5M12 13v8" />
+                </svg>
+              )}
+            </div>
             <PhotoPicker
               owner={{ kind: "asset", id: businessId, assetId: "00000000-0000-0000-0000-000000000000" }}
               hasPhoto={Boolean(preview)}

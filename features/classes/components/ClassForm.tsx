@@ -316,10 +316,16 @@ export function ClassForm({
         ["studio", "A studio's room"],
         ["map", "A map link"],
       ]
-    : [
-        ["room", "Your room"],
-        ["map", "A map link"],
-      ];
+    : /* ⚠ A STUDIO HOLDS ITS CLASSES IN ITS OWN ROOMS (30 Oct 2026, the user: "a
+         studio while adding a class should not get option to add a map link that
+         should only be with an artist"). A studio class already at a link keeps
+         that answer so re-opening its form does not lie about where it is. */
+      initialWhere === "map"
+      ? [
+          ["room", "Your room"],
+          ["map", "A map link"],
+        ]
+      : [["room", "Your room"]];
   const [venue, setVenue] = useState<Venue | null>(existing?.venueBusinessId ? { id: existing.venueBusinessId, name: venueName ?? "the studio you asked", sub: "" } : null);
   const [venueRooms, setVenueRooms] = useState<Room[]>([]);
   const [venueQ, setVenueQ] = useState("");
@@ -589,6 +595,7 @@ export function ClassForm({
             <div style={labelStyle}>4 · WHERE</div>
             {/* ONE PLACE TO SAY WHERE (11 Oct 2026): the answers are the business
                 type's, the switch is the app's one column switch */}
+            {whereOptions.length > 1 ? (
             <div role="group" aria-label="Where the class happens" style={{ ...columnTrack(), marginBottom: 10 }}>
               {whereOptions.map(([k, word]) => {
                 const on = whereKind === k;
@@ -599,6 +606,7 @@ export function ClassForm({
                 );
               })}
             </div>
+            ) : null}
             {atRoom ? (
               <>
                 {studioPlace ? <div style={{ fontSize: 11.5, fontWeight: 700, color: SUB, margin: "0 0 8px" }}>{studioPlace}</div> : null}

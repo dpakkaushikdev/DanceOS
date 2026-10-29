@@ -18,7 +18,7 @@ import {
   updateClassStatus,
 } from "@/repositories/classes";
 import { findRoomsByBusiness } from "@/repositories/rooms";
-import { findMyMemberships } from "@/repositories/businesses";
+import { findBusinessType, findMyMemberships } from "@/repositories/businesses";
 import { searchEverything } from "@/repositories/search";
 import { reconcileClassPeople } from "@/services/classPeople";
 import { sendUnsentRefunds } from "@/services/refundRail";
@@ -204,6 +204,11 @@ export async function createClassAction(
   const supabase = await requireUser();
   const d = parsed.data;
   const people = readPeople(formData);
+  /* ⚠ a map link is an ARTIST's answer to where (30 Oct 2026) — a studio holds
+     its classes in its own rooms */
+  if (d.mapsUrl && (await findBusinessType(supabase, d.businessId).catch(() => null)) === "studio") {
+    return { error: "A studio's class is held in one of its rooms — pick a room." };
+  }
   try {
     const classId = await createClassWithSession(supabase, {
       businessId: d.businessId,

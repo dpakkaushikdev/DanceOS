@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { DOS_UI, INK, LILAC, SUB, TAB_TITLE } from "@/lib/design/tokens";
 import { BeatText } from "@/components/ui/BeatText";
+import { HeadCorner } from "@/components/ui/RequestSettingsSheet";
 import { CREW_TINT, type CrewSummary } from "@/types/crew";
 import { DeskAddButton } from "@/features/settings/components/settings-kit";
 import { DeskBody, DeskTop } from "@/components/ui/DeskSections";
@@ -133,6 +134,8 @@ export function CrewsHub({ led }: { led: CrewSummary[] }) {
     <div data-testid="desk-hero" style={{ margin: "-14px -14px 0", padding: "16px 16px 6px", borderRadius: "21px 21px 0 0", position: "relative", color: INK, background: `linear-gradient(180deg, ${accent}8c 0%, ${accent}38 60%, transparent 100%)` }}>
       {/* the page's own `<h1>` — the chrome no longer prints a drill page's name (28 Sep 2026) */}
       <h1 style={{ ...TAB_TITLE, color: INK, position: "relative" }}><BeatText text="Crews" /></h1>
+      {/* the card · list switch, back on the hub (30 Oct 2026) */}
+      <HeadCorner>{null}</HeadCorner>
     </div>
   );
   return (

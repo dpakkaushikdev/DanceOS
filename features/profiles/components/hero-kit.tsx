@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { DosStyleTile } from "@/features/discovery/components/DiscoverFilters";
-import { HeroRail, ProfileDisc, type HeroShot } from "@/features/profiles/components/HeroRail";
+import { HeroRail, ProfileDisc, ViewableDisc, type HeroShot } from "@/features/profiles/components/HeroRail";
 import { TYPE } from "@/features/profiles/components/profile-kit";
 import { VerifiedTick } from "@/features/settings/components/settings-kit";
 import { dosStyleColor } from "@/lib/constants/styles";
@@ -302,7 +302,7 @@ export function IdentityHero({
               <ProfileDisc name={name} grad={grad} photo={avatar} photoAlt={avatarAlt} testId="hero-disc" />
             </Link>
           ) : (
-            <ProfileDisc name={name} grad={grad} photo={avatar} photoAlt={avatarAlt} testId="hero-disc" />
+            <ViewableDisc name={name} grad={grad} photo={avatar} photoAlt={avatarAlt} testId="hero-disc" />
           )}
 
           {/* what it is, its number, who it is, where — in that order, beside the picture */}

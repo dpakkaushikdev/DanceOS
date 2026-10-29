@@ -118,7 +118,20 @@ export function PersonBody({
    *  and every visitor would have seen the person's own page listed under Teach —
    *  R24's exact bug, for the majority of viewers, introduced by the fix for a
    *  smaller one. `artistPageId` is a definer read that answers anybody. */
-  const studiosTaughtAt = person.teachesAt.filter((t) => t.businessType === "studio" || t.businessId !== person.artistPageId);
+  /* ⚠ STUDIOS AND ARTISTS ARE TWO GROUPS, AND A CLASS TAUGHT AT SOMEBODY ELSE'S
+     ARTIST PAGE IS AN ARTIST CONNECTION (30 Oct 2026, the user: "connections
+     should have seprate studio and artist connections"). It used to be merged
+     into Studios, so an artist read as a studio. */
+  const studiosTaughtAt = person.teachesAt.filter((t) => t.businessType === "studio");
+  const artistsTaughtWith = person.teachesAt.filter((t) => t.businessType === "artist_page" && t.businessId !== person.artistPageId);
+  /** the position a class gives somebody where they hold no seat — said as a
+   *  position, not a sentence (30 Oct 2026, "connections position should be
+   *  mentioned properly") */
+  const guestWord = (kinds: string) => {
+    const teaches = kinds.includes("Artist");
+    const assists = kinds.includes("Assistant");
+    return teaches && assists ? "Guest artist · assistant" : teaches ? "Guest artist" : "Guest assistant";
+  };
   /* ⚠ WHERE THEY ARE SEATED (20 Sep 2026, the user's list E) — a different fact
      from the one above, which counts PUBLISHED CLASSES: somebody asked onto a
      team who has not taught yet is associated and teaches at nothing. Their own
@@ -164,14 +177,28 @@ export function PersonBody({
     });
     studiosTaughtAt.forEach((t) => {
       if (byId.has(t.businessId)) return;
-      const teaches = t.kinds.includes("Artist");
-      const assists = t.kinds.includes("Assistant");
-      byId.set(t.businessId, {
-        id: t.businessId,
-        name: t.businessName,
-        photo: null,
-        title: teaches && assists ? "Teaches · assists" : teaches ? "Teaches here" : "Assists here",
+      byId.set(t.businessId, { id: t.businessId, name: t.businessName, photo: null, title: guestWord(t.kinds) });
+    });
+    return [...byId.values()];
+  })();
+
+  /** the ARTISTS group: the artist pages they hold a seat on, then the ones whose
+   *  classes they took part in without a seat — one row per artist */
+  const artists = (() => {
+    const byId = new Map<string, { id: string; href: string; name: string; photo: string | null; title: string }>();
+    artistsWith.forEach((a) => {
+      byId.set(a.businessId, {
+        id: a.businessId,
+        /* an artist page IS the person behind it (18 Sep 2026) */
+        href: a.ownerId ? `/person/${a.ownerId}` : `/artist/${a.businessId}`,
+        name: a.businessName,
+        photo: a.photoPath ? photoUrl(a.photoPath) : null,
+        title: a.ended ? `${MEMBER_ROLE_WORD[a.role]} · past` : MEMBER_ROLE_WORD[a.role],
       });
+    });
+    artistsTaughtWith.forEach((t) => {
+      if (byId.has(t.businessId)) return;
+      byId.set(t.businessId, { id: t.businessId, href: `/artist/${t.businessId}`, name: t.businessName, photo: null, title: guestWord(t.kinds) });
     });
     return [...byId.values()];
   })();
@@ -190,10 +217,10 @@ export function PersonBody({
      not drawn at all (a plain user with no crew and no seat). */
   const hasAnything =
     nextSessions.length > 0 || memberships.length > 0 || Boolean(beforeGroups) ||
-    studios.length > 0 || artistsWith.length > 0 || teamFaculty.length + teamAssistants.length > 0 || crews.length > 0;
+    studios.length > 0 || artists.length > 0 || teamFaculty.length + teamAssistants.length > 0 || crews.length > 0;
   if (!hasAnything) return null;
   const hasTop = nextSessions.length > 0 || memberships.length > 0 || Boolean(beforeGroups);
-  const connections = studios.length + artistsWith.length + teamFaculty.length + teamAssistants.length + crews.length;
+  const connections = studios.length + artists.length + teamFaculty.length + teamAssistants.length + crews.length;
 
   return (
     <>
@@ -267,19 +294,10 @@ export function PersonBody({
         </PeopleGroup>
       ) : null}
 
-      {artistsWith.length ? (
-        <PeopleGroup title="Artists" n={artistsWith.length}>
-          {artistsWith.map((a) => (
-            /* an artist page IS the person behind it (18 Sep 2026) — open them
-               directly rather than the address that only redirects */
-            <PersonChip
-              key={a.businessId}
-              href={a.ownerId ? `/person/${a.ownerId}` : `/artist/${a.businessId}`}
-              name={a.businessName}
-              photo={a.photoPath ? photoUrl(a.photoPath) : null}
-              role={a.ended ? `${MEMBER_ROLE_WORD[a.role]} · past` : MEMBER_ROLE_WORD[a.role]}
-              roleColour={accent}
-            />
+      {artists.length ? (
+        <PeopleGroup title="Artists" n={artists.length}>
+          {artists.map((a) => (
+            <PersonChip key={a.id} href={a.href} name={a.name} photo={a.photo} role={a.title} roleColour={accent} />
           ))}
         </PeopleGroup>
       ) : null}
@@ -324,7 +342,7 @@ export function PersonBody({
               href={`/crew/${c.crewId}`}
               name={c.name}
               photo={c.photo ? photoUrl(c.photo) : null}
-              role={c.role === "leader" ? "Leader" : CREW_ROLE_WORD[c.role]}
+              role={c.role === "trainee" ? CREW_ROLE_WORD.trainee : c.role === "leader" ? "Crew leader" : "Crew member"}
               roleColour={accent}
             />
           ))}

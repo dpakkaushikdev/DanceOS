@@ -121,18 +121,22 @@ export function WholeRecord({
   isArtist: boolean;
 }) {
   const isStudioSubject = subjectKind === "studio";
-  const shownSides: Side[] = isStudioSubject ? ["conducted"] : SIDES;
+  const allSides: Side[] = isStudioSubject ? ["conducted"] : SIDES;
+  /* ALL THREE ON BY DEFAULT (30 Oct 2026, the user: "the whole record graph
+   * should always have all selected together … and should be able to unselect
+   * them which removes them from graph"). A side switched off leaves the chart,
+   * the total and the group bars; the last one left cannot be switched off,
+   * because an empty record reads as a measured zero. */
+  const [offSides, setOffSides] = useState<Side[]>([]);
+  const shownSides: Side[] = allSides.filter((s) => !offSides.includes(s));
+  const toggleSide = (k: Side) =>
+    setOffSides((cur) => (cur.includes(k) ? cur.filter((s) => s !== k) : allSides.length - cur.length > 1 ? [...cur, k] : cur));
   const pastOf = (k: Side) => (isStudioSubject && k === "conducted" ? "Held" : SIDE_PAST[k]);
   const today = dayKeyOf(nowIso);
 
   const [period, setPeriod] = useState<Period>("week");
   const [range, setRange] = useState<{ from: string; to: string } | null>(null);
   const [customOpen, setCustomOpen] = useState(false);
-  const [cvSide, setCvSide] = useState<Side>(() => {
-    if (isStudioSubject) return "conducted";
-    const n = (s: Side) => history.filter((r) => r.side === s).length;
-    return (["attended", "conducted", "assisted"] as Side[]).reduce((best, s) => (n(s) > n(best) ? s : best), "attended" as Side);
-  });
   const [dim, setDim] = useState<Dim>("style");
   const [sortKey, setSortKey] = useState<SortKey>("sessions");
   const [asc, setAsc] = useState(false);
@@ -174,7 +178,7 @@ export function WholeRecord({
     dim === "style" ? r.style : dim === "artist" ? (r.artistName ?? "—") : isStudioSubject ? (r.room ?? "No room") : (r.businessName ?? r.room ?? "—");
   const groups = (() => {
     const g = new Map<string, { key: string; sessions: number; hours: number }>();
-    bySide(cvSide).forEach((r) => {
+    shownRows.forEach((r) => {
       const k = keyOf(r);
       const cur = g.get(k) ?? { key: k, sessions: 0, hours: 0 };
       cur.sessions += 1;
@@ -220,13 +224,17 @@ export function WholeRecord({
         </div>
 
         {/* THE WINDOW AT A GLANCE — what is counted, said once */}
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
+        {/* sessions AND hours at one size (30 Oct 2026, the user: "session and hrs
+            count above graph in same big font"), both following the side toggles */}
+        <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
           <span style={{ fontFamily: DOS_DISPLAY, fontWeight: 900, fontSize: 30, letterSpacing: -1, lineHeight: 1, fontVariantNumeric: "tabular-nums" }} data-testid="record-total">
             {shownRows.length}
           </span>
-          <span style={{ fontSize: 12, fontWeight: 800, color: SUB }}>
-            session{shownRows.length === 1 ? "" : "s"} · {totalHours}h
+          <span style={{ fontSize: 12, fontWeight: 800, color: SUB, marginRight: 8 }}>session{shownRows.length === 1 ? "" : "s"}</span>
+          <span style={{ fontFamily: DOS_DISPLAY, fontWeight: 900, fontSize: 30, letterSpacing: -1, lineHeight: 1, fontVariantNumeric: "tabular-nums" }} data-testid="record-hours">
+            {totalHours}
           </span>
+          <span style={{ fontSize: 12, fontWeight: 800, color: SUB }}>hours</span>
           <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 800, color: MUTED, whiteSpace: "nowrap" }} data-testid="record-window">
             {windowWords}
           </span>
@@ -242,7 +250,7 @@ export function WholeRecord({
                   <span style={{ display: "block", textAlign: "center", fontSize: dense ? 8 : 10, fontWeight: 900, lineHeight: 1, marginBottom: 3, fontVariantNumeric: "tabular-nums", color: tot ? INK : "transparent" }}>{tot || "0"}</span>
                   {shownSides.map((k) =>
                     c[k] ? (
-                      <span key={k} style={{ display: "block", width: "100%", borderRadius: 4, transition: "height .22s cubic-bezier(.22,.9,.34,1), opacity .18s", height: `${Math.max(4, Math.round((84 * c[k]) / top))}px`, background: SIDE_TINT[k], opacity: shownSides.length > 1 && k !== cvSide ? 0.35 : 1 }} />
+                      <span key={k} style={{ display: "block", width: "100%", borderRadius: 4, transition: "height .22s cubic-bezier(.22,.9,.34,1), opacity .18s", height: `${Math.max(4, Math.round((84 * c[k]) / top))}px`, background: SIDE_TINT[k] }} />
                     ) : null
                   )}
                   {tot === 0 ? <span style={{ display: "block", width: "100%", height: 3, borderRadius: 2, background: LINE }} /> : null}
@@ -259,16 +267,16 @@ export function WholeRecord({
           </div>
         </div>
 
-        {/* WHICH SIDE OF THE FLOOR (10225) — one pressed tile, its colour on the chart */}
-        {shownSides.length > 1 ? (
+        {/* WHICH SIDES OF THE FLOOR (10225) — all on by default, each a toggle */}
+        {allSides.length > 1 ? (
           <div role="group" aria-label="Side" style={{ display: "flex", gap: 6, marginBottom: 14 }}>
-            {shownSides.map((k) => {
-              const on = cvSide === k;
+            {allSides.map((k) => {
+              const on = shownSides.includes(k);
               const col = SIDE_TINT[k];
               const n = bySide(k).length;
               return (
-                <button type="button" key={k} aria-label={`${pastOf(k)} — ${n}`} aria-pressed={on} onClick={() => setCvSide(k)} style={{ ...BTN_RESET, ...({ flex: 1, display: "flex", alignItems: "center", gap: 7, padding: "9px 10px", borderRadius: 999, cursor: "pointer", boxSizing: "border-box", background: on ? `${col}22` : CARD, border: `1.5px solid ${on ? col : LINE}`, transition: "background .15s, border-color .15s" }) }}>
-                  <span aria-hidden="true" style={{ width: 9, height: 9, borderRadius: 3, background: col, flexShrink: 0 }} />
+                <button type="button" key={k} data-testid={`record-side-${k}`} aria-label={`${pastOf(k)} — ${n}`} aria-pressed={on} onClick={() => toggleSide(k)} style={{ ...BTN_RESET, ...({ flex: 1, display: "flex", alignItems: "center", gap: 7, padding: "9px 10px", borderRadius: 999, cursor: "pointer", boxSizing: "border-box", background: on ? `${col}22` : CARD, border: `1.5px solid ${on ? col : LINE}`, opacity: on ? 1 : 0.6, transition: "background .15s, border-color .15s, opacity .15s" }) }}>
+                  <span aria-hidden="true" style={{ width: 9, height: 9, borderRadius: 3, boxSizing: "border-box", background: on ? col : "transparent", border: `2px solid ${col}`, flexShrink: 0 }} />
                   <span style={{ flex: 1, minWidth: 0, fontSize: 11, fontWeight: 900, color: on ? INK : SUB, textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{pastOf(k)}</span>
                   <span style={{ fontFamily: DOS_DISPLAY, fontSize: 15, fontWeight: 900, fontVariantNumeric: "tabular-nums", color: on ? col : INK }}>{n}</span>
                 </button>

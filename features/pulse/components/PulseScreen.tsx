@@ -6,9 +6,10 @@ import { SearchBox } from "@/features/discovery/components/SearchBox";
 import { TodayShelf } from "@/features/home/components/TodayShelf";
 import { BoardsBrowser } from "@/features/stats/components/BoardsBrowser";
 import { WholeRecord } from "@/features/stats/components/WholeRecord";
+import { RecordCards, personRecordCards } from "@/features/stats/components/RecordCards";
 import { DOS_UI, GOLD, INK, TAB_SUB, TAB_TITLE } from "@/lib/design/tokens";
 import type { DeckItem } from "@/types/home";
-import type { ChartMetric, ChartRow, ChartSegment, HistoryRow } from "@/types/stats";
+import type { ChartMetric, ChartRow, ChartSegment, DanceStats, HistoryRow } from "@/types/stats";
 
 /** PULSE (29 Oct 2026) — the second tab: your day, your record and where you
  *  stand, on one screen. Every part is one the app already draws elsewhere
@@ -33,9 +34,11 @@ export function PulseScreen({
   me,
   deck,
   history,
+  stats,
   board,
   nowIso,
 }: {
+  stats: DanceStats;
   me: { id: string; name: string; photoPath: string | null; city: string | null; kind: string; isArtist: boolean };
   deck: DeckItem[];
   history: HistoryRow[];
@@ -64,6 +67,8 @@ export function PulseScreen({
 
       <InvertedPanel ground="page" style={SECTION}>
         <div data-testid="pulse-section-record">
+          {/* the three big tiles of THE NUMBERS, above the whole record (30 Oct 2026) */}
+          <RecordCards cards={personRecordCards(stats)} testIdPrefix="pulse-stat" />
           {history.length > 0 ? (
             <WholeRecord history={history} nowIso={nowIso} subjectKind="person" isArtist={me.isArtist} />
           ) : (

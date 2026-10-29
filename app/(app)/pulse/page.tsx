@@ -60,6 +60,7 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
       me={{ id: user.id, name: person.profile.fullName, photoPath: person.profile.avatarPath ?? null, city, kind, isArtist: person.isArtist }}
       deck={deck}
       history={history}
+      stats={person.stats}
       board={board}
       nowIso={nowIso}
     />

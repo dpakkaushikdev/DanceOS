@@ -15,6 +15,7 @@ import { BTN_RESET_BLOCK } from "@/components/ui/buttonReset";
 import { StyleArt } from "@/features/styles/components/StyleArt";
 import { BoardsBrowser } from "@/features/stats/components/BoardsBrowser";
 import { WholeRecord } from "@/features/stats/components/WholeRecord";
+import { RecordCards, personRecordCards, type RecordCard } from "@/features/stats/components/RecordCards";
 
 /** Stats — the prototype's Stats is one screen in three dresses, all of
  *  S_profiletab: YOUR RECORD (historyOnly 9862 — "A LIBRARY, NOT A DASHBOARD"),
@@ -65,9 +66,7 @@ const ICON = {
   boards: ico(<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />, SEC.boards),
 };
 
-/* the side's own words on the record page (9998-10000): what the figure MEANS */
-const SIDE_CARD: Record<Side, string> = { conducted: "Classes taught", assisted: "Assisted on", attended: "Classes taken" };
-const SIDES: Side[] = ["conducted", "assisted", "attended"];
+/* the side's own words now live in RecordCards (30 Oct 2026), shared with Pulse */
 
 /** WHERE THIS SUBJECT STANDS, ONE SCOPE PER CARD — nationally, then in its own
  *  city. Lifted out of `EntityStatsPage` (push 2, 19 Sep 2026) when that screen
@@ -129,7 +128,6 @@ export function StatsScreen({
   metric,
   city,
   cities,
-  myPlace,
   boardPlace,
   boardYouId = null,
   boardSubjectId = null,
@@ -308,20 +306,6 @@ export function StatsScreen({
    *  to whichever scope did answer. `kind` on it is the subject's segment, which
    *  is NOT `segment`: that is the board currently being browsed. */
   const subjectRow = standings.find((s) => s.row)?.row ?? boardRow;
-  /** ⚠ ONE LINE, THREE READINGS, so the same pixels never mean two things: your
-   *  place if the caller's own read answered, otherwise the subject's own row. */
-  const placeLine = myPlace
-    ? `#${myPlace.place} of ${myPlace.population} dancers`
-    : subjectRow
-      ? `#${subjectRow.place} of ${subjectRow.population} ${SEG_WORD[subjectRow.kind].many}`
-      : null;
-  const recordPoints = isPerson ? stats.points : (subjectRow?.points ?? 0);
-  const heroLine =
-    tab === "charts"
-      ? placeLine
-        ? `${placeLine} · ${recordPoints} points`
-        : "Not on a board yet"
-      : `${recordPoints} points${placeLine ? ` · ${placeLine}` : ""}`;
   /** ⚠ THE SESSIONS BEHIND THE FIGURES ARE THE CALLER'S OWN, AND ONLY THEIRS.
    *  So the graphs, the number grid's lists and the History column are drawn
    *  when this record IS the caller's, and what stands in their place elsewhere
@@ -337,16 +321,8 @@ export function StatsScreen({
    *  same arithmetic keyed on a person). A studio's and a crew's are their own
    *  board row, which is the only per-entity arithmetic the database publishes
    *  for them; it is thinner, and it is thin honestly rather than padded. */
-  const recordCards: Array<{ key: string; label: string; n: number; sub: string; aria: string; colour: string }> = isPerson
-    ? SIDES.map((k) => {
-        const n = k === "conducted" ? stats.sessionsConducted : k === "assisted" ? stats.sessionsAssisted : stats.sessionsAttended;
-        const h = hoursWords(k === "conducted" ? stats.hoursConducted : k === "assisted" ? stats.hoursAssisted : stats.hoursAttended);
-        /* ⚠ THE ACCESSIBLE NAME IS THE PROTOTYPE'S SENTENCE, unchanged through
-           this rebuild: "Classes taken — 0 sessions, 0 h". It is what the suite
-           reads a card by, and a card whose name is assembled from its own
-           fragments ("— 0 0 h") is legible to nobody. */
-        return { key: k, label: SIDE_CARD[k], n, sub: h, aria: `${SIDE_CARD[k]} — ${n} session${n === 1 ? "" : "s"}, ${h}`, colour: SIDE_TINT[k] };
-      })
+  const recordCards: Array<RecordCard & { sub?: string }> = isPerson
+    ? personRecordCards(stats)
     : subjectKind === "studio"
       ? (() => {
           /* ⚠ the board row counts sessions HELD with a register; the history
@@ -432,9 +408,8 @@ export function StatsScreen({
                 in would have LOST it. The name is the heading: this page is
                 "{name}'s stats", and the word above it says which column. */}
             <h1 style={{ margin: "2px 0 0", display: "block", fontSize: 28, fontWeight: 900, letterSpacing: -1, lineHeight: 1.08, fontFamily: DOS_DISPLAY, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</h1>
-            <span style={{ display: "block", fontSize: 11, fontWeight: 600, color: SUB, marginTop: 3 }} data-testid="stats-points">
-              {heroLine}
-            </span>
+            {/* no line under the name (30 Oct 2026, the user: "remove subheading
+                from stats page below person name") */}
           </div>
         {/* ⚠ THE WAY BACK, ON EVERY TAB (29 Sep 2026). `EntityStatsPage` carried
             one and this screen never did, because it was only ever reached from
@@ -506,20 +481,7 @@ export function StatsScreen({
             {/* THE NUMBERS (10024): the three that ARE the record wear their own colour
                 as a bar across the top, with their hours on them */}
             <SectionCard icon={ICON.numbers} label="THE NUMBERS" col={SEC.numbers}>
-            <div style={{ display: "grid", gridTemplateColumns: `repeat(${recordCards.length}, 1fr)`, gap: 8, marginBottom: 9 }}>
-              {recordCards.map((c) => (
-                <div key={c.key} aria-label={c.aria} style={{ position: "relative", overflow: "hidden", background: `${c.colour}12`, border: `1.5px solid ${c.colour}55`, borderRadius: 14, padding: "12px 11px 13px" }}>
-                  <span aria-hidden="true" style={{ position: "absolute", left: 0, right: 0, top: 0, height: 3, background: c.colour }} />
-                  <div style={{ ...figure, fontSize: 23, fontWeight: 900, lineHeight: 1, color: c.colour }} data-testid={`stat-${c.key}`}>
-                    {c.n}
-                  </div>
-                  <div style={{ ...micro, color: SUB, marginTop: 5, letterSpacing: 0.5 }}>{c.label}</div>
-                  {/* ⚠ no line under the label (29 Oct 2026, the user: "remove text
-                      from bottom parts which has text below numbers in record") —
-                      the hours stay in the card's accessible name */}
-                </div>
-              ))}
-            </div>
+            <RecordCards cards={recordCards} />
 
             {/* TWO COLUMNS (10050): a name and a number do not need a whole line.
                 ⚠⚠ AND A PRESS OPENS A SHEET, NOT THE GRID ITSELF (27 Sep 2026,

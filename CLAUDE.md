@@ -15,7 +15,7 @@ Keys for all of these are in `.env.local` (gitignored). Any older record below t
 
 ## LAST SESSION (17–30 Oct 2026) — replaced on every push (Rule 13)
 
-> ### STORAGE IN EVERY SETTINGS, A STUDIO'S CLASS HAS NO MAP LINK, FACES OPEN, ARTISTS APART FROM STUDIOS, THE HUBS' VIEW TOGGLE BACK, A PRICE PILL, A WHOLE ASSET BOX (30 Oct 2026, latest) — no migration · ⚠ Rule 9 (the service role measures a subject only after `resolveActingAs` proves the caller runs it) · COMMITTED, NOT PUSHED
+> ### STORAGE IN EVERY SETTINGS, A STUDIO'S CLASS HAS NO MAP LINK, FACES OPEN, ARTISTS APART FROM STUDIOS, THE HUBS' VIEW TOGGLE BACK, A PRICE PILL, A WHOLE ASSET BOX (30 Oct 2026, latest) — no migration · ⚠ Rule 9 (the service role measures a subject only after `resolveActingAs` proves the caller runs it) · ✅ PUSHED AND LIVE (`6b4443d`: typecheck 0 · lint 0 re-run, nothing pending in the database, Vercel READY, alias `danceos-sigma.vercel.app` confirmed on the sha through the API, `stranger-smoke` **9/9** on the live site)
 > The user, in four messages (refresh line; no map link for a studio's class; someone else's picture not opening; separate studio and artist connections with proper positions; the crew/studio hubs lost their card/list toggle; the studio subscription line reimagined with the price apart; the add-asset picture and plus broken; *"setting for every kind of profile should get a new option called Storage which gives you a percentage and space wise breakup of your entire data on the app"*). Row C200.
 > * **Storage** (`/storage`, `repositories/storage.ts`, `StorageScreen.tsx`, a tile in Settings' ACCOUNT block for a person, a studio `?as={id}` and a crew `?as=crew-{id}`): the total, one split bar, Files vs Records, then a row per kind with size, share and count. Files are measured exactly off the subject's own storage folders (a studio's verification photos matched by its own `studio_photos` paths); records are ESTIMATED as their JSON length and say so. A forged `as=` falls back to yourself.
 > * **A studio's class form offers only "Your room"** — the map pin is an artist's; the action refuses `mapsUrl` for a studio (`findBusinessType`).
@@ -14217,7 +14217,7 @@ for the database schema. **The UI is not redesigned** — see Rule 2.
 
 ### Progress tracker — update after EVERY push (Rule 11)
 
-- **STORAGE IN EVERY SETTINGS, NO MAP LINK ON A STUDIO'S CLASS, FACES OPEN, ARTISTS APART, THE HUBS' TOGGLE, A PRICE PILL, A WHOLE ASSET BOX — 30 Oct 2026, no step number — no migration, committed, not pushed.** Row C200. Detail at the top.
+- **STORAGE IN EVERY SETTINGS, NO MAP LINK ON A STUDIO'S CLASS, FACES OPEN, ARTISTS APART, THE HUBS' TOGGLE, A PRICE PILL, A WHOLE ASSET BOX — 30 Oct 2026, no step number — no migration, PUSHED AND LIVE (`6b4443d`).** Row C200. Detail at the top.
 
 - **THE THREE BIG TILES ON PULSE, THE WHOLE RECORD'S SIDES AS TOGGLES, NO STATS SUB-LINE, A STRONGER BOARD HIGHLIGHT — 30 Oct 2026, no step number — no migration.** Row C197. Detail at the top.
 

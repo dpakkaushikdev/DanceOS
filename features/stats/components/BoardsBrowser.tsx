@@ -69,7 +69,14 @@ export function BoardsBrowser({
   label = "BROWSE THE BOARDS",
   footer,
   limit = null,
+  subjectId = null,
+  pinned = [],
 }: {
+  /** the profile being looked at when it is somebody else's — its row is marked in its own colour */
+  subjectId?: string | null;
+  subjectName?: string | null;
+  /** rows read separately because the board's own read did not reach them */
+  pinned?: ChartRow[];
   /** at most this many rows (Pulse: 7) */
   limit?: number | null;
   chart: ChartRow[];
@@ -117,12 +124,54 @@ export function BoardsBrowser({
      below every person or studio in browse the board which says taught asst
      etc"): the row is the place, the face, the name and the metric's own figure */
   const hrefOf = (r: ChartRow) => (r.kind === "crew" ? `/crew/${r.id}` : r.kind === "studio" ? `/studio/${r.id}` : `/person/${r.id}`);
-  const isYouRow = (r: ChartRow) => peopleBoard && ((youId != null && r.id === youId) || (boardPlace != null && r.place === boardPlace.place));
+  const isYouRow = (r: ChartRow) =>
+    peopleBoard && (youId != null ? r.id === youId : boardPlace != null && r.place === boardPlace.place);
+  /* ⚠ THE PROFILE YOU ARE LOOKING AT IS SKY (30 Oct 2026, the user: "the person
+     you are looking at in different color highlight") — never your own row */
+  const isSubjectRow = (r: ChartRow) => subjectId != null && r.id === subjectId && !isYouRow(r);
   /* ⚠ YOUR OWN ROW IS EMERALD, BOLD, on the podium and below it (29 Oct 2026,
      the user: "should highlight your own profile with a bolder and different
      looking color when on podium or below") — no other row on a board is green */
   const YOU_COL = "#10B981";
-  const youPill = <span style={{ fontSize: 8.5, fontWeight: 900, letterSpacing: 0.6, padding: "2px 7px", borderRadius: 999, background: YOU_COL, color: "#fff", whiteSpace: "nowrap" }}>YOU</span>;
+  const SUBJECT_COL = "#0EA5E9";
+  const markOf = (r: ChartRow): { col: string; word: string } | null =>
+    isYouRow(r) ? { col: YOU_COL, word: "YOU" } : isSubjectRow(r) ? { col: SUBJECT_COL, word: "VIEWING" } : null;
+  const pillOf = (m: { col: string; word: string }) => (
+    <span style={{ fontSize: 8.5, fontWeight: 900, letterSpacing: 0.6, padding: "2px 7px", borderRadius: 999, background: m.col, color: "#fff", whiteSpace: "nowrap" }}>{m.word}</span>
+  );
+  /* ⚠ PINNED UNDER THE LIST (30 Oct 2026, the user: "pulse if your ranking not in
+     top 7 should show your rank below with highlight"): you, and on somebody
+     else's stats the profile you are looking at, when the rows above do not
+     reach you — first off the board that was read, else off the row read for you.
+     A pinned row read separately is ranked by points, so it is pinned only on
+     Overall, where its place means the same thing as the list's */
+  const shown = new Set(board.map((r) => r.id));
+  const below = [
+    ...ranked.filter((r) => !shown.has(r.id) && markOf(r)),
+    ...(metric === "overall" ? pinned.filter((r) => !ranked.some((x) => x.id === r.id) && markOf(r)) : []),
+  ]
+    .filter((r, i, all) => all.findIndex((x) => x.id === r.id) === i)
+    .sort((a, b) => a.place - b.place);
+
+  const listRow = (r: ChartRow, pinnedBelow = false) => {
+    const top3 = r.place <= 3;
+    const mark = markOf(r);
+    const isYou = mark?.word === "YOU";
+    return (
+      <Link key={`${pinnedBelow ? "pin-" : ""}${r.kind}-${r.id}`} href={hrefOf(r)} data-you={isYou ? "1" : undefined} data-viewing={mark && !isYou ? "1" : undefined} data-pinned={pinnedBelow ? "1" : undefined} aria-label={`${isYou ? "You — " : mark ? "Viewing — " : ""}${r.name} — place ${r.place} of ${r.population}`} style={{ position: "relative", overflow: "hidden", display: "flex", alignItems: "center", gap: 10, background: mark ? `linear-gradient(120deg,${mark.col}33,${mark.col}14)` : CARD, border: `${mark ? 2.5 : 1.5}px solid ${mark ? mark.col : LINE}`, borderRadius: 14, padding: "9px 12px 11px", marginBottom: 7, color: INK, textDecoration: "none" }}>
+        <span style={{ ...figure, minWidth: 28, height: 28, padding: "0 4px", boxSizing: "border-box", borderRadius: 9, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12.5, fontFamily: DOS_DISPLAY, fontWeight: 900, background: mark ? mark.col : top3 ? "linear-gradient(135deg,#7C3AED,#EC4899)" : LINE, color: mark || top3 ? "#fff" : SUB }}>{r.place}</span>
+        <BoardFace row={r} size={36} ring={mark ? mark.col : undefined} />
+        <span style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ minWidth: 0, fontSize: 13, fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
+          {mark ? pillOf(mark) : null}
+        </span>
+        <span aria-hidden="true" style={{ position: "absolute", left: 0, bottom: 0, height: 3, width: `${Math.min(100, Math.max(4, (valueOf(r) / leaderValue) * 100))}%`, background: mark ? mark.col : "linear-gradient(90deg,#7C3AED,#EC4899)" }} />
+        <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 900, padding: "4px 10px", borderRadius: 999, border: `1.5px solid ${LINE}`, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+          {valueOf(r)} <span style={{ fontSize: 9, fontWeight: 800, color: MUTED }}>{unit}</span>
+        </span>
+      </Link>
+    );
+  };
 
   return (
     <SectionCard icon={BOARDS_ICON} label={label} col={BOARDS_COL} testId="boards-browser">
@@ -168,12 +217,13 @@ export function BoardsBrowser({
               {[podiumRows[1], podiumRows[0], podiumRows[2]].map((r) => {
                 const medal = r.place === 1 ? "#F59E0B" : r.place === 2 ? "#94A3B8" : "#B45309";
                 const tall = r.place === 1 ? 70 : r.place === 2 ? 52 : 40;
-                const you = isYouRow(r);
+                const mark = markOf(r);
+                const you = mark?.word === "YOU";
                 return (
-                  <Link key={`pod-${r.kind}-${r.id}`} href={hrefOf(r)} data-you={you ? "1" : undefined} aria-label={`${you ? "You — " : ""}${r.name} — place ${r.place} of ${r.population}`} style={{ display: "flex", flexDirection: "column", alignItems: "center", textDecoration: "none", color: INK, minWidth: 0, borderRadius: 16, padding: you ? "6px 4px 0" : 0, background: you ? `${YOU_COL}22` : undefined, boxShadow: you ? `0 0 0 2px ${YOU_COL}` : undefined }}>
-                    <BoardFace row={r} size={r.place === 1 ? 54 : 44} ring={you ? YOU_COL : medal} />
+                  <Link key={`pod-${r.kind}-${r.id}`} href={hrefOf(r)} data-you={you ? "1" : undefined} data-viewing={mark && !you ? "1" : undefined} aria-label={`${you ? "You — " : mark ? "Viewing — " : ""}${r.name} — place ${r.place} of ${r.population}`} style={{ display: "flex", flexDirection: "column", alignItems: "center", textDecoration: "none", color: INK, minWidth: 0, borderRadius: 16, padding: mark ? "6px 4px 0" : 0, background: mark ? `${mark.col}22` : undefined, boxShadow: mark ? `0 0 0 2px ${mark.col}` : undefined }}>
+                    <BoardFace row={r} size={r.place === 1 ? 54 : 44} ring={mark ? mark.col : medal} />
                     <span style={{ height: 6 }} />
-                    {you ? <span style={{ marginBottom: 3 }}>{youPill}</span> : null}
+                    {mark ? <span style={{ marginBottom: 3 }}>{pillOf(mark)}</span> : null}
                     <span style={{ fontSize: 11.5, fontWeight: 900, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
                     <span style={{ fontSize: 10.5, fontWeight: 900, padding: "2px 8px", borderRadius: 999, background: `${medal}26`, color: INK, marginTop: 3, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{valueOf(r)} {unit}</span>
                     <span style={{ height: 6 }} />
@@ -185,24 +235,15 @@ export function BoardsBrowser({
               })}
             </div>
           ) : null}
-          {listRows.map((r) => {
-            const top3 = r.place <= 3;
-            const isYou = isYouRow(r);
-            return (
-              <Link key={`${r.kind}-${r.id}`} href={hrefOf(r)} data-you={isYou ? "1" : undefined} aria-label={`${isYou ? "You — " : ""}${r.name} — place ${r.place} of ${r.population}`} style={{ position: "relative", overflow: "hidden", display: "flex", alignItems: "center", gap: 10, background: isYou ? `linear-gradient(120deg,${YOU_COL}33,${YOU_COL}14)` : CARD, border: `${isYou ? 2.5 : 1.5}px solid ${isYou ? YOU_COL : LINE}`, borderRadius: 14, padding: "9px 12px 11px", marginBottom: 7, color: INK, textDecoration: "none" }}>
-                <span style={{ ...figure, width: 28, height: 28, borderRadius: 9, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12.5, fontFamily: DOS_DISPLAY, fontWeight: 900, background: isYou ? YOU_COL : top3 ? "linear-gradient(135deg,#7C3AED,#EC4899)" : LINE, color: isYou || top3 ? "#fff" : SUB }}>{r.place}</span>
-                <BoardFace row={r} size={36} ring={isYou ? YOU_COL : undefined} />
-                <span style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ minWidth: 0, fontSize: 13, fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
-                  {isYou ? youPill : null}
-                </span>
-                <span aria-hidden="true" style={{ position: "absolute", left: 0, bottom: 0, height: 3, width: `${Math.max(4, (valueOf(r) / leaderValue) * 100)}%`, background: isYou ? YOU_COL : "linear-gradient(90deg,#7C3AED,#EC4899)" }} />
-                <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 900, padding: "4px 10px", borderRadius: 999, border: `1.5px solid ${LINE}`, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
-                  {valueOf(r)} <span style={{ fontSize: 9, fontWeight: 800, color: MUTED }}>{unit}</span>
-                </span>
-              </Link>
-            );
-          })}
+          {listRows.map((r) => listRow(r))}
+          {below.length ? (
+            <>
+              <div aria-hidden="true" data-testid="board-gap" style={{ textAlign: "center", color: MUTED, fontWeight: 900, letterSpacing: 3, margin: "2px 0 7px" }}>
+                ···
+              </div>
+              {below.map((r) => listRow(r, true))}
+            </>
+          ) : null}
         </>
       )}
       {footer}

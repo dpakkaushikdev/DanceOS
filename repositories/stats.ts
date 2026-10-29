@@ -316,6 +316,23 @@ export async function findEntityChartRow(
   };
 }
 
+/** THE ROWS A BOARD PINS UNDER ITS LIST (30 Oct 2026, the user: "pulse if your
+ *  ranking not in top 7 should show your rank below with highlight"): for each
+ *  id NOT already on the board that was read, its own board row (a place out of
+ *  the same population), with its face. An id with nothing on this board is
+ *  simply absent — never "#0". */
+export async function findPinnedChartRows(
+  supabase: SupabaseClient,
+  input: { segment: ChartSegment; city: string | null; ids: string[]; onBoard: ChartRow[] }
+): Promise<ChartRow[]> {
+  const want = [...new Set(input.ids.filter((id) => id && !input.onBoard.some((r) => r.id === id)))];
+  if (want.length === 0) return [];
+  const rows = (await Promise.all(want.map((id) => findEntityChartRow(supabase, { segment: input.segment, id, city: input.city })))).filter(
+    (r): r is ChartRow => r != null
+  );
+  return withChartPhotos(supabase, rows);
+}
+
 /** Where the caller stands on a people board — null when they are not on it yet,
  *  which is the honest answer rather than "#0". */
 export async function findMyPlace(

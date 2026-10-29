@@ -52,7 +52,7 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
   const [deck, history, board] = await Promise.all([
     findMyUpcomingDeck(supabase, user.id, nowIso),
     findMyHistory(supabase).then((rows) => rows.filter((r) => r.artistName)),
-    loadBoard(supabase, query, person.isArtist ? "artist" : "dancer"),
+    loadBoard(supabase, query, person.isArtist ? "artist" : "dancer", null, [user.id]),
   ]);
 
   return (

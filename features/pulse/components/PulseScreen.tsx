@@ -39,7 +39,7 @@ export function PulseScreen({
   me: { id: string; name: string; photoPath: string | null; city: string | null; kind: string; isArtist: boolean };
   deck: DeckItem[];
   history: HistoryRow[];
-  board: { chart: ChartRow[]; segment: ChartSegment; metric: ChartMetric; city: string | null; cities: string[] };
+  board: { chart: ChartRow[]; pinned: ChartRow[]; segment: ChartSegment; metric: ChartMetric; city: string | null; cities: string[] };
   nowIso: string;
 }) {
   return (
@@ -71,8 +71,13 @@ export function PulseScreen({
               Nothing on your record yet — it fills as you dance, teach and assist.
             </div>
           )}
-          <Link href={`/person/${me.id}/stats`} style={{ display: "block", textAlign: "center", marginTop: 10, fontSize: 12, fontWeight: 800, color: PULSE_TINT, textDecoration: "none" }}>
-            Full stats ›
+          {/* the same button as Overall rankings (30 Oct 2026, the user: "full stats button on pulse should be like overall ranking. with icon") */}
+          <Link
+            href={`/person/${me.id}/stats`}
+            data-testid="pulse-full-stats"
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 14, padding: "13px 14px", borderRadius: 14, background: GOLD, color: "#1a1206", fontWeight: 900, fontSize: 14, textDecoration: "none" }}
+          >
+            <span aria-hidden="true">📊</span> Full stats ›
           </Link>
         </div>
       </InvertedPanel>
@@ -87,6 +92,7 @@ export function PulseScreen({
             cities={board.cities}
             basePath="/pulse"
             youId={me.id}
+            pinned={board.pinned}
             limit={7}
             label="BROWSE THE BOARD"
             footer={

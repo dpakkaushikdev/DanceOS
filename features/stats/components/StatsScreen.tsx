@@ -131,6 +131,9 @@ export function StatsScreen({
   cities,
   myPlace,
   boardPlace,
+  boardYouId = null,
+  boardSubjectId = null,
+  boardPinned = [],
   tab: tabProp,
   nowIso,
   basePath,
@@ -185,6 +188,12 @@ export function StatsScreen({
   myPlace: { place: number; population: number; points: number } | null;
   /** where you stand on THIS board, when it is a people board */
   boardPlace: { place: number; population: number; points: number } | null;
+  /** the reader's id — their own row on the board is marked (30 Oct 2026) */
+  boardYouId?: string | null;
+  /** the profile being looked at, when it is somebody else's — marked in its own colour */
+  boardSubjectId?: string | null;
+  /** rows pinned under the board when the top 20 does not reach them */
+  boardPinned?: ChartRow[];
   tab: Tab;
   /** the server's clock — the record's buckets are counted against it, never against a clock read during render */
   nowIso: string;
@@ -659,7 +668,7 @@ export function StatsScreen({
               </div>
             ) : null}
             {canBrowseBoards ? (
-              <BoardsBrowser chart={chart} segment={segment} metric={metric} city={city} cities={cities} basePath={basePath} baseQuery="tab=charts" boardPlace={boardPlace} />
+              <BoardsBrowser chart={chart} segment={segment} metric={metric} city={city} cities={cities} basePath={basePath} baseQuery="tab=charts" boardPlace={boardPlace} youId={boardYouId} subjectId={boardSubjectId} subjectName={isMe ? null : name} pinned={boardPinned} />
             ) : null}
           </>
         ) : null}

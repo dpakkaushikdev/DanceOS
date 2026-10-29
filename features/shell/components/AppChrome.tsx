@@ -113,12 +113,19 @@ const TAB_ICONS = {
      is the `Stats` lesson from earlier the same day, applied in the same hour
      instead of twelve days later: an icon nothing draws is found by nothing but
      the type that lists the keys. */
+  /* PULSE (29 Oct 2026, C189): a heartbeat line — your day, your numbers, your place */
+  Pulse: (c) => (
+    <svg width="20" height="20" viewBox="0 0 24 24" stroke={c} {...ICON_STROKE}>
+      <path d="M3 12h4l2.5-6 4 12 2.5-6H21" />
+    </svg>
+  ),
 } satisfies Record<string, (c: string) => ReactNode>;
 
 /* ⚠ DISCOVER IS BLUE AND HOME IS GREEN (2 Oct 2026, the user's own words) —
    the two had them the other way round */
 const TAB_TINT = {
   Discover: "#3B82F6",
+  Pulse: "#F43F5E",
 } satisfies Record<string, string>;
 
 /** the three that are places of their own — the eye to the account's public page
@@ -134,9 +141,11 @@ const TAB_TINT = {
  *  to compile instead. */
 type TabLabel = keyof typeof TAB_ICONS & keyof typeof TAB_TINT;
 /* ⚠ DISCOVER ALONE SINCE 28 Oct 2026 (C183, the user: "remove home from bottom
-   navbar only keep discover"). Your own page is the switcher's first row. */
+   navbar only keep discover"). Your own page is the switcher's first row.
+   ⚠ AND PULSE JOINED IT (29 Oct 2026, C189): Discover · Pulse. */
 const TAB_SET: Array<{ label: TabLabel; href: string }> = [
   { label: "Discover", href: "/discover" },
+  { label: "Pulse", href: "/pulse" },
 ];
 
 /** ONE ROW OF THE PROFILE SWITCHER — a home this account can go to. Built by the

@@ -1,20 +1,15 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { searchEverythingAction } from "@/features/discovery/server-actions/search";
-import { gradientOf } from "@/features/profiles/components/profile-kit";
-import { photoUrl } from "@/lib/media/photo";
+import { useState } from "react";
 import { dosStyleColor } from "@/lib/constants/styles";
 import { dosToolPaint } from "@/lib/format/styleInk";
 import { STYLE_FAMILIES, styleInfo, stylesOfFamilies } from "@/lib/constants/styleInfo";
 import { DOS_DISPLAY } from "@/lib/design/tokens";
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
-import type { SearchHit, SearchKind } from "@/repositories/search";
 import { ALL_CITIES, SORTS_FOR, filtersOnCount, filtersToParams, isPricedTab, type DiscoverFilters, type Dist, type Dur, type SortBy, type When } from "../filters";
 import { PriceRange } from "./PriceRange";
+import { SearchBox } from "./SearchBox";
 import { BTN_RESET, BTN_RESET_BLOCK } from "@/components/ui/buttonReset";
 
 /** Step 23's controls, lifted from prototype S_discover: the one search box
@@ -41,12 +36,7 @@ const pressKey = (fn: () => void) => (e: React.KeyboardEvent) => {
     fn();
   }
 };
-const KIND_LABEL: Record<SearchKind, string> = { studio: "Studios", artist: "Artists", crew: "Crews", person: "People" };
-/* the prototype's own order, with Dancers last (4548-4552). People arrived once
-   there was a page to send them to — Step 23 left the section out for exactly
-   that reason. ⚠ Events went the other way on 29 Sep 2026: the page they sent
-   somebody to stopped existing. */
-const KIND_ORDER: SearchKind[] = ["studio", "artist", "crew", "person"];
+/* the search box and its sections moved to SearchBox.tsx (29 Oct 2026), shared with Pulse */
 const KEYFRAMES = "@keyframes dosPop{0%{transform:scale(1)}35%{transform:scale(1.08)}65%{transform:scale(.97)}100%{transform:scale(1)}}@keyframes dosSheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}";
 
 /* the sheet's chip and row (4834-4842) — module-level, so they are not remade on every render */
@@ -82,9 +72,6 @@ export function DosStyleTile({ label, color, on, tap, aria, small }: { label: st
 
 export function DiscoverFilters({ tab, city, filters, styleOrder, tabs, as = null, priceCeil = 500, part = "all" }: { tab: string; city: string; filters: DiscoverFilters; styleOrder: string[]; tabs?: React.ReactNode; /** ⚠ WHICH HALF TO DRAW (18 Oct 2026, the user: "filters should be placed under headings like studios near you, upcoming classes, artist and styles"). "top" is the search box and the tabs, in the top squircle; "bar" is Filters · N, the quick chips and the sheet, drawn under the shelf's own heading. Each half is drawn ONCE on the page, so no control answers to its name twice. */ part?: "all" | "top" | "bar"; /** ⚠ WHICH PROFILE IS READING THIS SHELF — carried through every href this control builds (27 Sep 2026). Dropping it on a style tap would have quietly restored the Book button a studio is not supposed to have: the gate is only as durable as the least careful link on the page. */ as?: string | null; /** the price bar's right end — the dearest class in this city, worked out by the page (10 Oct 2026) */ priceCeil?: number }) {
   const router = useRouter();
-  const [q, setQ] = useState("");
-  const [searchOn, setSearchOn] = useState(false);
-  const [answer, setAnswer] = useState<{ term: string; hits: SearchHit[] }>({ term: "", hits: [] });
   const [open, setOpen] = useState(false);
   const [tapped, setTapped] = useState<string | null>(null);
   /* system back closes the filter sheet, exactly as its scrim does — the URL is
@@ -93,37 +80,6 @@ export function DiscoverFilters({ tab, city, filters, styleOrder, tabs, as = nul
      tick, and the replace lands on the sheet's own entry — so the filtered list
      becomes that entry, and back from it is the unfiltered list (19 Sep 2026) */
   useCloseOnBack(() => setOpen(false), open, { spend: false });
-  const term = q.trim();
-
-  /* ⚠ THE CITY IS A PASSENGER, NOT AN INPUT (30 Sep 2026). It rides along for
-     the LOG alone — the search itself is national — so it is read through a ref
-     at send time rather than listed as a dependency: as a dependency it would
-     claim the results depend on it, and a city change with a term still in the
-     box would fire a SECOND identical query on the app's most-visited public
-     surface. ⚠ Synced in its own effect, because this repo's lint forbids a ref
-     write during render (react-hooks/refs). */
-  const cityRef = useRef(city);
-  useEffect(() => {
-    cityRef.current = city;
-  }, [city]);
-
-  useEffect(() => {
-    if (term.length < 2) return;
-    let live = true;
-    const t = setTimeout(async () => {
-      /* `search_events.city` is what makes a zero-result row answerable
-         ("nobody in Pune can find salsa") rather than merely sad */
-      /* ⚠ "all" (Discover's All cities) is not a city, so the log is told none */
-      const out = await searchEverythingAction({ term, city: cityRef.current === ALL_CITIES ? "" : cityRef.current });
-      if (live) setAnswer({ term, hits: out.hits });
-    }, 220);
-    return () => {
-      live = false;
-      clearTimeout(t);
-    };
-  }, [term]);
-  const hits = answer.term === term ? answer.hits : [];
-  const searching = term.length >= 2 && answer.term !== term;
 
   const go = (next: DiscoverFilters) => {
     const p = new URLSearchParams({ city, tab, ...filtersToParams(next), ...(as ? { as } : {}) });
@@ -239,60 +195,7 @@ export function DiscoverFilters({ tab, city, filters, styleOrder, tabs, as = nul
       {part !== "bar" ? (
       <>
       {/* the global search box: everything, in sections (4535) */}
-      <div style={{ position: "relative", margin: "12px 0 4px" }}>
-        <input
-          value={q}
-          aria-label="Search DanceOS"
-          onChange={(e) => setQ(e.target.value.slice(0, 60))}
-          onFocus={() => setSearchOn(true)}
-          onBlur={() => setTimeout(() => setSearchOn(false), 180)}
-          placeholder="Search"
-          autoComplete="off"
-          style={{ width: "100%", boxSizing: "border-box", background: "var(--card)", border: "1.5px solid var(--el)", borderRadius: 14, padding: "13px 40px 13px 16px", color: "var(--text)", fontSize: 13.5, outline: "none", fontFamily: "inherit" }}
-        />
-        {q ? (
-          <button type="button" aria-label="Clear search" onClick={() => setQ("")} style={{ ...BTN_RESET, ...({ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", color: "var(--sub)", cursor: "pointer", fontWeight: 800, fontSize: 13 }) }}>
-            ✕
-          </button>
-        ) : null}
-        {searchOn && term.length >= 2 ? (
-          <div role="listbox" aria-label="Search results" style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 400, background: "var(--solid)", border: "1.5px solid var(--el)", borderRadius: 16, maxHeight: 340, overflowY: "auto", boxShadow: "0 14px 40px rgba(0,0,0,.5)" }}>
-            {searching && hits.length === 0 ? <div style={{ padding: "18px 14px", fontSize: 12.5, color: "var(--sub)", textAlign: "center" }}>Searching…</div> : null}
-            {!searching && hits.length === 0 ? <div style={{ padding: "18px 14px", fontSize: 12.5, color: "var(--sub)", textAlign: "center" }}>No matches anywhere on DanceOS.</div> : null}
-            {KIND_ORDER.filter((k) => hits.some((h) => h.kind === k)).map((k) => (
-              <div key={k}>
-                <div style={{ ...micro, color: "var(--muted)", padding: "10px 14px 4px" }}>{KIND_LABEL[k]}</div>
-                {hits
-                  .filter((h) => h.kind === k)
-                  .map((h) => {
-                    const g = gradientOf(h.name);
-                    /* ⚠ THE PICTURE, WHERE THERE IS ONE (20 Sep 2026, the user:
-                       "search on discover should also show photo and name
-                       similarly"). The row drew one initial on a gradient; the
-                       follow list has drawn the real face since 19 Sep, and a
-                       search result and a follow row are the same account. The
-                       initials are the fallback, not the design — two letters,
-                       the way every other people row in the app sets them. */
-                    const face = photoUrl(h.photoPath);
-                    const initials = h.name.split(" ").filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
-                    return (
-                      <Link key={h.id} href={h.href} role="option" aria-label={`${h.name} — ${h.sub}`} onMouseDown={(e) => e.preventDefault()} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 14px", cursor: "pointer", color: "var(--text)", textDecoration: "none" }}>
-                        <span style={{ width: 34, height: 34, borderRadius: "50%", flexShrink: 0, overflow: "hidden", background: `linear-gradient(135deg,${g[0]},${g[1]})`, display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900, fontSize: 12 }}>
-                          {face ? <Image src={face} alt="" width={34} height={34} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : initials}
-                        </span>
-                        <span style={{ flex: 1, minWidth: 0 }}>
-                          <span style={{ display: "block", fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}</span>
-                          <span style={{ display: "block", fontSize: 11, color: "var(--sub)" }}>{h.sub}</span>
-                        </span>
-                        <span style={{ color: "var(--sub)", fontSize: 12 }}>›</span>
-                      </Link>
-                    );
-                  })}
-              </div>
-            ))}
-          </div>
-        ) : null}
-      </div>
+      <SearchBox city={city} />
 
       {/* the five section tabs — the page hands them in, so they sit under the search box as they do in the prototype (4571) */}
       {tabs}

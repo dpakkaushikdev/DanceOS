@@ -11,9 +11,10 @@ import { SectionCard } from "@/components/ui/SectionCard";
 import { TopPanel } from "@/components/ui/TopPanel";
 import { CARD, DOS_DISPLAY, DOS_UI, INK, LILAC, LINE, MUTED, SUB } from "@/lib/design/tokens";
 import { SEG_WORD, SIDE_TINT, chartRowWords, hoursWords, type ChartMetric, type ChartRow, type ChartSegment, type DanceStats, type HistoryRow, type Side, type Standing } from "@/types/stats";
-import { BTN_RESET, BTN_RESET_BLOCK } from "@/components/ui/buttonReset";
+import { BTN_RESET_BLOCK } from "@/components/ui/buttonReset";
 import { StyleArt } from "@/features/styles/components/StyleArt";
 import { BoardsBrowser } from "@/features/stats/components/BoardsBrowser";
+import { WholeRecord } from "@/features/stats/components/WholeRecord";
 
 /** Stats — the prototype's Stats is one screen in three dresses, all of
  *  S_profiletab: YOUR RECORD (historyOnly 9862 — "A LIBRARY, NOT A DASHBOARD"),
@@ -66,14 +67,7 @@ const ICON = {
 
 /* the side's own words on the record page (9998-10000): what the figure MEANS */
 const SIDE_CARD: Record<Side, string> = { conducted: "Classes taught", assisted: "Assisted on", attended: "Classes taken" };
-const SIDE_PAST: Record<Side, string> = { conducted: "Taught", assisted: "Assisted", attended: "Trained" };
 const SIDES: Side[] = ["conducted", "assisted", "attended"];
-
-type Grain = "day" | "week" | "month";
-type Dim = "style" | "artist" | "studio";
-type SortKey = "sessions" | "hours" | "key";
-
-const DAY_MS = 86_400_000;
 
 /** WHERE THIS SUBJECT STANDS, ONE SCOPE PER CARD — nationally, then in its own
  *  city. Lifted out of `EntityStatsPage` (push 2, 19 Sep 2026) when that screen
@@ -211,21 +205,7 @@ export function StatsScreen({
      stay in the database; every tally, chart and list below counts these. */
   const history = historyAll.filter((r) => r.artistName);
   const isStudioSubject = subjectKind === "studio";
-  /* a studio is on ONE side of the floor — the classes it held */
-  const shownSides: Side[] = isStudioSubject ? ["conducted"] : SIDES;
-  const pastOf = (k: Side) => (isStudioSubject && k === "conducted" ? "Held" : SIDE_PAST[k]);
   const [open, setOpen] = useState<string | null>(null);
-  /* opens on the side with the most sessions (29 Oct 2026) — an artist who
-     only teaches opened on Trained and read "No classes yet" under a full chart */
-  const [cvSide, setCvSide] = useState<Side>(() => {
-    if (subjectKind === "studio") return "conducted";
-    const n = (s: Side) => history.filter((r) => r.side === s).length;
-    return (["attended", "conducted", "assisted"] as Side[]).reduce((best, s) => (n(s) > n(best) ? s : best), "attended" as Side);
-  });
-  const [grain, setGrain] = useState<Grain>("week");
-  const [dim, setDim] = useState<Dim>("style");
-  const [sortKey, setSortKey] = useState<SortKey>("sessions");
-  const [asc, setAsc] = useState(false);
 
   /* the tallies the record opens into, counted off the SAME rows the list prints */
   const tally = (rows: HistoryRow[], pick: (r: HistoryRow) => string | null): Array<[string, string]> => {
@@ -309,38 +289,8 @@ export function StatsScreen({
     return [...by.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
   })();
 
-  /* THE WHOLE RECORD (10194): the chosen side, bucketed against the calendar */
-  const now = new Date(nowIso).getTime();
-  const B = grain === "day" ? 14 : grain === "week" ? 8 : 3;
-  const per = grain === "day" ? 1 : grain === "week" ? 7 : 30;
-  const buckets = Array.from({ length: B }, () => ({ conducted: 0, assisted: 0, attended: 0 }));
-  history.forEach((r) => {
-    const back = Math.floor((now - new Date(r.startsAt).getTime()) / (DAY_MS * per));
-    if (back >= 0 && back < B) buckets[B - 1 - back][r.side] += 1;
-  });
-  const top = Math.max(1, ...buckets.map((b) => b.conducted + b.assisted + b.attended));
-  const grainLabel = grain === "day" ? "last 14 days" : grain === "week" ? "last 8 weeks" : "last 3 months";
-  const keyOf = (r: HistoryRow) =>
-    dim === "style" ? r.style : dim === "artist" ? (r.artistName ?? "—") : isStudioSubject ? (r.room ?? "No room") : (r.businessName ?? r.room ?? "—");
-  const groups = (() => {
-    const g = new Map<string, { key: string; sessions: number; hours: number }>();
-    bySide(cvSide).forEach((r) => {
-      const k = keyOf(r);
-      const cur = g.get(k) ?? { key: k, sessions: 0, hours: 0 };
-      cur.sessions += 1;
-      cur.hours += r.minutes / 60;
-      g.set(k, cur);
-    });
-    const rows = [...g.values()].map((x) => ({ ...x, hours: Math.round(x.hours * 10) / 10 }));
-    rows.sort((a, b) => (sortKey === "key" ? (asc ? a.key.localeCompare(b.key) : b.key.localeCompare(a.key)) : asc ? a[sortKey] - b[sortKey] : b[sortKey] - a[sortKey]));
-    return rows;
-  })();
-  const mx = Math.max(1, ...groups.map((x) => x[sortKey === "key" ? "sessions" : sortKey]));
-  const DIMS: Array<[Dim, string]> = [
-    ["style", "Dance style"],
-    ["artist", isStudioSubject ? "Faculty" : isArtist ? "Artist" : "Faculty"],
-    ["studio", isStudioSubject ? "Room" : "Studio"],
-  ];
+  /* THE WHOLE RECORD (10194) is its own component since 29 Oct 2026 —
+     `WholeRecord`, shared with Pulse */
 
 
   /* ── WHOSE RECORD, AND WHAT CAN BE SAID ABOUT IT ─────────────────────────── */
@@ -546,7 +496,7 @@ export function StatsScreen({
           <>
             {/* THE NUMBERS (10024): the three that ARE the record wear their own colour
                 as a bar across the top, with their hours on them */}
-            <SectionCard icon={ICON.numbers} label="THE NUMBERS" col={SEC.numbers} right={grid.length > 0 ? <span style={{ fontSize: 10.5, fontWeight: 800, color: MUTED, flexShrink: 0 }}>{grid.length} open</span> : null}>
+            <SectionCard icon={ICON.numbers} label="THE NUMBERS" col={SEC.numbers}>
             <div style={{ display: "grid", gridTemplateColumns: `repeat(${recordCards.length}, 1fr)`, gap: 8, marginBottom: 9 }}>
               {recordCards.map((c) => (
                 <div key={c.key} aria-label={c.aria} style={{ position: "relative", overflow: "hidden", background: `${c.colour}12`, border: `1.5px solid ${c.colour}55`, borderRadius: 14, padding: "12px 11px 13px" }}>
@@ -644,7 +594,7 @@ export function StatsScreen({
 
             {/* WHAT YOU DANCE MOST (10077): the way a library shows the artists you play most */}
             {styleShelf.length > 0 ? (
-              <SectionCard icon={ICON.dance} label={isMe ? "WHAT YOU DANCE MOST" : "WHAT IS DANCED MOST"} col={SEC.dance} right={<span style={{ fontSize: 10.5, fontWeight: 800, color: MUTED, flexShrink: 0 }}>{styleShelf.length} styles</span>}>
+              <SectionCard icon={ICON.dance} label={isMe ? "WHAT YOU DANCE MOST" : "WHAT IS DANCED MOST"} col={SEC.dance}>
                 {/* ⚠ A BIG DANCER AND A BIG COUNT PER STYLE (29 Oct 2026, the user:
                     "what you dance most should have count with big dance style icon
                     this section can be better") — the Styles tab's own dancer on
@@ -676,144 +626,8 @@ export function StatsScreen({
               </SectionCard>
             ) : null}
 
-            {/* THE WHOLE RECORD (10194) — not labelled "CV": the whole page is the dancer's CV */}
-            {history.length > 0 ? (
-              <SectionCard icon={ICON.record} label="THE WHOLE RECORD" col={SEC.record}>
-                {/* WHICH SIDE OF THE FLOOR (10225): the chosen side takes its own colour */}
-                <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-                  {shownSides.map((k) => {
-                    const on = cvSide === k;
-                    const c = SIDE_TINT[k];
-                    const n = bySide(k).length;
-                    return (
-                      <button type="button" key={k} aria-label={`${pastOf(k)} — ${n}`} aria-pressed={on} onClick={() => setCvSide(k)} style={{ ...BTN_RESET, ...({ flex: 1, position: "relative", overflow: "hidden", textAlign: "left", padding: "10px 11px 9px", borderRadius: 14, cursor: "pointer", boxSizing: "border-box", background: on ? `${c}1a` : CARD, border: `1.5px solid ${on ? c : LINE}`, transition: "background .15s" }) }}>
-                        <span aria-hidden="true" style={{ position: "absolute", left: 0, right: 0, top: 0, height: 3, background: on ? c : "transparent" }} />
-                        <span style={{ display: "block", fontSize: 19, fontWeight: 900, lineHeight: 1, letterSpacing: -0.5, fontFamily: DOS_DISPLAY, fontVariantNumeric: "tabular-nums", color: on ? c : INK }}>{n}</span>
-                        <span style={{ display: "block", ...micro, color: on ? c : MUTED, marginTop: 4 }}>{pastOf(k)}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* WHAT IT LOOKS LIKE OVER TIME (10248): the three sides stacked against the calendar */}
-                <div style={{ background: "var(--solid)", border: `1.5px solid ${LINE}`, borderRadius: 14, padding: "12px 13px 10px", marginBottom: 12 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                    <span style={{ ...micro, color: MUTED }}>SESSIONS · {grainLabel.toUpperCase()}</span>
-                    <span style={{ marginLeft: "auto", display: "inline-flex", gap: 2, background: LINE, borderRadius: 10, padding: 2 }}>
-                      {(
-                        [
-                          ["day", "Day"],
-                          ["week", "Week"],
-                          ["month", "Month"],
-                        ] as Array<[Grain, string]>
-                      ).map(([k, l]) => (
-                        <button type="button" key={k} aria-label={`By ${k}`} aria-pressed={grain === k} onClick={() => setGrain(k)} style={{ ...BTN_RESET, ...({ padding: "5px 11px", borderRadius: 8, cursor: "pointer", fontSize: 10.5, fontWeight: 900, whiteSpace: "nowrap", transition: "background .18s ease, color .18s ease", background: grain === k ? INK : "transparent", color: grain === k ? LILAC : SUB }) }}>
-                          {l}
-                        </button>
-                      ))}
-                    </span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "flex-end", gap: grain === "day" ? 3 : 8, height: 104 }}>
-                    {buckets.map((b, i) => {
-                      const tot = b.conducted + b.assisted + b.attended;
-                      return (
-                        <span key={i} title={`${tot} session${tot === 1 ? "" : "s"}`} style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "stretch", height: "100%", gap: 1.5 }}>
-                          <span style={{ display: "block", textAlign: "center", fontSize: grain === "day" ? 8 : 10, fontWeight: 900, lineHeight: 1, marginBottom: 3, fontVariantNumeric: "tabular-nums", color: tot ? INK : LINE }}>{tot || "·"}</span>
-                          {SIDES.map((k) =>
-                            b[k] ? <span key={k} style={{ display: "block", width: "100%", borderRadius: 3, transition: "height .22s cubic-bezier(.22,.9,.34,1)", height: `${Math.max(3, Math.round((74 * b[k]) / top))}px`, background: SIDE_TINT[k] }} /> : null
-                          )}
-                          {tot === 0 ? <span style={{ display: "block", width: "100%", height: 3, borderRadius: 2, background: LINE }} /> : null}
-                        </span>
-                      );
-                    })}
-                  </div>
-                  <div style={{ display: "flex", gap: 12, marginTop: 9, flexWrap: "wrap" }}>
-                    {shownSides.map((k) => (
-                      <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10, fontWeight: 800, color: SUB }}>
-                        <span style={{ width: 8, height: 8, borderRadius: 2, background: SIDE_TINT[k] }} />
-                        {pastOf(k)}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* group by, and order by (10325) */}
-                {/* ⚠ TWO ROWS (29 Oct 2026, the user: "fix the session and hours
-                    pill the whole record section") — the grouping switch and the
-                    sort shared one line and the sort pills were pushed off the
-                    edge on a phone. The grouping is the full-width column switch;
-                    the sort is a small segmented track of its own under it. */}
-                <div role="group" aria-label="Group classes by" style={{ ...columnTrack(), marginBottom: 8 }}>
-                  {DIMS.map(([k, l]) => (
-                    <button type="button" key={k} aria-label={`Group by ${l}`} aria-pressed={dim === k} onClick={() => setDim(k)} style={{ ...BTN_RESET, ...columnTab(dim === k) }}>
-                      {l}
-                    </button>
-                  ))}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                  <span style={{ ...micro, color: MUTED }}>SORT</span>
-                  <span style={{ marginLeft: "auto", display: "inline-flex", gap: 2, background: LINE, borderRadius: 999, padding: 2, flexShrink: 0 }}>
-                    {(
-                      [
-                        ["sessions", "sessions"],
-                        ["hours", "hours"],
-                        ["key", "name"],
-                      ] as Array<[SortKey, string]>
-                    ).map(([k, l]) => (
-                      <button type="button"
-                        key={k}
-                        aria-label={`Sort by ${l}`}
-                        aria-pressed={sortKey === k}
-                        onClick={() => {
-                          if (sortKey === k) setAsc(!asc);
-                          else {
-                            setSortKey(k);
-                            setAsc(false);
-                          }
-                        }}
-                        style={{ ...BTN_RESET, ...({ padding: "5px 11px", borderRadius: 999, cursor: "pointer", fontSize: 10.5, fontWeight: 900, whiteSpace: "nowrap", textTransform: "capitalize", transition: "background .18s ease, color .18s ease", background: sortKey === k ? INK : "transparent", color: sortKey === k ? LILAC : SUB }) }}
-                      >
-                        {l}
-                        {sortKey === k ? (asc ? " ↑" : " ↓") : ""}
-                      </button>
-                    ))}
-                  </span>
-                </div>
-                <div style={{ padding: "0 0 2px" }}>
-                  {groups.length === 0 ? <div style={{ fontSize: 11.5, color: MUTED, padding: "10px 0" }}>No classes yet.</div> : null}
-                  {groups.map((r, i) => {
-                    const c = dim === "style" ? dosStyleColor(r.key) : "#5AC8FA";
-                    const v = r[sortKey === "key" ? "sessions" : sortKey];
-                    return (
-                      <div key={r.key} style={{ padding: "9px 0", borderBottom: i === groups.length - 1 ? "none" : `1.5px solid ${LINE}` }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                          <span style={{ width: 16, fontSize: 10, fontWeight: 800, color: MUTED, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{i + 1}</span>
-                          {dim === "style" ? <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: 5, background: c, flexShrink: 0 }} /> : null}
-                          <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.key}</span>
-                          {/* two matching pills, the sorted one filled (29 Oct 2026) */}
-                          {(
-                            [
-                              ["sessions", `${r.sessions} ${r.sessions === 1 ? "session" : "sessions"}`],
-                              ["hours", `${r.hours}h`],
-                            ] as Array<[SortKey, string]>
-                          ).map(([k, t]) => {
-                            const lit = sortKey === k || (sortKey === "key" && k === "sessions");
-                            return (
-                              <span key={k} style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 900, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", padding: "3px 9px", borderRadius: 999, minWidth: k === "hours" ? 44 : undefined, textAlign: "center", background: lit ? `${c}22` : "transparent", color: lit ? INK : SUB, border: `1.5px solid ${lit ? `${c}66` : LINE}` }}>
-                                {t}
-                              </span>
-                            );
-                          })}
-                        </div>
-                        <div style={{ height: 5, borderRadius: 3, background: LINE, marginTop: 6, overflow: "hidden" }}>
-                          <div style={{ height: "100%", width: `${Math.round((100 * v) / mx)}%`, background: c, borderRadius: 3 }} />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </SectionCard>
-            ) : null}
+            {/* THE WHOLE RECORD (10194) — `WholeRecord`, shared with Pulse (29 Oct 2026) */}
+            {history.length > 0 ? <WholeRecord history={history} nowIso={nowIso} subjectKind={subjectKind} isArtist={isArtist} /> : null}
           </>
         ) : null}
 

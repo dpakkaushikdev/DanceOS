@@ -2076,10 +2076,10 @@ test.describe.serial("DanceOS, end to end", () => {
     /* the boards are browsable again — the four segments went with StatsScreen */
     await expect(learner.getByRole("link", { name: "Dancers", exact: true })).toBeVisible();
     await expect(learner.getByRole("link", { name: "Studios", exact: true })).toBeVisible();
-    /* the points rules are a DISCLOSURE beside the count (27 Sep 2026), not a
-       card standing between the controls and the board */
-    await learner.getByRole("button", { name: "Points" }).click();
-    await expect(learner.getByText("Session conducted", { exact: true })).toBeVisible();
+    /* ⚠ NO POINTS DISCLOSURE AND NO "N of M" ON THE BOARD (29 Oct 2026, the
+       user: "remove points 6 of 6 on right side written in small text") */
+    await expect(learner.getByRole("button", { name: "Points" })).toHaveCount(0);
+    await expect(learner.getByTestId("chart-population")).toHaveCount(0);
 
     /* ⚠ THE SAME THREE COLUMNS FOR SOMEBODY ELSE — which is "for all profiles".
        The trainer's record is read by the learner, and it carries THEIR

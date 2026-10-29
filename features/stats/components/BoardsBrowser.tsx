@@ -3,13 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { columnTab, columnTrack } from "@/components/ui/ColumnTabs";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { CitySelect } from "@/features/geo/components/CitySelect";
 import { photoUrl } from "@/lib/media/photo";
 import { CARD, DOS_DISPLAY, INK, LILAC, LINE, MUTED, SUB } from "@/lib/design/tokens";
-import { CHART_SEGMENTS, CREW_POINT_RULES, METRICS_FOR, POINT_RULES, metricFor, type ChartMetric, type ChartRow, type ChartSegment } from "@/types/stats";
+import { CHART_SEGMENTS, METRICS_FOR, metricFor, type ChartMetric, type ChartRow, type ChartSegment } from "@/types/stats";
 
 /** BROWSE THE BOARDS — lifted out of `StatsScreen` (29 Oct 2026, the user:
  *  "overall rankings should take to page with just browse the boards … pulse
@@ -87,8 +86,6 @@ export function BoardsBrowser({
   footer?: React.ReactNode;
 }) {
   const router = useRouter();
-  const [rulesOpen, setRulesOpen] = useState(false);
-  const isCrew = segment === "crew";
   const peopleBoard = segment === "dancer" || segment === "artist";
 
   /* ⚠ each board offers only what its rows carry (METRICS_FOR); a metric carried
@@ -115,6 +112,11 @@ export function BoardsBrowser({
      etc"): the row is the place, the face, the name and the metric's own figure */
   const hrefOf = (r: ChartRow) => (r.kind === "crew" ? `/crew/${r.id}` : r.kind === "studio" ? `/studio/${r.id}` : `/person/${r.id}`);
   const isYouRow = (r: ChartRow) => peopleBoard && ((youId != null && r.id === youId) || (boardPlace != null && r.place === boardPlace.place));
+  /* ⚠ YOUR OWN ROW IS EMERALD, BOLD, on the podium and below it (29 Oct 2026,
+     the user: "should highlight your own profile with a bolder and different
+     looking color when on podium or below") — no other row on a board is green */
+  const YOU_COL = "#10B981";
+  const youPill = <span style={{ fontSize: 8.5, fontWeight: 900, letterSpacing: 0.6, padding: "2px 7px", borderRadius: 999, background: YOU_COL, color: "#fff", whiteSpace: "nowrap" }}>YOU</span>;
 
   return (
     <SectionCard icon={BOARDS_ICON} label={label} col={BOARDS_COL} testId="boards-browser">
@@ -143,25 +145,11 @@ export function BoardsBrowser({
         <CitySelect value={city} cities={cities} ariaLabel="City" allowNone noneLabel="Everywhere" placeholder="Everywhere" navigates onChange={(c) => router.replace(chartHref({ city: c }), { scroll: false })} />
       </div>
 
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6 }}>
+      {/* ⚠ only the board's name on this line (29 Oct 2026, the user: "remove
+          points 6 of 6 on right side written in small text from browse the board") */}
+      <div style={{ marginBottom: 6 }}>
         <span style={shelf}>{CHART_SEGMENTS.find((s) => s.k === segment)?.label}</span>
-        <button type="button" onClick={() => setRulesOpen((v) => !v)} aria-expanded={rulesOpen} style={{ marginLeft: "auto", fontSize: 10, fontWeight: 900, letterSpacing: 0.3, color: MUTED, background: "none", border: "none", padding: "2px 4px", cursor: "pointer", fontFamily: "inherit" }}>
-          {rulesOpen ? "Hide points" : "Points"}
-        </button>
-        <span style={{ fontSize: 10.5, fontWeight: 800, color: MUTED }} data-testid="chart-population">
-          {chart.length ? `${chart.length} of ${chart[0].population}` : "0"}
-        </span>
       </div>
-      {rulesOpen ? (
-        <div style={{ background: CARD, border: `1.5px solid ${LINE}`, borderRadius: 14, padding: "4px 12px", marginBottom: 8 }}>
-          {(isCrew ? CREW_POINT_RULES : POINT_RULES).map(([k, v, c]) => (
-            <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: `1.5px solid ${LINE}` }}>
-              <span style={{ fontSize: 12, color: SUB }}>{k}</span>
-              <span style={{ fontSize: 11, fontWeight: 900, padding: "3px 10px", borderRadius: 999, background: `${c}1a`, color: c }}>{v}</span>
-            </div>
-          ))}
-        </div>
-      ) : null}
       {board.length === 0 ? (
         <div style={{ background: CARD, border: `1.5px dashed ${LINE}`, borderRadius: 18, padding: "36px 20px", textAlign: "center" }}>
           <div style={{ fontSize: 13.5, fontWeight: 800, fontFamily: DOS_DISPLAY }}>No board here yet</div>
@@ -174,10 +162,12 @@ export function BoardsBrowser({
               {[podiumRows[1], podiumRows[0], podiumRows[2]].map((r) => {
                 const medal = r.place === 1 ? "#F59E0B" : r.place === 2 ? "#94A3B8" : "#B45309";
                 const tall = r.place === 1 ? 70 : r.place === 2 ? 52 : 40;
+                const you = isYouRow(r);
                 return (
-                  <Link key={`pod-${r.kind}-${r.id}`} href={hrefOf(r)} aria-label={`${r.name} — place ${r.place} of ${r.population}`} style={{ display: "flex", flexDirection: "column", alignItems: "center", textDecoration: "none", color: INK, minWidth: 0 }}>
-                    <BoardFace row={r} size={r.place === 1 ? 54 : 44} ring={medal} />
+                  <Link key={`pod-${r.kind}-${r.id}`} href={hrefOf(r)} data-you={you ? "1" : undefined} aria-label={`${you ? "You — " : ""}${r.name} — place ${r.place} of ${r.population}`} style={{ display: "flex", flexDirection: "column", alignItems: "center", textDecoration: "none", color: INK, minWidth: 0, borderRadius: 16, padding: you ? "6px 4px 0" : 0, background: you ? `${YOU_COL}22` : undefined, boxShadow: you ? `0 0 0 2px ${YOU_COL}` : undefined }}>
+                    <BoardFace row={r} size={r.place === 1 ? 54 : 44} ring={you ? YOU_COL : medal} />
                     <span style={{ height: 6 }} />
+                    {you ? <span style={{ marginBottom: 3 }}>{youPill}</span> : null}
                     <span style={{ fontSize: 11.5, fontWeight: 900, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
                     <span style={{ fontSize: 10.5, fontWeight: 900, padding: "2px 8px", borderRadius: 999, background: `${medal}26`, color: INK, marginTop: 3, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{valueOf(r)} {unit}</span>
                     <span style={{ height: 6 }} />
@@ -193,16 +183,14 @@ export function BoardsBrowser({
             const top3 = r.place <= 3;
             const isYou = isYouRow(r);
             return (
-              <Link key={`${r.kind}-${r.id}`} href={hrefOf(r)} aria-label={`${isYou ? "You — " : ""}${r.name} — place ${r.place} of ${r.population}`} style={{ position: "relative", overflow: "hidden", display: "flex", alignItems: "center", gap: 10, background: isYou ? "linear-gradient(120deg,#7C3AED22,#EC489922)" : CARD, border: `1.5px solid ${isYou ? "#7C3AED77" : LINE}`, borderRadius: 14, padding: "9px 12px 11px", marginBottom: 7, color: INK, textDecoration: "none" }}>
-                <span style={{ ...figure, width: 28, height: 28, borderRadius: 9, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12.5, fontFamily: DOS_DISPLAY, fontWeight: 900, background: top3 ? "linear-gradient(135deg,#7C3AED,#EC4899)" : LINE, color: top3 ? "#fff" : SUB }}>{r.place}</span>
-                <BoardFace row={r} size={36} />
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: "block", fontSize: 13, fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {r.name}
-                    {isYou ? <span style={{ marginLeft: 6, fontSize: 8.5, fontWeight: 900, letterSpacing: 0.6, padding: "2px 6px", borderRadius: 999, background: "#7C3AED", color: "#fff", verticalAlign: "middle" }}>YOU</span> : null}
-                  </span>
+              <Link key={`${r.kind}-${r.id}`} href={hrefOf(r)} data-you={isYou ? "1" : undefined} aria-label={`${isYou ? "You — " : ""}${r.name} — place ${r.place} of ${r.population}`} style={{ position: "relative", overflow: "hidden", display: "flex", alignItems: "center", gap: 10, background: isYou ? `linear-gradient(120deg,${YOU_COL}33,${YOU_COL}14)` : CARD, border: `${isYou ? 2.5 : 1.5}px solid ${isYou ? YOU_COL : LINE}`, borderRadius: 14, padding: "9px 12px 11px", marginBottom: 7, color: INK, textDecoration: "none" }}>
+                <span style={{ ...figure, width: 28, height: 28, borderRadius: 9, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12.5, fontFamily: DOS_DISPLAY, fontWeight: 900, background: isYou ? YOU_COL : top3 ? "linear-gradient(135deg,#7C3AED,#EC4899)" : LINE, color: isYou || top3 ? "#fff" : SUB }}>{r.place}</span>
+                <BoardFace row={r} size={36} ring={isYou ? YOU_COL : undefined} />
+                <span style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ minWidth: 0, fontSize: 13, fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
+                  {isYou ? youPill : null}
                 </span>
-                <span aria-hidden="true" style={{ position: "absolute", left: 0, bottom: 0, height: 3, width: `${Math.max(4, (valueOf(r) / leaderValue) * 100)}%`, background: "linear-gradient(90deg,#7C3AED,#EC4899)" }} />
+                <span aria-hidden="true" style={{ position: "absolute", left: 0, bottom: 0, height: 3, width: `${Math.max(4, (valueOf(r) / leaderValue) * 100)}%`, background: isYou ? YOU_COL : "linear-gradient(90deg,#7C3AED,#EC4899)" }} />
                 <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 900, padding: "4px 10px", borderRadius: 999, border: `1.5px solid ${LINE}`, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
                   {valueOf(r)} <span style={{ fontSize: 9, fontWeight: 800, color: MUTED }}>{unit}</span>
                 </span>

@@ -7,7 +7,7 @@ import { amIPlatformAdmin } from "@/repositories/admin";
 import { resolveActingAs } from "@/repositories/actingAs";
 import { findMyDeck } from "@/repositories/home";
 import { findPublicPerson } from "@/repositories/publicPerson";
-import { findMyStats } from "@/repositories/stats";
+import { findMyHistory } from "@/repositories/stats";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { kindOf } from "@/types/profile";
 
@@ -46,17 +46,20 @@ export default async function PulsePage({ searchParams }: { searchParams: Promis
   const city = person.profile.city;
   const nowIso = new Date().toISOString();
 
-  const [deck, stats, board] = await Promise.all([
+  /* ⚠ the record's own rows (29 Oct 2026, the user: "replace the numbers section
+     with the whole record on pulse") — the stats screen's read, and its rule that
+     a class with no faculty is left off the record */
+  const [deck, history, board] = await Promise.all([
     findMyDeck(supabase, user.id, nowIso),
-    findMyStats(supabase),
+    findMyHistory(supabase).then((rows) => rows.filter((r) => r.artistName)),
     loadBoard(supabase, query, person.isArtist ? "artist" : "dancer"),
   ]);
 
   return (
     <PulseScreen
-      me={{ id: user.id, name: person.profile.fullName, photoPath: person.profile.avatarPath ?? null, city, kind }}
+      me={{ id: user.id, name: person.profile.fullName, photoPath: person.profile.avatarPath ?? null, city, kind, isArtist: person.isArtist }}
       deck={deck}
-      stats={stats}
+      history={history}
       board={board}
       nowIso={nowIso}
     />

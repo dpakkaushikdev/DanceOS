@@ -1,53 +1,47 @@
 import Link from "next/link";
 import { BeatText } from "@/components/ui/BeatText";
 import { InvertedPanel } from "@/components/ui/InvertedPanel";
-import { SectionCard } from "@/components/ui/SectionCard";
 import { TopPanel } from "@/components/ui/TopPanel";
 import { SearchBox } from "@/features/discovery/components/SearchBox";
 import { TodayShelf } from "@/features/home/components/TodayShelf";
 import { BoardsBrowser } from "@/features/stats/components/BoardsBrowser";
-import { DOS_DISPLAY, DOS_UI, GOLD, INK, LINE, MUTED, SUB, TAB_SUB, TAB_TITLE } from "@/lib/design/tokens";
+import { WholeRecord } from "@/features/stats/components/WholeRecord";
+import { DOS_UI, GOLD, INK, TAB_SUB, TAB_TITLE } from "@/lib/design/tokens";
 import type { DeckItem } from "@/types/home";
-import { SIDE_TINT, SIDE_VERB, hoursWords, type ChartMetric, type ChartRow, type ChartSegment, type DanceStats, type Side } from "@/types/stats";
+import type { ChartMetric, ChartRow, ChartSegment, HistoryRow } from "@/types/stats";
 
-/** PULSE (29 Oct 2026) — the second tab: your day, your numbers and where you
+/** PULSE (29 Oct 2026) — the second tab: your day, your record and where you
  *  stand, on one screen. Every part is one the app already draws elsewhere
- *  (Discover's search box, Home's Today's schedule, the record's figures, the
- *  boards), put together; "Overall rankings" opens the full boards. Row C189. */
+ *  (Discover's search box, Home's Today's schedule, the stats screen's WHOLE
+ *  RECORD, the boards), put together; "Overall rankings" opens the full boards.
+ *  Rows C189, C194.
+ *
+ *  ⚠ THE WHOLE RECORD REPLACED "YOUR NUMBERS" (the user: "replace the numbers
+ *  section with the whole record on pulse"), and every section is its own
+ *  squircle (the user: "give section dividers on pulse as well"). */
 
 export const PULSE_TINT = "#F43F5E";
-
-const micro: React.CSSProperties = { fontSize: 9.5, fontWeight: 800, letterSpacing: 0.7, textTransform: "uppercase" };
 
 function dayLine(nowIso: string): string {
   return new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", weekday: "long", day: "numeric", month: "short" })
     .format(new Date(nowIso));
 }
 
-const PulseIcon = ({ c = "#fff" }: { c?: string }) => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M3 12h4l2.5-6 4 12 2.5-6H21" />
-  </svg>
-);
-const SIDES: Side[] = ["conducted", "assisted", "attended"];
+const SECTION: React.CSSProperties = { marginTop: 12 };
 
 export function PulseScreen({
   me,
   deck,
-  stats,
+  history,
   board,
   nowIso,
 }: {
-  me: { id: string; name: string; photoPath: string | null; city: string | null; kind: string };
+  me: { id: string; name: string; photoPath: string | null; city: string | null; kind: string; isArtist: boolean };
   deck: DeckItem[];
-  stats: DanceStats;
+  history: HistoryRow[];
   board: { chart: ChartRow[]; segment: ChartSegment; metric: ChartMetric; city: string | null; cities: string[] };
   nowIso: string;
 }) {
-  const sessions: Record<Side, number> = { conducted: stats.sessionsConducted, assisted: stats.sessionsAssisted, attended: stats.sessionsAttended };
-  const hours: Record<Side, number> = { conducted: stats.hoursConducted, assisted: stats.hoursAssisted, attended: stats.hoursAttended };
-  const statsHref = `/person/${me.id}/stats`;
-
   return (
     <div style={{ background: "var(--bg)", color: INK, maxWidth: 430, margin: "0 auto", fontFamily: DOS_UI, minHeight: "100vh", padding: "16px var(--dos-gutter) 40px", boxSizing: "border-box" }}>
       <TopPanel tint={PULSE_TINT}>
@@ -61,64 +55,49 @@ export function PulseScreen({
         <SearchBox city={me.city ?? ""} margin="14px 0 2px" placeholder="Search studios, artists, styles, people" />
       </TopPanel>
 
-      <InvertedPanel ground="page" style={{ marginTop: 12 }}>
-        <TodayShelf deck={deck} />
+      <InvertedPanel ground="page" style={SECTION}>
+        <div data-testid="pulse-section-today">
+          <TodayShelf deck={deck} />
+        </div>
+      </InvertedPanel>
 
-        <SectionCard
-          icon={<PulseIcon />}
-          label="YOUR NUMBERS"
-          col={PULSE_TINT}
-          testId="pulse-numbers"
-          right={
-            <Link href={statsHref} style={{ fontSize: 11.5, fontWeight: 800, color: PULSE_TINT, textDecoration: "none" }}>
-              Full stats ›
-            </Link>
-          }
-        >
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 8 }}>
-            {SIDES.map((s) => (
-              <div key={s} data-testid={`pulse-side-${s}`} style={{ border: `1.5px solid ${LINE}`, borderRadius: 14, padding: "11px 10px", background: `linear-gradient(160deg, ${SIDE_TINT[s]}22, transparent 70%)` }}>
-                <div style={{ ...micro, color: SIDE_TINT[s] }}>{SIDE_VERB[s]}</div>
-                <div style={{ fontFamily: DOS_DISPLAY, fontSize: 28, fontWeight: 900, lineHeight: 1.05, marginTop: 4 }}>{sessions[s]}</div>
-                <div style={{ fontSize: 10.5, color: SUB, marginTop: 2 }}>{hoursWords(hours[s])}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, padding: "10px 12px", borderRadius: 12, border: `1.5px solid ${LINE}` }}>
-            {[
-              ["Points", stats.points.toLocaleString("en-IN")],
-              ["Styles", String(stats.styles)],
-              ["Studios", String(stats.studios)],
-            ].map(([k, v]) => (
-              <div key={k} style={{ textAlign: "center", flex: 1 }}>
-                <div style={{ fontFamily: DOS_DISPLAY, fontSize: 18, fontWeight: 900 }}>{v}</div>
-                <div style={{ ...micro, color: MUTED, marginTop: 2 }}>{k}</div>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
+      <InvertedPanel ground="page" style={SECTION}>
+        <div data-testid="pulse-section-record">
+          {history.length > 0 ? (
+            <WholeRecord history={history} nowIso={nowIso} subjectKind="person" isArtist={me.isArtist} />
+          ) : (
+            <div data-testid="pulse-record-empty" style={{ fontSize: 12.5, color: "var(--sub)", textAlign: "center", padding: "18px 8px" }}>
+              Nothing on your record yet — it fills as you dance, teach and assist.
+            </div>
+          )}
+          <Link href={`/person/${me.id}/stats`} style={{ display: "block", textAlign: "center", marginTop: 10, fontSize: 12, fontWeight: 800, color: PULSE_TINT, textDecoration: "none" }}>
+            Full stats ›
+          </Link>
+        </div>
+      </InvertedPanel>
 
-        <div style={{ height: 12 }} />
-
-        <BoardsBrowser
-          chart={board.chart}
-          segment={board.segment}
-          metric={board.metric}
-          city={board.city}
-          cities={board.cities}
-          basePath="/pulse"
-          youId={me.id}
-          label="BROWSE THE BOARD"
-          footer={
-            <Link
-              href="/rankings"
-              data-testid="pulse-overall-rankings"
-              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 14, padding: "13px 14px", borderRadius: 14, background: GOLD, color: "#1a1206", fontWeight: 900, fontSize: 14, textDecoration: "none" }}
-            >
-              <span aria-hidden="true">🏆</span> Overall rankings ›
-            </Link>
-          }
-        />
+      <InvertedPanel ground="page" style={SECTION}>
+        <div data-testid="pulse-section-board">
+          <BoardsBrowser
+            chart={board.chart}
+            segment={board.segment}
+            metric={board.metric}
+            city={board.city}
+            cities={board.cities}
+            basePath="/pulse"
+            youId={me.id}
+            label="BROWSE THE BOARD"
+            footer={
+              <Link
+                href="/rankings"
+                data-testid="pulse-overall-rankings"
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 14, padding: "13px 14px", borderRadius: 14, background: GOLD, color: "#1a1206", fontWeight: 900, fontSize: 14, textDecoration: "none" }}
+              >
+                <span aria-hidden="true">🏆</span> Overall rankings ›
+              </Link>
+            }
+          />
+        </div>
       </InvertedPanel>
     </div>
   );

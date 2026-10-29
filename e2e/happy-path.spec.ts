@@ -1874,9 +1874,9 @@ test.describe.serial("DanceOS, end to end", () => {
     // events branch (the migration's to drop) and nothing can reach it — the
     // repository drops event hits before they are offered, because a row that
     // opens a 404 is worse than no row.
-    /* ⚠ THE DANCEOS SEARCH IS PULSE'S (29 Oct 2026): Discover's box searches an
-       address now, so the people-and-studios search is asked on /pulse */
-    await learner.goto("/pulse");
+    /* ⚠ THE DANCEOS SEARCH IS DISCOVER'S AGAIN (30 Oct 2026), under the address
+       box — it sat on Pulse for a day */
+    await learner.goto("/discover?city=Pune");
     /* the STAMPED name, not the shared "E2E Studio" prefix: search_dance_os caps
        each kind at three ordered by name, so leftovers from a killed run pushed
        this run own studio out of its own result list (10 Sep 2026) */
@@ -2180,7 +2180,7 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(personFollow).toHaveAttribute("data-followers", "0");
 
     // the search box offers people now — and the row opens the person
-    await learner.goto("/pulse");
+    await learner.goto("/discover?city=Pune");
     await learner.getByLabel("Search DanceOS").fill(trainerName);
     /* AN ARTIST IS LISTED UNDER ARTISTS, AS THE PERSON (later on 18 Sep 2026, the
        user: "should only come as their profile as artist, no separate page
@@ -2205,7 +2205,7 @@ test.describe.serial("DanceOS, end to end", () => {
     // owner's address is an ordinary signed-in person's page (200, "User"). The
     // ORGANIZATION is a business with a page of its own at /org/{business id},
     // which the push-2 segment reads.
-    await learner.goto("/pulse");
+    await learner.goto("/discover?city=Pune");
     /* two classPeople, each on a term that cannot be crowded out by a leftover: this
        run stamp finds the trainer, and the owner's name finds the owner */
     await learner.getByLabel("Search DanceOS").fill(stamp);
@@ -2467,18 +2467,22 @@ test.describe.serial("DanceOS, end to end", () => {
     await trainer.getByRole("button", { name: "Add a link" }).click();
     await trainer.getByRole("button", { name: "Add Instagram" }).click();
     await trainer.getByLabel("URL", { exact: true }).fill("https://instagram.com/rheamoves");
-    await trainer.getByRole("dialog", { name: "Add your Instagram" }).getByRole("button", { name: "Save" }).click();
-    await trainer.getByRole("dialog", { name: "Add a social link" }).getByRole("button", { name: "Close" }).click();
+    /* ONE SHEET (30 Oct 2026): a platform's address is typed in place inside
+       "Add a social link" — no second dialog stacks on it */
+    const linksSheet = trainer.getByRole("dialog", { name: "Add a social link" });
+    await linksSheet.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(linksSheet.getByRole("button", { name: "Edit Instagram" })).toBeVisible({ timeout: 15_000 });
+    await linksSheet.getByRole("button", { name: "Close" }).click();
     await expect(trainer.getByRole("button", { name: "Instagram — @rheamoves" })).toBeVisible({ timeout: 15_000 });
     // and a bad address is refused with the database's own sentence, not saved
     await enterEditMode(trainer);
     await trainer.getByRole("button", { name: "Add a link" }).click();
     await trainer.getByRole("button", { name: "Add YouTube" }).click();
     await trainer.getByLabel("URL", { exact: true }).fill("rheamoves");
-    await trainer.getByRole("dialog", { name: "Add your YouTube" }).getByRole("button", { name: "Save" }).click();
+    await linksSheet.getByRole("button", { name: "Save", exact: true }).click();
     await expect(trainer.getByText(/web address|url/i).first()).toBeVisible();
-    await trainer.getByRole("dialog", { name: "Add your YouTube" }).getByRole("button", { name: "Cancel" }).click();
-    await trainer.getByRole("dialog", { name: "Add a social link" }).getByRole("button", { name: "Close" }).click();
+    await linksSheet.getByRole("button", { name: "Cancel", exact: true }).click();
+    await linksSheet.getByRole("button", { name: "Close" }).click();
     await expect(trainer.getByRole("button", { name: /^YouTube/ })).toHaveCount(0);
 
     /* ---- AND THE TWO FIGURES ON HOME, EACH OPENING ITS LIST (19 Sep 2026, the

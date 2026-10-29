@@ -284,7 +284,8 @@ const measureRail = (page, selector) =>
          under the tabs (C191), so the row holds the line alone */
       check(!h.chipFound, `${theme}: no city chip in that row any more`);
       check((await page.getByLabel("Search an address").count()) === 1, `${theme}: the address search is the place control`);
-      check((await page.getByLabel("Search DanceOS", { exact: true }).count()) === 0, `${theme}: and Discover carries no DanceOS search (Pulse has it)`);
+      /* 30 Oct 2026: the DanceOS search moved back here from Pulse, under the address */
+      check((await page.getByLabel("Search DanceOS", { exact: true }).count()) === 1, `${theme}: and the DanceOS search sits under it`);
       check(h.gapToRow >= 4 && h.gapToRow <= 8, `${theme}: and the gap under the heading is the head's own measured rhythm — ${h.gapToRow}px`);
     }
 

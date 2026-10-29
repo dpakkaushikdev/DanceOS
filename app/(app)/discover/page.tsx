@@ -17,6 +17,7 @@ import { DiscoverFilters } from "@/features/discovery/components/DiscoverFilters
 import { DiscoverTabs } from "@/features/discovery/components/DiscoverTabs";
 import { FollowedShelf, type FollowedTile } from "@/features/discovery/components/FollowedShelf";
 import { AddressSearch } from "@/features/discovery/components/AddressSearch";
+import { SearchBox } from "@/features/discovery/components/SearchBox";
 import { TurnOnLocationRow } from "@/features/geo/components/TurnOnLocationRow";
 import { StudioCard } from "@/features/discovery/components/StudioCard";
 import { ArtistI, ClassI, ShelfHead, StudioI } from "@/features/discovery/components/discover-kit";
@@ -666,11 +667,18 @@ export default async function DiscoverPage({
           (29 Oct 2026, the user: "search on discover should be replaced by search
           an address … merge nearby with the search an address and remove the city
           drop down"). Near me and All cities are rows in its dropdown; the city is
-          read off the address picked. Pulse keeps the DanceOS search. */}
+          read off the address picked. ⚠ The DanceOS search moved here from
+          Pulse (30 Oct 2026, the user: "shift search bar on pulse below location
+          bar on discover") — under the address, so where comes first, then what. */}
       <DiscoverFilters
         part="top" tab={tab} city={city} filters={filters} styleOrder={styleOrder} tabs={tabTiles} as={asRaw} priceCeil={priceCeil}
         place={placeParams} measured={near !== null}
-        search={<AddressSearch city={city} cities={cities} tab={tab} extra={{ ...filtersToParams(filters), ...(asRaw ? { as: asRaw } : {}) }} near={near} at={atLabel} />}
+        search={
+          <>
+            <AddressSearch city={city} cities={cities} tab={tab} extra={{ ...filtersToParams(filters), ...(asRaw ? { as: asRaw } : {}) }} near={near} at={atLabel} />
+            <SearchBox city={city === "all" ? "" : city} margin="8px 0 4px" placeholder="Search studios, artists, styles, people" />
+          </>
+        }
       />
       </TopPanel>
 

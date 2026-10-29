@@ -2,7 +2,6 @@ import Link from "next/link";
 import { BeatText } from "@/components/ui/BeatText";
 import { InvertedPanel } from "@/components/ui/InvertedPanel";
 import { TopPanel } from "@/components/ui/TopPanel";
-import { SearchBox } from "@/features/discovery/components/SearchBox";
 import { ProfileShare } from "@/features/profiles/components/ProfileShare";
 import { TodayShelf } from "@/features/home/components/TodayShelf";
 import { BoardsBrowser } from "@/features/stats/components/BoardsBrowser";
@@ -61,7 +60,7 @@ export function PulseScreen({
               check-in like the profile's own chip, so the door's answer shows on it */}
           <ProfileShare path={`/person/${me.id}`} name={me.name} watchCheckIn big />
         </div>
-        <SearchBox city={me.city ?? ""} margin="14px 0 0" placeholder="Search studios, artists, styles, people" />
+        {/* the DanceOS search moved to Discover, under the address (30 Oct 2026) */}
       </TopPanel>
 
       <InvertedPanel ground="page" style={SECTION}>

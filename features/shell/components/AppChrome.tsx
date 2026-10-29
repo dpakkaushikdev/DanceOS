@@ -440,6 +440,19 @@ export function AppChrome({
      on the page it was pressed FROM, so the arrival hands back to the route's
      own answer without an effect writing state. */
   const [pressedTab, setPressedTab] = useState<{ label: TabLabel; from: string } | null>(null);
+  /* ⚠ AND THE PRESS IS FORGOTTEN THE MOMENT THE PAGE CHANGES (30 Oct 2026, the
+     user: "make sure bottom navbar and the page above matches — have seen it
+     getting stuck"). Keyed only on the page it was pressed FROM, a press
+     outlived its arrival: Discover → Pulse → back lit PULSE on Discover,
+     because the page was the "from" page again. The previous pathname is held
+     in state and compared during render (React's own derived-state pattern),
+     so any change of page drops the press; a timer in the press itself drops a
+     press whose navigation never lands. */
+  const [seenPath, setSeenPath] = useState(pathname);
+  if (seenPath !== pathname) {
+    setSeenPath(pathname);
+    if (pressedTab) setPressedTab(null);
+  }
   const lit = pressedTab && pressedTab.from === pathname ? pressedTab.label : routeLit;
   /* THE SWITCHER'S OPEN STATE IS KEYED ON THE PAGE IT WAS OPENED ON: a navigation
      changes the pathname, so the menu closes by itself without an effect writing
@@ -1278,7 +1291,13 @@ export function AppChrome({
                 aria-label={label}
                 aria-current={on ? "page" : undefined}
                 className="dos-tab"
-                onClick={() => { if (!on) setPressedTab({ label, from: pathname }); }}
+                onClick={(e) => {
+                  /* a new tab or window is not a navigation here */
+                  if (on || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                  const press = { label, from: pathname };
+                  setPressedTab(press);
+                  window.setTimeout(() => setPressedTab((p) => (p === press ? null : p)), 4000);
+                }}
                 style={{
                   animation: on ? "dosTabIn .42s cubic-bezier(.34,1.56,.64,1)" : "none",
                   height: 44,

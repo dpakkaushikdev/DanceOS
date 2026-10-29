@@ -356,18 +356,21 @@ export function NotificationsScreen({
   };
   /* an area switched off "here" is not drawn at all — the bell already leaves it
      out (`my_unread_notifications`), so the screen and the badge agree */
-  const shownHere = (k: NotificationKind) => k === "event" || prefs.kinds[k] !== false;
+  /* ⚠ the retired Events rows are not drawn at all (30 Oct 2026, the user:
+     "remove events retired from notifications") — they stay in the table as
+     history and simply never reach the screen */
+  const shownHere = (k: NotificationKind) => k !== "event" && prefs.kinds[k] !== false;
   /* a row swiped read moves to History at once, before the server answers */
   const [readNow, setReadNow] = useState<Record<string, string>>({});
   const visible = notifications.filter((n) => shownHere(n.kind)).map((n) => (readNow[n.id] && !n.readAt ? { ...n, readAt: readNow[n.id] } : n));
-  const hiddenBySettings = notifications.filter((n) => !shownHere(n.kind)).length;
+  const hiddenBySettings = notifications.filter((n) => n.kind !== "event" && !shownHere(n.kind)).length;
   const fresh = visible.filter((n) => !n.readAt);
   const history = visible.filter((n) => n.readAt);
 
   /* ⚠ ALWAYS OPENS ON NEW (18 Oct 2026, the user: "notification should by default
      open on new") — even when nothing is new; History is a tap away */
   const [column, setColumn] = useState<Column>(initialColumn ?? "new");
-  const groupKeys: NotificationKind[] = [...NOTIF_GROUPS.map((g) => g.k), ...(notifications.some((n) => n.kind === "event") ? (["event"] as NotificationKind[]) : [])];
+  const groupKeys: NotificationKind[] = NOTIF_GROUPS.map((g) => g.k);
   const [filter, setFilter] = useState<Filter>(groupKeys.includes(initialGroup as NotificationKind) ? (initialGroup as NotificationKind) : "all");
   /* a section's open state is what the person CHANGED — default open is decided
      on the fly, so no effect has to write it */

@@ -15,7 +15,7 @@ Keys for all of these are in `.env.local` (gitignored). Any older record below t
 
 ## LAST SESSION (17–29 Oct 2026) — replaced on every push (Rule 13)
 
-> ### PULSE — A SECOND TAB: TODAY, YOUR NUMBERS, WHERE YOU STAND, AND SEARCH (29 Oct 2026, latest) — no migration · ⚠ COMMITTED, NOT PUSHED
+> ### PULSE — A SECOND TAB: TODAY, YOUR NUMBERS, WHERE YOU STAND, AND SEARCH (29 Oct 2026, latest) — no migration · ✅ PUSHED AND LIVE (`ed0824a`: typecheck 0 · lint 0 re-run, Vercel READY, alias `danceos-sigma.vercel.app` confirmed on the sha through the API, `stranger-smoke` **9/9** on the live site)
 > The user: *"Make a new page and give it a brand new name in bottom navbar — it should consist of Todays schedule, stats, rankings for that person, search bar from discover … also give an option on this page with a button to look at overall rankings as well."* Row C189.
 > * **`/pulse`** (`features/pulse/components/PulseScreen.tsx`): a rose `TopPanel` (the IST day, the `<h1>` Pulse, your face → your page, the search box), then Today's schedule (`TodayShelf`, back on a screen for the first time since C182), YOUR NUMBERS (Taught · Assisted · Danced with hours, Points · Styles · Studios, Full stats ›), WHERE YOU STAND (Everywhere and In {city}, place + population or "Not on this board yet", the top three of your board with your row marked) and **Overall rankings ›** → `/person/{you}/stats?tab=charts`. Every read is one the app already makes.
 > * **The bar is Discover · Pulse** — heartbeat icon, tint `#F43F5E`. A studio or crew sticky profile is sent to its own page (C185's rule); no profile → onboarding.

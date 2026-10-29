@@ -9,7 +9,6 @@ import { FollowerFigure } from "@/features/profiles/components/FollowerFigure";
 import { FollowingFigure } from "@/features/profiles/components/FollowingFigure";
 import { crewTeamRows } from "@/features/profiles/teamFollowing";
 import { ProfileLink, ProfileShare } from "@/features/profiles/components/ProfileShare";
-import { StatsChip } from "@/features/profiles/components/StatsChip";
 import { ActionRow, CallButton, MailButton, MessageButton, whatsappHrefOf } from "@/features/profiles/components/ContactButtons";
 import { ContactEditButton } from "@/features/profiles/components/ContactEditor";
 import { EditDetailsChip, EditModeButton, EditModeProvider } from "@/features/profiles/components/EditMode";
@@ -158,17 +157,9 @@ export function CrewHome({ crew, members, header = [], followers = 0, editOpen =
                this is the crew's own home, and its own people cannot follow it. */
             chips={
               <>
-                {/* FOLLOW · STATS · QR · SHARE (21 Sep 2026) — no bell on your
-                    own crew's home.
-                    ⚠ THE CHIP OPENS THIS CREW'S OWN STATS (29 Sep 2026). It
-                    pointed at `/stats?tab=charts&seg=crew` — the crew BOARD,
-                    on the person's stats screen — which is the same shape as
-                    the studio chip's bug of 21 Sep: a chip on a crew's home
-                    opening a page about everybody. `/crew/{id}/stats` is the
-                    page built for exactly this and shows this crew's own place
-                    nationally and in its city; the board went the same day
-                    (see `EntityStatsPage`). */}
-                <StatsChip href={`/crew/${crew.id}/stats`} />
+                {/* QR · SHARE — no bell on your own crew's home, and ⚠ NO STATS
+                    (30 Oct 2026, the user: "crew stats to be removed");
+                    `/crew/{id}/stats` forwards to the crew's page */}
                 <ProfileShare path={`/crew/${crew.id}`} name={crew.name} />
                 <ProfileLink path={`/crew/${crew.id}`} name={crew.name} />
               </>

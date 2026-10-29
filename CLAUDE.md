@@ -15,6 +15,12 @@ Keys for all of these are in `.env.local` (gitignored). Any older record below t
 
 ## LAST SESSION (17–30 Oct 2026) — replaced on every push (Rule 13)
 
+> ### NO CREW STATS, AND A BOARD HIGHLIGHT THAT CUTS NOTHING (30 Oct 2026, latest) — no migration · pushed with this block
+> The user: *"handle highlight better on rankings - on podium outline cuts the bar and on list the design looks bad from left edge and the bottom bar"*, then *"crew stats to be removed and push to live"*.
+> * **`BoardsBrowser`**: a marked podium spot's outline wraps the face, name and points only — 8px clear of the bar; a list row has no left edge strip and no bar pinned to its border — every row carries a rounded track under the name, a marked one its colour, border, tint and glow.
+> * **A crew has no stats**: no Stats chip on a crew's home or page, `app/(app)/crew/[crewId]/stats` deleted, `/crew/{id}/stats` 307 → `/crew/{id}` (Rule 14). Three happy-path lines re-cut to assert the chip gone and the forward.
+> * **Verified:** typecheck 0 · lint 0 · build green · a board probe 6/6 on `:3100` (demo.aditya on the podium, demo.kabir in the list, both themes, no page error) and screenshots by eye · the crew forward read as a stranger (307, no Stats link on the page). ⚠ e2e not re-run. ⚠ Not looked at on a phone.
+
 > ### THE THREE BIG TILES ON PULSE, THE WHOLE RECORD'S SIDES AS TOGGLES THAT DRIVE EVERYTHING UNDER THEM, NO LINE UNDER THE STATS NAME, A STRONGER BOARD HIGHLIGHT (30 Oct 2026, latest) — no migration · pushed with this block
 > The user: *"remove subheading from stats page below person name. the numbers section only top 3 big tiles should also be on pulse above the whole record. the whole record graph should always have all selected together taught, assisted and trained and should be able to unselect them which removes them from graph. make highlight better on browse the board"*, then *"whole record toggles should also affect data below, session and hrs count above graph in same big font"*. Row C197.
 > * **`RecordCards.tsx`** (new): THE NUMBERS' three tiles, drawn by the stats page and by Pulse above its whole record (`pulse-stat-*`), off `person.stats`.

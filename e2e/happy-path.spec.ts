@@ -2098,10 +2098,11 @@ test.describe.serial("DanceOS, end to end", () => {
     /* ⚠ but NO RANKINGS for a crew since 18 Oct 2026 (the user: "crew rankings
        to be removed for now") — an old `?tab=charts` lands on its Record, and
        the boards offer no Crews segment */
+    /* ⚠ and NO CREW STATS AT ALL since 30 Oct 2026 (the user: "crew stats to be
+       removed") — the old address lands on the crew's own page */
     await learner.goto(`/crew/${crewId}/stats?tab=charts`);
-    await expect(learner.getByRole("heading", { name: crewName })).toBeVisible();
-    await expect(learner.getByTestId("standing-card")).toHaveCount(0);
-    await expect(learner.getByLabel(/^Members — \d+ confirmed/)).toBeVisible();
+    await learner.waitForURL(new RegExp(`/crew/${crewId}$`));
+    await expect(learner.getByRole("link", { name: "Stats", exact: true })).toHaveCount(0);
     await learner.goto(`/person/${trainerId}/stats?tab=charts`);
     await expect(learner.getByRole("link", { name: "Crews", exact: true })).toHaveCount(0);
   });
@@ -2883,16 +2884,11 @@ test.describe.serial("DanceOS, end to end", () => {
        own bug of 21 Sep in a second place: a chip on a crew's home opening a
        page about everybody. With the boards gone that link would have walked
        the leader to their own record. */
+    /* ⚠ AND SINCE 30 Oct 2026 THERE IS NO STATS CHIP ON A CREW AT ALL (the user:
+       "crew stats to be removed") */
     await learner.goto(`/crews/${crewId}/manage`);
-    const rankingBtn = learner.getByRole("link", { name: "Stats", exact: true });
-    await expect(rankingBtn).toHaveAttribute("href", `/crew/${crewId}/stats`);
-    await rankingBtn.click();
-    await learner.waitForURL(new RegExp(`/crew/${crewId}/stats`));
-    await expect(learner.getByRole("heading", { name: crewName })).toBeVisible();
-    /* ⚠ NO RANKINGS FOR A CREW (18 Oct 2026, the user: "crew rankings to be
-       removed for now") — its stats are its Record alone */
-    await expect(learner.getByRole("link", { name: "Rankings", exact: true })).toHaveCount(0);
-    await expect(learner.getByLabel(/^Members — \d+ confirmed/)).toBeVisible();
+    await learner.waitForURL(new RegExp(`/crew/${crewId}`));
+    await expect(learner.getByRole("link", { name: "Stats", exact: true })).toHaveCount(0);
 
     /* ⚠ THE RANK IS OFF BOTH SCREENS (19 Sep 2026 — "remove rank from profile
        tab", then "Remove rank from home"). Where you stand is the Stats chip's
@@ -3727,7 +3723,7 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(crewSheet).toHaveCount(0);
     await trainer.goto(`/crew/${crewId}`);
     await expect(trainer.getByRole("link", { name: "Call" })).toHaveAttribute("href", "tel:+919000033333", { timeout: 15_000 });
-    await expect(trainer.getByRole("link", { name: "Stats", exact: true })).toHaveAttribute("href", `/crew/${crewId}/stats`);
+    await expect(trainer.getByRole("link", { name: "Stats", exact: true })).toHaveCount(0);
 
     // ── 3. DELETED 26 Sep 2026: "an organization's pin lives in its Edit PROFILE
     // sheet" — the organization login is retired, `set_my_place` is dropped, and
@@ -3752,10 +3748,9 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(learner.getByRole("heading", { name: trainerName })).toBeVisible();
     await expect(learner.getByTestId("standing-card")).toHaveCount(2);
     await expect(learner.getByTestId("standing-card").first()).toContainText(standing);
-    /* a crew has no standings since 18 Oct 2026 (no crew rankings) */
+    /* a crew has no stats page at all since 30 Oct 2026 — the address forwards */
     await learner.goto(`/crew/${crewId}/stats?tab=charts`);
-    await expect(learner.getByRole("heading", { name: crewName })).toBeVisible();
-    await expect(learner.getByTestId("standing-card")).toHaveCount(0);
+    await learner.waitForURL(new RegExp(`/crew/${crewId}$`));
     /* a STRANGER reads a listed studio's — but a plain user's is still a
        signed-in page. ⚠ A public ORGANIZATION's was read here too until
        29 Sep 2026, by its business id, and asserted to list no studios. */

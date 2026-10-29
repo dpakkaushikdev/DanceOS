@@ -7,7 +7,6 @@ import { crewTeamRows } from "@/features/profiles/teamFollowing";
 import { FollowToggle } from "@/features/profiles/components/FollowToggle";
 import type { HeroShot } from "@/features/profiles/components/HeroRail";
 import { ProfileLink, ProfileShare } from "@/features/profiles/components/ProfileShare";
-import { StatsChip } from "@/features/profiles/components/StatsChip";
 import { HeroDot, HeroFact, HeroId, IdentityHero } from "@/features/profiles/components/hero-kit";
 import { memberNoWords } from "@/types/profile";
 import { Connections, PeopleGroup, PersonChip } from "@/features/profiles/components/profile-kit";
@@ -152,7 +151,7 @@ export function CrewPublicPage({
                   accent={RC}
                   signedIn={signedIn}
                 />
-                <StatsChip href={`${path}/stats`} />
+                {/* ⚠ no Stats chip (30 Oct 2026, the user: "crew stats to be removed") */}
                 <ProfileShare path={path} name={crew.name} />
                 <ProfileLink path={path} name={crew.name} />
               </>

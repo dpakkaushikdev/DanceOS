@@ -158,6 +158,9 @@ const nextConfig: NextConfig = {
       /* ⚠ straight to the Team desk since 11 Oct 2026 — the crew Inbox it pointed at is gone */
       { source: "/crews/:crewId/manage/enquiries", destination: "/crews/:crewId/manage/team", permanent: false },
       { source: "/crews/:crewId/manage/earnings", destination: "/crews/:crewId/manage", permanent: false },
+      /* ⚠ A CREW HAS NO STATS (30 Oct 2026, the user: "crew stats to be removed") —
+         the page is deleted and its address lands on the crew's own page */
+      { source: "/crew/:crewId/stats", destination: "/crew/:crewId", permanent: false },
 
       /* ══ A CREW HAS NO INBOX (11 Oct 2026, the user: "only enquiries to be handled
          from inbox and rest all from their respective home tile section"). A crew

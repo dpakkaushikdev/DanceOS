@@ -15,7 +15,7 @@ Keys for all of these are in `.env.local` (gitignored). Any older record below t
 
 ## LAST SESSION (17–30 Oct 2026) — replaced on every push (Rule 13)
 
-> ### DISCOVER'S PLACE IS A HEADING, NOT A BAR; A STUDIO'S OWN RANKING MARKS ONLY THE STUDIO (30 Oct 2026, latest) — no migration · committed, NOT pushed
+> ### DISCOVER'S PLACE IS A HEADING, NOT A BAR; A STUDIO'S OWN RANKING MARKS ONLY THE STUDIO (30 Oct 2026, latest) — no migration · ✅ PUSHED AND LIVE (`78af28a`: Vercel READY, alias `danceos-sigma.vercel.app` confirmed on the sha through the API, `stranger-smoke` all green, and both probes re-run on the live site — the place heading in both themes with no page error, and the studio-owner ranking marks: studio board YOU 1 VIEWING 0, artist and dancer boards none)
 > The user: *"make location bar on discover different … should not look like a bar or pill handle it better in same spot. plus when studio viewing its own ranking its shows viewing and shows owners highlight as well should only show highlight for its studio."* Row C199.
 > * **`AddressSearch`**: a 42px pin badge (rose→amber, sky→indigo once placed), a micro word (Dancing in · Near you · Measured from · Looking across; "Search an area, street or landmark" while typing) and the place itself as an 18px/800 transparent input over a dotted underline, ▾ when not placed. Same input, label, placeholder and dropdown — only its clothes changed.
 > * **Rankings**: `StatsPageBody` asks `runsTheBusiness(findMyMembershipRole(studio))`; when the viewer runs the studio, the owner's person row is not marked, nothing is VIEWING, and the studio's row is **YOU** on the studio board (`BoardsBrowser ownId`, pinned under the list when off it).

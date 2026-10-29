@@ -26,7 +26,7 @@ import { SIDE_TINT, type HistoryRow, type Side } from "@/types/stats";
  *  Days are IST day keys throughout (`dayKeyOf`), so a 23:30 class on the 31st
  *  is the 31st's, never the 1st's. */
 
-type Period = "day" | "week" | "month" | "year" | "custom";
+type Period = "all" | "day" | "week" | "month" | "year" | "custom";
 type Dim = "style" | "artist" | "studio";
 type SortKey = "sessions" | "hours" | "key";
 
@@ -34,7 +34,11 @@ const SIDES: Side[] = ["conducted", "assisted", "attended"];
 const SIDE_PAST: Record<Side, string> = { conducted: "Taught", assisted: "Assisted", attended: "Trained" };
 const micro: CSSProperties = { fontSize: 9.5, fontWeight: 900, letterSpacing: 1.2, textTransform: "uppercase" };
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/* ⚠ ALL IS FIRST AND THE DEFAULT (30 Oct 2026, the user: "the whole record does
+   not match with numbers above") — the tiles above are all-time, so the record
+   opens on the same window and the two read one number until a period is picked */
 const PERIODS: Array<[Period, string]> = [
+  ["all", "All"],
   ["day", "Day"],
   ["week", "Week"],
   ["month", "Month"],
@@ -75,6 +79,20 @@ function bucketsFor(period: Period, today: string, firstKey: string | null, rang
       out.push({ start: m < range.from ? range.from : m, end: monthEnd(m) > range.to ? range.to : monthEnd(m), label: MONTHS[Number(m.slice(5, 7)) - 1] });
     }
     return out;
+  }
+  if (period === "all") {
+    /* every session: months from the first one when it fits in a year, else years */
+    const first = firstKey && firstKey < today ? firstKey : today;
+    if (daysBetween(first, today) <= 366) {
+      const out: Bucket[] = [];
+      for (let m = monthStart(first); m <= today; m = addDays(monthEnd(m), 1)) {
+        out.push({ start: m === monthStart(first) ? first : m, end: monthEnd(m) > today ? today : monthEnd(m), label: MONTHS[Number(m.slice(5, 7)) - 1] });
+      }
+      return out;
+    }
+    const y0 = Number(first.slice(0, 4));
+    const y1 = Number(today.slice(0, 4));
+    return Array.from({ length: y1 - y0 + 1 }, (_, i) => ({ start: i === 0 ? first : `${y0 + i}-01-01`, end: i === y1 - y0 ? today : `${y0 + i}-12-31`, label: String(y0 + i) }));
   }
   if (period === "day") {
     return Array.from({ length: 14 }, (_, i) => {
@@ -134,7 +152,7 @@ export function WholeRecord({
   const pastOf = (k: Side) => (isStudioSubject && k === "conducted" ? "Held" : SIDE_PAST[k]);
   const today = dayKeyOf(nowIso);
 
-  const [period, setPeriod] = useState<Period>("week");
+  const [period, setPeriod] = useState<Period>("all");
   const [range, setRange] = useState<{ from: string; to: string } | null>(null);
   const [customOpen, setCustomOpen] = useState(false);
   const [dim, setDim] = useState<Dim>("style");
@@ -163,7 +181,9 @@ export function WholeRecord({
   const windowWords =
     period === "custom" && range
       ? `${dayLabel(range.from)} – ${dayLabel(range.to)}`
-      : period === "day"
+      : period === "all"
+        ? "all time"
+        : period === "day"
         ? "last 14 days"
         : period === "week"
           ? "last 8 weeks"

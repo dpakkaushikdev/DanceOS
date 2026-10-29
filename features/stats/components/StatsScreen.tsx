@@ -322,7 +322,7 @@ export function StatsScreen({
    *  board row, which is the only per-entity arithmetic the database publishes
    *  for them; it is thinner, and it is thin honestly rather than padded. */
   const recordCards: Array<RecordCard & { sub?: string }> = isPerson
-    ? personRecordCards(stats)
+    ? personRecordCards(stats, history)
     : subjectKind === "studio"
       ? (() => {
           /* ⚠ the board row counts sessions HELD with a register; the history

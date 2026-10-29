@@ -68,7 +68,7 @@ export function PulseScreen({
       <InvertedPanel ground="page" style={SECTION}>
         <div data-testid="pulse-section-record">
           {/* the three big tiles of THE NUMBERS, above the whole record (30 Oct 2026) */}
-          <RecordCards cards={personRecordCards(stats)} testIdPrefix="pulse-stat" />
+          <RecordCards cards={personRecordCards(stats, history)} testIdPrefix="pulse-stat" />
           {history.length > 0 ? (
             <WholeRecord history={history} nowIso={nowIso} subjectKind="person" isArtist={me.isArtist} />
           ) : (

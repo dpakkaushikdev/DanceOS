@@ -70,8 +70,11 @@ export function BoardsBrowser({
   footer,
   limit = null,
   subjectId = null,
+  ownId = null,
   pinned = [],
 }: {
+  /** a non-person profile you run (a studio on its own stats) — marked YOU on any board */
+  ownId?: string | null;
   /** the profile being looked at when it is somebody else's — its row is marked in its own colour */
   subjectId?: string | null;
   subjectName?: string | null;
@@ -125,7 +128,8 @@ export function BoardsBrowser({
      etc"): the row is the place, the face, the name and the metric's own figure */
   const hrefOf = (r: ChartRow) => (r.kind === "crew" ? `/crew/${r.id}` : r.kind === "studio" ? `/studio/${r.id}` : `/person/${r.id}`);
   const isYouRow = (r: ChartRow) =>
-    peopleBoard && (youId != null ? r.id === youId : boardPlace != null && r.place === boardPlace.place);
+    (ownId != null && r.id === ownId) ||
+    (peopleBoard && (youId != null ? r.id === youId : boardPlace != null && r.place === boardPlace.place));
   /* ⚠ THE PROFILE YOU ARE LOOKING AT IS SKY (30 Oct 2026, the user: "the person
      you are looking at in different color highlight") — never your own row */
   const isSubjectRow = (r: ChartRow) => subjectId != null && r.id === subjectId && !isYouRow(r);

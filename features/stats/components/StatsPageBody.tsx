@@ -1,5 +1,6 @@
 import { StatsScreen } from "@/features/stats/components/StatsScreen";
 import { findDiscoverCities } from "@/repositories/cities";
+import { findMyMembershipRole, runsTheBusiness } from "@/repositories/businesses";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { photoUrl } from "@/lib/media/photo";
 import { findChart, findEntityChartRow, findPinnedChartRows, findMyHistory, findMyPlace, findMyStats, findPersonHistory, findStudioHistory, withChartPhotos } from "@/repositories/stats";
@@ -118,11 +119,19 @@ export async function StatsPageBody({ subject, query, basePath }: { subject: Sta
      highlight the same way and the person you are looking at in different color
      highlight") — and each pinned under the list when the top 20 does not reach them */
   const peopleBoard = segment === "dancer" || segment === "artist";
-  const youId = user && peopleBoard ? user.id : null;
-  const subjectOnBoard = !isMe && !isCrew && (subject.kind === "studio" ? segment === "studio" : peopleBoard) ? subject.id : null;
+  /* ⚠ A STUDIO LOOKING AT ITS OWN RANKING (30 Oct 2026, the user: "when studio
+     viewing its own ranking its shows viewing and shows owners highlight as well
+     should only show highlight for its studio"): somebody who RUNS the studio is
+     not a visitor — the studio's row is THEIRS (YOU, emerald), and the owner's
+     own person row is not marked, because the profile in view is the studio */
+  const ownsSubject =
+    Boolean(user) && subject.kind === "studio" && runsTheBusiness(await findMyMembershipRole(supabase, subject.id).catch(() => null));
+  const youId = user && peopleBoard && !ownsSubject ? user.id : null;
+  const ownId = ownsSubject && segment === "studio" ? subject.id : null;
+  const subjectOnBoard = !isMe && !isCrew && !ownsSubject && (subject.kind === "studio" ? segment === "studio" : peopleBoard) ? subject.id : null;
   const pinned =
     tab === "charts" && canBrowseBoards && !isCrew && metric === "overall"
-      ? await findPinnedChartRows(supabase, { segment, city, ids: [youId ?? "", subjectOnBoard ?? ""], onBoard: chart }).catch(() => [])
+      ? await findPinnedChartRows(supabase, { segment, city, ids: [youId ?? "", subjectOnBoard ?? "", ownId ?? ""], onBoard: chart }).catch(() => [])
       : [];
 
   /* a crew keeps its board row (its record is counted from it) and no standings */
@@ -153,6 +162,7 @@ export async function StatsPageBody({ subject, query, basePath }: { subject: Sta
       myPlace={myPlace}
       boardPlace={boardPlace}
       boardYouId={youId}
+      boardOwnId={ownId}
       boardSubjectId={subjectOnBoard}
       boardPinned={pinned}
       tab={tab}

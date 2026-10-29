@@ -174,18 +174,52 @@ export function AddressSearch({
   const icon = (bg: string): React.CSSProperties => ({ width: 34, height: 34, borderRadius: 10, flexShrink: 0, background: bg, display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900, fontSize: 15 });
   const placed = Boolean(at || near);
 
+  /* ⚠ NOT A BAR (30 Oct 2026, the user: "make location bar on discover different
+     give it a different look or design should not look like a bar or pill"): the
+     place reads as a HEADING — a pin badge, a small word saying how the page is
+     measured, and the place itself set large in ink with a dotted underline.
+     Pressing the place types into it; the input is the same control (its label,
+     its placeholder and its dropdown are unchanged), only its clothes moved. */
+  const eyebrow = at ? "Measured from" : near ? "Near you" : cityShown ? "Dancing in" : "Looking across";
+  const [focused, setFocused] = useState(false);
+
   return (
-    <div data-testid="address-search" style={{ position: "relative", margin: "12px 0 4px" }}>
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={placed ? "var(--text)" : "var(--muted)"} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
-        <path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z" />
-        <circle cx="12" cy="9.5" r="2.5" />
-      </svg>
+    <div data-testid="address-search" style={{ position: "relative", margin: "14px 0 6px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <span
+          aria-hidden="true"
+          style={{
+            width: 42,
+            height: 42,
+            flexShrink: 0,
+            borderRadius: 13,
+            background: placed ? "linear-gradient(135deg,#0EA5E9,#6366F1)" : "linear-gradient(135deg,#F43F5E,#F59E0B)",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 6px 16px rgba(0,0,0,.18)",
+          }}
+        >
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z" />
+            <circle cx="12" cy="9.5" r="2.5" />
+          </svg>
+        </span>
+        <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
+          <div style={{ ...micro, color: "var(--muted)" }}>{focused ? "Search an area, street or landmark" : eyebrow}</div>
+          <div style={{ position: "relative", borderBottom: `2px ${focused ? "solid" : "dotted"} ${focused ? "var(--text)" : "var(--el)"}`, transition: "border-color .15s" }}>
       <input
         value={q}
         aria-label="Search an address"
         onChange={(e) => setQ(e.target.value.slice(0, 80))}
-        onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 180)}
+        onFocus={() => {
+          setOpen(true);
+          setFocused(true);
+        }}
+        onBlur={() => {
+          setFocused(false);
+          setTimeout(() => setOpen(false), 180);
+        }}
         placeholder={showing}
         autoComplete="off"
         autoCorrect="off"
@@ -193,20 +227,28 @@ export function AddressSearch({
         inputMode="search"
         enterKeyHint="search"
         /* 16px: under it, iOS zooms the page on focus and the box jumps under the thumb */
-        style={{ width: "100%", boxSizing: "border-box", background: "var(--card)", border: "1.5px solid var(--el)", borderRadius: 14, padding: "12px 40px 12px 38px", color: "var(--text)", fontSize: 16, outline: "none", fontFamily: "inherit" }}
-        className={placed ? "dos-address-placed" : undefined}
+        style={{ width: "100%", boxSizing: "border-box", background: "transparent", border: "none", borderRadius: 0, padding: "2px 30px 4px 0", color: "var(--text)", fontSize: 18, fontWeight: 800, letterSpacing: -0.3, outline: "none", fontFamily: "inherit" }}
+        className="dos-address-input"
       />
-      {/* the placeholder of a measured page reads in ink, not grey — it is the answer, not a hint */}
-      {placed ? <style>{".dos-address-placed::placeholder{color:var(--text);opacity:1;font-weight:700}"}</style> : null}
+      {/* the place IS the heading: the placeholder reads in ink at full weight —
+          it is the answer, not a hint — and only turns quiet while typing */}
+      <style>{`.dos-address-input::placeholder{color:var(--text);opacity:${focused ? 0.35 : 1};font-weight:800}.dos-address-input:focus-visible{outline:none;box-shadow:none}`}</style>
       {q ? (
-        <button type="button" aria-label="Clear the address search" onClick={() => setQ("")} style={{ ...BTN_RESET, position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", color: "var(--sub)", cursor: "pointer", fontWeight: 800, fontSize: 13 }}>
+        <button type="button" aria-label="Clear the address search" onClick={() => setQ("")} style={{ ...BTN_RESET, position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", color: "var(--sub)", cursor: "pointer", fontWeight: 800, fontSize: 13 }}>
           ✕
         </button>
       ) : placed ? (
-        <button type="button" aria-label="Stop measuring from this place" onClick={() => go(cityShown ?? city, null)} style={{ ...BTN_RESET, position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", color: "var(--sub)", cursor: "pointer", fontWeight: 800, fontSize: 13 }}>
+        <button type="button" aria-label="Stop measuring from this place" onClick={() => go(cityShown ?? city, null)} style={{ ...BTN_RESET, position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", color: "var(--sub)", cursor: "pointer", fontWeight: 800, fontSize: 13 }}>
           ✕
         </button>
-      ) : null}
+      ) : (
+        <span aria-hidden="true" style={{ position: "absolute", right: 2, top: "50%", transform: "translateY(-50%)", color: "var(--sub)", fontSize: 12, fontWeight: 900, pointerEvents: "none" }}>
+          ▾
+        </span>
+      )}
+          </div>
+        </div>
+      </div>
       {open ? (
         <div role="listbox" aria-label="Places" style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 400, background: "var(--solid)", border: "1.5px solid var(--el)", borderRadius: 16, maxHeight: 360, overflowY: "auto", boxShadow: "0 14px 40px rgba(0,0,0,.5)" }}>
           <div style={{ ...micro, color: "var(--muted)", padding: "10px 14px 4px" }}>Where to look</div>

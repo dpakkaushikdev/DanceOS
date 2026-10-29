@@ -131,6 +131,7 @@ export function StatsScreen({
   boardPlace,
   boardYouId = null,
   boardSubjectId = null,
+  boardOwnId = null,
   boardPinned = [],
   tab: tabProp,
   nowIso,
@@ -190,6 +191,8 @@ export function StatsScreen({
   boardYouId?: string | null;
   /** the profile being looked at, when it is somebody else's — marked in its own colour */
   boardSubjectId?: string | null;
+  /** the studio you run, on its own stats — marked YOU on the studio board */
+  boardOwnId?: string | null;
   /** rows pinned under the board when the top 20 does not reach them */
   boardPinned?: ChartRow[];
   tab: Tab;
@@ -630,7 +633,7 @@ export function StatsScreen({
               </div>
             ) : null}
             {canBrowseBoards ? (
-              <BoardsBrowser chart={chart} segment={segment} metric={metric} city={city} cities={cities} basePath={basePath} baseQuery="tab=charts" boardPlace={boardPlace} youId={boardYouId} subjectId={boardSubjectId} subjectName={isMe ? null : name} pinned={boardPinned} />
+              <BoardsBrowser chart={chart} segment={segment} metric={metric} city={city} cities={cities} basePath={basePath} baseQuery="tab=charts" boardPlace={boardPlace} youId={boardYouId} ownId={boardOwnId} subjectId={boardSubjectId} subjectName={isMe ? null : name} pinned={boardPinned} />
             ) : null}
           </>
         ) : null}

@@ -2793,6 +2793,10 @@ test.describe.serial("DanceOS, end to end", () => {
     const editSheet = learner.getByRole("dialog", { name: "Contact buttons" });
     await openContacts(learner);
     await editSheet.getByLabel("Phone").fill("+91 98765 43210");
+    /* ⚠ THE UPI ID RIDES THE SAME SHEET (2 Nov 2026): typed with capitals, kept
+       lower-case by `set_my_upi_id`, read back through its own RPC — never off the
+       public profile row, which does not grant the column */
+    await editSheet.getByLabel("UPI id").fill("Learner@OKDOS");
     await editSheet.getByRole("button", { name: "Save" }).click();
     await expect(editSheet).toHaveCount(0);
     // the record kept it: the sheet re-opens holding the number. `openContacts`
@@ -2800,6 +2804,7 @@ test.describe.serial("DanceOS, end to end", () => {
     // save would race router.refresh() and read the OLD one
     await openContacts(learner);
     await expect(editSheet.getByLabel("Phone")).toHaveValue("+91 98765 43210", { timeout: 15_000 });
+    await expect(editSheet.getByLabel("UPI id")).toHaveValue("learner@okdos");
     // somebody else's read of it: the trainer opens the learner's page — no Call on a user's page
     await trainer.goto(`/person/${learnerId}`);
     // the toggle by its test id: the person page's figures are buttons too (2 Oct 2026)
@@ -3500,6 +3505,50 @@ test.describe.serial("DanceOS, end to end", () => {
     await expect(inviteSheet.getByRole("link", { name: "Open mail" })).toHaveAttribute("href", /^mailto:someone@example\.com\?subject=/);
     await inviteSheet.getByRole("button", { name: "Done" }).click();
     await expect(inviteSheet).toHaveCount(0);
+  });
+
+  test("team pay by UPI: the owner's own app is opened, the learner taps Received, the owner is told", async () => {
+    /* ⚠ THE STUDIO STAYS THE PAYER (2 Nov 2026, the user: "first fix the teams
+       payment option"). The sheet records the payout as IN TRANSIT first, so its
+       id is the `upi://pay` link's reference, then shows the link and a QR of it
+       — the "Pay through Cashfree · coming soon" button that stood here since
+       18 Oct is gone. The learner said a UPI id in the contact sheet earlier in
+       this run (N8), so the owner's sheet draws "Pay ₹500 by UPI". */
+    await owner.goto(`/business/${businessId}/staff`);
+    await owner.getByRole("link", { name: `Member Detail — ${learnerName}` }).click();
+    await owner.waitForURL(new RegExp(`/business/${businessId}/staff/[0-9a-f-]+`));
+    await owner.goto(`${owner.url().split("?")[0]}?show=settle`);
+    await owner.getByTestId("member-pay").click();
+    const upiSheet = owner.getByRole("dialog", { name: `Pay ${learnerName}` });
+    await expect(upiSheet.getByText(/Pay through Cashfree/)).toHaveCount(0);
+    await upiSheet.getByRole("tab", { name: "Lump sum" }).click();
+    await upiSheet.getByLabel("Amount in rupees").fill("500");
+    await upiSheet.getByRole("button", { name: "UPI", exact: true }).click();
+    await expect(upiSheet.getByTestId("settle-upi-pay")).toHaveText("Pay ₹500 by UPI");
+    await upiSheet.getByTestId("settle-upi-pay").click();
+    await expect(upiSheet.getByTestId("settle-upi-paid")).toBeVisible({ timeout: 20_000 });
+    const href = await upiSheet.getByTestId("settle-upi-link").getAttribute("href");
+    expect(href).toMatch(/^upi:\/\/pay\?pa=learner%40okdos/);
+    expect(href).toContain("am=500.00");
+    expect(href).toMatch(/[?&]tr=[0-9a-f]{32}(&|$)/);
+    /* Done closes the sheet, and only then are the "recorded" words said */
+    await upiSheet.getByRole("button", { name: "Done" }).click();
+    await expect(upiSheet).toHaveCount(0);
+    await expect(owner.getByRole("status")).toContainText("500", { timeout: 20_000 });
+
+    /* ⚠ THE LEARNER CLOSES THE LOOP on the Other Teams page that lists what this
+       business paid them — in transit until they tap Received, done after */
+    await learner.goto(`/team/other/business/${businessId}`);
+    await learner.getByTestId("paid-studio").first().getByRole("button").first().click();
+    const hist = learner.getByTestId("paid-history");
+    await expect(hist).toContainText("in transit", { timeout: 15_000 });
+    await hist.getByTestId("payout-received").click();
+    await expect(hist.getByTestId("payout-received")).toHaveCount(0, { timeout: 15_000 });
+    await expect(hist).not.toContainText("in transit");
+
+    /* and the owner is told, by name and figure */
+    await owner.goto("/notifications");
+    await expect(owner.getByText(/received ₹500/)).toBeVisible({ timeout: 15_000 });
   });
 
   test("the class form asks the room first: ROOM ALREADY BUSY, and what can honestly happen next", async () => {

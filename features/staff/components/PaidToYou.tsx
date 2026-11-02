@@ -5,6 +5,7 @@ import { CARD, DOS_UI, GOLD, GREEN, INK, LINE, SUB } from "@/lib/design/tokens";
 import { PAYOUT_METHOD_LABEL, PAYOUT_STATUS_LABEL, payoutTone, type MyEarnings } from "@/types/payout";
 import { SettlementRow, money } from "@/features/payouts/components/earnings-kit";
 import { coveredWords, PaidCovers } from "@/features/payouts/components/PaidCovers";
+import { ReceivedButton } from "@/features/payouts/components/ReceivedButton";
 import { disputedInr, type PaymentDispute } from "@/repositories/disputes";
 
 /** PAID TO YOU — WHAT EACH STUDIO HAS PAID YOU AND WHAT IS NOT YET SETTLED
@@ -75,6 +76,8 @@ export function PaidToYou({ data, disputes }: { data: MyEarnings; disputes?: Rec
                         amount={p.amountInr}
                         tone={payoutTone(p.status)}
                       />
+                      {/* the payee closes the loop on a payment still on its way (2 Nov 2026) */}
+                      {p.status === "in_transit" || p.status === "on_hold" ? <ReceivedButton payoutId={p.id} /> : null}
                       <PaidCovers
                         sessions={p.sessions}
                         enquiries={p.enquiries}

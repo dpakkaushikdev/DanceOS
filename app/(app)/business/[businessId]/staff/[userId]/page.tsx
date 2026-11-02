@@ -9,6 +9,7 @@ import type { RentPayment } from "@/types/payout";
 import { findTeamMemberWork } from "@/repositories/teamMemberWork";
 import { findMyMemberships, findBusinessTeam, runsTheBusiness } from "@/repositories/businesses";
 import { findPrincipalOwner } from "@/repositories/invites";
+import { findUpiIdForPaying } from "@/repositories/profiles";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -60,7 +61,7 @@ export default async function TeamMemberRoute({
   }
   const now = new Date();
   const isStudio = seat.business.type === "studio";
-  const [work, ledger, rentIn, renting] = await Promise.all([
+  const [work, ledger, upiId, rentIn, renting] = await Promise.all([
     findTeamMemberWork(supabase, businessId, userId, now, {
       businessName: seat.business.name,
       memberName: member.name,
@@ -69,6 +70,9 @@ export default async function TeamMemberRoute({
     /* the To settle column — this person's row of the desk's own ledger, so the
        page and the card's Pay sheet list the same sessions; fails soft */
     findBusinessPayLedger(supabase, businessId, now.toISOString()).catch(() => null),
+    /* THEIR UPI ID FOR PAYING (2 Nov 2026) — the RPC answers null for anyone the
+       owner may not pay; fails soft to the plain record sheet */
+    findUpiIdForPaying(supabase, userId, businessId).catch(() => null),
     /* RENT RECEIVED FROM THIS PERSON (19 Oct 2026) — rent their artist page paid
        this studio, recorded by them; a studio's alone */
     isStudio ? findRentReceivedByPerson(supabase, businessId).catch(() => []) : Promise.resolve([]),
@@ -111,6 +115,7 @@ export default async function TeamMemberRoute({
       history={history}
       work={work}
       ledger={personLedger}
+      upiId={upiId}
       rent={rent}
       show={show}
       period={parseEarnPeriod(askedPeriod)}

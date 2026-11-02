@@ -503,6 +503,7 @@ export function TeamMemberPage({
   history,
   work,
   ledger,
+  upiId = null,
   rent,
   show,
   period = "all",
@@ -512,6 +513,8 @@ export function TeamMemberPage({
 }: {
   /** the latest dispute per entry on this person's payments and rent (19 Oct 2026) */
   disputes?: Record<string, PaymentDispute>;
+  /** their UPI id for paying — the Pay sheet's "Pay by UPI" (2 Nov 2026) */
+  upiId?: string | null;
   businessId: string;
   businessName: string;
   businessType: BusinessType;
@@ -604,7 +607,7 @@ export function TeamMemberPage({
               <div data-testid="member-money">
                 <MoneyHead id="member-money-to-pay" title="TO PAY" />
                 {/* ⚠ mounted first, so `?pay=1` still opens its sheet (C178) */}
-                <MemberToSettle businessId={businessId} person={{ userId: member.userId, name: member.name, avatarPath: member.avatarPath }} ledger={ledger} tint={tint} />
+                <MemberToSettle businessId={businessId} person={{ userId: member.userId, name: member.name, avatarPath: member.avatarPath }} ledger={ledger} upiId={upiId} tint={tint} />
                 <MoneyHead id="member-money-paid" title="PAID" />
                 <EarningsPanel history={history} work={work} personName={member.name} businessName={businessName} tint={tint} period={period} base={base} disputes={disputes} />
                 {rent.length > 0 ? (

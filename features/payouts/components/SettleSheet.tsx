@@ -3,11 +3,13 @@
 import { useMemo, useState } from "react";
 import { SheetHandle, sheetBody, sheetWrap } from "@/features/businesses/components/biz-kit";
 import { money as rupees } from "@/features/payouts/components/earnings-kit";
+import { QRBlock } from "@/components/ui/QRBlock";
 import { ToolFace } from "@/components/ui/ToolCard";
 import { columnTab, columnTrack } from "@/components/ui/ColumnTabs";
 import { FORM_TITLE } from "@/components/ui/formTitle";
 import { INK, MUTED, SUB } from "@/lib/design/tokens";
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
+import { upiPayLink } from "@/lib/upi/link";
 import type { PayLine, PayoutMethod, PayoutStatus } from "@/types/payout";
 
 /** ONE SETTLE SHEET for paying a team member and paying a studio rent (18 Oct
@@ -20,9 +22,17 @@ import type { PayLine, PayoutMethod, PayoutStatus } from "@/types/payout";
  *  sum of the ticked lines, printed under the list in figure type and again on
  *  the button, so what is recorded is what was read.
  *
- *  ⚠ DanceOS records the payment — it does not move the money. "Pay through
- *  Cashfree" is drawn and disabled with its reason (the user's answer: switched
- *  on later). */
+ *  ⚠ DanceOS records the payment — it does not move the money. The studio stays
+ *  the payer (2 Nov 2026, the user: "first fix the teams payment option"): when
+ *  the payee has said a UPI id and the method is UPI, "Pay ₹N by UPI" records the
+ *  payout as IN TRANSIT and then shows the owner's own UPI app a `upi://pay` link
+ *  with the figure filled in and the payout's id as its reference, plus a QR of
+ *  the same link for another phone. The payee taps Received on their Earnings.
+ *  The "Pay through Cashfree · coming soon" button that stood here from 18 Oct
+ *  is gone: routing a studio's money through DanceOS's Cashfree balance is
+ *  aggregator territory, a licence rather than a feature. */
+
+type SettleResult = { error: string | null; payoutId: string | null };
 
 export interface SettleItem {
   /** session id or enquiry id */
@@ -90,6 +100,7 @@ export function SettleSheet({
   items,
   itemsHead,
   emptyWords,
+  upiId = null,
   onSettle,
   onAmountOnly,
   onClose,
@@ -101,9 +112,14 @@ export function SettleSheet({
   /** "WHAT IS NOT SETTLED" or "CLASSES IN THEIR ROOMS" */
   itemsHead: string;
   emptyWords: string;
-  onSettle: (lines: PayLine[], meta: SettleMeta) => Promise<{ error: string | null }>;
+  /** the payee's UPI id when the caller may pay them on it — draws "Pay by UPI";
+   *  absent (rent, a person without one) the sheet is the plain record */
+  upiId?: string | null;
+  /** `viaUpi` says the record was made by "Pay by UPI": the caller then holds
+   *  its "done" words until the sheet closes, because the link is shown next */
+  onSettle: (lines: PayLine[], meta: SettleMeta, opts: { viaUpi: boolean }) => Promise<SettleResult>;
   /** a lump sum, not for any class — the Team desk and rent */
-  onAmountOnly?: (amountInr: number, meta: SettleMeta) => Promise<{ error: string | null }>;
+  onAmountOnly?: (amountInr: number, meta: SettleMeta, opts: { viaUpi: boolean }) => Promise<SettleResult>;
   onClose: () => void;
 }) {
   useCloseOnBack(onClose, true);
@@ -120,6 +136,8 @@ export function SettleSheet({
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /* set once "Pay by UPI" has recorded: the form gives way to the link */
+  const [paid, setPaid] = useState<{ link: string } | null>(null);
 
   const chosen = useMemo(() => items.filter((i) => ticked.has(i.id)), [items, ticked]);
   const amountOf = (id: string) => Number(amounts[id] || 0);
@@ -154,20 +172,36 @@ export function SettleSheet({
     note: note.trim() || null,
   });
 
-  const submit = async () => {
-    if (busy || blocker) return;
+  /* one record path for both buttons; `busy` makes a second tap a no-op */
+  const record = async (m: SettleMeta, viaUpi: boolean): Promise<SettleResult | null> => {
+    if (busy || blocker) return null;
     setBusy(true);
     setError(null);
     const out =
       mode === "amount" && onAmountOnly
-        ? await onAmountOnly(total, meta())
+        ? await onAmountOnly(total, m, { viaUpi })
         : await onSettle(
             chosen.map((i) => (i.kind === "session" ? { sessionId: i.id, rateInr: amountOf(i.id) } : { enquiryId: i.id, rateInr: amountOf(i.id) })),
-            meta()
+            m,
+            { viaUpi }
           );
     setBusy(false);
     if (out.error) setError(out.error);
+    return out;
   };
+
+  const submit = () => record(meta(), false);
+
+  /* IN TRANSIT by UPI: the record first, so its id is the link's reference */
+  const payByUpi = async () => {
+    if (!upiId) return;
+    const out = await record({ ...meta(), method: "upi", status: "in_transit" }, true);
+    if (out && !out.error && out.payoutId) {
+      setPaid({ link: upiPayLink({ upiId, payeeName: face.name, amountInr: total, payoutId: out.payoutId }) });
+    }
+  };
+
+  const pill: React.CSSProperties = { display: "block", width: "100%", boxSizing: "border-box", textAlign: "center", padding: "12px", borderRadius: 999, fontWeight: 900, fontSize: 12.5, fontFamily: "inherit", textDecoration: "none", border: "none", cursor: "pointer" };
 
   return (
     <div onClick={onClose} style={sheetWrap}>
@@ -177,6 +211,24 @@ export function SettleSheet({
           <ToolFace name={face.name} photoPath={face.photoPath} tint={tint} size={44} />
           <b style={FORM_TITLE}>{title}</b>
         </div>
+        {paid ? (
+          <div data-testid="settle-upi-paid">
+            <div style={{ fontSize: 15, fontWeight: 900, color: INK }}>Recorded as in transit</div>
+            <div style={{ fontSize: 12, color: SUB, lineHeight: 1.5, margin: "6px 0 14px" }}>
+              Open your UPI app to pay, or scan this from another phone. {face.name} will tap Received when it lands.
+            </div>
+            <div style={{ display: "flex", justifyContent: "center", margin: "0 0 14px" }}>
+              <QRBlock code={paid.link} size={180} label="UPI payment code" />
+            </div>
+            <a data-testid="settle-upi-link" href={paid.link} style={{ ...pill, background: "var(--text)", color: "var(--solid)" }}>
+              Open UPI app
+            </a>
+            <button type="button" onClick={onClose} style={{ ...pill, marginTop: 8, background: CARD, border: `1.5px solid ${EL}`, color: INK }}>
+              Done
+            </button>
+          </div>
+        ) : (
+          <>
         <div style={{ fontSize: 11.5, color: SUB, margin: "0 0 12px", lineHeight: 1.5 }}>DanceOS records what you have paid — it does not move the money.</div>
 
         {onAmountOnly ? (
@@ -335,14 +387,17 @@ export function SettleSheet({
           </div>
         ) : null}
 
-        <button
-          type="button"
-          disabled
-          title="Paying through Cashfree is switched on later — record a payment you have made"
-          style={{ width: "100%", marginTop: 14, padding: "11px", borderRadius: 999, background: CARD, border: `1.5px dashed ${EL}`, color: MUTED, fontWeight: 800, fontSize: 12, fontFamily: "inherit", cursor: "default" }}
-        >
-          Pay through Cashfree · coming soon
-        </button>
+        {upiId && method === "upi" ? (
+          <button
+            type="button"
+            disabled={busy || Boolean(blocker)}
+            onClick={payByUpi}
+            data-testid="settle-upi-pay"
+            style={{ ...pill, marginTop: 14, background: blocker ? EL : tint, color: blocker ? MUTED : "#fff", cursor: blocker ? "default" : "pointer" }}
+          >
+            {busy ? "Recording…" : `Pay ${rupees(total)} by UPI`}
+          </button>
+        ) : null}
         <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
           <button type="button" onClick={onClose} style={{ flex: 1, padding: "12px", borderRadius: 999, background: CARD, border: `1.5px solid ${EL}`, fontWeight: 800, fontSize: 12.5, cursor: "pointer", color: INK, fontFamily: "inherit" }}>
             Cancel
@@ -357,6 +412,8 @@ export function SettleSheet({
             {busy ? "Recording…" : blocker ?? `Record ${rupees(total)}`}
           </button>
         </div>
+          </>
+        )}
       </div>
     </div>
   );

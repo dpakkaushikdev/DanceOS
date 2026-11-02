@@ -27,11 +27,14 @@ export function MemberToSettle({
   businessId,
   person,
   ledger,
+  upiId,
   tint,
 }: {
   businessId: string;
   person: { userId: string; name: string; avatarPath: string | null };
   ledger: Pick<PersonPayLedger, "unpaid" | "unpaidEnquiries"> | null;
+  /** their UPI id for paying, when the owner may read it (2 Nov 2026) */
+  upiId: string | null;
   tint: string;
 }) {
   const router = useRouter();
@@ -89,6 +92,7 @@ export function MemberToSettle({
           businessId={businessId}
           person={person}
           ledger={ledger}
+          upiId={upiId}
           tint={tint}
           onClose={() => {
             setOpen(false);

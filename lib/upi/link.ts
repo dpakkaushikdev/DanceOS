@@ -6,8 +6,9 @@
  *  earlier is the link's transaction reference — so a bank statement and the
  *  DanceOS record name the same thing. No Cashfree, no vendor, no KYC. */
 
-/** name@bank — NPCI's VPA grammar, case-insensitive; stored lower-case. */
-export const UPI_ID_SHAPE = /^[a-z0-9.\-_]{2,256}@[a-z]{2,64}$/i;
+/** name@bank — NPCI's VPA grammar, case-insensitive; stored lower-case. The
+ *  same expression as the database's CHECK; 255 is Postgres's repetition cap. */
+export const UPI_ID_SHAPE = /^[a-z0-9.\-_]{2,255}@[a-z]{2,64}$/i;
 
 export const UPI_ID_ERROR = "That is not a UPI id — it looks like name@bank";
 

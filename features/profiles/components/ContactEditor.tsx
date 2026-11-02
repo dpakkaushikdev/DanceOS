@@ -7,7 +7,7 @@ import { Portal } from "@/components/ui/Portal";
 import { toast } from "@/components/ui/Toast";
 import { setCrewSocialsAction, updateCrewAction } from "@/features/crews/server-actions/crews";
 import { updateBusinessProfileAction } from "@/features/settings/server-actions/plans";
-import { updateMyProfileAction } from "@/features/profiles/server-actions/profile";
+import { setMyUpiIdAction, updateMyProfileAction } from "@/features/profiles/server-actions/profile";
 import type { StudioLinkTarget } from "@/features/businesses/components/StudioLinksRow";
 import { INK, SUB } from "@/lib/design/tokens";
 import { FORM_TITLE } from "@/components/ui/formTitle";
@@ -51,6 +51,10 @@ export type ContactTarget =
       profile: Profile;
       /** a live plan — the Call switch is an artist's, and a plain user's page draws no buttons */
       isArtist: boolean;
+      /** THE UPI ID A STUDIO MAY PAY YOU ON (2 Nov 2026) — not a button, a box on
+       *  this sheet because it is contact-shaped and private; its own read and
+       *  its own door (`set_my_upi_id`), never on the public profile */
+      upiId: string | null;
     }
   | { kind: "business"; business: StudioLinkTarget; /** `?edit=1` on the business's own home — where the pin is */ detailsHref: string }
   | { kind: "crew"; crew: Crew; socials: SocialLink[] };
@@ -182,6 +186,7 @@ function ContactSheet({ target, onClose }: { target: ContactTarget; onClose: () 
     phonePublic: target.kind === "person" ? target.profile.phonePublic : target.kind === "crew" ? target.crew.phonePublic : true,
     email: (target.kind === "person" ? target.profile.contactEmail : target.kind === "business" ? target.business.contactEmail : target.crew.contactEmail) ?? "",
     whatsapp: whatsappBox(socials),
+    upi: target.kind === "person" ? (target.upiId ?? "") : "",
     /* null on the record means every type the kind allows; an empty list means none — no button */
     enquiry: !(Array.isArray(enquiryTypes) && enquiryTypes.length === 0),
     /* the kinds it takes — null on the record is EVERY kind, so the chips open
@@ -229,6 +234,11 @@ function ContactSheet({ target, onClose }: { target: ContactTarget; onClose: () 
         const p = target.profile;
         const out = await updateMyProfileAction({ fullName: p.fullName, city: (p.city ?? "").trim(), age: p.age, socials: nextSocials, styles: lists.styles, phone, contactEmail: email, phonePublic: target.isArtist ? d.phonePublic : undefined });
         error = out.error;
+        /* the UPI id is its own door, written only when the box changed */
+        if (!error && d.upi.trim() !== (target.upiId ?? "")) {
+          const out2 = await setMyUpiIdAction({ upiId: d.upi.trim() || null });
+          error = out2.error;
+        }
       } else if (target.kind === "business") {
         const t = target.business;
         const out = await updateBusinessProfileAction({ businessId: t.id, styles: lists.styles, socials: nextSocials, foundedYear: t.foundedYear, phone, contactEmail: email, accepts: t.accepts, enquiryTypes: enqNext() });
@@ -299,6 +309,27 @@ function ContactSheet({ target, onClose }: { target: ContactTarget; onClose: () 
         <ButtonCard kind="message" name="Message" on={pageShows && Boolean(d.whatsapp.trim())} onRemove={d.whatsapp.trim() ? () => setD((x) => ({ ...x, whatsapp: "" })) : undefined}>
           <input aria-label="WhatsApp" type="tel" inputMode="tel" value={d.whatsapp} onChange={(e) => setD((x) => ({ ...x, whatsapp: e.target.value }))} placeholder="WhatsApp number with country code" style={cardInput} />
         </ButtonCard>
+
+        {/* THE UPI ID (2 Nov 2026) — a person's alone; a studio and a crew have no
+            such box. Not a button: the page never shows it, only a studio paying
+            this person reads it, through its own RPC. */}
+        {target.kind === "person" ? (
+          <div style={{ background: "var(--card)", border: "1.5px solid var(--el)", borderRadius: 16, padding: "12px 13px", marginTop: 10 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 800, color: INK }}>UPI id</div>
+            <input
+              aria-label="UPI id"
+              inputMode="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              value={d.upi}
+              onChange={(e) => setD((x) => ({ ...x, upi: e.target.value }))}
+              placeholder="name@bank"
+              style={cardInput}
+            />
+            <div style={{ fontSize: 11, color: SUB, marginTop: 7, lineHeight: 1.45 }}>So a studio can pay you from its UPI app. Only a studio paying you sees it.</div>
+          </div>
+        ) : null}
 
         {/* ⚠ `d.enquiry` and `d.kinds` carry NO control here and still ride every
             Save (27 Sep 2026): `update_business_profile` takes the WHOLE profile,

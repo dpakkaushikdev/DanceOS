@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { TopPanel } from "@/components/ui/TopPanel";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { findProfileById } from "@/repositories/profiles";
+import { findProfileById, findUpiIdForPaying } from "@/repositories/profiles";
 import { ensureArtistPage, findMyMemberships } from "@/repositories/businesses";
 import { findMyArtistPlan } from "@/repositories/plans";
 import { findMyFollowedCrews, findMyFollowedPeople, findMyFollowing, findMyPersonFollowers, findTeamFollows, withTeamFollows } from "@/repositories/follows";
@@ -57,10 +57,13 @@ export async function OwnHome({ userId, person, searchParams }: { userId: string
   const teamsP = findTeamFollows(supabase, userId).catch(() => ({ businesses: [], crews: [] }));
 
   /* `withPhone`: the Call button and the contact ⊕ need the number (6 Oct 2026) */
-  const [profile, memberships, plan] = await Promise.all([
+  const [profile, memberships, plan, upiId] = await Promise.all([
     findProfileById(supabase, userId, { withPhone: true }),
     findMyMemberships(supabase),
     findMyArtistPlan(supabase),
+    /* YOUR OWN UPI ID (2 Nov 2026) — behind the phone's wall, so its own read;
+       fails soft to an empty box */
+    findUpiIdForPaying(supabase, userId, null).catch(() => null),
   ]);
   if (!profile) notFound();
 
@@ -171,7 +174,7 @@ export async function OwnHome({ userId, person, searchParams }: { userId: string
           {!isPlainUser && profile.contactEmail ? <MailButton email={profile.contactEmail} /> : null}
           {!isPlainUser && whatsappHrefOf(profile.socials) ? <MessageButton href={whatsappHrefOf(profile.socials) as string} /> : null}
         </ActionRow>
-        <ContactEditButton target={{ kind: "person", profile, isArtist }} />
+        <ContactEditButton target={{ kind: "person", profile, isArtist, upiId }} />
         {scheduleHref ? <ScheduleBar href={scheduleHref} /> : null}
         </TopPanel>
         <PersonBody person={person} isMe signedIn memberships={[]} artistTeam={artistTeam} accent={ring[1]} />

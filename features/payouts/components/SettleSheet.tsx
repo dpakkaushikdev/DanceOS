@@ -217,6 +217,8 @@ export function SettleSheet({
             <div style={{ fontSize: 12, color: SUB, lineHeight: 1.5, margin: "6px 0 14px" }}>
               Open your UPI app to pay, or scan this from another phone. {face.name} will tap Received when it lands.
             </div>
+            {/* the undo for an abandoned app is the one that already exists (review, 2 Nov 2026) */}
+            <div style={{ fontSize: 11, color: MUTED, lineHeight: 1.45, margin: "-8px 0 14px" }}>Backed out of the app? Void the payment on their page.</div>
             <div style={{ display: "flex", justifyContent: "center", margin: "0 0 14px" }}>
               <QRBlock code={paid.link} size={180} label="UPI payment code" />
             </div>

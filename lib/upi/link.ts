@@ -20,17 +20,24 @@ export function normaliseUpiId(raw: string): string | null {
 
 const PAYEE_NAME_MAX = 50;
 const NOTE = "DanceOS team pay";
+/** `pn` is mandatory in NPCI's grammar: a name with no Latin letters strips to
+ *  nothing, and some apps refuse a link without one */
+const FALLBACK_PAYEE = "DanceOS team member";
 
 /** The link a UPI app opens. `pn` is the payee's name limited to the characters
- *  every app accepts; `tr` is the payout id without its dashes. */
+ *  every app accepts; `tr` is the payout id without its dashes.
+ *  ⚠ PERCENT-ENCODED BY HAND, not URLSearchParams: that is form encoding, which
+ *  writes a space as `+`, and iOS UPI apps do not read `+` back as a space — the
+ *  note would arrive as "DanceOS+team+pay". `%20` reads the same everywhere. */
 export function upiPayLink(p: { upiId: string; payeeName: string; amountInr: number; payoutId: string }): string {
-  const q = new URLSearchParams({
-    pa: p.upiId,
-    pn: p.payeeName.replace(/[^A-Za-z0-9 .]/g, "").trim().slice(0, PAYEE_NAME_MAX),
-    am: p.amountInr.toFixed(2),
-    cu: "INR",
-    tn: NOTE,
-    tr: p.payoutId.replace(/-/g, ""),
-  });
-  return `upi://pay?${q.toString()}`;
+  const name = p.payeeName.replace(/[^A-Za-z0-9 .]/g, "").trim().slice(0, PAYEE_NAME_MAX) || FALLBACK_PAYEE;
+  const fields: Array<[string, string]> = [
+    ["pa", p.upiId],
+    ["pn", name],
+    ["am", p.amountInr.toFixed(2)],
+    ["cu", "INR"],
+    ["tn", NOTE],
+    ["tr", p.payoutId.replace(/-/g, "")],
+  ];
+  return `upi://pay?${fields.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("&")}`;
 }

@@ -25,6 +25,18 @@ test("upiPayLink carries the five fields and an ASCII-safe payee name", () => {
   expect(u.searchParams.get("tr")).toBe("8f1c2a3b4d5e6f708192a3b4c5d6e7f8");
 });
 
+test("upiPayLink percent-encodes spaces — iOS UPI apps do not read + as a space", () => {
+  const link = upiPayLink({ upiId: "priya@okhdfc", payeeName: "Priya & Co's क्रू", amountInr: 1000, payoutId: "8f1c2a3b-4d5e-6f70-8192-a3b4c5d6e7f8" });
+  expect(link).not.toContain("+");
+  expect(link).toContain("pn=Priya%20%20Cos");
+  expect(link).toContain("tn=DanceOS%20team%20pay");
+});
+
+test("upiPayLink never sends an empty payee name — a name with no Latin letters falls back", () => {
+  const link = upiPayLink({ upiId: "a@b", payeeName: "क्रू", amountInr: 1, payoutId: "00000000-0000-0000-0000-000000000000" });
+  expect(new URL(link).searchParams.get("pn")).toBe("DanceOS team member");
+});
+
 test("upiPayLink caps the payee name at 50 characters", () => {
   const link = upiPayLink({ upiId: "a@b", payeeName: "x".repeat(80), amountInr: 1, payoutId: "00000000-0000-0000-0000-000000000000" });
   expect(new URL(link).searchParams.get("pn")).toHaveLength(50);

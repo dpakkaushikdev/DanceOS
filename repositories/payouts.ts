@@ -493,8 +493,8 @@ export async function recordSessionPayment(
     paidOn?: string | null;
     note?: string | null;
   }
-): Promise<void> {
-  const { error } = await supabase.rpc("record_session_payment", {
+): Promise<string> {
+  const { data, error } = await supabase.rpc("record_session_payment", {
     p_business_id: input.businessId,
     p_user_id: input.userId,
     p_lines: input.lines.map((l) =>
@@ -509,6 +509,8 @@ export async function recordSessionPayment(
   if (error) {
     throw new Error(error.message);
   }
+  /* the RPC returns the payout row; its id is the UPI link's reference (2 Nov 2026) */
+  return (data as { id: string }).id;
 }
 
 /** A payment that is NOT for a class or an enquiry (19 Sep 2026, R35 — kept at
@@ -524,8 +526,8 @@ export async function recordTeamPayment(
     paidOn?: string | null;
     note?: string | null;
   }
-): Promise<void> {
-  const { error } = await supabase.rpc("record_team_payment", {
+): Promise<string> {
+  const { data, error } = await supabase.rpc("record_team_payment", {
     p_business_id: input.businessId,
     p_user_id: input.userId,
     p_amount_inr: input.amountInr,
@@ -534,6 +536,16 @@ export async function recordTeamPayment(
     p_paid_on: input.paidOn ?? null,
     p_note: input.note ?? null,
   });
+  if (error) {
+    throw new Error(error.message);
+  }
+  return (data as { id: string }).id;
+}
+
+/** THE PERSON PAID TAPS RECEIVED (2 Nov 2026): in_transit or on_hold becomes
+ *  done, the payer is told; the RPC refuses anyone but the payee. */
+export async function confirmPayoutReceived(supabase: SupabaseClient, payoutId: string): Promise<void> {
+  const { error } = await supabase.rpc("confirm_payout_received", { p_payout_id: payoutId });
   if (error) {
     throw new Error(error.message);
   }

@@ -62,6 +62,26 @@ export async function findPhones(supabase: SupabaseClient, ids: string[], opts: 
   return new Map();
 }
 
+/** A UPI ID FOR PAYING (2 Nov 2026). The column sits behind the phone's wall
+ *  (not in the profiles column grant), so this RPC is the only read: the person
+ *  themselves (`businessId` null), or the owner of a business that can pay them.
+ *  Anyone else reads null, never an error. */
+export async function findUpiIdForPaying(supabase: SupabaseClient, userId: string, businessId: string | null): Promise<string | null> {
+  const { data, error } = await supabase.rpc("upi_id_for_paying", { p_user_id: userId, p_business_id: businessId });
+  if (error) {
+    throw new Error(error.message);
+  }
+  return typeof data === "string" && data ? data : null;
+}
+
+/** Sets or clears the caller's own UPI id; the RPC lower-cases and checks the shape. */
+export async function setMyUpiId(supabase: SupabaseClient, upiId: string | null): Promise<void> {
+  const { error } = await supabase.rpc("set_my_upi_id", { p_upi_id: upiId });
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
 const toSocials = (raw: unknown): SocialLink[] =>
   Array.isArray(raw)
     ? raw

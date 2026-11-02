@@ -157,7 +157,7 @@ export async function payTeamMemberAction(input: {
   status: string;
   paidOn?: string | null;
   note?: string | null;
-}): Promise<StaffActionResult> {
+}): Promise<StaffActionResult & { payoutId: string | null }> {
   const parsed = z
     .object({
       businessId: z.string().uuid(),
@@ -170,11 +170,12 @@ export async function payTeamMemberAction(input: {
     })
     .safeParse(input);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again." };
+    return { error: parsed.error.issues[0]?.message ?? "Something went wrong — please try again.", payoutId: null };
   }
   const supabase = await requireUser();
   try {
-    await recordTeamPayment(supabase, {
+    /* the id comes back for the UPI link's reference (2 Nov 2026) */
+    const payoutId = await recordTeamPayment(supabase, {
       businessId: parsed.data.businessId,
       userId: parsed.data.userId,
       amountInr: parsed.data.amountInr,
@@ -187,9 +188,9 @@ export async function payTeamMemberAction(input: {
     /* it is an expense the moment it is written — the ledger that prints it */
     revalidatePath(`/business/${parsed.data.businessId}/earnings`);
     revalidatePath("/earnings");
-    return { error: null };
+    return { error: null, payoutId };
   } catch (error: unknown) {
-    return { error: message(error, "Could not record that payment") };
+    return { error: message(error, "Could not record that payment"), payoutId: null };
   }
 }
 

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { recordSessionPayment, setPayoutStatus, voidPayout } from "@/repositories/payouts";
+import { confirmPayoutReceived, recordSessionPayment, setPayoutStatus, voidPayout } from "@/repositories/payouts";
 import { recordRentPayment, voidRentPayment } from "@/repositories/rent";
 
 /** ⚠ Money. Team pay and rent are RECORDS of a settlement already made — DanceOS
@@ -20,6 +20,9 @@ import { recordRentPayment, voidRentPayment } from "@/repositories/rent";
 
 export interface PayoutActionResult {
   error: string | null;
+  /** the payout just recorded — the UPI link's reference (2 Nov 2026); null on
+   *  error and on the actions that record nothing */
+  payoutId: string | null;
 }
 
 const METHOD = z.enum(["bank_transfer", "upi", "cash", "other"]);
@@ -102,17 +105,34 @@ const firstIssue = (e: z.ZodError) => e.issues[0]?.message ?? "Something went wr
 export async function recordSessionPaymentAction(input: z.input<typeof sessionPaySchema>): Promise<PayoutActionResult> {
   const parsed = sessionPaySchema.safeParse(input);
   if (!parsed.success) {
-    return { error: firstIssue(parsed.error) };
+    return { error: firstIssue(parsed.error), payoutId: null };
   }
   /* a line at ₹0 is a class settled for nothing — allowed (a favour is a real
      answer), but only beside at least one paid line, said above */
   const supabase = await requireUser();
   try {
-    await recordSessionPayment(supabase, parsed.data);
+    const payoutId = await recordSessionPayment(supabase, parsed.data);
     revalidateMoneySurfaces(parsed.data.businessId);
+    return { error: null, payoutId };
+  } catch (error: unknown) {
+    return { error: error instanceof Error ? error.message : "Could not record that payment", payoutId: null };
+  }
+}
+
+/** THE PERSON PAID TAPS RECEIVED (2 Nov 2026) — their door alone; the RPC
+ *  refuses the payer. Both ledgers change, so both ends are revalidated. */
+export async function confirmPayoutReceivedAction(input: { payoutId: string }): Promise<{ error: string | null }> {
+  const parsed = payoutIdSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: "Something went wrong — please try again." };
+  }
+  const supabase = await requireUser();
+  try {
+    await confirmPayoutReceived(supabase, parsed.data.payoutId);
+    revalidateMoneySurfaces();
     return { error: null };
   } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "Could not record that payment" };
+    return { error: error instanceof Error ? error.message : "Could not mark that received" };
   }
 }
 
@@ -120,16 +140,16 @@ export async function recordSessionPaymentAction(input: z.input<typeof sessionPa
 export async function recordRentPaymentAction(input: z.input<typeof rentSchema>): Promise<PayoutActionResult> {
   const parsed = rentSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: firstIssue(parsed.error) };
+    return { error: firstIssue(parsed.error), payoutId: null };
   }
   const supabase = await requireUser();
   try {
     await recordRentPayment(supabase, parsed.data);
     revalidateMoneySurfaces(parsed.data.payerBusinessId);
     revalidateMoneySurfaces(parsed.data.venueBusinessId);
-    return { error: null };
+    return { error: null, payoutId: null };
   } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "Could not record that rent" };
+    return { error: error instanceof Error ? error.message : "Could not record that rent", payoutId: null };
   }
 }
 
@@ -141,15 +161,15 @@ export async function recordRentPaymentAction(input: z.input<typeof rentSchema>)
 export async function voidRentPaymentAction(input: { id: string }): Promise<PayoutActionResult> {
   const parsed = idSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: "Something went wrong — please try again." };
+    return { error: "Something went wrong — please try again.", payoutId: null };
   }
   const supabase = await requireUser();
   try {
     await voidRentPayment(supabase, parsed.data.id);
     revalidateMoneySurfaces();
-    return { error: null };
+    return { error: null, payoutId: null };
   } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "Could not void that rent" };
+    return { error: error instanceof Error ? error.message : "Could not void that rent", payoutId: null };
   }
 }
 
@@ -160,15 +180,15 @@ export async function setPayoutStatusAction(input: {
 }): Promise<PayoutActionResult> {
   const parsed = statusSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: "Something went wrong — please try again." };
+    return { error: "Something went wrong — please try again.", payoutId: null };
   }
   const supabase = await requireUser();
   try {
     await setPayoutStatus(supabase, parsed.data.payoutId, parsed.data.status, parsed.data.providerRef);
     revalidateMoneySurfaces();
-    return { error: null };
+    return { error: null, payoutId: null };
   } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "Could not update that payment" };
+    return { error: error instanceof Error ? error.message : "Could not update that payment", payoutId: null };
   }
 }
 
@@ -178,14 +198,14 @@ export async function setPayoutStatusAction(input: {
 export async function voidPayoutAction(input: { payoutId: string }): Promise<PayoutActionResult> {
   const parsed = payoutIdSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: "Something went wrong — please try again." };
+    return { error: "Something went wrong — please try again.", payoutId: null };
   }
   const supabase = await requireUser();
   try {
     await voidPayout(supabase, parsed.data.payoutId);
     revalidateMoneySurfaces();
-    return { error: null };
+    return { error: null, payoutId: null };
   } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "Could not void that payment" };
+    return { error: error instanceof Error ? error.message : "Could not void that payment", payoutId: null };
   }
 }

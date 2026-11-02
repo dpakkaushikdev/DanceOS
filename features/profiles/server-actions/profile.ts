@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { nameField } from "@/lib/constants/names";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { findPhones, setMyLearnStyles, updateMyProfile } from "@/repositories/profiles";
+import { UPI_ID_ERROR, normaliseUpiId } from "@/lib/upi/link";
+import { findPhones, setMyLearnStyles, setMyUpiId, updateMyProfile } from "@/repositories/profiles";
 
 /** The Profile tab's one write (S_profiletab: Edit profile 11364, the links
  *  sheet 11161, the styles sheet 11217 — three sheets, one record). Zod checks
@@ -88,6 +89,33 @@ export async function updateMyProfileAction(input: MyProfileInput): Promise<{ er
     return { error: null };
   } catch (error: unknown) {
     return { error: error instanceof Error ? error.message : "Could not save your profile" };
+  }
+}
+
+const upiSchema = z.object({ upiId: z.string().trim().max(300).nullable() });
+
+/** THE UPI ID A STUDIO MAY PAY YOU ON (2 Nov 2026) — its own door, like the
+ *  learn styles: the column is private (not in the profiles column grant) and
+ *  `update_my_profile` takes the public profile. Null clears; a shape that is
+ *  not name@bank is refused here with the same words the RPC uses. */
+export async function setMyUpiIdAction(input: { upiId: string | null }): Promise<{ error: string | null }> {
+  const parsed = upiSchema.safeParse(input);
+  if (!parsed.success) return { error: UPI_ID_ERROR };
+  const raw = parsed.data.upiId;
+  const upiId = raw === null || raw === "" ? null : normaliseUpiId(raw);
+  if (raw && !upiId) return { error: UPI_ID_ERROR };
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+  try {
+    await setMyUpiId(supabase, upiId);
+    revalidatePath("/");
+    revalidatePath(`/person/${user.id}`);
+    return { error: null };
+  } catch (error: unknown) {
+    return { error: error instanceof Error ? error.message : "Could not save your UPI id" };
   }
 }
 

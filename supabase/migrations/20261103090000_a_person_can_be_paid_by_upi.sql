@@ -166,3 +166,32 @@ comment on function public.confirm_payout_received(uuid) is
   'The person paid marks a payout received: in_transit or on_hold becomes done and the payer is told. done is a no-op; failed is refused.';
 revoke execute on function public.confirm_payout_received(uuid) from public, anon;
 grant execute on function public.confirm_payout_received(uuid) to authenticated;
+
+-- ── the payee's notification lands where Received is ──────────────────────────
+-- `notify_payout` (29 Aug 2026) linked `/earnings`, which prints figures and
+-- charts and no payment rows. The rows — and now the Received button — are on
+-- the Other Teams page for that business, so the link goes there, and a payout
+-- on its way says what to do about it. Same trigger, same grants.
+
+create or replace function public.notify_payout()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_tenant text;
+begin
+  select b.name into v_tenant from public.businesses b where b.id = new.business_id;
+  perform public.notify(new.user_id, 'money',
+    coalesce(v_tenant, 'A studio') || ' paid you ₹' || new.amount_inr::text,
+    case new.status
+      when 'done' then 'Recorded as settled.'
+      when 'in_transit' then 'On its way — tap Received when it lands.'
+      else 'Recorded as ' || replace(new.status, '_', ' ') || '.'
+    end,
+    '/team/other/business/' || new.business_id::text);
+  return null;
+end;
+$$;
+revoke execute on function public.notify_payout() from public, anon, authenticated;

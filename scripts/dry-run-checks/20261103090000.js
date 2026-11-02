@@ -25,6 +25,10 @@ module.exports = async (c, { check }) => {
     check(fn && fn.d && !fn.a && fn.u, `${name}: definer, authenticated, not anon`);
   }
 
+  // 2b. the payee's notification now lands on the Other Teams page, where Received is
+  const [np] = await q(`select pg_get_functiondef(p.oid) d from pg_proc p where p.proname = 'notify_payout' and p.pronamespace = 'public'::regnamespace`);
+  check(np && np.d.includes("/team/other/business/") && np.d.includes("tap Received"), "notify_payout links the Other Teams page and says what to do");
+
   // 3. anon's executable set is unchanged
   const [anonN] = await q(
     `select count(*)::int n from pg_proc p where p.pronamespace = 'public'::regnamespace and has_function_privilege('anon', p.oid, 'execute')`
@@ -166,6 +170,25 @@ module.exports = async (c, { check }) => {
     check(/marked failed/.test(e.message), "a failed payout cannot be received", e.message);
   }
   await q("rollback to savepoint e3");
+
+  // 7. the trigger body resolves its tables: a payout on its way tells the payee
+  //    where Received is (plpgsql is not checked against tables until it runs)
+  await q("savepoint f");
+  try {
+    await q(
+      `insert into public.payouts (business_id, user_id, amount_inr, status, method, created_by, updated_by)
+       values ($1, $2, 123, 'in_transit', 'upi', $3, $3)`,
+      [pay.business_id, pay.user_id, owner.user_id]
+    );
+    const [n] = await q(
+      `select href, body from public.notifications where user_id = $1 and title like '% paid you ₹123' order by created_at desc limit 1`,
+      [pay.user_id]
+    );
+    check(n && n.href === `/team/other/business/${pay.business_id}` && /tap Received/.test(n.body), "a payout on its way links the Other Teams page and says what to do", n ? `${n.href} · ${n.body}` : "no row");
+  } catch (e) {
+    check(false, "a payout on its way links the Other Teams page and says what to do", e.message);
+  }
+  await q("rollback to savepoint f");
 
   await q("savepoint e4");
   try {

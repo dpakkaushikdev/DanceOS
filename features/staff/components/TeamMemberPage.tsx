@@ -9,7 +9,7 @@ import { FigureHead } from "@/components/ui/FigureHead";
 import { PayHistoryExport } from "./PayHistoryExport";
 import { MemberManage } from "./MemberManage";
 import { TeamClassesPanel } from "./TeamClassesPanel";
-import { MemberToSettle, VoidPayment } from "./MemberMoney";
+import { MarkFailed, MemberToSettle, VoidPayment } from "./MemberMoney";
 import { RentReceivedList, type HeldClass } from "./RentReceivedList";
 import { PaidCovers } from "@/features/payouts/components/PaidCovers";
 import type { PaymentDispute } from "@/repositories/disputes";
@@ -357,6 +357,7 @@ function EarningsPanel({
                       <ToolChip word={tone.word} fg={tone.ink} bg={tone.ground} />
                       <VoidPayment payoutId={p.id} amountWords={rupees(p.amountInr)} />
                     </div>
+                    {p.status === "in_transit" || p.status === "on_hold" ? <MarkFailed payoutId={p.id} /> : null}
                     {p.providerRef ? <div style={{ fontSize: 10.5, color: SUB, marginTop: 3 }}>Reference {p.providerRef}</div> : null}
                     {p.note ? <div style={{ fontSize: 12, marginTop: 5 }}>{p.note}</div> : null}
                     {/* WHAT IT COVERED — the half the desk's card only counts */}

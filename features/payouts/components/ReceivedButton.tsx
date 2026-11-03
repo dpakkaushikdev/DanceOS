@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { confirmPayoutReceivedAction } from "@/features/payouts/server-actions/payouts";
 
 /** THE PERSON PAID TAPS RECEIVED (2 Nov 2026). Drawn under a payment that is
- *  in transit or on hold on the payee's own Earnings; the RPC moves it to done
+ *  in transit or on hold on the payee's Other Teams page for that studio
+ *  (`PaidToYou`); the RPC moves it to done
  *  and tells the payer. Their door alone — the payer keeps `set_payout_status`
  *  for failed and on hold. */
 export function ReceivedButton({ payoutId }: { payoutId: string }) {

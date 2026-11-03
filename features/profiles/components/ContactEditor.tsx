@@ -232,13 +232,17 @@ function ContactSheet({ target, onClose }: { target: ContactTarget; onClose: () 
       let error: string | null = null;
       if (target.kind === "person") {
         const p = target.profile;
+        /* the UPI id FIRST (3 Nov 2026): it is the one box with a shape that can be
+           refused, so a bad id stops the save before the phone and email land */
+        if (d.upi.trim() !== (target.upiId ?? "")) {
+          const upiOut = await setMyUpiIdAction({ upiId: d.upi.trim() || null });
+          if (upiOut.error) {
+            setErr(upiOut.error);
+            return;
+          }
+        }
         const out = await updateMyProfileAction({ fullName: p.fullName, city: (p.city ?? "").trim(), age: p.age, socials: nextSocials, styles: lists.styles, phone, contactEmail: email, phonePublic: target.isArtist ? d.phonePublic : undefined });
         error = out.error;
-        /* the UPI id is its own door, written only when the box changed */
-        if (!error && d.upi.trim() !== (target.upiId ?? "")) {
-          const out2 = await setMyUpiIdAction({ upiId: d.upi.trim() || null });
-          error = out2.error;
-        }
       } else if (target.kind === "business") {
         const t = target.business;
         const out = await updateBusinessProfileAction({ businessId: t.id, styles: lists.styles, socials: nextSocials, foundedYear: t.foundedYear, phone, contactEmail: email, accepts: t.accepts, enquiryTypes: enqNext() });

@@ -27,7 +27,8 @@ import type { PayLine, PayoutMethod, PayoutStatus } from "@/types/payout";
  *  the payee has said a UPI id and the method is UPI, "Pay ₹N by UPI" records the
  *  payout as IN TRANSIT and then shows the owner's own UPI app a `upi://pay` link
  *  with the figure filled in and the payout's id as its reference, plus a QR of
- *  the same link for another phone. The payee taps Received on their Earnings.
+ *  the same link for another phone. The payee taps Received on their Other Teams
+ *  page for this studio; if it never lands, the owner marks it "Didn't go through".
  *  The "Pay through Cashfree · coming soon" button that stood here from 18 Oct
  *  is gone: routing a studio's money through DanceOS's Cashfree balance is
  *  aggregator territory, a licence rather than a feature. */
@@ -218,7 +219,7 @@ export function SettleSheet({
               Open your UPI app to pay, or scan this from another phone. {face.name} will tap Received when it lands.
             </div>
             {/* the undo for an abandoned app is the one that already exists (review, 2 Nov 2026) */}
-            <div style={{ fontSize: 11, color: MUTED, lineHeight: 1.45, margin: "-8px 0 14px" }}>Backed out of the app? Void the payment on their page.</div>
+            <div style={{ fontSize: 11, color: MUTED, lineHeight: 1.45, margin: "-8px 0 14px" }}>Backed out of the app? Delete the payment on their page.</div>
             <div style={{ display: "flex", justifyContent: "center", margin: "0 0 14px" }}>
               <QRBlock code={paid.link} size={180} label="UPI payment code" />
             </div>

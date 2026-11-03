@@ -510,7 +510,9 @@ export async function recordSessionPayment(
     throw new Error(error.message);
   }
   /* the RPC returns the payout row; its id is the UPI link's reference (2 Nov 2026) */
-  return (data as { id: string }).id;
+  const id = (data as { id?: string } | null)?.id;
+  if (!id) throw new Error("Could not record that payment — please try again");
+  return id;
 }
 
 /** A payment that is NOT for a class or an enquiry (19 Sep 2026, R35 — kept at
@@ -539,7 +541,9 @@ export async function recordTeamPayment(
   if (error) {
     throw new Error(error.message);
   }
-  return (data as { id: string }).id;
+  const id = (data as { id?: string } | null)?.id;
+  if (!id) throw new Error("Could not record that payment — please try again");
+  return id;
 }
 
 /** THE PERSON PAID TAPS RECEIVED (2 Nov 2026): in_transit or on_hold becomes

@@ -1,7 +1,7 @@
 "use client";
 
 import NextImage from "next/image";
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type TouchEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type TouchEvent } from "react";
 import { Portal } from "@/components/ui/Portal";
 import { DISC_RADIUS, DOS_UI, HERO_HEAD_H, HERO_HEAD_RADIUS, HERO_HEAD_W } from "@/lib/design/tokens";
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
@@ -243,9 +243,20 @@ function Stage({ file, frame, onCancel, onUse }: { file: File; frame: CropFrame;
   const outH = Math.round(S.outW / S.ratio);
   const roundness = S.round(W);
 
-  /* one object URL per picture, revoked when the stage goes */
-  const src = useMemo(() => URL.createObjectURL(file), [file]);
-  useEffect(() => () => URL.revokeObjectURL(src), [src]);
+  /* one object URL per picture, MADE AND REVOKED BY THE SAME EFFECT (3 Nov 2026).
+     It was a useMemo with a separate revoking cleanup: React's development Strict
+     Mode runs every effect's cleanup once before the real mount, and the memoised
+     URL survived that rehearsal already revoked — so under `next dev` every
+     picture failed to decode (net::ERR_FILE_NOT_FOUND) and the cropper offered
+     "Use it as it is". Production never double-mounts, but the e2e suite runs
+     against the dev server and stopped at the first photo. */
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    const url = URL.createObjectURL(file);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the URL is an external resource this effect owns
+    setSrc(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
 
   /* {w,h} once THIS picture has actually decoded — see the header comment */
   const [nat, setNat] = useState<Size | null>(null);
@@ -279,6 +290,7 @@ function Stage({ file, frame, onCancel, onUse }: { file: File; frame: CropFrame;
     im.onerror = () => {
       if (!dead) setStuck(true);
     };
+    if (!src) return;
     im.src = src;
     const t = setTimeout(() => {
       if (!dead) setStuck(true);
@@ -437,7 +449,7 @@ function Stage({ file, frame, onCancel, onUse }: { file: File; frame: CropFrame;
           }}
         >
           {/* a local object URL positioned by hand — nothing for the optimizer to do */}
-          <NextImage
+          {src ? <NextImage
             src={src}
             alt=""
             width={Math.max(1, Math.round(P.w))}
@@ -446,7 +458,7 @@ function Stage({ file, frame, onCancel, onUse }: { file: File; frame: CropFrame;
             priority
             draggable={false}
             style={{ position: "absolute", left: cx - iw / 2, top: cy - ih / 2, width: iw, height: ih, maxWidth: "none", transform: rot ? `rotate(${rot}deg)` : undefined, userSelect: "none", WebkitUserSelect: "none", pointerEvents: "none", opacity: ready ? 1 : 0 }}
-          />
+          /> : null}
           {/* the rule of thirds while a finger is down — where to put a face */}
           <span
             aria-hidden="true"

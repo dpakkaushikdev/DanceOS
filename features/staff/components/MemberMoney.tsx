@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { DeleteIconButton } from "@/components/ui/DeleteIconButton";
 import { toolBtn } from "@/components/ui/ToolCard";
 import { toast } from "@/components/ui/Toast";
-import { voidPayoutAction } from "@/features/payouts/server-actions/payouts";
+import { setPayoutStatusAction, voidPayoutAction } from "@/features/payouts/server-actions/payouts";
 import { TeamPaySheet } from "./TeamPaySheet";
 import { sessionDayLabel } from "@/lib/format/session";
 import { INK, MUTED, SUB } from "@/lib/design/tokens";
@@ -107,6 +107,38 @@ export function MemberToSettle({
         />
       ) : null}
     </div>
+  );
+}
+
+/** A PAYMENT THAT NEVER LANDED (3 Nov 2026). A UPI payment is recorded in transit
+ *  before the owner's app opens; when the person never taps Received because the
+ *  money did not arrive, the owner says so here. It stays on the record, marked
+ *  failed — Delete is for a payment recorded by mistake. The owner cannot mark it
+ *  done: only the person paid can say it arrived. */
+export function MarkFailed({ payoutId }: { payoutId: string }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      data-testid="team-payment-failed"
+      onClick={async () => {
+        if (busy) return;
+        setBusy(true);
+        const out = await setPayoutStatusAction({ payoutId, status: "failed" });
+        setBusy(false);
+        if (out.error) {
+          toast.error(out.error);
+          return;
+        }
+        toast("Marked as not received");
+        router.refresh();
+      }}
+      style={{ fontSize: 11, fontWeight: 800, color: SUB, background: "none", border: "1.5px solid var(--el)", borderRadius: 999, padding: "5px 10px", cursor: busy ? "default" : "pointer", fontFamily: "inherit", marginTop: 6 }}
+    >
+      {busy ? "Saving…" : "Didn't go through"}
+    </button>
   );
 }
 

@@ -22,6 +22,7 @@ import { MEMBER_LABEL, MEMBER_ROLE_WORD } from "@/types/staff";
 import { PAYOUT_METHOD_LABEL, payoutTone, type PersonPayHistory, type PersonPayLedger, type RentPayment } from "@/types/payout";
 import type { TeamMember } from "@/repositories/businesses";
 import type { TeamMemberWork } from "@/repositories/teamMemberWork";
+import type { UpiForPaying } from "@/repositories/profiles";
 
 /** ONE PERSON ON ONE TEAM (3 Oct 2026, the user: *"better designed team history
  *  page according to team member card — should have payment details, artist
@@ -504,7 +505,7 @@ export function TeamMemberPage({
   history,
   work,
   ledger,
-  upiId = null,
+  upi = null,
   rent,
   show,
   period = "all",
@@ -514,8 +515,9 @@ export function TeamMemberPage({
 }: {
   /** the latest dispute per entry on this person's payments and rent (19 Oct 2026) */
   disputes?: Record<string, PaymentDispute>;
-  /** their UPI id for paying — the Pay sheet's "Pay by UPI" (2 Nov 2026) */
-  upiId?: string | null;
+  /** their UPI id for paying — the Pay sheet's "Pay by UPI" (2 Nov 2026), with
+   *  the name at the bank and whether Cashfree confirmed it (6 Nov 2026) */
+  upi?: UpiForPaying | null;
   businessId: string;
   businessName: string;
   businessType: BusinessType;
@@ -608,7 +610,7 @@ export function TeamMemberPage({
               <div data-testid="member-money">
                 <MoneyHead id="member-money-to-pay" title="TO PAY" />
                 {/* ⚠ mounted first, so `?pay=1` still opens its sheet (C178) */}
-                <MemberToSettle businessId={businessId} person={{ userId: member.userId, name: member.name, avatarPath: member.avatarPath }} ledger={ledger} upiId={upiId} tint={tint} />
+                <MemberToSettle businessId={businessId} person={{ userId: member.userId, name: member.name, avatarPath: member.avatarPath }} ledger={ledger} upi={upi} tint={tint} />
                 <MoneyHead id="member-money-paid" title="PAID" />
                 <EarningsPanel history={history} work={work} personName={member.name} businessName={businessName} tint={tint} period={period} base={base} disputes={disputes} />
                 {rent.length > 0 ? (

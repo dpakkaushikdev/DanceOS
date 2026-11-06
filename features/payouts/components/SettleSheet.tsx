@@ -11,6 +11,7 @@ import { INK, MUTED, SUB } from "@/lib/design/tokens";
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
 import { upiPayLink } from "@/lib/upi/link";
 import type { PayLine, PayoutMethod, PayoutStatus } from "@/types/payout";
+import type { UpiForPaying } from "@/repositories/profiles";
 
 /** ONE SETTLE SHEET for paying a team member and paying a studio rent (18 Oct
  *  2026, the user: *"no other way to set price from somewhere else it should
@@ -101,7 +102,7 @@ export function SettleSheet({
   items,
   itemsHead,
   emptyWords,
-  upiId = null,
+  upi = null,
   upiOffered = false,
   onSettle,
   onAmountOnly,
@@ -115,8 +116,10 @@ export function SettleSheet({
   itemsHead: string;
   emptyWords: string;
   /** the payee's UPI id when the caller may pay them on it — draws "Pay by UPI";
-   *  absent (rent, a person without one) the sheet is the plain record */
-  upiId?: string | null;
+   *  absent (rent, a person without one) the sheet is the plain record. Since
+   *  6 Nov 2026 it carries the name at the bank and whether Cashfree confirmed
+   *  the id, so the owner can match the name BEFORE their UPI app opens. */
+  upi?: UpiForPaying | null;
   /** ALWAYS OFFER UPI (6 Nov 2026, the user: "hiding the UPI redirect isnt good
    *  idea instead redirect to UPI still be there with a msg this user hasnt
    *  mentioned there UPI id"). True on team pay: the button is drawn whether or
@@ -131,6 +134,9 @@ export function SettleSheet({
   onClose: () => void;
 }) {
   useCloseOnBack(onClose, true);
+  /* the id alone, for the link and the "no id" shake — the name and the
+     verification are read off `upi` where they are shown (6 Nov 2026) */
+  const upiId = upi?.upiId ?? null;
   const [mode, setMode] = useState<"lines" | "amount">(items.length > 0 || !onAmountOnly ? "lines" : "amount");
   /* every line arrives ticked with no amount: the amount is the payer's to type */
   const [ticked, setTicked] = useState<Set<string>>(() => new Set(items.map((i) => i.id)));
@@ -436,6 +442,28 @@ export function SettleSheet({
               >
                 {face.name} hasn&apos;t added a UPI id yet
               </div>
+            ) : null}
+            {/* WHOSE ID THIS IS (6 Nov 2026): what the bank said when the person
+                saved it, or — when nothing could ask the bank — the one check that
+                is left, said as an instruction rather than left to luck */}
+            {upi ? (
+              upi.verifiedAt ? (
+                <div data-testid="settle-upi-verified" style={{ marginTop: 12, padding: "10px 12px", borderRadius: 12, background: "rgba(34,197,94,.10)", border: "1.5px solid rgba(34,197,94,.45)", fontSize: 12, lineHeight: 1.5, color: INK }}>
+                  <b style={{ color: "#22C55E" }}>✓ Verified</b> · <span style={{ fontFamily: "ui-monospace, monospace" }}>{upi.upiId}</span>
+                  {upi.nameAtBank ? (
+                    <>
+                      <br />
+                      The bank has it as <b>{upi.nameAtBank}</b>. Pay only if that is {face.name}.
+                    </>
+                  ) : null}
+                </div>
+              ) : (
+                <div data-testid="settle-upi-unverified" style={{ marginTop: 12, padding: "10px 12px", borderRadius: 12, background: "rgba(245,158,11,.10)", border: "1.5px solid rgba(245,158,11,.45)", fontSize: 12, lineHeight: 1.5, color: INK }}>
+                  <b style={{ color: "#F59E0B" }}>Not verified</b> · <span style={{ fontFamily: "ui-monospace, monospace" }}>{upi.upiId}</span>
+                  <br />
+                  Your UPI app will show the account holder&apos;s name. Pay only if it is {face.name}.
+                </div>
+              )
             ) : null}
             {/* ALWAYS LIT (6 Nov 2026, the user: "isnt visible clearly make it highlight") —
                 pressed without an id it shakes the line above; without an amount it says so */}

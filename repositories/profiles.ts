@@ -74,9 +74,55 @@ export async function findUpiIdForPaying(supabase: SupabaseClient, userId: strin
   return typeof data === "string" && data ? data : null;
 }
 
-/** Sets or clears the caller's own UPI id; the RPC lower-cases and checks the shape. */
+/** Sets or clears the caller's own UPI id; the RPC lower-cases and checks the
+ *  shape. ⚠ A changed or removed id also drops its verification (6 Nov 2026) —
+ *  a verification is of ONE id. */
 export async function setMyUpiId(supabase: SupabaseClient, upiId: string | null): Promise<void> {
   const { error } = await supabase.rpc("set_my_upi_id", { p_upi_id: upiId });
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+/** A UPI id with what Cashfree said about it (6 Nov 2026). `verifiedAt` null
+ *  means nobody has confirmed the id exists — the owner's sheet says so and
+ *  tells them to read the name in their UPI app. */
+export interface UpiForPaying {
+  upiId: string;
+  nameAtBank: string | null;
+  verifiedAt: string | null;
+}
+
+/** THE ID, THE NAME AT THE BANK AND THE VERIFICATION, for who may pay (6 Nov
+ *  2026): the same visibility rule as `findUpiIdForPaying` — the person, or
+ *  the owner of a business that can pay them — answered as one row through
+ *  `upi_for_paying`. No row, and null here, for anyone else and for a person
+ *  with no id. */
+export async function findUpiForPaying(supabase: SupabaseClient, userId: string, businessId: string | null): Promise<UpiForPaying | null> {
+  const { data, error } = await supabase.rpc("upi_for_paying", { p_user_id: userId, p_business_id: businessId });
+  if (error) {
+    throw new Error(error.message);
+  }
+  const row = (Array.isArray(data) ? data[0] : data) as { upi_id?: string | null; name_at_bank?: string | null; verified_at?: string | null } | null | undefined;
+  if (!row || typeof row.upi_id !== "string" || !row.upi_id) return null;
+  return { upiId: row.upi_id, nameAtBank: row.name_at_bank ?? null, verifiedAt: row.verified_at ?? null };
+}
+
+/** ⚠ SERVICE ROLE ONLY (6 Nov 2026): records that Cashfree Secure ID confirmed
+ *  this person's UPI id. `set_upi_id_verified` is revoked from authenticated
+ *  and anon, so a person cannot mark their own id verified by calling the
+ *  database directly — the server calls this AFTER Cashfree has answered,
+ *  with the admin client, the way `connectInstagram` is written. */
+export async function setUpiIdVerified(
+  admin: SupabaseClient,
+  input: { userId: string; upiId: string; nameAtBank: string | null; reference: string | null }
+): Promise<void> {
+  const { error } = await admin.rpc("set_upi_id_verified", {
+    p_user_id: input.userId,
+    p_upi_id: input.upiId,
+    p_name_at_bank: input.nameAtBank,
+    p_verification_ref: input.reference,
+  });
   if (error) {
     throw new Error(error.message);
   }

@@ -7,6 +7,7 @@ import { payTeamMemberAction } from "@/features/staff/server-actions/staff";
 import { money as rupees } from "@/features/payouts/components/earnings-kit";
 import { sessionDayLabel } from "@/lib/format/session";
 import type { PersonPayLedger } from "@/types/payout";
+import type { UpiForPaying } from "@/repositories/profiles";
 
 /** PAY ONE TEAM MEMBER — the Team desk card's Pay sheet, lifted out so the
  *  Member Detail page's To settle column opens the SAME flow (19 Oct 2026, the
@@ -23,7 +24,7 @@ export function TeamPaySheet({
   businessId,
   person,
   ledger,
-  upiId,
+  upi,
   tint,
   onClose,
   onDone,
@@ -32,8 +33,9 @@ export function TeamPaySheet({
   person: { userId: string; name: string; avatarPath: string | null };
   /** what is not settled for this person — null reads as nothing */
   ledger: Pick<PersonPayLedger, "unpaid" | "unpaidEnquiries"> | null;
-  /** their UPI id, when the owner may pay them on it */
-  upiId: string | null;
+  /** their UPI id, when the owner may pay them on it — with the name at the
+   *  bank and whether Cashfree confirmed it (6 Nov 2026) */
+  upi: UpiForPaying | null;
   tint: string;
   onClose: () => void;
   /** after a payment landed — the words to say, and the caller closes/refreshes */
@@ -64,7 +66,7 @@ export function TeamPaySheet({
         ...(ledger?.unpaid ?? []).map((s) => ({ id: s.sessionId, kind: "session" as const, title: s.classTitle, sub: sessionDayLabel(s.startsAt) })),
         ...(ledger?.unpaidEnquiries ?? []).map((e) => ({ id: e.enquiryId, kind: "enquiry" as const, title: e.label, sub: e.role ? `As ${e.role}` : "On the team" })),
       ]}
-      upiId={upiId}
+      upi={upi}
       upiOffered
       onClose={close}
       onSettle={async (lines, meta, { viaUpi }) => {

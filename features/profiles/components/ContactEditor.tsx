@@ -11,6 +11,7 @@ import { setMyUpiIdAction, updateMyProfileAction } from "@/features/profiles/ser
 import type { StudioLinkTarget } from "@/features/businesses/components/StudioLinksRow";
 import { INK, SUB } from "@/lib/design/tokens";
 import { FORM_TITLE } from "@/components/ui/formTitle";
+import type { UpiForPaying } from "@/repositories/profiles";
 import type { Crew } from "@/types/crew";
 import type { Profile, SocialLink } from "@/types/profile";
 import { enquiryTypesFor } from "@/types/enquiry";
@@ -53,8 +54,10 @@ export type ContactTarget =
       isArtist: boolean;
       /** THE UPI ID A STUDIO MAY PAY YOU ON (2 Nov 2026) — not a button, a box on
        *  this sheet because it is contact-shaped and private; its own read and
-       *  its own door (`set_my_upi_id`), never on the public profile */
-      upiId: string | null;
+       *  its own door (`set_my_upi_id`), never on the public profile. Since
+       *  6 Nov 2026 it comes with what Cashfree said about it — the name at
+       *  the bank and when it was verified — so the box can say so. */
+      upi: UpiForPaying | null;
     }
   | { kind: "business"; business: StudioLinkTarget; /** `?edit=1` on the business's own home — where the pin is */ detailsHref: string }
   | { kind: "crew"; crew: Crew; socials: SocialLink[] };
@@ -186,7 +189,7 @@ function ContactSheet({ target, onClose }: { target: ContactTarget; onClose: () 
     phonePublic: target.kind === "person" ? target.profile.phonePublic : target.kind === "crew" ? target.crew.phonePublic : true,
     email: (target.kind === "person" ? target.profile.contactEmail : target.kind === "business" ? target.business.contactEmail : target.crew.contactEmail) ?? "",
     whatsapp: whatsappBox(socials),
-    upi: target.kind === "person" ? (target.upiId ?? "") : "",
+    upi: target.kind === "person" ? (target.upi?.upiId ?? "") : "",
     /* null on the record means every type the kind allows; an empty list means none — no button */
     enquiry: !(Array.isArray(enquiryTypes) && enquiryTypes.length === 0),
     /* the kinds it takes — null on the record is EVERY kind, so the chips open
@@ -230,16 +233,27 @@ function ContactSheet({ target, onClose }: { target: ContactTarget; onClose: () 
     start(async () => {
       setErr(null);
       let error: string | null = null;
+      /* what the UPI save answered, said in the toast beside "saved" (6 Nov 2026) */
+      let upiWords: string | null = null;
       if (target.kind === "person") {
         const p = target.profile;
         /* the UPI id FIRST (3 Nov 2026): it is the one box with a shape that can be
            refused, so a bad id stops the save before the phone and email land */
-        if (d.upi.trim() !== (target.upiId ?? "")) {
+        if (d.upi.trim() !== (target.upi?.upiId ?? "") || (d.upi.trim() && !target.upi?.verifiedAt)) {
+          /* ⚠ ALSO RE-ASKED when the id is unchanged but was never verified
+             (6 Nov 2026): the earlier save may have met a Cashfree fault, and a
+             second Save is the person's way of trying again */
           const upiOut = await setMyUpiIdAction({ upiId: d.upi.trim() || null });
           if (upiOut.error) {
             setErr(upiOut.error);
             return;
           }
+          upiWords =
+            upiOut.outcome?.state === "verified"
+              ? `UPI id verified${upiOut.outcome.nameAtBank ? ` — the bank has it as ${upiOut.outcome.nameAtBank}` : ""}`
+              : upiOut.outcome?.state === "unverified"
+                ? `UPI id saved, not verified: ${upiOut.outcome.reason}`
+                : null;
         }
         const out = await updateMyProfileAction({ fullName: p.fullName, city: (p.city ?? "").trim(), age: p.age, socials: nextSocials, styles: lists.styles, phone, contactEmail: email, phonePublic: target.isArtist ? d.phonePublic : undefined });
         error = out.error;
@@ -261,7 +275,7 @@ function ContactSheet({ target, onClose }: { target: ContactTarget; onClose: () 
         return;
       }
       adopt({ ...lists, socials: nextSocials });
-      toast("Contact buttons saved");
+      toast(upiWords ? `Contact buttons saved · ${upiWords}` : "Contact buttons saved");
       onClose();
       router.refresh();
     });
@@ -332,6 +346,19 @@ function ContactSheet({ target, onClose }: { target: ContactTarget; onClose: () 
               style={cardInput}
             />
             <div style={{ fontSize: 11, color: SUB, marginTop: 7, lineHeight: 1.45 }}>So a studio can pay you from its UPI app. Only a studio paying you sees it.</div>
+            {/* WHAT CASHFREE SAID ABOUT IT (6 Nov 2026) — only for the id as saved;
+                a box being edited says nothing until Save asks again */}
+            {target.upi && d.upi.trim().toLowerCase() === target.upi.upiId ? (
+              target.upi.verifiedAt ? (
+                <div data-testid="upi-verified" style={{ marginTop: 8, fontSize: 11.5, fontWeight: 800, color: "#22C55E", lineHeight: 1.45 }}>
+                  ✓ Verified{target.upi.nameAtBank ? <span style={{ color: INK, fontWeight: 700 }}> · the bank has it as {target.upi.nameAtBank}</span> : null}
+                </div>
+              ) : (
+                <div data-testid="upi-unverified" style={{ marginTop: 8, fontSize: 11.5, fontWeight: 800, color: "#F59E0B", lineHeight: 1.45 }}>
+                  Not verified yet — Save to check it with the bank
+                </div>
+              )
+            ) : null}
           </div>
         ) : null}
 

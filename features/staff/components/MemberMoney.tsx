@@ -10,6 +10,7 @@ import { TeamPaySheet } from "./TeamPaySheet";
 import { sessionDayLabel } from "@/lib/format/session";
 import { INK, MUTED, SUB } from "@/lib/design/tokens";
 import type { PersonPayLedger } from "@/types/payout";
+import type { UpiForPaying } from "@/repositories/profiles";
 
 /** THE MEMBER DETAIL PAGE'S TWO MONEY CONTROLS (19 Oct 2026, the user: "handle
  *  team detail pages better with everything inside that … everything will be
@@ -27,14 +28,15 @@ export function MemberToSettle({
   businessId,
   person,
   ledger,
-  upiId,
+  upi,
   tint,
 }: {
   businessId: string;
   person: { userId: string; name: string; avatarPath: string | null };
   ledger: Pick<PersonPayLedger, "unpaid" | "unpaidEnquiries"> | null;
-  /** their UPI id for paying, when the owner may read it (2 Nov 2026) */
-  upiId: string | null;
+  /** their UPI id for paying, when the owner may read it (2 Nov 2026), with
+   *  the name at the bank and the verification (6 Nov 2026) */
+  upi: UpiForPaying | null;
   tint: string;
 }) {
   const router = useRouter();
@@ -92,7 +94,7 @@ export function MemberToSettle({
           businessId={businessId}
           person={person}
           ledger={ledger}
-          upiId={upiId}
+          upi={upi}
           tint={tint}
           onClose={() => {
             setOpen(false);

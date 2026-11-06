@@ -6,8 +6,10 @@ import { toast } from "@/components/ui/Toast";
 import { methodWord } from "@/lib/format/money";
 import { setRefundWindowAction, updateBusinessProfileAction } from "@/features/settings/server-actions/plans";
 import type { MethodUse } from "@/repositories/invoices";
+import type { UpiForPaying } from "@/repositories/profiles";
 import type { AcceptedMethods, Business } from "@/types/business";
 import { BizPage, bizBtn, bizCard, dayWords, eyebrow, rupees } from "./settings-kit";
+import { UpiPayoutCard } from "./UpiPayoutCard";
 
 /** S_payments (16531-16620): "Payments" for a person and a business (the
  *  Verification tab left on 28 Oct 2026 — one door, in Settings), YOUR METHODS as a card
@@ -66,12 +68,16 @@ const ACCEPT_ROWS: Array<[keyof AcceptedMethods, string]> = [
 export function PaymentsScreen({
   side,
   methods,
+  upi = null,
   business = null,
   canEdit = false,
   refundWindowHours = 12,
 }: {
   side: "mine" | "business";
   methods: MethodUse[];
+  /** A PERSON'S UPI ID, with what the bank said about it (6 Nov 2026) — the
+   *  GET PAID BY UPI card, first on a person's Payments; a business has none */
+  upi?: UpiForPaying | null;
   business?: Business | null;
   canEdit?: boolean;
   /** THE STUDIO'S OWN REFUND WINDOW (11 Oct 2026, `businesses.refund_window_hours`) */
@@ -119,6 +125,9 @@ export function PaymentsScreen({
           (`/business/{id}/verification`); an old address asking for the tab is
           sent there by the route. This page is the payments content alone. */}
       <>
+          {/* GET PAID BY UPI, FIRST (6 Nov 2026, the user: "keep it in settings
+              payment") — a person's alone; the one place the box lives now */}
+          {!isBiz ? <UpiPayoutCard upi={upi} /> : null}
           <div style={eyebrow}>{isBiz ? "HOW STUDENTS PAID" : "YOUR METHODS"} · {methods.length}</div>
           {methods.map((m) => {
             const k = kindOf(m.method);

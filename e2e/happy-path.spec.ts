@@ -2793,10 +2793,9 @@ test.describe.serial("DanceOS, end to end", () => {
     const editSheet = learner.getByRole("dialog", { name: "Contact buttons" });
     await openContacts(learner);
     await editSheet.getByLabel("Phone").fill("+91 98765 43210");
-    /* ⚠ THE UPI ID RIDES THE SAME SHEET (2 Nov 2026): typed with capitals, kept
-       lower-case by `set_my_upi_id`, read back through its own RPC — never off the
-       public profile row, which does not grant the column */
-    await editSheet.getByLabel("UPI id").fill("Learner@OKDOS");
+    /* ⚠ NO UPI ID ON THIS SHEET SINCE 6 NOV 2026 (the user: "keep it in settings
+       payment") — it is the GET PAID BY UPI card on /payments, below */
+    await expect(editSheet.getByLabel("UPI id")).toHaveCount(0);
     await editSheet.getByRole("button", { name: "Save" }).click();
     await expect(editSheet).toHaveCount(0);
     // the record kept it: the sheet re-opens holding the number. `openContacts`
@@ -2804,7 +2803,20 @@ test.describe.serial("DanceOS, end to end", () => {
     // save would race router.refresh() and read the OLD one
     await openContacts(learner);
     await expect(editSheet.getByLabel("Phone")).toHaveValue("+91 98765 43210", { timeout: 15_000 });
-    await expect(editSheet.getByLabel("UPI id")).toHaveValue("learner@okdos");
+    /* ⚠ THE UPI ID IS ON SETTINGS → PAYMENTS (6 Nov 2026): typed with capitals,
+       kept lower-case by `set_my_upi_id`, read back through `upi_for_paying` —
+       never off the public profile row, which does not grant the column. Saving
+       asks Cashfree; with the no-charge check not yet enabled on the account the
+       id is STORED and marked not verified, which is what the owner's sheet reads */
+    await learner.goto("/payments");
+    const upiCard = learner.getByTestId("upi-payout-card");
+    await expect(upiCard).toBeVisible();
+    await upiCard.getByLabel("UPI id").fill("Learner@OKDOS");
+    await upiCard.getByTestId("upi-save").click();
+    await expect(learner.getByText(/UPI id (saved|verified)/)).toBeVisible({ timeout: 30_000 });
+    await learner.goto("/payments");
+    await expect(learner.getByTestId("upi-payout-card").getByLabel("UPI id")).toHaveValue("learner@okdos");
+    await expect(learner.getByTestId("upi-unverified").or(learner.getByTestId("upi-verified"))).toBeVisible();
     // somebody else's read of it: the trainer opens the learner's page — no Call on a user's page
     await trainer.goto(`/person/${learnerId}`);
     // the toggle by its test id: the person page's figures are buttons too (2 Oct 2026)

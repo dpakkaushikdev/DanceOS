@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { SheetHandle, sheetBody, sheetWrap } from "@/features/businesses/components/biz-kit";
 import { money as rupees } from "@/features/payouts/components/earnings-kit";
 import { QRBlock } from "@/components/ui/QRBlock";
@@ -9,7 +9,7 @@ import { columnTab, columnTrack } from "@/components/ui/ColumnTabs";
 import { FORM_TITLE } from "@/components/ui/formTitle";
 import { INK, MUTED, SUB } from "@/lib/design/tokens";
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
-import { UPI_ID_ERROR, normaliseUpiId, upiPayLink } from "@/lib/upi/link";
+import { upiPayLink } from "@/lib/upi/link";
 import type { PayLine, PayoutMethod, PayoutStatus } from "@/types/payout";
 
 /** ONE SETTLE SHEET for paying a team member and paying a studio rent (18 Oct
@@ -146,9 +146,26 @@ export function SettleSheet({
   const [error, setError] = useState<string | null>(null);
   /* set once "Pay by UPI" has recorded: the form gives way to the link */
   const [paid, setPaid] = useState<{ link: string } | null>(null);
-  /* the id typed here when the payee has linked none — this payment only */
-  const [typedUpi, setTypedUpi] = useState("");
-  const payeeUpi = upiId ?? normaliseUpiId(typedUpi);
+  /* the "hasn't added a UPI id" line, shaken when the button is pressed without one */
+  const missingRef = useRef<HTMLDivElement | null>(null);
+  const shakeMissing = () => {
+    const el = missingRef.current;
+    if (!el) return;
+    const calm = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    el.animate(
+      calm
+        ? [{ opacity: 1 }, { opacity: 0.35 }, { opacity: 1 }]
+        : [
+            { transform: "translateX(0) rotate(0)" },
+            { transform: "translateX(-7px) rotate(-1.5deg)" },
+            { transform: "translateX(7px) rotate(1.5deg)" },
+            { transform: "translateX(-5px) rotate(-1deg)" },
+            { transform: "translateX(5px) rotate(1deg)" },
+            { transform: "translateX(0) rotate(0)" },
+          ],
+      { duration: 450, easing: "ease-in-out" }
+    );
+  };
 
   const chosen = useMemo(() => items.filter((i) => ticked.has(i.id)), [items, ticked]);
   const amountOf = (id: string) => Number(amounts[id] || 0);
@@ -205,10 +222,18 @@ export function SettleSheet({
 
   /* IN TRANSIT by UPI: the record first, so its id is the link's reference */
   const payByUpi = async () => {
-    if (!payeeUpi) return;
+    /* no id: say why nothing happens — the line shakes (6 Nov 2026, the user) */
+    if (!upiId) {
+      shakeMissing();
+      return;
+    }
+    if (blocker) {
+      setError(blocker);
+      return;
+    }
     const out = await record({ ...meta(), method: "upi", status: "in_transit" }, true);
     if (out && !out.error && out.payoutId) {
-      setPaid({ link: upiPayLink({ upiId: payeeUpi, payeeName: face.name, amountInr: total, payoutId: out.payoutId }) });
+      setPaid({ link: upiPayLink({ upiId, payeeName: face.name, amountInr: total, payoutId: out.payoutId }) });
     }
   };
 
@@ -403,37 +428,23 @@ export function SettleSheet({
         {(upiOffered || upiId) && method === "upi" ? (
           <div data-testid="settle-upi">
             {!upiId ? (
-              <div style={{ marginTop: 14, padding: "11px 12px", borderRadius: 12, background: "rgba(245,158,11,.10)", border: "1.5px solid rgba(245,158,11,.45)" }}>
-                <div data-testid="settle-upi-missing" style={{ fontSize: 12, fontWeight: 800, color: INK }}>
-                  {face.name} hasn&apos;t added a UPI id yet
-                </div>
-                <div style={{ fontSize: 11, color: SUB, margin: "3px 0 8px", lineHeight: 1.45 }}>
-                  Type it here to pay now — it is used for this payment only. They can add their own from their profile&apos;s contact buttons.
-                </div>
-                <input
-                  value={typedUpi}
-                  onChange={(e) => setTypedUpi(e.target.value.slice(0, 300))}
-                  placeholder="name@bank or 9876543210@ybl"
-                  aria-label={`${face.name}'s UPI id`}
-                  inputMode="email"
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  style={input}
-                />
-                {typedUpi.trim() && !payeeUpi ? (
-                  <div role="alert" style={{ fontSize: 11, color: "#F87171", fontWeight: 700, marginTop: 6 }}>
-                    {UPI_ID_ERROR}
-                  </div>
-                ) : null}
+              <div
+                ref={missingRef}
+                role="status"
+                data-testid="settle-upi-missing"
+                style={{ marginTop: 14, padding: "11px 12px", borderRadius: 12, background: "rgba(245,158,11,.12)", border: "1.5px solid rgba(245,158,11,.55)", fontSize: 12.5, fontWeight: 800, color: INK }}
+              >
+                {face.name} hasn&apos;t added a UPI id yet
               </div>
             ) : null}
+            {/* ALWAYS LIT (6 Nov 2026, the user: "isnt visible clearly make it highlight") —
+                pressed without an id it shakes the line above; without an amount it says so */}
             <button
               type="button"
-              disabled={busy || Boolean(blocker) || !payeeUpi}
+              disabled={busy}
               onClick={payByUpi}
               data-testid="settle-upi-pay"
-              style={{ ...pill, marginTop: 12, background: blocker || !payeeUpi ? EL : tint, color: blocker || !payeeUpi ? MUTED : "#fff", cursor: blocker || !payeeUpi ? "default" : "pointer" }}
+              style={{ ...pill, marginTop: 12, background: tint, color: "#fff", boxShadow: `0 6px 18px ${tint}55`, cursor: busy ? "default" : "pointer" }}
             >
               {busy ? "Recording…" : `Pay ${rupees(total)} by UPI`}
             </button>

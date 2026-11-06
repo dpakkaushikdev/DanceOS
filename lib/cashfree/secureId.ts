@@ -28,7 +28,10 @@ import { createPublicKey, publicEncrypt, constants as cryptoConstants } from "no
  *  `https://api.cashfree.com/verification`, picked by CASHFREE_ENV exactly as
  *  `api.ts` picks the PG host. */
 
-const API_VERSION = "2022-09-13";
+/* ⚠ 2024-12-01, NOT the quickstart's 2022-09-13 (6 Nov 2026): penny drop refuses
+   the older one by name (`version_value_invalid: provided x-api-version should be
+   2024-12-01`), and the plain route answers identically under either. */
+const API_VERSION = "2024-12-01";
 
 export type SecureIdMode = "sandbox" | "production";
 

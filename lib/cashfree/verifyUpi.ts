@@ -58,8 +58,12 @@ interface CashfreeUpiAnswer {
 }
 
 /** Cashfree's `verification_id` grammar: ≤50 of [A-Za-z0-9._-]. Ours names the
- *  person and the second, so a retry is a new lookup and a dispute can find it. */
-const verificationIdFor = (userId: string): string => `upi-${userId.replace(/-/g, "").slice(0, 24)}-${Math.floor(Date.now() / 1000)}`;
+ *  person, the millisecond and six random characters — 41 in all — so two
+ *  lookups can never share one. ⚠ IT WAS THE SECOND, and the first four calls
+ *  in a row answered `409 verification_id_already_exists` after the first
+ *  (6 Nov 2026): a person double-tapping Save would have met the same. */
+const verificationIdFor = (userId: string): string =>
+  `upi-${userId.replace(/-/g, "").slice(0, 16)}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 export async function verifyUpiId(input: { userId: string; upiId: string; expectedName?: string | null }): Promise<UpiVerification> {
   const upiId = normaliseUpiId(input.upiId);
@@ -79,10 +83,15 @@ export async function verifyUpiId(input: { userId: string; upiId: string; expect
             obtained: true,
             type: "EXPLICIT",
             timestamp: new Date().toISOString(),
-            purpose: "Verify the UPI id a studio may pay this person on, at their request",
+            /* ⚠ LETTERS AND SPACES ONLY (6 Nov 2026): Cashfree refuses a purpose
+               with "special characters" — a comma was enough (`purpose_value_invalid`) */
+            purpose: "Verify the UPI id a studio may pay this person on at their own request",
           },
         }
-      : { vpa: upiId, ...(input.expectedName ? { name: input.expectedName.slice(0, 100) } : {}) };
+      : /* ⚠ `verification_id` on the plain route too (6 Nov 2026): the first
+           SIGNED call answered 400 `verification_id_missing` — the route is
+           past its documentation, and it wants the same id penny drop wants */
+        { verification_id: verificationIdFor(input.userId), vpa: upiId, ...(input.expectedName ? { name: input.expectedName.slice(0, 100) } : {}) };
 
   let answer: CashfreeUpiAnswer;
   try {
@@ -112,11 +121,32 @@ export async function verifyUpiId(input: { userId: string; upiId: string; expect
       if (error.status === 401 || error.status === 403) {
         return { outcome: "unavailable", code: error.code, reason: "Cashfree refused the verification keys" };
       }
+      /* ⚠ THE PLAIN ROUTE EXISTS BUT IS A SERVICE CASHFREE SWITCHES ON PER
+         ACCOUNT (6 Nov 2026): signed and well-formed, it answered "service not
+         enabled for this account". Penny drop was enabled on the same account.
+         Said precisely, so the switch to make is obvious. */
+      if (/service not enabled/i.test(error.message)) {
+        return {
+          outcome: "unavailable",
+          code: "service_not_enabled",
+          reason:
+            strategy === "plain"
+              ? "The no-charge UPI check is not enabled on this Cashfree account — ask Cashfree to enable UPI verification, or set CASHFREE_UPI_VERIFY=penny-drop"
+              : "UPI penny drop is not enabled on this Cashfree account",
+        };
+      }
+      /* the one lookup id used twice — cannot happen with the id above, but if
+         it ever does the person should simply press Save again */
+      if (error.status === 409 || error.code === "verification_id_already_exists") {
+        return { outcome: "unavailable", code: "verification_id_already_exists", reason: "Cashfree saw that check already — press Save again" };
+      }
       /* a 4xx with a VPA-shaped complaint is Cashfree saying the id itself is bad */
       if (error.status >= 400 && error.status < 500 && /vpa|upi/i.test(error.message)) {
         return { outcome: "invalid", reason: "Cashfree does not recognise that UPI id" };
       }
-      return { outcome: "unavailable", code: error.code, reason: `Cashfree could not check the id (${error.status})` };
+      /* Cashfree's own sentence rides along: it is the one clue to what the
+         body lacks, and a reason that says only "(400)" hid exactly that */
+      return { outcome: "unavailable", code: error.code, reason: `Cashfree could not check the id (${error.status}${error.message ? `: ${error.message.slice(0, 140)}` : ""})` };
     }
     return { outcome: "unavailable", code: null, reason: "Cashfree could not be reached" };
   }

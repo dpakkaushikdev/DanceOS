@@ -4,6 +4,7 @@ import { PaymentsScreen } from "@/features/settings/components/PaymentsScreen";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findBusinessInvoices, methodUsesOf } from "@/repositories/invoices";
 import { findMyMemberships, runsTheBusiness } from "@/repositories/businesses";
+import { findUpiForPaying } from "@/repositories/profiles";
 import { findRefundWindowHours } from "@/repositories/refundWindow";
 
 export const metadata: Metadata = { title: "Payments — DanceOS" };
@@ -39,6 +40,18 @@ export default async function BusinessPaymentsPage({
   }
   /* the studio's own refund window (11 Oct 2026) rides beside the ledger read —
      it answers 12 on any failure, so it can never take the page down */
-  const [rows, refundWindowHours] = await Promise.all([findBusinessInvoices(supabase, businessId), findRefundWindowHours(supabase, businessId)]);
-  return <PaymentsScreen side="business" methods={methodUsesOf(rows)} business={business} canEdit={role === "owner"} refundWindowHours={refundWindowHours} />;
+  /* ⚠ AN ARTIST'S OWN UPI ID RIDES THEIR ARTIST PAGE'S PAYMENTS (6 Nov 2026, the
+     user, on the studio-shaped page their artist profile's Settings opened:
+     "i cant see such option in payments"). For an artist, "yourself" in the
+     switcher IS the artist page, so its Settings → Payments is this page, not
+     `/payments` — and an artist is exactly who a studio pays. The id is the
+     PERSON's (`profiles.upi_id`), read for the page's owner alone; a studio or
+     a crew carries none. */
+  const artistOwner = business.type === "artist_page" && role === "owner";
+  const [rows, refundWindowHours, upi] = await Promise.all([
+    findBusinessInvoices(supabase, businessId),
+    findRefundWindowHours(supabase, businessId),
+    artistOwner ? findUpiForPaying(supabase, user.id, null).catch(() => null) : Promise.resolve(null),
+  ]);
+  return <PaymentsScreen side="business" methods={methodUsesOf(rows)} business={business} canEdit={role === "owner"} refundWindowHours={refundWindowHours} upi={upi} />;
 }

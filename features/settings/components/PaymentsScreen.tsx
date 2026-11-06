@@ -126,8 +126,11 @@ export function PaymentsScreen({
           sent there by the route. This page is the payments content alone. */}
       <>
           {/* GET PAID BY UPI, FIRST (6 Nov 2026, the user: "keep it in settings
-              payment") — a person's alone; the one place the box lives now */}
-          {!isBiz ? <UpiPayoutCard upi={upi} /> : null}
+              payment") — a PERSON's: on their own Payments, and on their ARTIST
+              PAGE's Payments when they own it, because for an artist that page
+              is what Settings opens ("i cant see such option in payments"). A
+              studio's or a crew's Payments draws none. */}
+          {!isBiz || (business?.type === "artist_page" && canEdit) ? <UpiPayoutCard upi={upi} /> : null}
           <div style={eyebrow}>{isBiz ? "HOW STUDENTS PAID" : "YOUR METHODS"} · {methods.length}</div>
           {methods.map((m) => {
             const k = kindOf(m.method);

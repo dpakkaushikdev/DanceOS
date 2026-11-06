@@ -65,6 +65,7 @@ export function TeamPaySheet({
         ...(ledger?.unpaidEnquiries ?? []).map((e) => ({ id: e.enquiryId, kind: "enquiry" as const, title: e.label, sub: e.role ? `As ${e.role}` : "On the team" })),
       ]}
       upiId={upiId}
+      upiOffered
       onClose={close}
       onSettle={async (lines, meta, { viaUpi }) => {
         const out = await recordSessionPaymentAction({ businessId, userId: person.userId, lines, ...meta });

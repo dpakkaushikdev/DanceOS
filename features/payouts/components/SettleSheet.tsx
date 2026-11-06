@@ -9,7 +9,7 @@ import { columnTab, columnTrack } from "@/components/ui/ColumnTabs";
 import { FORM_TITLE } from "@/components/ui/formTitle";
 import { INK, MUTED, SUB } from "@/lib/design/tokens";
 import { useCloseOnBack } from "@/lib/hooks/useCloseOnBack";
-import { upiPayLink } from "@/lib/upi/link";
+import { UPI_ID_ERROR, normaliseUpiId, upiPayLink } from "@/lib/upi/link";
 import type { PayLine, PayoutMethod, PayoutStatus } from "@/types/payout";
 
 /** ONE SETTLE SHEET for paying a team member and paying a studio rent (18 Oct
@@ -102,6 +102,7 @@ export function SettleSheet({
   itemsHead,
   emptyWords,
   upiId = null,
+  upiOffered = false,
   onSettle,
   onAmountOnly,
   onClose,
@@ -116,6 +117,12 @@ export function SettleSheet({
   /** the payee's UPI id when the caller may pay them on it — draws "Pay by UPI";
    *  absent (rent, a person without one) the sheet is the plain record */
   upiId?: string | null;
+  /** ALWAYS OFFER UPI (6 Nov 2026, the user: "hiding the UPI redirect isnt good
+   *  idea instead redirect to UPI still be there with a msg this user hasnt
+   *  mentioned there UPI id"). True on team pay: the button is drawn whether or
+   *  not the payee linked an id; without one, the owner types it for this payment
+   *  only (never saved — the id is the payee's to set). Rent leaves it false. */
+  upiOffered?: boolean;
   /** `viaUpi` says the record was made by "Pay by UPI": the caller then holds
    *  its "done" words until the sheet closes, because the link is shown next */
   onSettle: (lines: PayLine[], meta: SettleMeta, opts: { viaUpi: boolean }) => Promise<SettleResult>;
@@ -139,6 +146,9 @@ export function SettleSheet({
   const [error, setError] = useState<string | null>(null);
   /* set once "Pay by UPI" has recorded: the form gives way to the link */
   const [paid, setPaid] = useState<{ link: string } | null>(null);
+  /* the id typed here when the payee has linked none — this payment only */
+  const [typedUpi, setTypedUpi] = useState("");
+  const payeeUpi = upiId ?? normaliseUpiId(typedUpi);
 
   const chosen = useMemo(() => items.filter((i) => ticked.has(i.id)), [items, ticked]);
   const amountOf = (id: string) => Number(amounts[id] || 0);
@@ -195,10 +205,10 @@ export function SettleSheet({
 
   /* IN TRANSIT by UPI: the record first, so its id is the link's reference */
   const payByUpi = async () => {
-    if (!upiId) return;
+    if (!payeeUpi) return;
     const out = await record({ ...meta(), method: "upi", status: "in_transit" }, true);
     if (out && !out.error && out.payoutId) {
-      setPaid({ link: upiPayLink({ upiId, payeeName: face.name, amountInr: total, payoutId: out.payoutId }) });
+      setPaid({ link: upiPayLink({ upiId: payeeUpi, payeeName: face.name, amountInr: total, payoutId: out.payoutId }) });
     }
   };
 
@@ -390,16 +400,44 @@ export function SettleSheet({
           </div>
         ) : null}
 
-        {upiId && method === "upi" ? (
-          <button
-            type="button"
-            disabled={busy || Boolean(blocker)}
-            onClick={payByUpi}
-            data-testid="settle-upi-pay"
-            style={{ ...pill, marginTop: 14, background: blocker ? EL : tint, color: blocker ? MUTED : "#fff", cursor: blocker ? "default" : "pointer" }}
-          >
-            {busy ? "Recording…" : `Pay ${rupees(total)} by UPI`}
-          </button>
+        {(upiOffered || upiId) && method === "upi" ? (
+          <div data-testid="settle-upi">
+            {!upiId ? (
+              <div style={{ marginTop: 14, padding: "11px 12px", borderRadius: 12, background: "rgba(245,158,11,.10)", border: "1.5px solid rgba(245,158,11,.45)" }}>
+                <div data-testid="settle-upi-missing" style={{ fontSize: 12, fontWeight: 800, color: INK }}>
+                  {face.name} hasn&apos;t added a UPI id yet
+                </div>
+                <div style={{ fontSize: 11, color: SUB, margin: "3px 0 8px", lineHeight: 1.45 }}>
+                  Type it here to pay now — it is used for this payment only. They can add their own from their profile&apos;s contact buttons.
+                </div>
+                <input
+                  value={typedUpi}
+                  onChange={(e) => setTypedUpi(e.target.value.slice(0, 300))}
+                  placeholder="name@bank or 9876543210@ybl"
+                  aria-label={`${face.name}'s UPI id`}
+                  inputMode="email"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  style={input}
+                />
+                {typedUpi.trim() && !payeeUpi ? (
+                  <div role="alert" style={{ fontSize: 11, color: "#F87171", fontWeight: 700, marginTop: 6 }}>
+                    {UPI_ID_ERROR}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+            <button
+              type="button"
+              disabled={busy || Boolean(blocker) || !payeeUpi}
+              onClick={payByUpi}
+              data-testid="settle-upi-pay"
+              style={{ ...pill, marginTop: 12, background: blocker || !payeeUpi ? EL : tint, color: blocker || !payeeUpi ? MUTED : "#fff", cursor: blocker || !payeeUpi ? "default" : "pointer" }}
+            >
+              {busy ? "Recording…" : `Pay ${rupees(total)} by UPI`}
+            </button>
+          </div>
         ) : null}
         <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
           <button type="button" onClick={onClose} style={{ flex: 1, padding: "12px", borderRadius: 999, background: CARD, border: `1.5px solid ${EL}`, fontWeight: 800, fontSize: 12.5, cursor: "pointer", color: INK, fontFamily: "inherit" }}>

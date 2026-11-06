@@ -112,10 +112,8 @@ export async function verifyUpiId(input: { userId: string; upiId: string; expect
         return {
           outcome: "unavailable",
           code: error.code ?? "route_not_found",
-          reason:
-            strategy === "plain"
-              ? "The plain UPI check is not on this Cashfree account — set CASHFREE_UPI_VERIFY=penny-drop to use the one-rupee check"
-              : "Cashfree does not offer UPI penny drop on this account",
+          /* the person's sentence; the `code` says which route was missing */
+          reason: "the bank check is not available right now — a studio paying you will see your name in their UPI app",
         };
       }
       if (error.status === 401 || error.status === 403) {
@@ -126,13 +124,15 @@ export async function verifyUpiId(input: { userId: string; upiId: string; expect
          enabled for this account". Penny drop was enabled on the same account.
          Said precisely, so the switch to make is obvious. */
       if (/service not enabled/i.test(error.message)) {
+        /* ⚠ SAID TO THE PERSON, NOT THE DEVELOPER (6 Nov 2026, the user: "free
+           check no penny drop as of now"): this is the branch every save lands
+           in until Cashfree switches the no-charge check on, so the sentence is
+           the one a dancer reads in the toast. The diagnosis is the `code`;
+           the switch to make is in .env.local.example. */
         return {
           outcome: "unavailable",
           code: "service_not_enabled",
-          reason:
-            strategy === "plain"
-              ? "The no-charge UPI check is not enabled on this Cashfree account — ask Cashfree to enable UPI verification, or set CASHFREE_UPI_VERIFY=penny-drop"
-              : "UPI penny drop is not enabled on this Cashfree account",
+          reason: "the bank check is not switched on yet — a studio paying you will see your name in their UPI app",
         };
       }
       /* the one lookup id used twice — cannot happen with the id above, but if

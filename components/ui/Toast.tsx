@@ -137,7 +137,11 @@ export function Toaster() {
         animation: "dosSheetUp .22s cubic-bezier(.22,.9,.34,1)",
       }}
     >
-      <span style={{ flex: 1 }}>{item.msg}</span>
+      {/* ⚠ `minWidth: 0` AND `overflowWrap` (6 Nov 2026): a flex child will not
+          shrink below its content, so one long unbroken word — a bank's name
+          back from Cashfree, a UPI id — pushed the bubble past `maxWidth` and
+          its tail off the right edge of a phone. */}
+      <span style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>{item.msg}</span>
       {item.kind === "undo" && (
         <button
           type="button"
